@@ -14,17 +14,24 @@ interface Lead {
   loan_amount: number | null;
   loan_purpose: string | null;
   status: string;
+  source?: string | null;
   created_at: string;
+}
+
+interface LeadSource {
+  name: string;
+  label: string;
 }
 
 interface LeadsKanbanProps {
   leads: Lead[];
   statuses: LeadStatus[];
+  leadSources?: LeadSource[];
   onOpenLead: (lead: Lead) => void;
   onUpdateStatus: (leadId: string, newStatus: string) => void;
 }
 
-export function LeadsKanban({ leads, statuses, onOpenLead, onUpdateStatus }: LeadsKanbanProps) {
+export function LeadsKanban({ leads, statuses, leadSources = [], onOpenLead, onUpdateStatus }: LeadsKanbanProps) {
   const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set());
 
   const toggleCollapse = (statusName: string) => {
@@ -123,6 +130,11 @@ export function LeadsKanban({ leads, statuses, onOpenLead, onUpdateStatus }: Lea
                           )}
                           {lead.loan_amount && (
                             <p className="text-xs font-medium">${lead.loan_amount.toLocaleString()}</p>
+                          )}
+                          {lead.source && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground inline-block">
+                              {leadSources.find(s => s.name === lead.source)?.label || lead.source}
+                            </span>
                           )}
                           <p className="text-xs text-muted-foreground">{format(new Date(lead.created_at), 'dd MMM')}</p>
                         </CardContent>

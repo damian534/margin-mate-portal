@@ -24,6 +24,7 @@ interface Lead {
   loan_amount: number | null;
   loan_purpose: string | null;
   status: string;
+  source?: string | null;
   created_at: string;
 }
 
