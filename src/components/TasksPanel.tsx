@@ -27,9 +27,10 @@ interface Task {
 
 interface TasksPanelProps {
   leads: Array<{ id: string; first_name: string; last_name: string }>;
+  onOpenLead?: (leadId: string) => void;
 }
 
-export function TasksPanel({ leads }: TasksPanelProps) {
+export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
   const { user, isPreviewMode } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -207,13 +208,16 @@ export function TasksPanel({ leads }: TasksPanelProps) {
             const isOverdue = !task.completed && task.due_date && isPast(new Date(task.due_date)) && !isToday(new Date(task.due_date));
             const isDueToday = task.due_date && isToday(new Date(task.due_date));
             return (
-              <Card key={task.id} className={`transition-opacity ${task.completed ? 'opacity-60' : ''} ${isOverdue ? 'border-destructive/50' : ''}`}>
+              <Card key={task.id} className={`transition-opacity cursor-pointer hover:bg-muted/50 ${task.completed ? 'opacity-60' : ''} ${isOverdue ? 'border-destructive/50' : ''}`}
+                onClick={() => onOpenLead?.(task.lead_id)}>
                 <CardContent className="py-3 px-4 flex items-start gap-3">
-                  <Checkbox
-                    checked={task.completed}
-                    onCheckedChange={() => toggleComplete(task)}
-                    className="mt-1"
-                  />
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={task.completed}
+                      onCheckedChange={() => toggleComplete(task)}
+                      className="mt-1"
+                    />
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className={`font-medium text-sm ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
                       {task.title}
