@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { User, Building2, Search, Plus, X } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { User, Building2, Search, Plus, X, UserPlus } from 'lucide-react';
 
 export interface ReferrerProfileData {
   id: string;
@@ -42,18 +43,56 @@ interface ReferrerProfilesProps {
 }
 
 export function ReferrerProfiles({ referrers, companies, onRefresh, isPreviewMode, onViewReport }: ReferrerProfilesProps) {
+  const { user } = useAuth();
   const [selected, setSelected] = useState<ReferrerProfileData | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState<Partial<ReferrerProfileData>>({});
   const [customFieldKey, setCustomFieldKey] = useState('');
   const [customFieldValue, setCustomFieldValue] = useState('');
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [newPartner, setNewPartner] = useState({ full_name: '', email: '', phone: '', company_name: '' });
+  const [adding, setAdding] = useState(false);
 
   const filtered = referrers.filter(r => {
     if (!search) return true;
     const q = search.toLowerCase();
     return r.full_name?.toLowerCase().includes(q) || r.email?.toLowerCase().includes(q) || r.company_name?.toLowerCase().includes(q);
   });
+
+  const addPartnerManually = async () => {
+    if (!newPartner.full_name.trim() || !newPartner.email.trim()) {
+      toast.error('Name and email are required');
+      return;
+    }
+    if (isPreviewMode) {
+      toast.success('Partner added (preview)');
+      setAddDialogOpen(false);
+      setNewPartner({ full_name: '', email: '', phone: '', company_name: '' });
+      return;
+    }
+    setAdding(true);
+    // Create a profile with a placeholder user_id, linked to current broker
+    const placeholderUserId = crypto.randomUUID();
+    const { error } = await supabase.from('profiles').insert({
+      user_id: placeholderUserId,
+      email: newPartner.email.trim(),
+      full_name: newPartner.full_name.trim(),
+      phone: newPartner.phone.trim() || null,
+      company_name: newPartner.company_name.trim() || null,
+      broker_id: user?.id,
+    } as any);
+    setAdding(false);
+    if (error) {
+      toast.error('Failed to add partner');
+      console.error(error);
+      return;
+    }
+    toast.success('Partner added. They can register with this email to access their dashboard.');
+    setAddDialogOpen(false);
+    setNewPartner({ full_name: '', email: '', phone: '', company_name: '' });
+    onRefresh();
+  };
 
   const openProfile = (r: ReferrerProfileData) => {
     setSelected(r);
@@ -116,6 +155,28 @@ export function ReferrerProfiles({ referrers, companies, onRefresh, isPreviewMod
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-heading font-semibold">Referrers</h2>
+        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" className="gap-1.5"><UserPlus className="w-4 h-4" /> Add Partner</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Referral Partner</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              Add a partner manually. When they register with the same email, their account will automatically link to this profile.
+            </p>
+            <div className="space-y-3 mt-2">
+              <div><Label>Full Name *</Label><Input value={newPartner.full_name} onChange={e => setNewPartner(p => ({ ...p, full_name: e.target.value }))} placeholder="e.g. John Smith" /></div>
+              <div><Label>Email *</Label><Input type="email" value={newPartner.email} onChange={e => setNewPartner(p => ({ ...p, email: e.target.value }))} placeholder="e.g. john@realestate.com" /></div>
+              <div><Label>Phone</Label><Input value={newPartner.phone} onChange={e => setNewPartner(p => ({ ...p, phone: e.target.value }))} placeholder="e.g. 0411 222 333" /></div>
+              <div><Label>Company</Label><Input value={newPartner.company_name} onChange={e => setNewPartner(p => ({ ...p, company_name: e.target.value }))} placeholder="e.g. Ray White" /></div>
+              <Button onClick={addPartnerManually} className="w-full" disabled={adding}>
+                {adding ? 'Adding...' : 'Add Partner'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="relative max-w-sm">
