@@ -35,7 +35,7 @@ export default function Login() {
       <Card className="w-full max-w-md animate-fade-in">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <Logo />
+            <Logo className="h-16" />
           </div>
           <CardTitle className="text-2xl">Welcome Back</CardTitle>
           <CardDescription>Sign in to your Margin Finance portal</CardDescription>
