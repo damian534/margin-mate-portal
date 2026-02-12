@@ -39,25 +39,38 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      toast.error(error.message);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        toast.error(error.message);
+        setLoading(false);
+        return;
+      }
+      
+      // Query role using the freshly authenticated session
+      let userRole: string | null = null;
+      try {
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', data.user.id)
+          .maybeSingle();
+        userRole = roleData?.role ?? null;
+      } catch {
+        // Role query failed, default to partner dashboard
+      }
+      
+      toast.success('Welcome back!');
+      if (userRole === 'broker' || userRole === 'super_admin') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch {
+      toast.error('An unexpected error occurred');
+    } finally {
       setLoading(false);
-      return;
     }
-    const { data: roleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', data.user.id)
-      .maybeSingle();
-    const userRole = roleData?.role;
-    toast.success('Welcome back!');
-    if (userRole === 'broker' || userRole === 'super_admin') {
-      navigate('/admin');
-    } else {
-      navigate('/dashboard');
-    }
-    setLoading(false);
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
