@@ -14,6 +14,7 @@ import { ReferrerReports } from '@/components/ReferrerReports';
 import { AddLeadDialog } from '@/components/AddLeadDialog';
 import { ContactsManagement, Contact } from '@/components/ContactsManagement';
 import { InviteCodeManagement } from '@/components/InviteCodeManagement';
+import { UserManagement } from '@/components/UserManagement';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,7 +29,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Send, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign, Contact as ContactIcon, KeyRound } from 'lucide-react';
+import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Send, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign, Contact as ContactIcon, KeyRound, UserCog } from 'lucide-react';
 
 interface Lead {
   id: string;
@@ -302,6 +303,9 @@ export default function AdminCRM() {
             <TabsTrigger value="invites" className="flex items-center gap-1.5">
               <KeyRound className="w-4 h-4" /> Invites
             </TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center gap-1.5">
+              <UserCog className="w-4 h-4" /> Users
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="leads" className="space-y-4 mt-4">
@@ -449,6 +453,10 @@ export default function AdminCRM() {
 
           <TabsContent value="invites" className="mt-4">
             <InviteCodeManagement />
+          </TabsContent>
+
+          <TabsContent value="users" className="mt-4">
+            <UserManagement />
           </TabsContent>
         </Tabs>
       </main>
