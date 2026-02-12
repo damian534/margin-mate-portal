@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { SAMPLE_LEADS, SAMPLE_NOTES } from '@/lib/sample-data';
 import { AppHeader } from '@/components/AppHeader';
 import { StatusBadge } from '@/components/StatusBadge';
+import { TasksPanel } from '@/components/TasksPanel';
 import { LEAD_STATUSES } from '@/lib/supabase-helpers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,12 +14,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Send, Filter } from 'lucide-react';
+import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Send, Filter, ListTodo } from 'lucide-react';
 
 interface Lead {
   id: string;
@@ -201,71 +203,87 @@ export default function AdminCRM() {
           ))}
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search leads..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-48">
-              <Filter className="w-4 h-4 mr-2" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              {LEAD_STATUSES.map(s => (
-                <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Tabs: Leads & Tasks */}
+        <Tabs defaultValue="leads">
+          <TabsList>
+            <TabsTrigger value="leads">Leads</TabsTrigger>
+            <TabsTrigger value="tasks" className="flex items-center gap-1.5">
+              <ListTodo className="w-4 h-4" /> Tasks
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Leads Table */}
-        <Card>
-          <CardContent className="p-0">
-            {loading ? (
-              <p className="text-muted-foreground text-center py-12">Loading leads...</p>
-            ) : filteredLeads.length === 0 ? (
-              <p className="text-muted-foreground text-center py-12">No leads found</p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Purpose</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredLeads.map(lead => (
-                    <TableRow key={lead.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openLead(lead)}>
-                      <TableCell className="font-medium">{lead.first_name} {lead.last_name}</TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          {lead.email && <p>{lead.email}</p>}
-                          {lead.phone && <p className="text-muted-foreground">{lead.phone}</p>}
-                        </div>
-                      </TableCell>
-                      <TableCell>{lead.loan_purpose || '—'}</TableCell>
-                      <TableCell>{lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '—'}</TableCell>
-                      <TableCell><StatusBadge status={lead.status} /></TableCell>
-                      <TableCell className="text-muted-foreground">{format(new Date(lead.created_at), 'dd MMM')}</TableCell>
-                    </TableRow>
+          <TabsContent value="leads" className="space-y-4 mt-4">
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search leads..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <Filter className="w-4 h-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  {LEAD_STATUSES.map(s => (
+                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                   ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Leads Table */}
+            <Card>
+              <CardContent className="p-0">
+                {loading ? (
+                  <p className="text-muted-foreground text-center py-12">Loading leads...</p>
+                ) : filteredLeads.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-12">No leads found</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Client</TableHead>
+                        <TableHead>Contact</TableHead>
+                        <TableHead>Purpose</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Date</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredLeads.map(lead => (
+                        <TableRow key={lead.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openLead(lead)}>
+                          <TableCell className="font-medium">{lead.first_name} {lead.last_name}</TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              {lead.email && <p>{lead.email}</p>}
+                              {lead.phone && <p className="text-muted-foreground">{lead.phone}</p>}
+                            </div>
+                          </TableCell>
+                          <TableCell>{lead.loan_purpose || '—'}</TableCell>
+                          <TableCell>{lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '—'}</TableCell>
+                          <TableCell><StatusBadge status={lead.status} /></TableCell>
+                          <TableCell className="text-muted-foreground">{format(new Date(lead.created_at), 'dd MMM')}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="tasks" className="mt-4">
+            <TasksPanel leads={leads.map(l => ({ id: l.id, first_name: l.first_name, last_name: l.last_name }))} />
+          </TabsContent>
+        </Tabs>
       </main>
 
       {/* Lead Detail Sheet */}
