@@ -15,9 +15,9 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'broker' | 'referral_partner' | 'super_admin' | 'broker_or_admin' }) {
-  const { user, role, loading, isBrokerOrAdmin } = useAuth();
+  const { user, role, loading, isBrokerOrAdmin, isCodeAccess } = useAuth();
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading...</div>;
-  if (!user) return <Navigate to="/login" />;
+  if (!user && !isCodeAccess) return <Navigate to="/login" />;
   if (requiredRole === 'broker_or_admin' && !isBrokerOrAdmin) return <Navigate to="/" />;
   if (requiredRole && requiredRole !== 'broker_or_admin' && role !== requiredRole) return <Navigate to="/" />;
   return <>{children}</>;

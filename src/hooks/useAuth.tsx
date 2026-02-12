@@ -10,6 +10,7 @@ interface AuthContextType {
   role: AppRole | null;
   loading: boolean;
   isPreviewMode: boolean;
+  isCodeAccess: boolean;
   isBrokerOrAdmin: boolean;
   signOut: () => Promise<void>;
   setPreviewRole: (role: AppRole) => void;
@@ -21,6 +22,7 @@ const AuthContext = createContext<AuthContextType>({
   role: null,
   loading: true,
   isPreviewMode: false,
+  isCodeAccess: false,
   isBrokerOrAdmin: false,
   signOut: async () => {},
   setPreviewRole: () => {},
@@ -29,6 +31,14 @@ const AuthContext = createContext<AuthContextType>({
 function getIsPreviewMode() {
   const params = new URLSearchParams(window.location.search);
   return params.get('preview') === 'true';
+}
+
+function getCodeAccessRole(): AppRole | null {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const adminCode = import.meta.env.VITE_ADMIN_ACCESS_CODE;
+  if (code && adminCode && code === adminCode) return 'super_admin';
+  return null;
 }
 
 const FAKE_USER = {
@@ -46,12 +56,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPreviewMode] = useState(getIsPreviewMode);
+  const [codeAccessRole] = useState(getCodeAccessRole);
   const [previewRole, setPreviewRole] = useState<AppRole>('broker');
+
+  const isCodeAccess = codeAccessRole !== null;
 
   useEffect(() => {
     if (isPreviewMode) {
       setUser(FAKE_USER);
       setRole(previewRole);
+      setLoading(false);
+      return;
+    }
+
+    if (isCodeAccess) {
+      setUser(FAKE_USER);
+      setRole(codeAccessRole);
       setLoading(false);
       return;
     }
@@ -92,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, [isPreviewMode, previewRole]);
+  }, [isPreviewMode, previewRole, isCodeAccess, codeAccessRole]);
 
   useEffect(() => {
     if (isPreviewMode) {
@@ -101,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [previewRole, isPreviewMode]);
 
   const signOut = async () => {
-    if (isPreviewMode) return;
+    if (isPreviewMode || isCodeAccess) return;
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
@@ -111,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isBrokerOrAdmin = role === 'broker' || role === 'super_admin';
 
   return (
-    <AuthContext.Provider value={{ user, session, role, loading, isPreviewMode, isBrokerOrAdmin, signOut, setPreviewRole }}>
+    <AuthContext.Provider value={{ user, session, role, loading, isPreviewMode, isCodeAccess, isBrokerOrAdmin, signOut, setPreviewRole }}>
       {children}
     </AuthContext.Provider>
   );

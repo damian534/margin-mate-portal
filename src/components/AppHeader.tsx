@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { LogOut, LayoutDashboard } from 'lucide-react';
 
 export function AppHeader() {
-  const { user, role, signOut, isPreviewMode, isBrokerOrAdmin } = useAuth();
+  const { user, role, signOut, isPreviewMode, isCodeAccess, isBrokerOrAdmin } = useAuth();
   const navigate = useNavigate();
 
   return (
@@ -14,7 +14,10 @@ export function AppHeader() {
       <PreviewBanner />
       <header className="border-b bg-card">
         <div className="container flex items-center justify-between h-16">
-          <button onClick={() => navigate(isPreviewMode ? '/?preview=true' : '/')} className="flex items-center">
+          <button onClick={() => {
+            const suffix = isPreviewMode ? '?preview=true' : isCodeAccess ? `?code=${new URLSearchParams(window.location.search).get('code')}` : '';
+            navigate(`/${suffix ? suffix : ''}`);
+          }} className="flex items-center">
             <Logo className="h-14" />
           </button>
           <nav className="flex items-center gap-3">
@@ -25,7 +28,8 @@ export function AppHeader() {
                   size="sm"
                   onClick={() => {
                     const base = isBrokerOrAdmin ? '/admin' : '/dashboard';
-                    navigate(isPreviewMode ? `${base}?preview=true` : base);
+                    const suffix = isPreviewMode ? '?preview=true' : isCodeAccess ? `?code=${new URLSearchParams(window.location.search).get('code')}` : '';
+                    navigate(`${base}${suffix}`);
                   }}
                 >
                   <LayoutDashboard className="w-4 h-4 mr-2" />
