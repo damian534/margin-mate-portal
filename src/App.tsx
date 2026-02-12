@@ -16,14 +16,13 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'broker' | 'referral_partner' | 'super_admin' | 'broker_or_admin' }) {
-  const { user, role, loading, isBrokerOrAdmin, isCodeAccess } = useAuth();
+  const { user, role, loading, isBrokerOrAdmin } = useAuth();
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading...</div>;
-  if (!user && !isCodeAccess) return <Navigate to="/login" />;
+  if (!user) return <Navigate to="/login" />;
   // If user is authenticated but role hasn't loaded yet, keep showing loading
-  if (requiredRole && user && !role && !isCodeAccess) {
+  if (requiredRole && user && !role) {
     return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading...</div>;
   }
-  // Redirect mismatched roles to their correct dashboard instead of home
   if (requiredRole === 'broker_or_admin' && !isBrokerOrAdmin) {
     return role === 'referral_partner' ? <Navigate to="/dashboard" /> : <Navigate to="/login" />;
   }

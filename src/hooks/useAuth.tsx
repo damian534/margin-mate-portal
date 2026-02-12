@@ -10,7 +10,6 @@ interface AuthContextType {
   role: AppRole | null;
   loading: boolean;
   isPreviewMode: boolean;
-  isCodeAccess: boolean;
   isBrokerOrAdmin: boolean;
   signOut: () => Promise<void>;
   setPreviewRole: (role: AppRole) => void;
@@ -22,7 +21,6 @@ const AuthContext = createContext<AuthContextType>({
   role: null,
   loading: true,
   isPreviewMode: false,
-  isCodeAccess: false,
   isBrokerOrAdmin: false,
   signOut: async () => {},
   setPreviewRole: () => {},
@@ -31,14 +29,6 @@ const AuthContext = createContext<AuthContextType>({
 function getIsPreviewMode() {
   const params = new URLSearchParams(window.location.search);
   return params.get('preview') === 'true';
-}
-
-function getCodeAccessRole(): AppRole | null {
-  const params = new URLSearchParams(window.location.search);
-  const code = params.get('code');
-  const adminCode = import.meta.env.VITE_ADMIN_ACCESS_CODE;
-  if (code && adminCode && code === adminCode) return 'super_admin';
-  return null;
 }
 
 const FAKE_USER = {
@@ -50,16 +40,26 @@ const FAKE_USER = {
   created_at: new Date().toISOString(),
 } as unknown as User;
 
+async function fetchRole(userId: string): Promise<AppRole | null> {
+  try {
+    const { data } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .maybeSingle();
+    return (data?.role as AppRole) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPreviewMode] = useState(getIsPreviewMode);
-  const [codeAccessRole] = useState(getCodeAccessRole);
   const [previewRole, setPreviewRole] = useState<AppRole>('broker');
-
-  const isCodeAccess = codeAccessRole !== null;
 
   useEffect(() => {
     if (isPreviewMode) {
@@ -69,68 +69,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (isCodeAccess) {
-      setUser(FAKE_USER);
-      setRole(codeAccessRole);
-      setLoading(false);
-      return;
-    }
+    let isMounted = true;
 
-    // Safety timeout - never stay in loading state forever
+    // Safety timeout
     const timeout = setTimeout(() => {
-      setLoading(false);
+      if (isMounted) setLoading(false);
     }, 5000);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    // 1. Set up auth listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+      if (!isMounted) return;
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
 
-      if (session?.user) {
-        try {
-          const { data } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', session.user.id)
-            .maybeSingle();
-          setRole((data?.role as AppRole) ?? null);
-        } catch {
-          setRole(null);
+      if (newSession?.user) {
+        const userRole = await fetchRole(newSession.user.id);
+        if (isMounted) {
+          setRole(userRole);
+          setLoading(false);
         }
       } else {
         setRole(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        Promise.resolve(
-          supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', session.user.id)
-            .maybeSingle()
-        ).then(({ data }) => {
-          setRole((data?.role as AppRole) ?? null);
+    // 2. Then get initial session
+    supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
+      if (!isMounted) return;
+      // Only set if we haven't already been updated by onAuthStateChange
+      setSession(prev => prev ?? initialSession);
+      setUser(prev => prev ?? initialSession?.user ?? null);
+
+      if (initialSession?.user) {
+        const userRole = await fetchRole(initialSession.user.id);
+        if (isMounted) {
+          setRole(prev => prev ?? userRole);
           setLoading(false);
-        }).catch(() => {
-          setRole(null);
-          setLoading(false);
-        });
+        }
       } else {
         setLoading(false);
       }
     }).catch(() => {
-      setLoading(false);
+      if (isMounted) setLoading(false);
     });
 
     return () => {
+      isMounted = false;
       clearTimeout(timeout);
       subscription.unsubscribe();
     };
-  }, [isPreviewMode, previewRole, isCodeAccess, codeAccessRole]);
+  }, [isPreviewMode, previewRole]);
 
   useEffect(() => {
     if (isPreviewMode) {
@@ -139,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [previewRole, isPreviewMode]);
 
   const signOut = async () => {
-    if (isPreviewMode || isCodeAccess) return;
+    if (isPreviewMode) return;
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
@@ -149,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isBrokerOrAdmin = role === 'broker' || role === 'super_admin';
 
   return (
-    <AuthContext.Provider value={{ user, session, role, loading, isPreviewMode, isCodeAccess, isBrokerOrAdmin, signOut, setPreviewRole }}>
+    <AuthContext.Provider value={{ user, session, role, loading, isPreviewMode, isBrokerOrAdmin, signOut, setPreviewRole }}>
       {children}
     </AuthContext.Provider>
   );
