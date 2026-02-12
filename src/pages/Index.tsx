@@ -56,7 +56,7 @@ export default function Index() {
                     onClick={() => navigate('/register')}
                     className="shadow-lg shadow-primary/25"
                   >
-                    Become a Partner <ArrowRight className="w-4 h-4 ml-2" />
+                    Register <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                   <Button
                     size="lg"
