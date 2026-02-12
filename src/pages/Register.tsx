@@ -176,15 +176,17 @@ export default function Register() {
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="companyName">Company Name</Label>
-              <Input
-                id="companyName"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                placeholder="Your Company"
-              />
-            </div>
+            {registerAs === 'partner' && (
+              <div className="space-y-2">
+                <Label htmlFor="companyName">Company Name</Label>
+                <Input
+                  id="companyName"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  placeholder="Your Company"
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email">Email *</Label>
               <Input
