@@ -7,7 +7,20 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Logo } from '@/components/Logo';
 import { toast } from 'sonner';
-import { Loader2, CheckCircle2 } from 'lucide-react';
+import { Loader2, CheckCircle2, Wand2, Eye, EyeOff } from 'lucide-react';
+
+function generatePassword(length = 14) {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower = 'abcdefghjkmnpqrstuvwxyz';
+  const digits = '23456789';
+  const symbols = '!@#$%&*';
+  const all = upper + lower + digits + symbols;
+  // Guarantee at least one of each category
+  const pick = (s: string) => s[Math.floor(Math.random() * s.length)];
+  const required = [pick(upper), pick(lower), pick(digits), pick(symbols)];
+  const rest = Array.from({ length: length - 4 }, () => pick(all));
+  return [...required, ...rest].sort(() => Math.random() - 0.5).join('');
+}
 
 export default function Register() {
   const [email, setEmail] = useState('');
@@ -17,6 +30,7 @@ export default function Register() {
   const [inviteCode, setInviteCode] = useState('');
   const [codeValid, setCodeValid] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [hasAnySuperAdmin, setHasAnySuperAdmin] = useState<boolean | null>(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -149,16 +163,43 @@ export default function Register() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password *</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Min 6 characters"
-                required
-                minLength={6}
-              />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password *</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto py-0.5 px-2 text-xs text-muted-foreground"
+                  onClick={() => {
+                    const pw = generatePassword();
+                    setPassword(pw);
+                    setShowPassword(true);
+                  }}
+                >
+                  <Wand2 className="w-3 h-3 mr-1" />
+                  Suggest
+                </Button>
+              </div>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Min 6 characters"
+                  required
+                  minLength={6}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
             <Button type="submit" className="w-full" disabled={loading || codeValid === false}>
               {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
