@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { LeadDetailSheet } from '@/components/LeadDetailSheet';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,7 +26,32 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign, Contact as ContactIcon, KeyRound, UserCog } from 'lucide-react';
+import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign, Contact as ContactIcon, KeyRound, UserCog, CalendarClock } from 'lucide-react';
+import { isPast, isToday, isTomorrow } from 'date-fns';
+
+type TaskDueFilter = 'all_leads' | 'overdue' | 'today' | 'tomorrow' | 'later' | 'no_tasks';
+
+interface LeadTask {
+  id: string;
+  lead_id: string;
+  due_date: string | null;
+  completed: boolean;
+}
+
+function getLeadTaskDueCategory(leadId: string, tasksByLead: Map<string, LeadTask[]>): TaskDueFilter {
+  const tasks = tasksByLead.get(leadId);
+  if (!tasks || tasks.length === 0) return 'no_tasks';
+  const activeTasks = tasks.filter(t => !t.completed);
+  if (activeTasks.length === 0) return 'no_tasks';
+  // Use the earliest due task to categorize
+  const withDue = activeTasks.filter(t => t.due_date).sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
+  if (withDue.length === 0) return 'later'; // has tasks but no dates
+  const earliest = new Date(withDue[0].due_date!);
+  if (isToday(earliest)) return 'today';
+  if (isTomorrow(earliest)) return 'tomorrow';
+  if (isPast(earliest)) return 'overdue';
+  return 'later';
+}
 
 interface Lead {
   id: string;
@@ -78,6 +103,8 @@ export default function AdminCRM() {
   const [leadSources, setLeadSources] = useState<LeadSource[]>([]);
   const [activeTab, setActiveTab] = useState('leads');
   const [reportReferrerId, setReportReferrerId] = useState<string | null>(null);
+  const [taskDueFilter, setTaskDueFilter] = useState<TaskDueFilter>('all_leads');
+  const [leadTasks, setLeadTasks] = useState<LeadTask[]>([]);
 
   const defaultSources: LeadSource[] = [
     { id: 's1', name: 'referral_partner', label: 'Referral Partner', display_order: 1 },
@@ -108,7 +135,18 @@ export default function AdminCRM() {
     fetchReferrers();
     fetchContacts();
     fetchLeadSources();
+    fetchLeadTasks();
   }, [isPreviewMode]);
+
+  const tasksByLead = useMemo(() => {
+    const map = new Map<string, LeadTask[]>();
+    for (const t of leadTasks) {
+      const arr = map.get(t.lead_id) || [];
+      arr.push(t);
+      map.set(t.lead_id, arr);
+    }
+    return map;
+  }, [leadTasks]);
 
   useEffect(() => {
     let result = leads;
@@ -124,8 +162,11 @@ export default function AdminCRM() {
     if (statusFilter !== 'all') {
       result = result.filter(l => l.status === statusFilter);
     }
+    if (taskDueFilter !== 'all_leads') {
+      result = result.filter(l => getLeadTaskDueCategory(l.id, tasksByLead) === taskDueFilter);
+    }
     setFilteredLeads(result);
-  }, [leads, search, statusFilter, referrers]);
+  }, [leads, search, statusFilter, taskDueFilter, referrers, tasksByLead]);
 
   const fetchLeads = async () => {
     const { data } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
@@ -183,6 +224,11 @@ export default function AdminCRM() {
   const fetchLeadSources = async () => {
     const { data } = await supabase.from('lead_sources').select('*').order('display_order');
     setLeadSources((data as unknown as LeadSource[]) || []);
+  };
+
+  const fetchLeadTasks = async () => {
+    const { data } = await supabase.from('tasks').select('id, lead_id, due_date, completed');
+    setLeadTasks((data as LeadTask[]) || []);
   };
 
   const openLead = (lead: Lead) => {
@@ -360,6 +406,41 @@ export default function AdminCRM() {
                 onLeadAdded={() => { if (isPreviewMode) return; fetchLeads(); }}
                 onContactCreated={() => { if (!isPreviewMode) fetchContacts(); }}
               />
+            </div>
+
+            {/* Task due date filter */}
+            <div className="flex items-center gap-1 flex-wrap">
+              <CalendarClock className="w-4 h-4 text-muted-foreground mr-1" />
+              {([
+                { value: 'all_leads' as TaskDueFilter, label: 'All Leads' },
+                { value: 'overdue' as TaskDueFilter, label: 'Overdue Tasks' },
+                { value: 'today' as TaskDueFilter, label: 'Due Today' },
+                { value: 'tomorrow' as TaskDueFilter, label: 'Due Tomorrow' },
+                { value: 'later' as TaskDueFilter, label: 'Due Later' },
+                { value: 'no_tasks' as TaskDueFilter, label: 'No Tasks' },
+              ]).map(opt => {
+                const count = opt.value === 'all_leads' ? leads.length : leads.filter(l => getLeadTaskDueCategory(l.id, tasksByLead) === opt.value).length;
+                return (
+                  <Button
+                    key={opt.value}
+                    variant={taskDueFilter === opt.value ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className={`h-7 text-xs gap-1.5 ${opt.value === 'overdue' && count > 0 && taskDueFilter !== opt.value ? 'text-destructive' : ''}`}
+                    onClick={() => setTaskDueFilter(opt.value)}
+                  >
+                    {opt.label}
+                    {count > 0 && (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                        taskDueFilter === opt.value ? 'bg-background text-foreground' :
+                        opt.value === 'overdue' && count > 0 ? 'bg-destructive/10 text-destructive' :
+                        'bg-muted text-muted-foreground'
+                      }`}>
+                        {count}
+                      </span>
+                    )}
+                  </Button>
+                );
+              })}
             </div>
 
             {/* Leads view */}
