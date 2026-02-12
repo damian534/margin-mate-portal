@@ -50,6 +50,75 @@ export type Database = {
         }
         Relationships: []
       }
+      contacts: {
+        Row: {
+          company: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          first_name: string
+          id: string
+          last_name: string
+          notes: string | null
+          phone: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          first_name: string
+          id?: string
+          last_name: string
+          notes?: string | null
+          phone?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          notes?: string | null
+          phone?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      lead_sources: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          is_default: boolean
+          label: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_default?: boolean
+          label: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_default?: boolean
+          label?: string
+          name?: string
+        }
+        Relationships: []
+      }
       lead_statuses: {
         Row: {
           color: string
@@ -95,6 +164,8 @@ export type Database = {
           referrer_commission: number | null
           referrer_commission_paid: boolean | null
           referrer_commission_type: string | null
+          source: string | null
+          source_contact_id: string | null
           status: string
           updated_at: string
         }
@@ -115,6 +186,8 @@ export type Database = {
           referrer_commission?: number | null
           referrer_commission_paid?: boolean | null
           referrer_commission_type?: string | null
+          source?: string | null
+          source_contact_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -135,6 +208,8 @@ export type Database = {
           referrer_commission?: number | null
           referrer_commission_paid?: boolean | null
           referrer_commission_type?: string | null
+          source?: string | null
+          source_contact_id?: string | null
           status?: string
           updated_at?: string
         }
