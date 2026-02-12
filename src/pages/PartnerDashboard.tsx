@@ -57,6 +57,7 @@ export default function PartnerDashboard() {
     const { data } = await supabase
       .from('leads')
       .select('*')
+      .eq('referral_partner_id', user!.id)
       .order('created_at', { ascending: false });
     setLeads((data as Lead[]) || []);
     setLoading(false);
