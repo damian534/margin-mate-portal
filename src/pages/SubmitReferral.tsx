@@ -134,32 +134,6 @@ export default function SubmitReferral() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="loan_amount">Estimated Loan Amount</Label>
-                  <Input
-                    id="loan_amount"
-                    type="number"
-                    value={form.loan_amount}
-                    onChange={(e) => update('loan_amount', e.target.value)}
-                    placeholder="$"
-                    min={0}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="loan_purpose">Loan Purpose</Label>
-                  <Select value={form.loan_purpose} onValueChange={(v) => update('loan_purpose', v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select purpose" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {LOAN_PURPOSES.map(p => (
-                        <SelectItem key={p} value={p}>{p}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="notes">Additional Notes</Label>
                 <Textarea
