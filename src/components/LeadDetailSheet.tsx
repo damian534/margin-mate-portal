@@ -13,12 +13,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
-import { format, isPast, isToday, isFuture } from 'date-fns';
+import { format, isPast, isToday } from 'date-fns';
 import {
   Mail, Phone, Send, Trash2, Users, Building2, DollarSign,
-  Calendar, Plus, CheckCircle, Clock, AlertTriangle, ExternalLink,
-  MessageSquare, FileText, Activity
+  Calendar, Plus, CheckCircle, Clock, AlertTriangle,
+  MessageSquare, Activity, ChevronDown, ChevronRight, Pencil, X, Save
 } from 'lucide-react';
 
 interface Lead {
@@ -50,6 +51,7 @@ interface Note {
   notify_partner: boolean;
   created_at: string;
   author_id: string | null;
+  task_id?: string | null;
 }
 
 interface Task {
@@ -78,6 +80,28 @@ interface LeadDetailSheetProps {
   sampleNotes?: Note[];
 }
 
+const FOLLOW_UP_OPTIONS = [
+  { label: 'Later Today', hours: 3 },
+  { label: 'Tomorrow', days: 1 },
+  { label: '2 Days', days: 2 },
+  { label: '3 Days', days: 3 },
+  { label: '1 Week', days: 7 },
+  { label: '2 Weeks', days: 14 },
+  { label: '1 Month', days: 30 },
+];
+
+function getFollowUpDate(opt: typeof FOLLOW_UP_OPTIONS[0]) {
+  const d = new Date();
+  if (opt.hours) { d.setHours(d.getHours() + opt.hours); }
+  else if (opt.days) { d.setDate(d.getDate() + opt.days); d.setHours(9, 0, 0, 0); }
+  return d;
+}
+
+function formatDatetimeLocal(d: Date) {
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function LeadDetailSheet({
   open, onOpenChange, lead, statuses, referrerName, referrerCompany,
   isPreviewMode, onUpdateStatus, onUpdateCommission, onDeleteLead, onLeadChange, sampleNotes
@@ -90,7 +114,10 @@ export function LeadDetailSheet({
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
-  const [activeTab, setActiveTab] = useState('activity');
+  const [activeTab, setActiveTab] = useState('timeline');
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+  const [editingTask, setEditingTask] = useState<{ id: string; title: string; dueDate: string } | null>(null);
+  const [taskNoteText, setTaskNoteText] = useState('');
 
   useEffect(() => {
     if (lead && open) {
@@ -120,7 +147,7 @@ export function LeadDetailSheet({
     setTasks((data as Task[]) || []);
   };
 
-  const addNote = async (content: string, type: 'note' | 'email' | 'call' = 'note') => {
+  const addNote = async (content: string, type: 'note' | 'email' | 'call' = 'note', taskId?: string) => {
     if (!content.trim() || !lead || !user) return;
     const noteContent = type === 'email'
       ? `📧 Email sent to ${lead.email}\n${content}`
@@ -129,17 +156,27 @@ export function LeadDetailSheet({
       : content;
 
     if (isPreviewMode) {
-      const fakeNote: Note = { id: `preview-${Date.now()}`, content: noteContent.trim(), notify_partner: notifyPartner, created_at: new Date().toISOString(), author_id: user.id };
+      const fakeNote: Note = { id: `preview-${Date.now()}`, content: noteContent.trim(), notify_partner: notifyPartner, created_at: new Date().toISOString(), author_id: user.id, task_id: taskId || null };
       setNotes(prev => [fakeNote, ...prev]);
-      toast.success(notifyPartner ? 'Note added & partner notified (preview)' : 'Note added (preview)');
-      setNewNote(''); setNotifyPartner(false);
+      toast.success('Note added (preview)');
+      if (!taskId) { setNewNote(''); setNotifyPartner(false); }
       return;
     }
-    const { error } = await supabase.from('notes').insert({ lead_id: lead.id, author_id: user.id, content: noteContent.trim(), notify_partner: notifyPartner });
+    const insertData: any = { lead_id: lead.id, author_id: user.id, content: noteContent.trim(), notify_partner: notifyPartner };
+    if (taskId) insertData.task_id = taskId;
+    const { error } = await supabase.from('notes').insert(insertData);
     if (error) { toast.error('Failed to add note'); return; }
     toast.success(notifyPartner ? 'Note added & partner notified' : 'Note added');
-    setNewNote(''); setNotifyPartner(false);
+    if (!taskId) { setNewNote(''); setNotifyPartner(false); }
     fetchNotes(lead.id);
+  };
+
+  const addTaskNote = async (taskId: string) => {
+    if (!taskNoteText.trim() || !lead || !user) return;
+    const task = tasks.find(t => t.id === taskId);
+    const content = `📋 [Task: ${task?.title}] ${taskNoteText.trim()}`;
+    await addNote(content, 'note', taskId);
+    setTaskNoteText('');
   };
 
   const createTask = async () => {
@@ -169,6 +206,37 @@ export function LeadDetailSheet({
     setNewTaskTitle(''); setNewTaskDueDate(''); setShowTaskForm(false);
   };
 
+  const updateTask = async (taskId: string) => {
+    if (!editingTask) return;
+    if (isPreviewMode) {
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, title: editingTask.title, due_date: editingTask.dueDate ? new Date(editingTask.dueDate).toISOString() : null } : t));
+      toast.success('Task updated (preview)');
+    } else {
+      const { error } = await supabase.from('tasks').update({
+        title: editingTask.title,
+        due_date: editingTask.dueDate ? new Date(editingTask.dueDate).toISOString() : null,
+      }).eq('id', taskId);
+      if (error) { toast.error('Failed to update task'); return; }
+      toast.success('Task updated');
+      fetchTasks(lead!.id);
+    }
+    setEditingTask(null);
+  };
+
+  const deleteTask = async (taskId: string) => {
+    if (isPreviewMode) {
+      setTasks(prev => prev.filter(t => t.id !== taskId));
+      toast.success('Task deleted (preview)');
+      return;
+    }
+    await supabase.from('notes').delete().eq('task_id', taskId);
+    const { error } = await supabase.from('tasks').delete().eq('id', taskId);
+    if (error) { toast.error('Failed to delete task'); return; }
+    toast.success('Task deleted');
+    fetchTasks(lead!.id);
+    fetchNotes(lead!.id);
+  };
+
   const toggleTaskComplete = async (task: Task) => {
     const completed = !task.completed;
     if (isPreviewMode) {
@@ -184,7 +252,6 @@ export function LeadDetailSheet({
   const handleEmailClick = () => {
     if (!lead?.email) return;
     window.open(`mailto:${encodeURIComponent(lead.email)}`, '_blank');
-    // Log activity
     addNote('', 'email');
   };
 
@@ -199,6 +266,105 @@ export function LeadDetailSheet({
   const nextTask = tasks.find(t => !t.completed && t.due_date);
   const overdueTasks = tasks.filter(t => !t.completed && t.due_date && isPast(new Date(t.due_date)) && !isToday(new Date(t.due_date)));
   const pendingTasks = tasks.filter(t => !t.completed);
+  const completedTasks = tasks.filter(t => t.completed);
+
+  const getTaskNotes = (taskId: string) => notes.filter(n => n.task_id === taskId);
+
+  const renderTaskItem = (task: Task) => {
+    const isOverdue = !task.completed && task.due_date && isPast(new Date(task.due_date)) && !isToday(new Date(task.due_date));
+    const isDueToday = !task.completed && task.due_date && isToday(new Date(task.due_date));
+    const isExpanded = expandedTaskId === task.id;
+    const isEditing = editingTask?.id === task.id;
+    const taskNotes = getTaskNotes(task.id);
+
+    return (
+      <div key={task.id} className={`rounded-lg border transition-all ${isOverdue ? 'border-destructive/30 bg-destructive/5' : task.completed ? 'opacity-60' : 'bg-background'}`}>
+        <div className="flex items-start gap-2 p-2.5">
+          <Checkbox checked={task.completed} onCheckedChange={() => toggleTaskComplete(task)} className="mt-0.5" />
+          <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}>
+            {isEditing ? (
+              <div className="space-y-2" onClick={e => e.stopPropagation()}>
+                <Input value={editingTask.title} onChange={e => setEditingTask({ ...editingTask, title: e.target.value })} className="h-7 text-sm" />
+                {/* Quick follow-up buttons */}
+                <div className="flex flex-wrap gap-1">
+                  {FOLLOW_UP_OPTIONS.map(opt => (
+                    <Button key={opt.label} type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2"
+                      onClick={() => setEditingTask({ ...editingTask, dueDate: formatDatetimeLocal(getFollowUpDate(opt)) })}>
+                      {opt.label}
+                    </Button>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input type="datetime-local" value={editingTask.dueDate} onChange={e => setEditingTask({ ...editingTask, dueDate: e.target.value })} className="h-7 text-sm flex-1" />
+                  <Button size="sm" className="h-7 text-xs px-2" onClick={() => updateTask(task.id)}><Save className="w-3 h-3" /></Button>
+                  <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => setEditingTask(null)}><X className="w-3 h-3" /></Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className={`text-sm font-medium ${task.completed ? 'line-through text-muted-foreground' : ''}`}>{task.title}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  {task.due_date && (
+                    <span className={`text-xs flex items-center gap-1 ${isOverdue ? 'text-destructive' : isDueToday ? 'text-primary' : 'text-muted-foreground'}`}>
+                      <Calendar className="w-3 h-3" />
+                      {isOverdue ? 'Overdue — ' : isDueToday ? 'Today — ' : ''}
+                      {format(new Date(task.due_date), 'dd MMM, HH:mm')}
+                    </span>
+                  )}
+                  {taskNotes.length > 0 && (
+                    <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                      <MessageSquare className="w-3 h-3" /> {taskNotes.length}
+                    </span>
+                  )}
+                  {isExpanded ? <ChevronDown className="w-3 h-3 text-muted-foreground" /> : <ChevronRight className="w-3 h-3 text-muted-foreground" />}
+                </div>
+              </>
+            )}
+          </div>
+          {!isEditing && !task.completed && (
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={(e) => {
+              e.stopPropagation();
+              setEditingTask({
+                id: task.id,
+                title: task.title,
+                dueDate: task.due_date ? formatDatetimeLocal(new Date(task.due_date)) : '',
+              });
+            }}>
+              <Pencil className="w-3 h-3" />
+            </Button>
+          )}
+        </div>
+
+        {/* Expanded: task notes + add note */}
+        {isExpanded && (
+          <div className="px-3 pb-3 pt-0 border-t mx-2.5 mt-0">
+            <div className="pt-2 space-y-2">
+              {taskNotes.length > 0 && (
+                <div className="space-y-1.5">
+                  {taskNotes.map(n => (
+                    <div key={n.id} className="bg-muted/50 rounded p-2 text-xs">
+                      <p className="whitespace-pre-wrap">{n.content.replace(/^📋 \[Task: .*?\] /, '')}</p>
+                      <p className="text-muted-foreground mt-1">{format(new Date(n.created_at), 'dd MMM, HH:mm')}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-1.5">
+                <Input placeholder="Add a note to this task..." value={taskNoteText} onChange={e => setTaskNoteText(e.target.value)}
+                  className="h-7 text-xs" onKeyDown={e => { if (e.key === 'Enter') addTaskNote(task.id); }} />
+                <Button size="sm" className="h-7 text-xs px-2" disabled={!taskNoteText.trim()} onClick={() => addTaskNote(task.id)}>
+                  <Send className="w-3 h-3" />
+                </Button>
+              </div>
+              <Button variant="ghost" size="sm" className="h-6 text-xs text-destructive hover:text-destructive px-2" onClick={() => deleteTask(task.id)}>
+                <Trash2 className="w-3 h-3 mr-1" /> Delete task
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -318,14 +484,11 @@ export function LeadDetailSheet({
 
           <Separator />
 
-          {/* Tabs: Activity, Tasks, Commission */}
+          {/* Tabs: Timeline (Tasks + Activity), Commission */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full grid grid-cols-3">
-              <TabsTrigger value="activity" className="gap-1.5 text-xs">
-                <Activity className="w-3.5 h-3.5" /> Activity
-              </TabsTrigger>
-              <TabsTrigger value="tasks" className="gap-1.5 text-xs">
-                <CheckCircle className="w-3.5 h-3.5" /> Tasks
+            <TabsList className="w-full grid grid-cols-2">
+              <TabsTrigger value="timeline" className="gap-1.5 text-xs">
+                <Activity className="w-3.5 h-3.5" /> Timeline
                 {pendingTasks.length > 0 && (
                   <span className="ml-1 bg-primary/10 text-primary text-xs px-1.5 py-0.5 rounded-full">{pendingTasks.length}</span>
                 )}
@@ -335,168 +498,130 @@ export function LeadDetailSheet({
               </TabsTrigger>
             </TabsList>
 
-            {/* Activity Tab */}
-            <TabsContent value="activity" className="mt-4 space-y-4">
-              {/* Add note form */}
+            {/* Timeline Tab — Tasks stacked above Activity */}
+            <TabsContent value="timeline" className="mt-4 space-y-4">
+              {/* Tasks Section */}
               <div className="space-y-2">
-                <Textarea value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder="Log a note, call summary, or update..." rows={2} maxLength={2000} />
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Checkbox id="notify-detail" checked={notifyPartner} onCheckedChange={(v) => setNotifyPartner(v === true)} />
-                    <Label htmlFor="notify-detail" className="text-xs cursor-pointer">Notify partner</Label>
-                  </div>
-                  <Button onClick={() => addNote(newNote)} disabled={!newNote.trim()} size="sm" className="gap-1.5">
-                    <Send className="w-3.5 h-3.5" /> Log
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <CheckCircle className="w-3.5 h-3.5" /> Tasks
+                    {overdueTasks.length > 0 && (
+                      <span className="text-destructive bg-destructive/10 px-1.5 py-0.5 rounded-full text-[10px] font-medium">
+                        {overdueTasks.length} overdue
+                      </span>
+                    )}
+                  </h4>
+                  <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => setShowTaskForm(!showTaskForm)}>
+                    <Plus className="w-3 h-3" /> Add Task
                   </Button>
                 </div>
-              </div>
 
-              {/* Activity timeline */}
-              <ScrollArea className="h-72">
-                {notes.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">No activity yet — log your first note above</p>
-                ) : (
-                  <div className="relative pl-6 space-y-0">
-                    {/* Timeline line */}
-                    <div className="absolute left-2 top-2 bottom-2 w-px bg-border" />
-                    {notes.map((note, idx) => {
-                      const isEmail = note.content.startsWith('📧');
-                      const isCall = note.content.startsWith('📞');
-                      return (
-                        <div key={note.id} className="relative pb-4">
-                          {/* Timeline dot */}
-                          <div className={`absolute -left-[14px] top-1.5 w-3 h-3 rounded-full border-2 border-background ${
-                            isEmail ? 'bg-blue-500' : isCall ? 'bg-green-500' : 'bg-muted-foreground/40'
-                          }`} />
-                          <div className="bg-muted/50 rounded-lg p-3">
-                            <p className="text-sm whitespace-pre-wrap">{note.content}</p>
-                            <div className="flex items-center gap-2 mt-1.5">
-                              <p className="text-xs text-muted-foreground">{format(new Date(note.created_at), 'dd MMM yyyy, HH:mm')}</p>
-                              {note.notify_partner && <span className="text-xs bg-accent/20 text-accent-foreground px-1.5 py-0.5 rounded">Partner notified</span>}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                {/* New task form */}
+                {showTaskForm && (
+                  <div className="bg-muted/50 rounded-lg p-3 space-y-3">
+                    <Input placeholder="Task title..." value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)} className="h-8 text-sm" />
+                    {/* Quick follow-up buttons */}
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1.5">Quick follow-up</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {FOLLOW_UP_OPTIONS.map(opt => {
+                          const targetDate = getFollowUpDate(opt);
+                          const isSelected = newTaskDueDate && Math.abs(new Date(newTaskDueDate).getTime() - targetDate.getTime()) < 60000;
+                          return (
+                            <Button key={opt.label} type="button" variant={isSelected ? 'default' : 'outline'} size="sm" className="h-7 text-xs px-2.5"
+                              onClick={() => setNewTaskDueDate(formatDatetimeLocal(getFollowUpDate(opt)))}>
+                              {opt.label}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input type="datetime-local" value={newTaskDueDate} onChange={e => setNewTaskDueDate(e.target.value)} className="h-8 text-sm flex-1" />
+                      <Button size="sm" className="h-8 text-xs" onClick={createTask} disabled={!newTaskTitle.trim()}>Create</Button>
+                      <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setShowTaskForm(false); setNewTaskTitle(''); setNewTaskDueDate(''); }}>Cancel</Button>
+                    </div>
                   </div>
                 )}
-              </ScrollArea>
-            </TabsContent>
 
-            {/* Tasks Tab */}
-            <TabsContent value="tasks" className="mt-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium">{pendingTasks.length} pending task{pendingTasks.length !== 1 ? 's' : ''}</h4>
-                <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => setShowTaskForm(!showTaskForm)}>
-                  <Plus className="w-3 h-3" /> Add Task
-                </Button>
+                {/* Task list */}
+                {pendingTasks.length === 0 && !showTaskForm ? (
+                  <p className="text-xs text-muted-foreground text-center py-3">No pending tasks</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {pendingTasks.map(renderTaskItem)}
+                  </div>
+                )}
+
+                {completedTasks.length > 0 && (
+                  <Collapsible>
+                    <CollapsibleTrigger className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+                      <ChevronRight className="w-3 h-3" />
+                      {completedTasks.length} completed
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-1.5 mt-1.5">
+                      {completedTasks.map(renderTaskItem)}
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
               </div>
 
-              {showTaskForm && (
-                <div className="bg-muted/50 rounded-lg p-3 space-y-3">
-                  <Input placeholder="Task title..." value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)} className="h-8 text-sm" />
-                  
-                  {/* Quick follow-up time buttons (Privyr-style) */}
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1.5">Quick follow-up</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {[
-                        { label: 'Later Today', hours: 3 },
-                        { label: 'Tomorrow', days: 1 },
-                        { label: '2 Days', days: 2 },
-                        { label: '3 Days', days: 3 },
-                        { label: '1 Week', days: 7 },
-                        { label: '2 Weeks', days: 14 },
-                        { label: '1 Month', days: 30 },
-                      ].map(opt => {
-                        const getDate = () => {
-                          const d = new Date();
-                          if (opt.hours) { d.setHours(d.getHours() + opt.hours); }
-                          else if (opt.days) { d.setDate(d.getDate() + opt.days); d.setHours(9, 0, 0, 0); }
-                          return d;
-                        };
-                        const targetDate = getDate();
-                        const isSelected = newTaskDueDate && Math.abs(new Date(newTaskDueDate).getTime() - targetDate.getTime()) < 60000;
+              <Separator />
+
+              {/* Activity Section */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <MessageSquare className="w-3.5 h-3.5" /> Activity
+                </h4>
+
+                {/* Add note form */}
+                <div className="space-y-2">
+                  <Textarea value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder="Log a note, call summary, or update..." rows={2} maxLength={2000} />
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Checkbox id="notify-detail" checked={notifyPartner} onCheckedChange={(v) => setNotifyPartner(v === true)} />
+                      <Label htmlFor="notify-detail" className="text-xs cursor-pointer">Notify partner</Label>
+                    </div>
+                    <Button onClick={() => addNote(newNote)} disabled={!newNote.trim()} size="sm" className="gap-1.5">
+                      <Send className="w-3.5 h-3.5" /> Log
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Activity timeline */}
+                <ScrollArea className="h-56">
+                  {notes.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-6">No activity yet</p>
+                  ) : (
+                    <div className="relative pl-6 space-y-0">
+                      <div className="absolute left-2 top-2 bottom-2 w-px bg-border" />
+                      {notes.map((note) => {
+                        const isEmail = note.content.startsWith('📧');
+                        const isCall = note.content.startsWith('📞');
+                        const isTaskNote = note.content.startsWith('📋');
                         return (
-                          <Button
-                            key={opt.label}
-                            type="button"
-                            variant={isSelected ? 'default' : 'outline'}
-                            size="sm"
-                            className="h-7 text-xs px-2.5"
-                            onClick={() => {
-                              const d = getDate();
-                              // Format for datetime-local input
-                              const pad = (n: number) => n.toString().padStart(2, '0');
-                              const formatted = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-                              setNewTaskDueDate(formatted);
-                            }}
-                          >
-                            {opt.label}
-                          </Button>
+                          <div key={note.id} className="relative pb-3">
+                            <div className={`absolute -left-[14px] top-1.5 w-3 h-3 rounded-full border-2 border-background ${
+                              isEmail ? 'bg-blue-500' : isCall ? 'bg-green-500' : isTaskNote ? 'bg-amber-500' : 'bg-muted-foreground/40'
+                            }`} />
+                            <div className="bg-muted/50 rounded-lg p-2.5">
+                              <p className="text-sm whitespace-pre-wrap">{note.content}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <p className="text-xs text-muted-foreground">{format(new Date(note.created_at), 'dd MMM yyyy, HH:mm')}</p>
+                                {note.notify_partner && <span className="text-xs bg-accent/20 text-accent-foreground px-1.5 py-0.5 rounded">Partner notified</span>}
+                              </div>
+                            </div>
+                          </div>
                         );
                       })}
                     </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Input type="datetime-local" value={newTaskDueDate} onChange={e => setNewTaskDueDate(e.target.value)} className="h-8 text-sm flex-1" />
-                    <Button size="sm" className="h-8 text-xs" onClick={createTask} disabled={!newTaskTitle.trim()}>Create</Button>
-                    <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setShowTaskForm(false); setNewTaskTitle(''); setNewTaskDueDate(''); }}>Cancel</Button>
-                  </div>
-                </div>
-              )}
-
-              <ScrollArea className="h-60">
-                {tasks.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">No tasks — create one to get started</p>
-                ) : (
-                  <div className="space-y-2">
-                    {tasks.filter(t => !t.completed).map(task => {
-                      const isOverdue = task.due_date && isPast(new Date(task.due_date)) && !isToday(new Date(task.due_date));
-                      const isDueToday = task.due_date && isToday(new Date(task.due_date));
-                      return (
-                        <div key={task.id} className={`flex items-start gap-2 p-2.5 rounded-lg border ${isOverdue ? 'border-destructive/30 bg-destructive/5' : 'bg-background'}`}>
-                          <Checkbox checked={task.completed} onCheckedChange={() => toggleTaskComplete(task)} className="mt-0.5" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium">{task.title}</p>
-                            {task.due_date && (
-                              <p className={`text-xs mt-0.5 flex items-center gap-1 ${isOverdue ? 'text-destructive' : isDueToday ? 'text-primary' : 'text-muted-foreground'}`}>
-                                <Calendar className="w-3 h-3" />
-                                {isOverdue ? 'Overdue — ' : isDueToday ? 'Today — ' : ''}
-                                {format(new Date(task.due_date), 'dd MMM, HH:mm')}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {tasks.filter(t => t.completed).length > 0 && (
-                      <>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wider pt-2">Completed</p>
-                        {tasks.filter(t => t.completed).map(task => (
-                          <div key={task.id} className="flex items-start gap-2 p-2.5 rounded-lg opacity-60">
-                            <Checkbox checked={task.completed} onCheckedChange={() => toggleTaskComplete(task)} className="mt-0.5" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm line-through text-muted-foreground">{task.title}</p>
-                              {task.completed_at && (
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                  Completed {format(new Date(task.completed_at), 'dd MMM')}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </>
-                    )}
-                  </div>
-                )}
-              </ScrollArea>
+                  )}
+                </ScrollArea>
+              </div>
             </TabsContent>
 
             {/* Commission Tab */}
             <TabsContent value="commission" className="mt-4 space-y-3">
-              {/* Referrer Commission */}
               <div className="bg-muted/50 rounded-lg p-3 space-y-2">
                 <p className="text-xs font-medium text-muted-foreground">Referrer Commission</p>
                 <div className="grid grid-cols-2 gap-2">
@@ -535,7 +660,6 @@ export function LeadDetailSheet({
                   <Label htmlFor="ref-paid-detail" className="text-xs cursor-pointer">Paid</Label>
                 </div>
               </div>
-              {/* Company Commission */}
               <div className="bg-muted/50 rounded-lg p-3 space-y-2">
                 <p className="text-xs font-medium text-muted-foreground">Company/Agency Commission</p>
                 <div className="grid grid-cols-2 gap-2">
