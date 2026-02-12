@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useLeadStatuses } from '@/hooks/useLeadStatuses';
@@ -29,7 +30,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Send, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign, Contact as ContactIcon, KeyRound, UserCog } from 'lucide-react';
+import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Send, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign, Contact as ContactIcon, KeyRound, UserCog, Trash2 } from 'lucide-react';
 
 interface Lead {
   id: string;
@@ -251,6 +252,29 @@ export default function AdminCRM() {
     if (error) { toast.error('Failed to update commission'); return; }
     toast.success('Commission updated');
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...fields } : l));
+  };
+
+  const deleteLead = async (leadId: string) => {
+    if (isPreviewMode) {
+      toast.success('Lead deleted (preview)');
+      setLeads(prev => prev.filter(l => l.id !== leadId));
+      setSheetOpen(false);
+      setSelectedLead(null);
+      return;
+    }
+    // Delete related notes and tasks first
+    await supabase.from('notes').delete().eq('lead_id', leadId);
+    await supabase.from('tasks').delete().eq('lead_id', leadId);
+    const { error } = await supabase.from('leads').delete().eq('id', leadId);
+    if (error) {
+      toast.error('Failed to delete lead');
+      console.error(error);
+      return;
+    }
+    toast.success('Lead deleted');
+    setLeads(prev => prev.filter(l => l.id !== leadId));
+    setSheetOpen(false);
+    setSelectedLead(null);
   };
 
   const getReferrerName = (partnerId: string | null) => {
@@ -668,6 +692,30 @@ export default function AdminCRM() {
                       </div>
                     )}
                   </ScrollArea>
+                </div>
+                <Separator />
+                <div className="pt-2">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm" className="w-full gap-2">
+                        <Trash2 className="w-4 h-4" /> Delete Lead
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this lead?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete {selectedLead.first_name} {selectedLead.last_name} and all associated notes and tasks. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => deleteLead(selectedLead.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             </>
