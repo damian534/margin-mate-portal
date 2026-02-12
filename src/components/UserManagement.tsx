@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Shield, ShieldCheck, UserCog } from 'lucide-react';
+import { Shield, ShieldCheck, UserCog, KeyRound, Loader2 } from 'lucide-react';
 
 interface UserWithRole {
   user_id: string;
@@ -22,6 +22,7 @@ export function UserManagement() {
   const { user, isPreviewMode, role: currentUserRole } = useAuth();
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [resettingEmail, setResettingEmail] = useState<string | null>(null);
 
   const isSuperAdmin = currentUserRole === 'super_admin';
 
@@ -89,6 +90,37 @@ export function UserManagement() {
     fetchUsers();
   };
 
+  const resetUserPassword = async (email: string) => {
+    if (isPreviewMode) {
+      toast.success(`Password reset email sent to ${email} (preview)`);
+      return;
+    }
+    setResettingEmail(email);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-reset-password`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ email }),
+        }
+      );
+      const result = await response.json();
+      if (!response.ok) {
+        toast.error(result.error || 'Failed to send reset email');
+      } else {
+        toast.success(`Password reset email sent to ${email}`);
+      }
+    } catch {
+      toast.error('Failed to send reset email');
+    }
+    setResettingEmail(null);
+  };
+
   const getRoleBadge = (role: string | null) => {
     switch (role) {
       case 'super_admin':
@@ -131,20 +163,38 @@ export function UserManagement() {
                   <TableCell className="text-muted-foreground">{format(new Date(u.created_at), 'dd MMM yyyy')}</TableCell>
                   {isSuperAdmin && (
                     <TableCell>
-                      {u.role !== 'super_admin' && u.user_id !== user?.id && (
-                        <Select
-                          value={u.role || ''}
-                          onValueChange={(v) => promoteToRole(u.user_id, v as 'broker' | 'referral_partner')}
-                        >
-                          <SelectTrigger className="w-40 h-8">
-                            <SelectValue placeholder="Set role" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="broker">Broker</SelectItem>
-                            <SelectItem value="referral_partner">Partner</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {u.role !== 'super_admin' && u.user_id !== user?.id && (
+                          <Select
+                            value={u.role || ''}
+                            onValueChange={(v) => promoteToRole(u.user_id, v as 'broker' | 'referral_partner')}
+                          >
+                            <SelectTrigger className="w-40 h-8">
+                              <SelectValue placeholder="Set role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="broker">Broker</SelectItem>
+                              <SelectItem value="referral_partner">Partner</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                        {u.email && u.user_id !== user?.id && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1 h-8"
+                            disabled={resettingEmail === u.email}
+                            onClick={() => resetUserPassword(u.email!)}
+                          >
+                            {resettingEmail === u.email ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <KeyRound className="w-3 h-3" />
+                            )}
+                            Reset PW
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   )}
                 </TableRow>
