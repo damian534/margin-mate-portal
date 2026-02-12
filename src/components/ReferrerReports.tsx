@@ -23,6 +23,12 @@ interface Lead {
   referrer_commission_paid: boolean | null;
   company_commission: number | null;
   company_commission_paid: boolean | null;
+  source: string | null;
+}
+
+interface LeadSource {
+  name: string;
+  label: string;
 }
 
 interface ReferrerReportsProps {
@@ -31,11 +37,14 @@ interface ReferrerReportsProps {
   companies: Company[];
   statuses: LeadStatus[];
   selectedReferrerId?: string | null;
+  leadSources?: LeadSource[];
 }
 
 type DateRange = 'current_month' | 'previous_month' | 'ytd' | 'all_time';
 
-export function ReferrerReports({ leads, referrers, companies, statuses, selectedReferrerId }: ReferrerReportsProps) {
+const SOURCE_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
+
+export function ReferrerReports({ leads, referrers, companies, statuses, selectedReferrerId, leadSources = [] }: ReferrerReportsProps) {
   const [viewBy, setViewBy] = useState<'company' | 'referrer'>(selectedReferrerId ? 'referrer' : 'company');
   const [selectedCompany, setSelectedCompany] = useState<string>('all');
   const [selectedReferrer, setSelectedReferrer] = useState<string>(selectedReferrerId || 'all');
@@ -99,6 +108,17 @@ export function ReferrerReports({ leads, referrers, companies, statuses, selecte
       color: s.color,
     })).filter(s => s.value > 0);
   }, [relevantLeads, statuses]);
+
+  // Source breakdown
+  const sourceBreakdown = useMemo(() => {
+    const counts: Record<string, number> = {};
+    relevantLeads.forEach(l => { const src = l.source || 'unknown'; counts[src] = (counts[src] || 0) + 1; });
+    return Object.entries(counts).map(([name, value], idx) => ({
+      name: leadSources.find(s => s.name === name)?.label || name,
+      value,
+      color: SOURCE_COLORS[idx % SOURCE_COLORS.length],
+    })).sort((a, b) => b.value - a.value);
+  }, [relevantLeads, leadSources]);
 
   // Monthly trends (last 6 months)
   const monthlyTrends = useMemo(() => {
@@ -298,6 +318,36 @@ export function ReferrerReports({ leads, referrers, companies, statuses, selecte
           </CardContent>
         </Card>
       </div>
+
+      {/* Lead Source Breakdown */}
+      {sourceBreakdown.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Lead Sources</CardTitle></CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-6">
+              <ResponsiveContainer width="50%" height={200}>
+                <PieChart>
+                  <Pie data={sourceBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} strokeWidth={2}>
+                    {sourceBreakdown.map((entry, idx) => (
+                      <Cell key={idx} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="space-y-2 flex-1">
+                {sourceBreakdown.map(s => (
+                  <div key={s.name} className="flex items-center gap-2 text-sm">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color }} />
+                    <span className="flex-1">{s.name}</span>
+                    <span className="font-medium">{s.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Per-referrer breakdown (company view) */}
       {viewBy === 'company' && selectedCompany !== 'all' && referrerTable.length > 0 && (

@@ -11,6 +11,8 @@ import { StatusSettings } from '@/components/StatusSettings';
 import { CompanyManagement, Company } from '@/components/CompanyManagement';
 import { ReferrerProfiles, ReferrerProfileData } from '@/components/ReferrerProfile';
 import { ReferrerReports } from '@/components/ReferrerReports';
+import { AddLeadDialog } from '@/components/AddLeadDialog';
+import { ContactsManagement, Contact } from '@/components/ContactsManagement';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,7 +27,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Send, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign } from 'lucide-react';
+import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Send, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign, Contact as ContactIcon } from 'lucide-react';
 
 interface Lead {
   id: string;
@@ -46,6 +48,23 @@ interface Lead {
   company_commission: number | null;
   company_commission_type: string;
   company_commission_paid: boolean;
+  source: string | null;
+  source_contact_id: string | null;
+}
+
+interface Note {
+  id: string;
+  content: string;
+  notify_partner: boolean;
+  created_at: string;
+  author_id: string | null;
+}
+
+interface LeadSource {
+  id: string;
+  name: string;
+  label: string;
+  display_order: number;
 }
 
 interface Note {
@@ -72,20 +91,40 @@ export default function AdminCRM() {
   const [leadsView, setLeadsView] = useState<'table' | 'kanban'>('table');
   const [companies, setCompanies] = useState<Company[]>([]);
   const [referrers, setReferrers] = useState<ReferrerProfileData[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [leadSources, setLeadSources] = useState<LeadSource[]>([]);
   const [activeTab, setActiveTab] = useState('leads');
   const [reportReferrerId, setReportReferrerId] = useState<string | null>(null);
+
+  const defaultSources: LeadSource[] = [
+    { id: 's1', name: 'referral_partner', label: 'Referral Partner', display_order: 1 },
+    { id: 's2', name: 'google', label: 'Google', display_order: 2 },
+    { id: 's3', name: 'existing_client', label: 'Existing Client', display_order: 3 },
+    { id: 's4', name: 'client_referral', label: 'Referral from Existing Client', display_order: 4 },
+    { id: 's5', name: 'instagram', label: 'Instagram', display_order: 5 },
+    { id: 's6', name: 'facebook', label: 'Facebook', display_order: 6 },
+    { id: 's7', name: 'direct_call', label: 'Direct Call', display_order: 7 },
+    { id: 's8', name: 'walk_in', label: 'Walk In', display_order: 8 },
+  ];
 
   useEffect(() => {
     if (isPreviewMode) {
       setLeads(SAMPLE_LEADS_WITH_REFERRERS as Lead[]);
       setCompanies(SAMPLE_COMPANIES as Company[]);
       setReferrers(SAMPLE_REFERRERS as ReferrerProfileData[]);
+      setLeadSources(defaultSources);
+      setContacts([
+        { id: 'c1', first_name: 'John', last_name: 'Smith', email: 'john@email.com', phone: '0411 222 333', company: 'Smith & Co', type: 'client', notes: 'Existing client since 2023', created_by: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+        { id: 'c2', first_name: 'Maria', last_name: 'Garcia', email: 'maria@email.com', phone: '0422 444 555', company: null, type: 'prospect', notes: null, created_by: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+      ]);
       setLoading(false);
       return;
     }
     fetchLeads();
     fetchCompanies();
     fetchReferrers();
+    fetchContacts();
+    fetchLeadSources();
   }, [isPreviewMode]);
 
   useEffect(() => {
@@ -123,6 +162,16 @@ export default function AdminCRM() {
     const ids = roles.map(r => r.user_id);
     const { data: profiles } = await supabase.from('profiles').select('*').in('user_id', ids);
     setReferrers((profiles as unknown as ReferrerProfileData[]) || []);
+  };
+
+  const fetchContacts = async () => {
+    const { data } = await supabase.from('contacts').select('*').order('created_at', { ascending: false });
+    setContacts((data as unknown as Contact[]) || []);
+  };
+
+  const fetchLeadSources = async () => {
+    const { data } = await supabase.from('lead_sources').select('*').order('display_order');
+    setLeadSources((data as unknown as LeadSource[]) || []);
   };
 
   const fetchNotes = async (leadId: string) => {
@@ -237,6 +286,9 @@ export default function AdminCRM() {
             <TabsTrigger value="tasks" className="flex items-center gap-1.5">
               <ListTodo className="w-4 h-4" /> Tasks
             </TabsTrigger>
+            <TabsTrigger value="contacts" className="flex items-center gap-1.5">
+              <ContactIcon className="w-4 h-4" /> Contacts
+            </TabsTrigger>
             <TabsTrigger value="companies" className="flex items-center gap-1.5">
               <Building2 className="w-4 h-4" /> Companies
             </TabsTrigger>
@@ -280,6 +332,14 @@ export default function AdminCRM() {
                 onDelete={deleteStatus}
                 onReorder={reorderStatuses}
               />
+              <AddLeadDialog
+                leadSources={leadSources}
+                referrers={referrers}
+                contacts={contacts}
+                isPreviewMode={isPreviewMode}
+                onLeadAdded={() => { if (isPreviewMode) return; fetchLeads(); }}
+                onContactCreated={() => { if (!isPreviewMode) fetchContacts(); }}
+              />
             </div>
 
             {/* Leads view */}
@@ -301,9 +361,9 @@ export default function AdminCRM() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Client</TableHead>
+                        <TableHead>Source</TableHead>
                         <TableHead>Referrer</TableHead>
                         <TableHead>Contact</TableHead>
-                        <TableHead>Purpose</TableHead>
                         <TableHead>Amount</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Date</TableHead>
@@ -313,6 +373,11 @@ export default function AdminCRM() {
                       {filteredLeads.map(lead => (
                         <TableRow key={lead.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openLead(lead)}>
                           <TableCell className="font-medium">{lead.first_name} {lead.last_name}</TableCell>
+                          <TableCell>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-muted">
+                              {leadSources.find(s => s.name === lead.source)?.label || lead.source || '—'}
+                            </span>
+                          </TableCell>
                           <TableCell>
                             <div className="text-sm">
                               <p className="font-medium">{getReferrerName(lead.referral_partner_id) || '—'}</p>
@@ -330,7 +395,6 @@ export default function AdminCRM() {
                               {lead.phone && <p className="text-muted-foreground">{lead.phone}</p>}
                             </div>
                           </TableCell>
-                          <TableCell>{lead.loan_purpose || '—'}</TableCell>
                           <TableCell>{lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '—'}</TableCell>
                           <TableCell><StatusBadge status={lead.status} statuses={statuses} /></TableCell>
                           <TableCell className="text-muted-foreground">{format(new Date(lead.created_at), 'dd MMM')}</TableCell>
@@ -348,6 +412,10 @@ export default function AdminCRM() {
               leads={leads.map(l => ({ id: l.id, first_name: l.first_name, last_name: l.last_name }))}
               onOpenLead={(leadId) => { const lead = leads.find(l => l.id === leadId); if (lead) openLead(lead); }}
             />
+          </TabsContent>
+
+          <TabsContent value="contacts" className="mt-4">
+            <ContactsManagement contacts={contacts} onRefresh={fetchContacts} isPreviewMode={isPreviewMode} />
           </TabsContent>
 
           <TabsContent value="companies" className="mt-4">
@@ -371,6 +439,7 @@ export default function AdminCRM() {
               companies={companies}
               statuses={statuses}
               selectedReferrerId={reportReferrerId}
+              leadSources={leadSources}
             />
           </TabsContent>
         </Tabs>

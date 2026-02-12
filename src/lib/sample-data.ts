@@ -147,6 +147,8 @@ export const SAMPLE_LEADS_WITH_REFERRERS = SAMPLE_LEADS.map((l, i) => ({
   company_commission: i === 4 ? 2000 : i === 3 ? 1500 : null,
   company_commission_type: 'on_settlement',
   company_commission_paid: i === 4,
+  source: ['referral_partner', 'referral_partner', 'google', 'client_referral', 'facebook'][i] || 'referral_partner',
+  source_contact_id: null,
 }));
 
 export const SAMPLE_TASKS = [
