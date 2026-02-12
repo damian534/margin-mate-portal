@@ -40,7 +40,7 @@ export default function Index() {
               Your Referrals,<br />
               <span className="text-primary">Rewarded</span>
             </h1>
-            <p className="text-lg md:text-xl text-accent max-w-2xl mx-auto mb-10">
+            <p className="text-lg md:text-xl text-card/70 max-w-2xl mx-auto mb-10">
               The Margin Finance referral portal makes it simple to send us clients
               and track every lead from submission to settlement.
             </p>
