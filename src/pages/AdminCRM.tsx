@@ -158,34 +158,40 @@ export default function AdminCRM() {
   };
 
   const fetchReferrers = async () => {
-    // Fetch profiles that are referral_partners (registered) OR manually added (have broker_id but no role yet)
-    const { data: roles } = await supabase.from('user_roles').select('user_id').eq('role', 'referral_partner');
-    const registeredIds = roles?.map(r => r.user_id) || [];
-    
-    // Fetch all profiles with broker_id (includes manually added ones)
-    const { data: brokerProfiles } = await supabase.from('profiles').select('*').not('broker_id', 'is', null);
-    
-    // Merge: registered partners + manually added ones (avoid duplicates)
-    const allProfiles = brokerProfiles || [];
-    const seen = new Set<string>();
-    const merged: ReferrerProfileData[] = [];
-    for (const p of allProfiles) {
-      if (!seen.has(p.id)) {
-        seen.add(p.id);
-        merged.push(p as unknown as ReferrerProfileData);
-      }
-    }
-    // Also add any registered partners whose profiles don't have broker_id set
-    if (registeredIds.length) {
-      const { data: regProfiles } = await supabase.from('profiles').select('*').in('user_id', registeredIds);
-      for (const p of regProfiles || []) {
+    try {
+      // Fetch profiles that are referral_partners (registered) OR manually added (have broker_id but no role yet)
+      const { data: roles } = await supabase.from('user_roles').select('user_id').eq('role', 'referral_partner');
+      const registeredIds = roles?.map(r => r.user_id) || [];
+      
+      // Fetch all profiles with broker_id (includes manually added ones)
+      const { data: brokerProfiles, error: bpError } = await supabase.from('profiles').select('*').not('broker_id', 'is', null);
+      if (bpError) console.error('Error fetching broker profiles:', bpError);
+      
+      // Merge: registered partners + manually added ones (avoid duplicates)
+      const allProfiles = brokerProfiles || [];
+      const seen = new Set<string>();
+      const merged: ReferrerProfileData[] = [];
+      for (const p of allProfiles) {
         if (!seen.has(p.id)) {
           seen.add(p.id);
           merged.push(p as unknown as ReferrerProfileData);
         }
       }
+      // Also add any registered partners whose profiles don't have broker_id set
+      if (registeredIds.length) {
+        const { data: regProfiles } = await supabase.from('profiles').select('*').in('user_id', registeredIds);
+        for (const p of regProfiles || []) {
+          if (!seen.has(p.id)) {
+            seen.add(p.id);
+            merged.push(p as unknown as ReferrerProfileData);
+          }
+        }
+      }
+      setReferrers(merged);
+    } catch (err) {
+      console.error('fetchReferrers failed:', err);
+      setReferrers([]);
     }
-    setReferrers(merged);
   };
 
   const fetchContacts = async () => {
