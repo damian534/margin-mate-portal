@@ -460,6 +460,8 @@ export default function AdminCRM() {
                 }}
                 onOpenLead={openLead}
                 onUpdateStatus={updateStatus}
+                tasksByLead={tasksByLead}
+                taskDueFilter={taskDueFilter}
               />
             ) : filteredLeads.length === 0 ? (
               <Card><CardContent className="p-0"><p className="text-muted-foreground text-center py-12">No leads found</p></CardContent></Card>
