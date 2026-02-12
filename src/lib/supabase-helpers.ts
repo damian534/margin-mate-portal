@@ -22,16 +22,19 @@ export async function getUserProfile(userId: string) {
   return data;
 }
 
-export const LEAD_STATUSES = [
-  { value: 'new', label: 'New', color: 'bg-blue-100 text-blue-800' },
-  { value: 'contacted', label: 'Contacted', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'in_progress', label: 'In Progress', color: 'bg-orange-100 text-orange-800' },
-  { value: 'qualified', label: 'Qualified', color: 'bg-purple-100 text-purple-800' },
-  { value: 'approved', label: 'Approved', color: 'bg-green-100 text-green-800' },
-  { value: 'settled', label: 'Settled', color: 'bg-emerald-100 text-emerald-800' },
-  { value: 'lost', label: 'Lost', color: 'bg-red-100 text-red-800' },
+export const DEFAULT_LEAD_STATUSES = [
+  { value: 'new', label: 'New', color: '#6b7280' },
+  { value: 'contacted', label: 'Contacted', color: '#3b82f6' },
+  { value: 'in_progress', label: 'In Progress', color: '#f59e0b' },
+  { value: 'qualified', label: 'Qualified', color: '#8b5cf6' },
+  { value: 'approved', label: 'Approved', color: '#10b981' },
+  { value: 'settled', label: 'Settled', color: '#22c55e' },
+  { value: 'lost', label: 'Lost', color: '#ef4444' },
 ] as const;
 
+// Keep backwards compat alias
+export const LEAD_STATUSES = DEFAULT_LEAD_STATUSES;
+
 export function getStatusConfig(status: string) {
-  return LEAD_STATUSES.find(s => s.value === status) || LEAD_STATUSES[0];
+  return DEFAULT_LEAD_STATUSES.find(s => s.value === status) || DEFAULT_LEAD_STATUSES[0];
 }

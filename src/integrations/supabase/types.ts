@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      lead_statuses: {
+        Row: {
+          color: string
+          created_at: string
+          display_order: number
+          id: string
+          label: string
+          name: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          label: string
+          name: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          label?: string
+          name?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           created_at: string
@@ -26,7 +53,7 @@ export type Database = {
           loan_purpose: string | null
           phone: string | null
           referral_partner_id: string | null
-          status: Database["public"]["Enums"]["lead_status"]
+          status: string
           updated_at: string
         }
         Insert: {
@@ -40,7 +67,7 @@ export type Database = {
           loan_purpose?: string | null
           phone?: string | null
           referral_partner_id?: string | null
-          status?: Database["public"]["Enums"]["lead_status"]
+          status?: string
           updated_at?: string
         }
         Update: {
@@ -54,7 +81,7 @@ export type Database = {
           loan_purpose?: string | null
           phone?: string | null
           referral_partner_id?: string | null
-          status?: Database["public"]["Enums"]["lead_status"]
+          status?: string
           updated_at?: string
         }
         Relationships: []
@@ -207,14 +234,6 @@ export type Database = {
     }
     Enums: {
       app_role: "broker" | "referral_partner"
-      lead_status:
-        | "new"
-        | "contacted"
-        | "in_progress"
-        | "qualified"
-        | "approved"
-        | "settled"
-        | "lost"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -343,15 +362,6 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["broker", "referral_partner"],
-      lead_status: [
-        "new",
-        "contacted",
-        "in_progress",
-        "qualified",
-        "approved",
-        "settled",
-        "lost",
-      ],
     },
   },
 } as const

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { SAMPLE_TASKS } from '@/lib/sample-data';
+import { TasksKanban } from '@/components/TasksKanban';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { format, isPast, isToday } from 'date-fns';
-import { Plus, Calendar, User, AlertTriangle } from 'lucide-react';
+import { Plus, Calendar, User, AlertTriangle, List, Columns } from 'lucide-react';
 
 interface Task {
   id: string;
@@ -35,9 +36,9 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // New task form
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newLeadId, setNewLeadId] = useState('');
@@ -57,7 +58,6 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
       .from('tasks')
       .select('*, leads(first_name, last_name)')
       .order('due_date', { ascending: true, nullsFirst: false });
-
     const mapped = (data || []).map((t: any) => ({
       ...t,
       lead_name: t.leads ? `${t.leads.first_name} ${t.leads.last_name}` : 'Unknown',
@@ -69,27 +69,12 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
   const toggleComplete = async (task: Task) => {
     const completed = !task.completed;
     if (isPreviewMode) {
-      setTasks(prev =>
-        prev.map(t =>
-          t.id === task.id
-            ? { ...t, completed, completed_at: completed ? new Date().toISOString() : null }
-            : t
-        )
-      );
+      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, completed, completed_at: completed ? new Date().toISOString() : null } : t));
       toast.success(completed ? 'Task completed' : 'Task reopened');
       return;
     }
-    await supabase
-      .from('tasks')
-      .update({ completed, completed_at: completed ? new Date().toISOString() : null })
-      .eq('id', task.id);
-    setTasks(prev =>
-      prev.map(t =>
-        t.id === task.id
-          ? { ...t, completed, completed_at: completed ? new Date().toISOString() : null }
-          : t
-      )
-    );
+    await supabase.from('tasks').update({ completed, completed_at: completed ? new Date().toISOString() : null }).eq('id', task.id);
+    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, completed, completed_at: completed ? new Date().toISOString() : null } : t));
     toast.success(completed ? 'Task completed' : 'Task reopened');
   };
 
@@ -118,31 +103,23 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
         due_date: newDueDate ? new Date(newDueDate).toISOString() : null,
         created_by: user!.id,
       });
-      if (error) {
-        toast.error('Failed to create task');
-        return;
-      }
+      if (error) { toast.error('Failed to create task'); return; }
       toast.success('Task created');
       fetchTasks();
     }
-    setNewTitle('');
-    setNewDesc('');
-    setNewLeadId('');
-    setNewDueDate('');
+    setNewTitle(''); setNewDesc(''); setNewLeadId(''); setNewDueDate('');
     setDialogOpen(false);
   };
 
   const displayed = tasks.filter(t => showCompleted || !t.completed);
   const overdue = tasks.filter(t => !t.completed && t.due_date && isPast(new Date(t.due_date)) && !isToday(new Date(t.due_date)));
 
-  if (loading) {
-    return <p className="text-muted-foreground text-center py-12">Loading tasks...</p>;
-  }
+  if (loading) return <p className="text-muted-foreground text-center py-12">Loading tasks...</p>;
 
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-semibold">Follow-up Tasks</h2>
           {overdue.length > 0 && (
@@ -151,98 +128,84 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {/* View toggle */}
+          <div className="flex items-center border rounded-md">
+            <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-2" onClick={() => setViewMode('list')}>
+              <List className="w-4 h-4" />
+            </Button>
+            <Button variant={viewMode === 'kanban' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-2" onClick={() => setViewMode('kanban')}>
+              <Columns className="w-4 h-4" />
+            </Button>
+          </div>
           <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
             <Checkbox checked={showCompleted} onCheckedChange={(v) => setShowCompleted(v === true)} />
-            Show completed
+            Completed
           </label>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm"><Plus className="w-4 h-4 mr-1" /> New Task</Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create Follow-up Task</DialogTitle>
-              </DialogHeader>
+              <DialogHeader><DialogTitle>Create Follow-up Task</DialogTitle></DialogHeader>
               <div className="space-y-4 pt-2">
                 <div>
                   <Label>Lead *</Label>
-                  <select
-                    value={newLeadId}
-                    onChange={e => setNewLeadId(e.target.value)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
+                  <select value={newLeadId} onChange={e => setNewLeadId(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <option value="">Select a lead...</option>
-                    {leads.map(l => (
-                      <option key={l.id} value={l.id}>{l.first_name} {l.last_name}</option>
-                    ))}
+                    {leads.map(l => <option key={l.id} value={l.id}>{l.first_name} {l.last_name}</option>)}
                   </select>
                 </div>
-                <div>
-                  <Label>Task Title *</Label>
-                  <Input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="e.g. Call back after 5pm" />
-                </div>
-                <div>
-                  <Label>Description</Label>
-                  <Textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Optional details..." rows={2} />
-                </div>
-                <div>
-                  <Label>Due Date</Label>
-                  <Input type="datetime-local" value={newDueDate} onChange={e => setNewDueDate(e.target.value)} />
-                </div>
-                <Button onClick={createTask} disabled={!newTitle.trim() || !newLeadId} className="w-full">
-                  Create Task
-                </Button>
+                <div><Label>Task Title *</Label><Input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="e.g. Call back after 5pm" /></div>
+                <div><Label>Description</Label><Textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Optional details..." rows={2} /></div>
+                <div><Label>Due Date</Label><Input type="datetime-local" value={newDueDate} onChange={e => setNewDueDate(e.target.value)} /></div>
+                <Button onClick={createTask} disabled={!newTitle.trim() || !newLeadId} className="w-full">Create Task</Button>
               </div>
             </DialogContent>
           </Dialog>
         </div>
       </div>
 
-      {/* Task List */}
-      {displayed.length === 0 ? (
-        <p className="text-muted-foreground text-center py-12">No tasks yet — create one to get started</p>
+      {/* View */}
+      {viewMode === 'kanban' ? (
+        <TasksKanban tasks={showCompleted ? tasks : tasks.filter(t => !t.completed)} onToggleComplete={toggleComplete} onOpenLead={onOpenLead} />
       ) : (
-        <div className="space-y-2">
-          {displayed.map(task => {
-            const isOverdue = !task.completed && task.due_date && isPast(new Date(task.due_date)) && !isToday(new Date(task.due_date));
-            const isDueToday = task.due_date && isToday(new Date(task.due_date));
-            return (
-              <Card key={task.id} className={`transition-opacity cursor-pointer hover:bg-muted/50 ${task.completed ? 'opacity-60' : ''} ${isOverdue ? 'border-destructive/50' : ''}`}
-                onClick={() => onOpenLead?.(task.lead_id)}>
-                <CardContent className="py-3 px-4 flex items-start gap-3">
-                  <div onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      checked={task.completed}
-                      onCheckedChange={() => toggleComplete(task)}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`font-medium text-sm ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
-                      {task.title}
-                    </p>
-                    {task.description && (
-                      <p className="text-xs text-muted-foreground mt-0.5">{task.description}</p>
-                    )}
-                    <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <User className="w-3 h-3" /> {task.lead_name}
-                      </span>
-                      {task.due_date && (
-                        <span className={`flex items-center gap-1 text-xs ${isOverdue ? 'text-destructive font-medium' : isDueToday ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
-                          <Calendar className="w-3 h-3" />
-                          {isOverdue ? 'Overdue — ' : isDueToday ? 'Today — ' : ''}
-                          {format(new Date(task.due_date), 'dd MMM, HH:mm')}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+        <>
+          {displayed.length === 0 ? (
+            <p className="text-muted-foreground text-center py-12">No tasks yet — create one to get started</p>
+          ) : (
+            <div className="space-y-2">
+              {displayed.map(task => {
+                const isOverdue = !task.completed && task.due_date && isPast(new Date(task.due_date)) && !isToday(new Date(task.due_date));
+                const isDueToday = task.due_date && isToday(new Date(task.due_date));
+                return (
+                  <Card key={task.id} className={`transition-opacity cursor-pointer hover:bg-muted/50 ${task.completed ? 'opacity-60' : ''} ${isOverdue ? 'border-destructive/50' : ''}`}
+                    onClick={() => onOpenLead?.(task.lead_id)}>
+                    <CardContent className="py-3 px-4 flex items-start gap-3">
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <Checkbox checked={task.completed} onCheckedChange={() => toggleComplete(task)} className="mt-1" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`font-medium text-sm ${task.completed ? 'line-through text-muted-foreground' : ''}`}>{task.title}</p>
+                        {task.description && <p className="text-xs text-muted-foreground mt-0.5">{task.description}</p>}
+                        <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground"><User className="w-3 h-3" /> {task.lead_name}</span>
+                          {task.due_date && (
+                            <span className={`flex items-center gap-1 text-xs ${isOverdue ? 'text-destructive font-medium' : isDueToday ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                              <Calendar className="w-3 h-3" />
+                              {isOverdue ? 'Overdue — ' : isDueToday ? 'Today — ' : ''}
+                              {format(new Date(task.due_date), 'dd MMM, HH:mm')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
