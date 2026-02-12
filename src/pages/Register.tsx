@@ -17,10 +17,15 @@ export default function Register() {
   const [inviteCode, setInviteCode] = useState('');
   const [codeValid, setCodeValid] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
+  const [hasAnySuperAdmin, setHasAnySuperAdmin] = useState<boolean | null>(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
+    // Check if any super_admin exists — if not, first user gets to register without a code
+    supabase.from('user_roles').select('id').eq('role', 'super_admin' as any).limit(1)
+      .then(({ data }) => setHasAnySuperAdmin(!!(data && data.length > 0)));
+
     const code = searchParams.get('code');
     if (code) {
       setInviteCode(code);
@@ -49,11 +54,12 @@ export default function Register() {
       toast.error('Password must be at least 6 characters');
       return;
     }
-    if (!inviteCode.trim()) {
+    const needsCode = hasAnySuperAdmin !== false;
+    if (needsCode && !inviteCode.trim()) {
       toast.error('An invite code is required to register');
       return;
     }
-    if (codeValid === false) {
+    if (needsCode && codeValid === false) {
       toast.error('Invalid or expired invite code');
       return;
     }
@@ -88,28 +94,30 @@ export default function Register() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleRegister} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="inviteCode">Invite Code *</Label>
-              <div className="relative">
-                <Input
-                  id="inviteCode"
-                  value={inviteCode}
-                  onChange={(e) => {
-                    setInviteCode(e.target.value);
-                    validateCode(e.target.value);
-                  }}
-                  placeholder="Enter your invite code"
-                  required
-                  className={codeValid === true ? 'border-green-500 pr-10' : codeValid === false ? 'border-destructive' : ''}
-                />
-                {codeValid === true && (
-                  <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
+            {hasAnySuperAdmin !== false && (
+              <div className="space-y-2">
+                <Label htmlFor="inviteCode">Invite Code *</Label>
+                <div className="relative">
+                  <Input
+                    id="inviteCode"
+                    value={inviteCode}
+                    onChange={(e) => {
+                      setInviteCode(e.target.value);
+                      validateCode(e.target.value);
+                    }}
+                    placeholder="Enter your invite code"
+                    required
+                    className={codeValid === true ? 'border-emerald-500 pr-10' : codeValid === false ? 'border-destructive' : ''}
+                  />
+                  {codeValid === true && (
+                    <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />
+                  )}
+                </div>
+                {codeValid === false && (
+                  <p className="text-xs text-destructive">Invalid or expired invite code</p>
                 )}
               </div>
-              {codeValid === false && (
-                <p className="text-xs text-destructive">Invalid or expired invite code</p>
-              )}
-            </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name *</Label>
               <Input
