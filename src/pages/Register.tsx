@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Logo } from '@/components/Logo';
 import { toast } from 'sonner';
-import { Loader2, CheckCircle2, Wand2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, CheckCircle2, Wand2, Eye, EyeOff, Building2, Users } from 'lucide-react';
 
 function generatePassword(length = 14) {
   const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -31,6 +31,7 @@ export default function Register() {
   const [codeValid, setCodeValid] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [registerAs, setRegisterAs] = useState<'broker' | 'partner'>('partner');
   const [hasAnySuperAdmin, setHasAnySuperAdmin] = useState<boolean | null>(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -68,9 +69,9 @@ export default function Register() {
       toast.error('Password must be at least 6 characters');
       return;
     }
-    const needsCode = hasAnySuperAdmin !== false;
+    const needsCode = registerAs === 'partner' && hasAnySuperAdmin !== false;
     if (needsCode && !inviteCode.trim()) {
-      toast.error('An invite code is required to register');
+      toast.error('An invite code is required to register as a partner');
       return;
     }
     if (needsCode && codeValid === false) {
@@ -83,7 +84,11 @@ export default function Register() {
       password,
       options: {
         emailRedirectTo: window.location.origin,
-        data: { full_name: fullName, company_name: companyName, invite_code: inviteCode.trim() },
+        data: {
+          full_name: fullName,
+          company_name: companyName,
+          invite_code: registerAs === 'partner' ? inviteCode.trim() : '',
+        },
       },
     });
     if (error) {
@@ -104,11 +109,40 @@ export default function Register() {
             <Logo className="h-16" />
           </div>
           <CardTitle className="text-2xl">Create Account</CardTitle>
-          <CardDescription>Register as a referral partner</CardDescription>
+          <CardDescription>Select your account type to get started</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleRegister} className="space-y-4">
-            {hasAnySuperAdmin !== false && (
+            {/* Role selector */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => { setRegisterAs('broker'); setInviteCode(''); setCodeValid(null); }}
+                className={`rounded-lg border-2 p-3 text-center transition-all ${
+                  registerAs === 'broker'
+                    ? 'border-primary bg-primary/5 text-primary'
+                    : 'border-border text-muted-foreground hover:border-primary/40'
+                }`}
+              >
+                <Building2 className="w-5 h-5 mx-auto mb-1" />
+                <span className="text-sm font-medium">Broker</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRegisterAs('partner')}
+                className={`rounded-lg border-2 p-3 text-center transition-all ${
+                  registerAs === 'partner'
+                    ? 'border-primary bg-primary/5 text-primary'
+                    : 'border-border text-muted-foreground hover:border-primary/40'
+                }`}
+              >
+                <Users className="w-5 h-5 mx-auto mb-1" />
+                <span className="text-sm font-medium">Referral Partner</span>
+              </button>
+            </div>
+
+            {/* Invite code — only for partners when super admin exists */}
+            {registerAs === 'partner' && hasAnySuperAdmin !== false && (
               <div className="space-y-2">
                 <Label htmlFor="inviteCode">Invite Code *</Label>
                 <div className="relative">
