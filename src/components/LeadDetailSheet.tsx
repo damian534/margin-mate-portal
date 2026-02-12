@@ -593,6 +593,42 @@ export function LeadDetailSheet({
             </div>
           </div>
 
+          {/* Lead Source + Contact Card Row */}
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Lead Source</Label>
+              <Select
+                value={lead.source ?? ''}
+                onValueChange={async (val) => {
+                  const source = val || null;
+                  onLeadChange?.({ ...lead, source });
+                  if (!isPreviewMode) {
+                    await supabase.from('leads').update({ source } as any).eq('id', lead.id);
+                  }
+                }}
+              >
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Select source" /></SelectTrigger>
+                <SelectContent>
+                  {leadSources.map(s => (
+                    <SelectItem key={s.name} value={s.name}>{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Contact Card</Label>
+              {lead.source_contact_id && onOpenContact ? (
+                <Button variant="outline" size="sm" className="mt-1 w-full gap-1.5" onClick={() => onOpenContact(lead.source_contact_id!)}>
+                  <Users className="w-3.5 h-3.5" /> View Contact
+                </Button>
+              ) : (
+                <div className="mt-1 h-10 flex items-center">
+                  <span className="text-sm text-muted-foreground">No linked contact</span>
+                </div>
+              )}
+            </div>
+          </div>
+
           <Separator />
 
           {/* Tabs: Timeline (Tasks + Activity), Commission */}
