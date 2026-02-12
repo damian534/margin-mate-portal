@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { ArrowRight, Users, BarChart3, Bell, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
+import logoIcon from '@/assets/logo-icon.png';
 
 export default function Index() {
   const navigate = useNavigate();
@@ -22,19 +23,24 @@ export default function Index() {
 
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-navy-deep" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_hsl(var(--gold)/0.15),_transparent_60%)]" />
+        <div className="absolute inset-0 bg-foreground" />
+        <div className="absolute inset-0 opacity-[0.07]" style={{
+          backgroundImage: `url(${logoIcon})`,
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'right -100px center',
+          backgroundSize: '500px',
+        }} />
         <div className="relative container py-24 lg:py-36 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-4xl md:text-6xl font-heading font-bold text-primary-foreground mb-6 leading-tight">
+            <h1 className="text-4xl md:text-6xl font-heading font-bold text-card mb-6 leading-tight">
               Your Referrals,<br />
-              <span className="text-accent">Rewarded</span>
+              <span className="text-primary">Rewarded</span>
             </h1>
-            <p className="text-lg md:text-xl text-primary-foreground/80 max-w-2xl mx-auto mb-10">
+            <p className="text-lg md:text-xl text-accent max-w-2xl mx-auto mb-10">
               The Margin Finance referral portal makes it simple to send us clients
               and track every lead from submission to settlement.
             </p>
@@ -42,7 +48,6 @@ export default function Index() {
               {user ? (
                 <Button
                   size="lg"
-                  className="bg-accent text-accent-foreground hover:bg-gold-dark"
                   onClick={() => navigate(role === 'broker' ? '/admin' : '/dashboard')}
                 >
                   Go to Dashboard <ArrowRight className="w-4 h-4 ml-2" />
@@ -51,7 +56,6 @@ export default function Index() {
                 <>
                   <Button
                     size="lg"
-                    className="bg-accent text-accent-foreground hover:bg-gold-dark"
                     onClick={() => navigate('/register')}
                   >
                     Become a Partner <ArrowRight className="w-4 h-4 ml-2" />
@@ -59,7 +63,7 @@ export default function Index() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
+                    className="border-accent text-card hover:bg-card/10"
                     onClick={() => navigate('/login')}
                   >
                     Sign In

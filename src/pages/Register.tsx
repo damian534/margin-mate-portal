@@ -47,7 +47,7 @@ export default function Register() {
       <Card className="w-full max-w-md animate-fade-in">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <Logo />
+            <Logo className="h-16" />
           </div>
           <CardTitle className="text-2xl">Create Account</CardTitle>
           <CardDescription>Register as a Margin Finance referral partner</CardDescription>
