@@ -22,25 +22,22 @@ export default function Index() {
       <AppHeader />
 
       {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-foreground" />
-        <div className="absolute inset-0 opacity-[0.07]" style={{
-          backgroundImage: `url(${logoIcon})`,
-          backgroundRepeat: 'no-repeat',
-          backgroundPosition: 'right -100px center',
-          backgroundSize: '500px',
-        }} />
+      <section className="relative overflow-hidden bg-background">
         <div className="relative container py-24 lg:py-36 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-4xl md:text-6xl font-heading font-bold text-card mb-6 leading-tight">
+            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 text-sm font-medium mb-8">
+              <Shield className="w-4 h-4" />
+              Trusted Referral Partner Portal
+            </div>
+            <h1 className="text-4xl md:text-6xl font-heading font-bold text-foreground mb-6 leading-tight">
               Your Referrals,<br />
               <span className="text-primary">Rewarded</span>
             </h1>
-            <p className="text-lg md:text-xl text-card/70 max-w-2xl mx-auto mb-10">
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
               The Margin Finance referral portal makes it simple to send us clients
               and track every lead from submission to settlement.
             </p>
@@ -57,13 +54,13 @@ export default function Index() {
                   <Button
                     size="lg"
                     onClick={() => navigate('/register')}
+                    className="shadow-lg shadow-primary/25"
                   >
                     Become a Partner <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-accent text-card hover:bg-card/10"
                     onClick={() => navigate('/login')}
                   >
                     Sign In
