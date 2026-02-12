@@ -76,18 +76,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    // Safety timeout - never stay in loading state forever
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 5000);
 
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        const { data } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
-        setRole((data?.role as AppRole) ?? null);
+        try {
+          const { data } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .maybeSingle();
+          setRole((data?.role as AppRole) ?? null);
+        } catch {
+          setRole(null);
+        }
       } else {
         setRole(null);
       }
@@ -98,21 +106,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .maybeSingle()
-          .then(({ data }) => {
-            setRole((data?.role as AppRole) ?? null);
-            setLoading(false);
-          });
+        Promise.resolve(
+          supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .maybeSingle()
+        ).then(({ data }) => {
+          setRole((data?.role as AppRole) ?? null);
+          setLoading(false);
+        }).catch(() => {
+          setRole(null);
+          setLoading(false);
+        });
       } else {
         setLoading(false);
       }
+    }).catch(() => {
+      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, [isPreviewMode, previewRole, isCodeAccess, codeAccessRole]);
 
   useEffect(() => {
