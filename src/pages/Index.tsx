@@ -45,9 +45,10 @@ export default function Index() {
               {user ? (
                 <Button
                   size="lg"
+                  disabled={!role}
                   onClick={() => navigate(isBrokerOrAdmin ? '/admin' : '/dashboard')}
                 >
-                  Go to Dashboard <ArrowRight className="w-4 h-4 ml-2" />
+                  {!role ? 'Loading...' : 'Go to Dashboard'} {role && <ArrowRight className="w-4 h-4 ml-2" />}
                 </Button>
               ) : (
                 <>
