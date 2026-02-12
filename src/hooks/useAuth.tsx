@@ -2,14 +2,17 @@ import { useState, useEffect, createContext, useContext, ReactNode } from 'react
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 
+type AppRole = 'broker' | 'referral_partner' | 'super_admin';
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  role: 'broker' | 'referral_partner' | null;
+  role: AppRole | null;
   loading: boolean;
   isPreviewMode: boolean;
+  isBrokerOrAdmin: boolean;
   signOut: () => Promise<void>;
-  setPreviewRole: (role: 'broker' | 'referral_partner') => void;
+  setPreviewRole: (role: AppRole) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -18,6 +21,7 @@ const AuthContext = createContext<AuthContextType>({
   role: null,
   loading: true,
   isPreviewMode: false,
+  isBrokerOrAdmin: false,
   signOut: async () => {},
   setPreviewRole: () => {},
 });
@@ -39,10 +43,10 @@ const FAKE_USER = {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [role, setRole] = useState<'broker' | 'referral_partner' | null>(null);
+  const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPreviewMode] = useState(getIsPreviewMode);
-  const [previewRole, setPreviewRole] = useState<'broker' | 'referral_partner'>('broker');
+  const [previewRole, setPreviewRole] = useState<AppRole>('broker');
 
   useEffect(() => {
     if (isPreviewMode) {
@@ -62,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .select('role')
           .eq('user_id', session.user.id)
           .maybeSingle();
-        setRole((data?.role as 'broker' | 'referral_partner') ?? null);
+        setRole((data?.role as AppRole) ?? null);
       } else {
         setRole(null);
       }
@@ -79,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .eq('user_id', session.user.id)
           .maybeSingle()
           .then(({ data }) => {
-            setRole((data?.role as 'broker' | 'referral_partner') ?? null);
+            setRole((data?.role as AppRole) ?? null);
             setLoading(false);
           });
       } else {
@@ -104,8 +108,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRole(null);
   };
 
+  const isBrokerOrAdmin = role === 'broker' || role === 'super_admin';
+
   return (
-    <AuthContext.Provider value={{ user, session, role, loading, isPreviewMode, signOut, setPreviewRole }}>
+    <AuthContext.Provider value={{ user, session, role, loading, isPreviewMode, isBrokerOrAdmin, signOut, setPreviewRole }}>
       {children}
     </AuthContext.Provider>
   );

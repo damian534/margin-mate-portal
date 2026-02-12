@@ -13,6 +13,7 @@ import { ReferrerProfiles, ReferrerProfileData } from '@/components/ReferrerProf
 import { ReferrerReports } from '@/components/ReferrerReports';
 import { AddLeadDialog } from '@/components/AddLeadDialog';
 import { ContactsManagement, Contact } from '@/components/ContactsManagement';
+import { InviteCodeManagement } from '@/components/InviteCodeManagement';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,7 +28,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Send, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign, Contact as ContactIcon } from 'lucide-react';
+import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Send, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign, Contact as ContactIcon, KeyRound } from 'lucide-react';
 
 interface Lead {
   id: string;
@@ -298,6 +299,9 @@ export default function AdminCRM() {
             <TabsTrigger value="reports" className="flex items-center gap-1.5">
               <BarChart3 className="w-4 h-4" /> Reports
             </TabsTrigger>
+            <TabsTrigger value="invites" className="flex items-center gap-1.5">
+              <KeyRound className="w-4 h-4" /> Invites
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="leads" className="space-y-4 mt-4">
@@ -441,6 +445,10 @@ export default function AdminCRM() {
               selectedReferrerId={reportReferrerId}
               leadSources={leadSources}
             />
+          </TabsContent>
+
+          <TabsContent value="invites" className="mt-4">
+            <InviteCodeManagement />
           </TabsContent>
         </Tabs>
       </main>
