@@ -375,55 +375,128 @@ export default function AdminCRM() {
             ) : filteredLeads.length === 0 ? (
               <Card><CardContent className="p-0"><p className="text-muted-foreground text-center py-12">No leads found</p></CardContent></Card>
             ) : (
-              <Card>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Client</TableHead>
-                        <TableHead>Source</TableHead>
-                        <TableHead>Referrer</TableHead>
-                        <TableHead>Contact</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Date</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredLeads.map(lead => (
-                        <TableRow key={lead.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openLead(lead)}>
-                          <TableCell className="font-medium">{lead.first_name} {lead.last_name}</TableCell>
-                          <TableCell>
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-muted">
-                              {leadSources.find(s => s.name === lead.source)?.label || lead.source || '—'}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              <p className="font-medium">{getReferrerName(lead.referral_partner_id) || '—'}</p>
-                              {getReferrerCompany(lead.referral_partner_id) && (
-                                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                  <Building2 className="w-3 h-3" />
-                                  {getReferrerCompany(lead.referral_partner_id)}
-                                </p>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              {lead.email && <p>{lead.email}</p>}
-                              {lead.phone && <p className="text-muted-foreground">{lead.phone}</p>}
-                            </div>
-                          </TableCell>
-                          <TableCell>{lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '—'}</TableCell>
-                          <TableCell><StatusBadge status={lead.status} statuses={statuses} /></TableCell>
-                          <TableCell className="text-muted-foreground">{format(new Date(lead.created_at), 'dd MMM')}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
+              <div className="space-y-6">
+                {statuses.map(status => {
+                  const statusLeads = filteredLeads.filter(l => l.status === status.name);
+                  if (statusLeads.length === 0) return null;
+                  return (
+                    <div key={status.name}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: status.color }} />
+                        <h3 className="text-sm font-semibold">{status.label}</h3>
+                        <span className="text-xs text-muted-foreground">({statusLeads.length})</span>
+                      </div>
+                      <Card>
+                        <CardContent className="p-0">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Client</TableHead>
+                                <TableHead>Source</TableHead>
+                                <TableHead>Referrer</TableHead>
+                                <TableHead>Contact</TableHead>
+                                <TableHead>Amount</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Date</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {statusLeads.map(lead => (
+                                <TableRow key={lead.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openLead(lead)}>
+                                  <TableCell className="font-medium">{lead.first_name} {lead.last_name}</TableCell>
+                                  <TableCell>
+                                    <span className="text-xs px-2 py-0.5 rounded-full bg-muted">
+                                      {leadSources.find(s => s.name === lead.source)?.label || lead.source || '—'}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="text-sm">
+                                      <p className="font-medium">{getReferrerName(lead.referral_partner_id) || '—'}</p>
+                                      {getReferrerCompany(lead.referral_partner_id) && (
+                                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                          <Building2 className="w-3 h-3" />
+                                          {getReferrerCompany(lead.referral_partner_id)}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="text-sm">
+                                      {lead.email && <p>{lead.email}</p>}
+                                      {lead.phone && <p className="text-muted-foreground">{lead.phone}</p>}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>{lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '—'}</TableCell>
+                                  <TableCell><StatusBadge status={lead.status} statuses={statuses} /></TableCell>
+                                  <TableCell className="text-muted-foreground">{format(new Date(lead.created_at), 'dd MMM')}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  );
+                })}
+                {/* Leads with statuses not in the configured list */}
+                {(() => {
+                  const knownStatuses = statuses.map(s => s.name);
+                  const uncategorized = filteredLeads.filter(l => !knownStatuses.includes(l.status));
+                  if (uncategorized.length === 0) return null;
+                  return (
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-3 h-3 rounded-full bg-muted-foreground" />
+                        <h3 className="text-sm font-semibold">Other</h3>
+                        <span className="text-xs text-muted-foreground">({uncategorized.length})</span>
+                      </div>
+                      <Card>
+                        <CardContent className="p-0">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Client</TableHead>
+                                <TableHead>Source</TableHead>
+                                <TableHead>Referrer</TableHead>
+                                <TableHead>Contact</TableHead>
+                                <TableHead>Amount</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Date</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {uncategorized.map(lead => (
+                                <TableRow key={lead.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openLead(lead)}>
+                                  <TableCell className="font-medium">{lead.first_name} {lead.last_name}</TableCell>
+                                  <TableCell>
+                                    <span className="text-xs px-2 py-0.5 rounded-full bg-muted">
+                                      {leadSources.find(s => s.name === lead.source)?.label || lead.source || '—'}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="text-sm">
+                                      <p className="font-medium">{getReferrerName(lead.referral_partner_id) || '—'}</p>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="text-sm">
+                                      {lead.email && <p>{lead.email}</p>}
+                                      {lead.phone && <p className="text-muted-foreground">{lead.phone}</p>}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>{lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '—'}</TableCell>
+                                  <TableCell><StatusBadge status={lead.status} statuses={statuses} /></TableCell>
+                                  <TableCell className="text-muted-foreground">{format(new Date(lead.created_at), 'dd MMM')}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  );
+                })()}
+              </div>
             )}
           </TabsContent>
 
