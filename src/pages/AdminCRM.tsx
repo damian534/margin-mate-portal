@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useLeadStatuses } from '@/hooks/useLeadStatuses';
-import { SAMPLE_LEADS, SAMPLE_NOTES } from '@/lib/sample-data';
+import { SAMPLE_LEADS_WITH_REFERRERS, SAMPLE_NOTES, SAMPLE_COMPANIES, SAMPLE_REFERRERS } from '@/lib/sample-data';
 import { AppHeader } from '@/components/AppHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { TasksPanel } from '@/components/TasksPanel';
 import { LeadsKanban } from '@/components/LeadsKanban';
 import { StatusSettings } from '@/components/StatusSettings';
+import { CompanyManagement, Company } from '@/components/CompanyManagement';
+import { ReferrerProfiles, ReferrerProfileData } from '@/components/ReferrerProfile';
+import { ReferrerReports } from '@/components/ReferrerReports';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,7 +25,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Send, Filter, ListTodo, List, Columns } from 'lucide-react';
+import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Send, Filter, ListTodo, List, Columns, Building2, Users, BarChart3 } from 'lucide-react';
 
 interface Lead {
   id: string;
@@ -61,14 +64,22 @@ export default function AdminCRM() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [leadsView, setLeadsView] = useState<'table' | 'kanban'>('table');
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [referrers, setReferrers] = useState<ReferrerProfileData[]>([]);
+  const [activeTab, setActiveTab] = useState('leads');
+  const [reportReferrerId, setReportReferrerId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isPreviewMode) {
-      setLeads(SAMPLE_LEADS as Lead[]);
+      setLeads(SAMPLE_LEADS_WITH_REFERRERS as Lead[]);
+      setCompanies(SAMPLE_COMPANIES as Company[]);
+      setReferrers(SAMPLE_REFERRERS as ReferrerProfileData[]);
       setLoading(false);
       return;
     }
     fetchLeads();
+    fetchCompanies();
+    fetchReferrers();
   }, [isPreviewMode]);
 
   useEffect(() => {
@@ -78,19 +89,34 @@ export default function AdminCRM() {
       result = result.filter(l =>
         `${l.first_name} ${l.last_name}`.toLowerCase().includes(q) ||
         l.email?.toLowerCase().includes(q) ||
-        l.phone?.includes(q)
+        l.phone?.includes(q) ||
+        getReferrerName(l.referral_partner_id)?.toLowerCase().includes(q)
       );
     }
     if (statusFilter !== 'all') {
       result = result.filter(l => l.status === statusFilter);
     }
     setFilteredLeads(result);
-  }, [leads, search, statusFilter]);
+  }, [leads, search, statusFilter, referrers]);
 
   const fetchLeads = async () => {
     const { data } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
     setLeads((data as Lead[]) || []);
     setLoading(false);
+  };
+
+  const fetchCompanies = async () => {
+    const { data } = await supabase.from('companies').select('*').order('name');
+    setCompanies((data as Company[]) || []);
+  };
+
+  const fetchReferrers = async () => {
+    // Fetch profiles that are referral_partners
+    const { data: roles } = await supabase.from('user_roles').select('user_id').eq('role', 'referral_partner');
+    if (!roles?.length) { setReferrers([]); return; }
+    const ids = roles.map(r => r.user_id);
+    const { data: profiles } = await supabase.from('profiles').select('*').in('user_id', ids);
+    setReferrers((profiles as unknown as ReferrerProfileData[]) || []);
   };
 
   const fetchNotes = async (leadId: string) => {
@@ -134,11 +160,29 @@ export default function AdminCRM() {
     fetchNotes(selectedLead.id);
   };
 
+  const getReferrerName = (partnerId: string | null) => {
+    if (!partnerId) return null;
+    const r = referrers.find(ref => ref.user_id === partnerId);
+    return r?.full_name || null;
+  };
+
+  const getReferrerCompany = (partnerId: string | null) => {
+    if (!partnerId) return null;
+    const r = referrers.find(ref => ref.user_id === partnerId);
+    if (!r?.company_id) return null;
+    return companies.find(c => c.id === r.company_id)?.name || null;
+  };
+
   const stats = {
     total: leads.length,
     newLeads: leads.filter(l => l.status === 'new').length,
     active: leads.filter(l => !['settled', 'lost', 'new'].includes(l.status)).length,
     settled: leads.filter(l => l.status === 'settled').length,
+  };
+
+  const handleViewReport = (referrerId: string) => {
+    setReportReferrerId(referrerId);
+    setActiveTab('reports');
   };
 
   return (
@@ -173,11 +217,20 @@ export default function AdminCRM() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="leads">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="leads">Leads</TabsTrigger>
             <TabsTrigger value="tasks" className="flex items-center gap-1.5">
               <ListTodo className="w-4 h-4" /> Tasks
+            </TabsTrigger>
+            <TabsTrigger value="companies" className="flex items-center gap-1.5">
+              <Building2 className="w-4 h-4" /> Companies
+            </TabsTrigger>
+            <TabsTrigger value="referrers" className="flex items-center gap-1.5">
+              <Users className="w-4 h-4" /> Referrers
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="flex items-center gap-1.5">
+              <BarChart3 className="w-4 h-4" /> Reports
             </TabsTrigger>
           </TabsList>
 
@@ -186,7 +239,7 @@ export default function AdminCRM() {
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input placeholder="Search leads..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+                <Input placeholder="Search leads or referrer..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full sm:w-48">
@@ -234,6 +287,7 @@ export default function AdminCRM() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Client</TableHead>
+                        <TableHead>Referrer</TableHead>
                         <TableHead>Contact</TableHead>
                         <TableHead>Purpose</TableHead>
                         <TableHead>Amount</TableHead>
@@ -245,6 +299,17 @@ export default function AdminCRM() {
                       {filteredLeads.map(lead => (
                         <TableRow key={lead.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openLead(lead)}>
                           <TableCell className="font-medium">{lead.first_name} {lead.last_name}</TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              <p className="font-medium">{getReferrerName(lead.referral_partner_id) || '—'}</p>
+                              {getReferrerCompany(lead.referral_partner_id) && (
+                                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Building2 className="w-3 h-3" />
+                                  {getReferrerCompany(lead.referral_partner_id)}
+                                </p>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <div className="text-sm">
                               {lead.email && <p>{lead.email}</p>}
@@ -270,6 +335,30 @@ export default function AdminCRM() {
               onOpenLead={(leadId) => { const lead = leads.find(l => l.id === leadId); if (lead) openLead(lead); }}
             />
           </TabsContent>
+
+          <TabsContent value="companies" className="mt-4">
+            <CompanyManagement companies={companies} onRefresh={fetchCompanies} isPreviewMode={isPreviewMode} />
+          </TabsContent>
+
+          <TabsContent value="referrers" className="mt-4">
+            <ReferrerProfiles
+              referrers={referrers}
+              companies={companies}
+              onRefresh={fetchReferrers}
+              isPreviewMode={isPreviewMode}
+              onViewReport={handleViewReport}
+            />
+          </TabsContent>
+
+          <TabsContent value="reports" className="mt-4">
+            <ReferrerReports
+              leads={leads}
+              referrers={referrers}
+              companies={companies}
+              statuses={statuses}
+              selectedReferrerId={reportReferrerId}
+            />
+          </TabsContent>
         </Tabs>
       </main>
 
@@ -282,6 +371,24 @@ export default function AdminCRM() {
                 <SheetTitle className="text-xl">{selectedLead.first_name} {selectedLead.last_name}</SheetTitle>
               </SheetHeader>
               <div className="mt-6 space-y-6">
+                {/* Referrer info */}
+                {getReferrerName(selectedLead.referral_partner_id) && (
+                  <div className="bg-muted/50 rounded-lg p-3 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Users className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="text-sm">
+                      <p className="font-medium">Referred by {getReferrerName(selectedLead.referral_partner_id)}</p>
+                      {getReferrerCompany(selectedLead.referral_partner_id) && (
+                        <p className="text-muted-foreground flex items-center gap-1">
+                          <Building2 className="w-3 h-3" />
+                          {getReferrerCompany(selectedLead.referral_partner_id)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-3">
                   <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">Details</h3>
                   <div className="grid grid-cols-2 gap-3 text-sm">

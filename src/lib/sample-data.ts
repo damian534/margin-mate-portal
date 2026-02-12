@@ -126,6 +126,23 @@ export const SAMPLE_NOTES: Record<string, Array<{ id: string; content: string; n
   ],
 };
 
+export const SAMPLE_COMPANIES = [
+  { id: 'company-1', name: 'Ray White Glenroy', address: '45 Wheatsheaf Rd, Glenroy VIC 3046', phone: '03 9306 1234', email: 'glenroy@raywhite.com', website: 'https://raywhite.com/glenroy', notes: 'Key partner since 2023', created_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString() },
+  { id: 'company-2', name: 'LJ Hooker Essendon', address: '123 Mt Alexander Rd, Essendon VIC 3040', phone: '03 9379 5678', email: 'essendon@ljhooker.com', website: 'https://ljhooker.com.au', notes: null, created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString() },
+];
+
+export const SAMPLE_REFERRERS = [
+  { id: 'ref-1', user_id: 'partner-1', full_name: 'Tom Nguyen', email: 'tom@raywhite.com', phone: '0412 111 222', company_name: 'Ray White Glenroy', company_id: 'company-1', date_of_birth: '1988-03-15', spouse_name: 'Lisa', interests: 'Golf, AFL', address: '12 Smith St, Glenroy VIC', license_number: null, custom_fields: { 'Preferred Contact': 'Text message' }, broker_notes: 'Great relationship, always follows up quickly.', created_at: new Date(Date.now() - 80 * 24 * 60 * 60 * 1000).toISOString() },
+  { id: 'ref-2', user_id: 'partner-2', full_name: 'Amy Tran', email: 'amy@ljhooker.com', phone: '0423 333 444', company_name: 'LJ Hooker Essendon', company_id: 'company-2', date_of_birth: '1992-07-22', spouse_name: null, interests: 'Running, Travel', address: null, license_number: 'RE-44521', custom_fields: {}, broker_notes: null, created_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString() },
+  { id: 'ref-3', user_id: 'preview-user-id', full_name: 'Creator Preview', email: 'creator@marginfinance.com', phone: '0400 000 000', company_name: null, company_id: null, date_of_birth: null, spouse_name: null, interests: null, address: null, license_number: null, custom_fields: {}, broker_notes: null, created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() },
+];
+
+// Update sample leads with different referral partners
+export const SAMPLE_LEADS_WITH_REFERRERS = SAMPLE_LEADS.map((l, i) => ({
+  ...l,
+  referral_partner_id: i < 2 ? 'partner-1' : i < 4 ? 'partner-2' : 'preview-user-id',
+}));
+
 export const SAMPLE_TASKS = [
   {
     id: 'task-1',

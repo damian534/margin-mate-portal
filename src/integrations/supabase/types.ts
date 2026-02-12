@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      companies: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       lead_statuses: {
         Row: {
           color: string
@@ -123,36 +159,68 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
+          broker_notes: string | null
+          company_id: string | null
           company_name: string | null
           created_at: string
+          custom_fields: Json | null
+          date_of_birth: string | null
           email: string | null
           full_name: string | null
           id: string
+          interests: string | null
+          license_number: string | null
           phone: string | null
+          spouse_name: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          address?: string | null
+          broker_notes?: string | null
+          company_id?: string | null
           company_name?: string | null
           created_at?: string
+          custom_fields?: Json | null
+          date_of_birth?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
+          interests?: string | null
+          license_number?: string | null
           phone?: string | null
+          spouse_name?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          address?: string | null
+          broker_notes?: string | null
+          company_id?: string | null
           company_name?: string | null
           created_at?: string
+          custom_fields?: Json | null
+          date_of_birth?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
+          interests?: string | null
+          license_number?: string | null
           phone?: string | null
+          spouse_name?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tasks: {
         Row: {
