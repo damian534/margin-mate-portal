@@ -44,7 +44,7 @@ export function AppHeader() {
                   Sign In
                 </Button>
                 <Button size="sm" onClick={() => navigate('/register')}>
-                  Get Started
+                  Register
                 </Button>
               </>
             )}
