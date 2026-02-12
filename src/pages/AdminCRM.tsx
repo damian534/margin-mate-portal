@@ -486,6 +486,15 @@ export default function AdminCRM() {
         onUpdateCommission={updateCommission}
         onDeleteLead={deleteLead}
         onLeadChange={setSelectedLead}
+        onOpenContact={(contactId) => {
+          setSheetOpen(false);
+          setActiveTab('contacts');
+          // Small delay to let the sheet close before switching tabs
+          setTimeout(() => {
+            const contactEl = document.getElementById(`contact-${contactId}`);
+            contactEl?.scrollIntoView({ behavior: 'smooth' });
+          }, 300);
+        }}
         sampleNotes={isPreviewMode && selectedLead ? (SAMPLE_NOTES[selectedLead.id] || []) as any : undefined}
       />
     </div>
