@@ -634,6 +634,7 @@ export default function AdminCRM() {
         onOpenChange={setSheetOpen}
         lead={selectedLead}
         statuses={statuses}
+        leadSources={leadSources}
         referrerName={selectedLead ? getReferrerName(selectedLead.referral_partner_id) : null}
         referrerCompany={selectedLead ? getReferrerCompany(selectedLead.referral_partner_id) : null}
         isPreviewMode={isPreviewMode}
