@@ -19,6 +19,10 @@ function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode;
   const { user, role, loading, isBrokerOrAdmin, isCodeAccess } = useAuth();
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading...</div>;
   if (!user && !isCodeAccess) return <Navigate to="/login" />;
+  // If user is authenticated but role hasn't loaded yet, keep showing loading
+  if (requiredRole && user && !role && !isCodeAccess) {
+    return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading...</div>;
+  }
   if (requiredRole === 'broker_or_admin' && !isBrokerOrAdmin) return <Navigate to="/" />;
   if (requiredRole && requiredRole !== 'broker_or_admin' && role !== requiredRole) return <Navigate to="/" />;
   return <>{children}</>;
