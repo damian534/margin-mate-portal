@@ -15,7 +15,7 @@ export function AppHeader() {
       <header className="border-b bg-card">
         <div className="container flex items-center justify-between h-16">
           <button onClick={() => navigate(isPreviewMode ? '/?preview=true' : '/')} className="flex items-center">
-            <Logo className="h-10" />
+            <Logo className="h-14" />
           </button>
           <nav className="flex items-center gap-3">
             {user ? (
