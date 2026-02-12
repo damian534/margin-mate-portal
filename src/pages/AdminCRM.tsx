@@ -654,7 +654,10 @@ export default function AdminCRM() {
         onUpdateStatus={updateStatus}
         onUpdateCommission={updateCommission}
         onDeleteLead={deleteLead}
-        onLeadChange={setSelectedLead}
+        onLeadChange={(updated) => {
+          setSelectedLead(updated);
+          setLeads(prev => prev.map(l => l.id === updated.id ? { ...l, ...updated } : l));
+        }}
         onOpenContact={(contactId) => {
           setSheetOpen(false);
           setActiveTab('contacts');
