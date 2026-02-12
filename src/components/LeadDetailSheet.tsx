@@ -552,20 +552,24 @@ export function LeadDetailSheet({
           <div className="flex gap-3">
             <div className="flex-1">
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">Loan Amount</Label>
-              <Input
-                type="number"
-                className="mt-1"
-                placeholder="Enter amount"
-                value={lead.loan_amount ?? ''}
-                min={0}
-                onChange={async (e) => {
-                  const val = e.target.value ? parseFloat(e.target.value) : null;
-                  onLeadChange?.({ ...lead, loan_amount: val });
-                  if (!isPreviewMode) {
-                    await supabase.from('leads').update({ loan_amount: val } as any).eq('id', lead.id);
-                  }
-                }}
-              />
+              <div className="relative mt-1">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  className="pl-8"
+                  placeholder="Enter amount"
+                  value={lead.loan_amount ? lead.loan_amount.toLocaleString() : ''}
+                  onChange={async (e) => {
+                    const raw = e.target.value.replace(/[^0-9]/g, '');
+                    const val = raw ? parseInt(raw, 10) : null;
+                    onLeadChange?.({ ...lead, loan_amount: val });
+                    if (!isPreviewMode) {
+                      await supabase.from('leads').update({ loan_amount: val } as any).eq('id', lead.id);
+                    }
+                  }}
+                />
+              </div>
             </div>
             <div className="flex-1">
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">Loan Purpose</Label>
