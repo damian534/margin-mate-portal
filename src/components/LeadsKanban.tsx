@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { LeadStatus } from '@/hooks/useLeadStatuses';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ChevronDown, ChevronRight, DollarSign } from 'lucide-react';
+import { ChevronDown, ChevronRight, DollarSign, Users } from 'lucide-react';
 
 interface Lead {
   id: string;
@@ -15,6 +15,8 @@ interface Lead {
   loan_purpose: string | null;
   status: string;
   source?: string | null;
+  referral_partner_id?: string | null;
+  source_contact_id?: string | null;
   created_at: string;
 }
 
@@ -27,11 +29,14 @@ interface LeadsKanbanProps {
   leads: Lead[];
   statuses: LeadStatus[];
   leadSources?: LeadSource[];
+  getReferrerName?: (partnerId: string | null) => string | null;
+  getReferrerCompany?: (partnerId: string | null) => string | null;
+  getContactName?: (contactId: string | null) => string | null;
   onOpenLead: (lead: Lead) => void;
   onUpdateStatus: (leadId: string, newStatus: string) => void;
 }
 
-export function LeadsKanban({ leads, statuses, leadSources = [], onOpenLead, onUpdateStatus }: LeadsKanbanProps) {
+export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName, getReferrerCompany, getContactName, onOpenLead, onUpdateStatus }: LeadsKanbanProps) {
   const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set());
 
   const toggleCollapse = (statusName: string) => {
@@ -135,6 +140,24 @@ export function LeadsKanban({ leads, statuses, leadSources = [], onOpenLead, onU
                             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground inline-block">
                               {leadSources.find(s => s.name === lead.source)?.label || lead.source}
                             </span>
+                          )}
+                          {/* Attribution: referral partner or client referral */}
+                          {lead.referral_partner_id && getReferrerName?.(lead.referral_partner_id) && (
+                            <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                              <Users className="w-3 h-3 shrink-0" />
+                              <span className="truncate">
+                                {getReferrerName(lead.referral_partner_id)}
+                                {getReferrerCompany?.(lead.referral_partner_id) && (
+                                  <span className="opacity-70"> · {getReferrerCompany(lead.referral_partner_id)}</span>
+                                )}
+                              </span>
+                            </div>
+                          )}
+                          {lead.source_contact_id && getContactName?.(lead.source_contact_id) && !lead.referral_partner_id && (
+                            <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                              <Users className="w-3 h-3 shrink-0" />
+                              <span className="truncate">Referred by {getContactName(lead.source_contact_id)}</span>
+                            </div>
                           )}
                           <p className="text-xs text-muted-foreground">{format(new Date(lead.created_at), 'dd MMM')}</p>
                         </CardContent>

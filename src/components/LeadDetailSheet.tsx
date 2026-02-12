@@ -85,6 +85,7 @@ interface LeadDetailSheetProps {
   leadSources?: LeadSource[];
   referrerName: string | null;
   referrerCompany: string | null;
+  sourceContactName?: string | null;
   isPreviewMode: boolean;
   onUpdateStatus: (leadId: string, status: string) => void;
   onUpdateCommission: (leadId: string, fields: Record<string, any>) => void;
@@ -117,7 +118,7 @@ function formatDatetimeLocal(d: Date) {
 }
 
 export function LeadDetailSheet({
-  open, onOpenChange, lead, statuses, leadSources = [], referrerName, referrerCompany,
+  open, onOpenChange, lead, statuses, leadSources = [], referrerName, referrerCompany, sourceContactName,
   isPreviewMode, onUpdateStatus, onUpdateCommission, onDeleteLead, onLeadChange, onOpenContact, sampleNotes
 }: LeadDetailSheetProps) {
   const { user } = useAuth();
@@ -497,6 +498,13 @@ export function LeadDetailSheet({
                   <Building2 className="w-3 h-3" /> {referrerCompany}
                 </span>
               )}
+            </div>
+          )}
+          {/* Client referral banner */}
+          {sourceContactName && !referrerName && (
+            <div className="mt-3 bg-primary/5 rounded-lg px-3 py-2 flex items-center gap-2 text-sm">
+              <Users className="w-3.5 h-3.5 text-primary" />
+              <span>Referred by client <strong>{sourceContactName}</strong></span>
             </div>
           )}
         </div>
