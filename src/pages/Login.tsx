@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,7 +18,6 @@ export default function Login() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<Mode>(() => {
-    // Check if the URL hash contains a recovery token (user clicked reset link)
     const hash = window.location.hash;
     if (hash && hash.includes('type=recovery')) {
       return 'reset';
@@ -25,8 +25,21 @@ export default function Login() {
     return 'login';
   });
   const navigate = useNavigate();
+  const { user, role, loading: authLoading, isBrokerOrAdmin } = useAuth();
 
-  // Also listen for PASSWORD_RECOVERY event as a fallback
+  // Redirect when auth state resolves after login
+  useEffect(() => {
+    if (authLoading) return;
+    if (user && role) {
+      if (isBrokerOrAdmin) {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }, [user, role, authLoading, isBrokerOrAdmin, navigate]);
+
+  // Listen for PASSWORD_RECOVERY event
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
@@ -40,35 +53,16 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         toast.error(error.message);
         setLoading(false);
         return;
       }
-      
-      // Query role using the freshly authenticated session
-      let userRole: string | null = null;
-      try {
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', data.user.id)
-          .maybeSingle();
-        userRole = roleData?.role ?? null;
-      } catch {
-        // Role query failed, default to partner dashboard
-      }
-      
       toast.success('Welcome back!');
-      if (userRole === 'broker' || userRole === 'super_admin') {
-        navigate('/admin');
-      } else {
-        navigate('/dashboard');
-      }
+      // Navigation handled by useEffect watching auth state
     } catch {
       toast.error('An unexpected error occurred');
-    } finally {
       setLoading(false);
     }
   };
