@@ -77,6 +77,7 @@ interface LeadDetailSheetProps {
   onUpdateCommission: (leadId: string, fields: Record<string, any>) => void;
   onDeleteLead: (leadId: string) => void;
   onLeadChange: (lead: Lead) => void;
+  onOpenContact?: (contactId: string) => void;
   sampleNotes?: Note[];
 }
 
@@ -104,7 +105,7 @@ function formatDatetimeLocal(d: Date) {
 
 export function LeadDetailSheet({
   open, onOpenChange, lead, statuses, referrerName, referrerCompany,
-  isPreviewMode, onUpdateStatus, onUpdateCommission, onDeleteLead, onLeadChange, sampleNotes
+  isPreviewMode, onUpdateStatus, onUpdateCommission, onDeleteLead, onLeadChange, onOpenContact, sampleNotes
 }: LeadDetailSheetProps) {
   const { user } = useAuth();
   const [notes, setNotes] = useState<Note[]>([]);
@@ -279,27 +280,43 @@ export function LeadDetailSheet({
 
     return (
       <div key={task.id} className={`rounded-lg border transition-all ${isOverdue ? 'border-destructive/30 bg-destructive/5' : task.completed ? 'opacity-60' : 'bg-background'}`}>
-        {isEditing ? (
-          /* Edit mode — full width form */
-          <div className="p-2.5 space-y-2">
-            <Input value={editingTask.title} onChange={e => setEditingTask({ ...editingTask, title: e.target.value })} className="h-8 text-sm" autoFocus />
+        {isEditing && editingTask ? (
+          /* Edit mode — full width form, stop all event propagation */
+          <div className="p-3 space-y-2.5" onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
             <div>
-              <p className="text-xs text-muted-foreground mb-1.5">Quick follow-up</p>
-              <div className="flex flex-wrap gap-1">
-                {FOLLOW_UP_OPTIONS.map(opt => (
-                  <Button key={opt.label} type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2"
-                    onClick={() => setEditingTask({ ...editingTask, dueDate: formatDatetimeLocal(getFollowUpDate(opt)) })}>
-                    {opt.label}
-                  </Button>
-                ))}
+              <Label className="text-xs text-muted-foreground">Task Title</Label>
+              <Input 
+                value={editingTask.title} 
+                onChange={e => setEditingTask({ ...editingTask, title: e.target.value })} 
+                className="h-9 text-sm mt-1" 
+                onFocus={e => e.target.select()}
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Quick follow-up</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {FOLLOW_UP_OPTIONS.map(opt => {
+                  const targetDate = getFollowUpDate(opt);
+                  const formatted = formatDatetimeLocal(targetDate);
+                  const isSelected = editingTask.dueDate === formatted;
+                  return (
+                    <Button key={opt.label} type="button" variant={isSelected ? 'default' : 'outline'} size="sm" className="h-7 text-xs px-2.5"
+                      onClick={() => setEditingTask({ ...editingTask, dueDate: formatted })}>
+                      {opt.label}
+                    </Button>
+                  );
+                })}
               </div>
             </div>
-            <div className="flex gap-2">
-              <Input type="datetime-local" value={editingTask.dueDate} onChange={e => setEditingTask({ ...editingTask, dueDate: e.target.value })} className="h-8 text-sm flex-1" />
-              <Button size="sm" className="h-8 text-xs px-3" onClick={() => updateTask(task.id)} disabled={!editingTask.title.trim()}>
-                <Save className="w-3 h-3 mr-1" /> Save
+            <div>
+              <Label className="text-xs text-muted-foreground">Custom Date & Time</Label>
+              <Input type="datetime-local" value={editingTask.dueDate} onChange={e => setEditingTask({ ...editingTask, dueDate: e.target.value })} className="h-9 text-sm mt-1" />
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button size="sm" className="h-8 text-xs px-4 flex-1" onClick={() => updateTask(task.id)} disabled={!editingTask.title.trim()}>
+                <Save className="w-3.5 h-3.5 mr-1.5" /> Save Changes
               </Button>
-              <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setEditingTask(null)}>Cancel</Button>
+              <Button variant="outline" size="sm" className="h-8 text-xs px-3" onClick={() => setEditingTask(null)}>Cancel</Button>
             </div>
           </div>
         ) : (
@@ -378,13 +395,30 @@ export function LeadDetailSheet({
         <div className="bg-muted/30 p-6 pb-4 border-b">
           <SheetHeader className="mb-4">
             <SheetTitle className="text-xl flex items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+              <div 
+                className={`w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm ${lead.source_contact_id && onOpenContact ? 'cursor-pointer hover:bg-primary/20 transition-colors' : ''}`}
+                onClick={() => lead.source_contact_id && onOpenContact?.(lead.source_contact_id)}
+                title={lead.source_contact_id ? 'View contact card' : undefined}
+              >
                 {lead.first_name[0]}{lead.last_name[0]}
               </div>
               <div>
-                <span>{lead.first_name} {lead.last_name}</span>
+                <span 
+                  className={lead.source_contact_id && onOpenContact ? 'cursor-pointer hover:text-primary transition-colors' : ''}
+                  onClick={() => lead.source_contact_id && onOpenContact?.(lead.source_contact_id)}
+                >
+                  {lead.first_name} {lead.last_name}
+                </span>
                 {lead.loan_purpose && (
                   <p className="text-sm font-normal text-muted-foreground">{lead.loan_purpose}</p>
+                )}
+                {lead.source_contact_id && onOpenContact && (
+                  <button 
+                    onClick={() => onOpenContact(lead.source_contact_id!)}
+                    className="text-xs text-primary hover:underline flex items-center gap-1 mt-0.5"
+                  >
+                    <Users className="w-3 h-3" /> View contact card
+                  </button>
                 )}
               </div>
             </SheetTitle>
@@ -719,7 +753,7 @@ export function LeadDetailSheet({
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete this lead?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will permanently delete {lead.first_name} {lead.last_name} and all associated notes and tasks. This action cannot be undone.
+                  This will permanently delete {lead.first_name} {lead.last_name} and all associated notes and tasks. Contact records will not be affected. This action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
