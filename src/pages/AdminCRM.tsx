@@ -451,6 +451,13 @@ export default function AdminCRM() {
                 leads={filteredLeads}
                 statuses={statuses}
                 leadSources={leadSources}
+                getReferrerName={getReferrerName}
+                getReferrerCompany={getReferrerCompany}
+                getContactName={(contactId) => {
+                  if (!contactId) return null;
+                  const c = contacts.find(ct => ct.id === contactId);
+                  return c ? `${c.first_name} ${c.last_name}` : null;
+                }}
                 onOpenLead={openLead}
                 onUpdateStatus={updateStatus}
               />
@@ -637,6 +644,10 @@ export default function AdminCRM() {
         leadSources={leadSources}
         referrerName={selectedLead ? getReferrerName(selectedLead.referral_partner_id) : null}
         referrerCompany={selectedLead ? getReferrerCompany(selectedLead.referral_partner_id) : null}
+        sourceContactName={selectedLead?.source_contact_id ? (() => {
+          const c = contacts.find(ct => ct.id === selectedLead.source_contact_id);
+          return c ? `${c.first_name} ${c.last_name}` : null;
+        })() : null}
         isPreviewMode={isPreviewMode}
         onUpdateStatus={updateStatus}
         onUpdateCommission={updateCommission}
