@@ -121,6 +121,24 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
       }
     }
 
+    // Auto-create a contact for the lead client if not linking to an existing source contact
+    let createdContactId: string | null = null;
+    if (!isPreviewMode) {
+      const { data: contactData, error: contactErr } = await supabase.from('contacts').insert({
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        email: email.trim() || null,
+        phone: phone.trim() || null,
+        type: 'client',
+      }).select('id').maybeSingle();
+      if (contactErr) {
+        console.error('Failed to auto-create contact:', contactErr);
+      } else {
+        createdContactId = contactData?.id || null;
+        onContactCreated?.();
+      }
+    }
+
     const leadData = {
       first_name: firstName.trim(),
       last_name: lastName.trim(),
