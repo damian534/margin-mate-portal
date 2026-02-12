@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { LogOut, LayoutDashboard } from 'lucide-react';
 
 export function AppHeader() {
-  const { user, role, signOut, isPreviewMode, isCodeAccess, isBrokerOrAdmin } = useAuth();
+  const { user, role, signOut, isPreviewMode, isBrokerOrAdmin } = useAuth();
   const navigate = useNavigate();
 
   return (
@@ -15,8 +15,8 @@ export function AppHeader() {
       <header className="border-b bg-card">
         <div className="container flex items-center justify-between h-16">
           <button onClick={() => {
-            const suffix = isPreviewMode ? '?preview=true' : isCodeAccess ? `?code=${new URLSearchParams(window.location.search).get('code')}` : '';
-            navigate(`/${suffix ? suffix : ''}`);
+            const suffix = isPreviewMode ? '?preview=true' : '';
+            navigate(`/${suffix}`);
           }} className="flex items-center">
             <Logo className="h-14" />
           </button>
@@ -28,7 +28,7 @@ export function AppHeader() {
                   size="sm"
                   onClick={() => {
                     const base = isBrokerOrAdmin ? '/admin' : '/dashboard';
-                    const suffix = isPreviewMode ? '?preview=true' : isCodeAccess ? `?code=${new URLSearchParams(window.location.search).get('code')}` : '';
+                    const suffix = isPreviewMode ? '?preview=true' : '';
                     navigate(`${base}${suffix}`);
                   }}
                 >
