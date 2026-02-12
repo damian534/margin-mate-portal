@@ -51,7 +51,7 @@ export function ReferrerProfiles({ referrers, companies, onRefresh, isPreviewMod
   const [customFieldKey, setCustomFieldKey] = useState('');
   const [customFieldValue, setCustomFieldValue] = useState('');
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [newPartner, setNewPartner] = useState({ full_name: '', email: '', phone: '', company_name: '' });
+  const [newPartner, setNewPartner] = useState({ full_name: '', email: '', phone: '', company_id: '' });
   const [adding, setAdding] = useState(false);
 
   const filtered = referrers.filter(r => {
@@ -68,7 +68,7 @@ export function ReferrerProfiles({ referrers, companies, onRefresh, isPreviewMod
     if (isPreviewMode) {
       toast.success('Partner added (preview)');
       setAddDialogOpen(false);
-      setNewPartner({ full_name: '', email: '', phone: '', company_name: '' });
+      setNewPartner({ full_name: '', email: '', phone: '', company_id: '' });
       return;
     }
     setAdding(true);
@@ -79,7 +79,8 @@ export function ReferrerProfiles({ referrers, companies, onRefresh, isPreviewMod
       email: newPartner.email.trim(),
       full_name: newPartner.full_name.trim(),
       phone: newPartner.phone.trim() || null,
-      company_name: newPartner.company_name.trim() || null,
+      company_id: newPartner.company_id || null,
+      company_name: newPartner.company_id ? companies.find(c => c.id === newPartner.company_id)?.name || null : null,
       broker_id: user?.id,
     } as any);
     setAdding(false);
@@ -90,7 +91,7 @@ export function ReferrerProfiles({ referrers, companies, onRefresh, isPreviewMod
     }
     toast.success('Partner added. They can register with this email to access their dashboard.');
     setAddDialogOpen(false);
-    setNewPartner({ full_name: '', email: '', phone: '', company_name: '' });
+    setNewPartner({ full_name: '', email: '', phone: '', company_id: '' });
     onRefresh();
   };
 
@@ -170,7 +171,16 @@ export function ReferrerProfiles({ referrers, companies, onRefresh, isPreviewMod
               <div><Label>Full Name *</Label><Input value={newPartner.full_name} onChange={e => setNewPartner(p => ({ ...p, full_name: e.target.value }))} placeholder="e.g. John Smith" /></div>
               <div><Label>Email *</Label><Input type="email" value={newPartner.email} onChange={e => setNewPartner(p => ({ ...p, email: e.target.value }))} placeholder="e.g. john@realestate.com" /></div>
               <div><Label>Phone</Label><Input value={newPartner.phone} onChange={e => setNewPartner(p => ({ ...p, phone: e.target.value }))} placeholder="e.g. 0411 222 333" /></div>
-              <div><Label>Company</Label><Input value={newPartner.company_name} onChange={e => setNewPartner(p => ({ ...p, company_name: e.target.value }))} placeholder="e.g. Ray White" /></div>
+              <div>
+                <Label>Company</Label>
+                <Select value={newPartner.company_id || 'none'} onValueChange={v => setNewPartner(p => ({ ...p, company_id: v === 'none' ? '' : v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select company" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No company</SelectItem>
+                    {companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
               <Button onClick={addPartnerManually} className="w-full" disabled={adding}>
                 {adding ? 'Adding...' : 'Add Partner'}
               </Button>
