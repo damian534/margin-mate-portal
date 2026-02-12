@@ -289,27 +289,27 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>First Name *</Label>
-              <Input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" />
+              <Input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" maxLength={100} />
             </div>
             <div className="space-y-1.5">
               <Label>Last Name *</Label>
-              <Input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" />
+              <Input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" maxLength={100} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Email</Label>
-              <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" />
+              <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" maxLength={255} />
             </div>
             <div className="space-y-1.5">
               <Label>Phone</Label>
-              <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone" />
+              <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone" maxLength={30} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Loan Amount</Label>
-              <Input type="number" value={loanAmount} onChange={e => setLoanAmount(e.target.value)} placeholder="0" />
+              <Input type="number" value={loanAmount} onChange={e => setLoanAmount(e.target.value)} placeholder="0" min={0} max={999999999} />
             </div>
             <div className="space-y-1.5">
               <Label>Loan Purpose</Label>
