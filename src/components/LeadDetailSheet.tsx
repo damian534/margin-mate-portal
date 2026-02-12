@@ -393,8 +393,52 @@ export function LeadDetailSheet({
               </div>
 
               {showTaskForm && (
-                <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                <div className="bg-muted/50 rounded-lg p-3 space-y-3">
                   <Input placeholder="Task title..." value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)} className="h-8 text-sm" />
+                  
+                  {/* Quick follow-up time buttons (Privyr-style) */}
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1.5">Quick follow-up</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        { label: 'Later Today', hours: 3 },
+                        { label: 'Tomorrow', days: 1 },
+                        { label: '2 Days', days: 2 },
+                        { label: '3 Days', days: 3 },
+                        { label: '1 Week', days: 7 },
+                        { label: '2 Weeks', days: 14 },
+                        { label: '1 Month', days: 30 },
+                      ].map(opt => {
+                        const getDate = () => {
+                          const d = new Date();
+                          if (opt.hours) { d.setHours(d.getHours() + opt.hours); }
+                          else if (opt.days) { d.setDate(d.getDate() + opt.days); d.setHours(9, 0, 0, 0); }
+                          return d;
+                        };
+                        const targetDate = getDate();
+                        const isSelected = newTaskDueDate && Math.abs(new Date(newTaskDueDate).getTime() - targetDate.getTime()) < 60000;
+                        return (
+                          <Button
+                            key={opt.label}
+                            type="button"
+                            variant={isSelected ? 'default' : 'outline'}
+                            size="sm"
+                            className="h-7 text-xs px-2.5"
+                            onClick={() => {
+                              const d = getDate();
+                              // Format for datetime-local input
+                              const pad = (n: number) => n.toString().padStart(2, '0');
+                              const formatted = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                              setNewTaskDueDate(formatted);
+                            }}
+                          >
+                            {opt.label}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   <div className="flex gap-2">
                     <Input type="datetime-local" value={newTaskDueDate} onChange={e => setNewTaskDueDate(e.target.value)} className="h-8 text-sm flex-1" />
                     <Button size="sm" className="h-8 text-xs" onClick={createTask} disabled={!newTaskTitle.trim()}>Create</Button>
