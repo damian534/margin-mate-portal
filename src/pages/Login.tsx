@@ -16,10 +16,17 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<Mode>('login');
+  const [mode, setMode] = useState<Mode>(() => {
+    // Check if the URL hash contains a recovery token (user clicked reset link)
+    const hash = window.location.hash;
+    if (hash && hash.includes('type=recovery')) {
+      return 'reset';
+    }
+    return 'login';
+  });
   const navigate = useNavigate();
 
-  // Detect PASSWORD_RECOVERY event and switch to reset mode
+  // Also listen for PASSWORD_RECOVERY event as a fallback
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
