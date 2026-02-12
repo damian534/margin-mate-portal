@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { SAMPLE_LEADS, SAMPLE_NOTES } from '@/lib/sample-data';
 import { AppHeader } from '@/components/AppHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { LEAD_STATUSES } from '@/lib/supabase-helpers';
@@ -43,7 +44,7 @@ interface Note {
 }
 
 export default function AdminCRM() {
-  const { user } = useAuth();
+  const { user, isPreviewMode } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -56,8 +57,13 @@ export default function AdminCRM() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (isPreviewMode) {
+      setLeads(SAMPLE_LEADS as Lead[]);
+      setLoading(false);
+      return;
+    }
     fetchLeads();
-  }, []);
+  }, [isPreviewMode]);
 
   useEffect(() => {
     let result = leads;
@@ -85,6 +91,10 @@ export default function AdminCRM() {
   };
 
   const fetchNotes = async (leadId: string) => {
+    if (isPreviewMode) {
+      setNotes((SAMPLE_NOTES[leadId] || []) as Note[]);
+      return;
+    }
     const { data } = await supabase
       .from('notes')
       .select('*')
@@ -100,6 +110,12 @@ export default function AdminCRM() {
   };
 
   const updateStatus = async (leadId: string, status: string) => {
+    if (isPreviewMode) {
+      toast.success('Status updated (preview)');
+      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status } : l));
+      if (selectedLead?.id === leadId) setSelectedLead(prev => prev ? { ...prev, status } : null);
+      return;
+    }
     const { error } = await supabase
       .from('leads')
       .update({ status: status as any })
@@ -117,6 +133,20 @@ export default function AdminCRM() {
 
   const addNote = async () => {
     if (!newNote.trim() || !selectedLead || !user) return;
+    if (isPreviewMode) {
+      const fakeNote: Note = {
+        id: `preview-${Date.now()}`,
+        content: newNote.trim(),
+        notify_partner: notifyPartner,
+        created_at: new Date().toISOString(),
+        author_id: user.id,
+      };
+      setNotes(prev => [fakeNote, ...prev]);
+      toast.success(notifyPartner ? 'Note added & partner will be notified (preview)' : 'Note added (preview)');
+      setNewNote('');
+      setNotifyPartner(false);
+      return;
+    }
     const { error } = await supabase.from('notes').insert({
       lead_id: selectedLead.id,
       author_id: user.id,

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { SAMPLE_LEADS, SAMPLE_NOTES } from '@/lib/sample-data';
 import { AppHeader } from '@/components/AppHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Button } from '@/components/ui/button';
@@ -31,7 +32,7 @@ interface Note {
 }
 
 export default function PartnerDashboard() {
-  const { user } = useAuth();
+  const { user, isPreviewMode } = useAuth();
   const navigate = useNavigate();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -39,9 +40,14 @@ export default function PartnerDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (isPreviewMode) {
+      setLeads(SAMPLE_LEADS as Lead[]);
+      setLoading(false);
+      return;
+    }
     if (!user) return;
     fetchLeads();
-  }, [user]);
+  }, [user, isPreviewMode]);
 
   const fetchLeads = async () => {
     const { data } = await supabase
@@ -53,6 +59,10 @@ export default function PartnerDashboard() {
   };
 
   const fetchNotes = async (leadId: string) => {
+    if (isPreviewMode) {
+      setNotes((SAMPLE_NOTES[leadId] || []) as Note[]);
+      return;
+    }
     const { data } = await supabase
       .from('notes')
       .select('id, content, created_at')
