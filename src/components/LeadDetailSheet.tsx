@@ -521,6 +521,42 @@ export function LeadDetailSheet({
             </div>
           </div>
 
+          {/* Loan Details Row */}
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Loan Amount</Label>
+              <Input
+                type="number"
+                className="mt-1"
+                placeholder="Enter amount"
+                value={lead.loan_amount ?? ''}
+                min={0}
+                onChange={async (e) => {
+                  const val = e.target.value ? parseFloat(e.target.value) : null;
+                  onLeadChange?.({ ...lead, loan_amount: val });
+                  if (!isPreviewMode) {
+                    await supabase.from('leads').update({ loan_amount: val } as any).eq('id', lead.id);
+                  }
+                }}
+              />
+            </div>
+            <div className="flex-1">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Loan Purpose</Label>
+              <Input
+                className="mt-1"
+                placeholder="e.g. Home Purchase"
+                value={lead.loan_purpose ?? ''}
+                onChange={async (e) => {
+                  const val = e.target.value || null;
+                  onLeadChange?.({ ...lead, loan_purpose: val });
+                  if (!isPreviewMode) {
+                    await supabase.from('leads').update({ loan_purpose: val } as any).eq('id', lead.id);
+                  }
+                }}
+              />
+            </div>
+          </div>
+
           <Separator />
 
           {/* Tabs: Timeline (Tasks + Activity), Commission */}
