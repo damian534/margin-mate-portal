@@ -30,11 +30,17 @@ export default function Login() {
   // Redirect when auth state resolves after login
   useEffect(() => {
     if (authLoading) return;
-    if (user && role) {
-      if (isBrokerOrAdmin) {
-        navigate('/admin', { replace: true });
+    if (user) {
+      if (role) {
+        if (isBrokerOrAdmin) {
+          navigate('/admin', { replace: true });
+        } else {
+          navigate('/dashboard', { replace: true });
+        }
       } else {
-        navigate('/dashboard', { replace: true });
+        // User exists but has no role assigned yet — stop loading spinner
+        setLoading(false);
+        toast.error('Your account is pending setup. Please contact your broker.');
       }
     }
   }, [user, role, authLoading, isBrokerOrAdmin, navigate]);
