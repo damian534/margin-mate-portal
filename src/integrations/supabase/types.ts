@@ -262,6 +262,7 @@ export type Database = {
           id: string
           lead_id: string
           notify_partner: boolean | null
+          task_id: string | null
         }
         Insert: {
           author_id?: string | null
@@ -270,6 +271,7 @@ export type Database = {
           id?: string
           lead_id: string
           notify_partner?: boolean | null
+          task_id?: string | null
         }
         Update: {
           author_id?: string | null
@@ -278,6 +280,7 @@ export type Database = {
           id?: string
           lead_id?: string
           notify_partner?: boolean | null
+          task_id?: string | null
         }
         Relationships: [
           {
@@ -285,6 +288,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
         ]
