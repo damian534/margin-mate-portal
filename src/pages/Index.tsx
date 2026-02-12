@@ -8,7 +8,7 @@ import logoIcon from '@/assets/logo-icon.png';
 
 export default function Index() {
   const navigate = useNavigate();
-  const { user, role } = useAuth();
+  const { user, role, isBrokerOrAdmin } = useAuth();
 
   const features = [
     { icon: Users, title: 'Easy Referrals', desc: 'Submit client leads in seconds with our simple form' },
@@ -45,7 +45,7 @@ export default function Index() {
               {user ? (
                 <Button
                   size="lg"
-                  onClick={() => navigate(role === 'broker' ? '/admin' : '/dashboard')}
+                  onClick={() => navigate(isBrokerOrAdmin ? '/admin' : '/dashboard')}
                 >
                   Go to Dashboard <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>

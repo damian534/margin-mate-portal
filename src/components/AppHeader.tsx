@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { LogOut, LayoutDashboard } from 'lucide-react';
 
 export function AppHeader() {
-  const { user, role, signOut, isPreviewMode } = useAuth();
+  const { user, role, signOut, isPreviewMode, isBrokerOrAdmin } = useAuth();
   const navigate = useNavigate();
 
   return (
@@ -24,7 +24,7 @@ export function AppHeader() {
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    const base = role === 'broker' ? '/admin' : '/dashboard';
+                    const base = isBrokerOrAdmin ? '/admin' : '/dashboard';
                     navigate(isPreviewMode ? `${base}?preview=true` : base);
                   }}
                 >

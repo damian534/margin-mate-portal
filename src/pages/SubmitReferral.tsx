@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { AppHeader } from '@/components/AppHeader';
@@ -27,6 +27,7 @@ export default function SubmitReferral() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [brokerId, setBrokerId] = useState<string | null>(null);
   const [form, setForm] = useState({
     first_name: '',
     last_name: '',
@@ -36,6 +37,12 @@ export default function SubmitReferral() {
     loan_purpose: '',
     notes: '',
   });
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('profiles').select('broker_id').eq('user_id', user.id).maybeSingle()
+      .then(({ data }) => { if (data?.broker_id) setBrokerId(data.broker_id as string); });
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +54,7 @@ export default function SubmitReferral() {
 
     const { error } = await supabase.from('leads').insert({
       referral_partner_id: user.id,
+      broker_id: brokerId,
       first_name: form.first_name.trim(),
       last_name: form.last_name.trim(),
       email: form.email.trim() || null,
