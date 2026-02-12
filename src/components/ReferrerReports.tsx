@@ -19,6 +19,10 @@ interface Lead {
   loan_amount: number | null;
   status: string;
   created_at: string;
+  referrer_commission: number | null;
+  referrer_commission_paid: boolean | null;
+  company_commission: number | null;
+  company_commission_paid: boolean | null;
 }
 
 interface ReferrerReportsProps {
@@ -77,6 +81,14 @@ export function ReferrerReports({ leads, referrers, companies, statuses, selecte
   const totalLoanValue = relevantLeads.reduce((sum, l) => sum + (l.loan_amount || 0), 0);
   const settledValue = settledLeads.reduce((sum, l) => sum + (l.loan_amount || 0), 0);
 
+  // Commission stats
+  const totalReferrerCommission = relevantLeads.reduce((sum, l) => sum + ((l as any).referrer_commission || 0), 0);
+  const paidReferrerCommission = relevantLeads.filter((l: any) => l.referrer_commission_paid).reduce((sum, l) => sum + ((l as any).referrer_commission || 0), 0);
+  const outstandingReferrerCommission = totalReferrerCommission - paidReferrerCommission;
+  const totalCompanyCommission = relevantLeads.reduce((sum, l) => sum + ((l as any).company_commission || 0), 0);
+  const paidCompanyCommission = relevantLeads.filter((l: any) => l.company_commission_paid).reduce((sum, l) => sum + ((l as any).company_commission || 0), 0);
+  const outstandingCompanyCommission = totalCompanyCommission - paidCompanyCommission;
+
   // Status breakdown
   const statusBreakdown = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -117,12 +129,17 @@ export function ReferrerReports({ leads, referrers, companies, statuses, selecte
     return companyReferrers.map(r => {
       const rLeads = leads.filter(l => l.referral_partner_id === r.user_id);
       const rSettled = rLeads.filter(l => l.status === 'settled');
+      const rCommission = rLeads.reduce((s, l) => s + (l.referrer_commission || 0), 0);
+      const rPaid = rLeads.filter(l => l.referrer_commission_paid).reduce((s, l) => s + (l.referrer_commission || 0), 0);
       return {
         name: r.full_name || 'Unnamed',
         leads: rLeads.length,
         settled: rSettled.length,
         rate: rLeads.length > 0 ? Math.round((rSettled.length / rLeads.length) * 100) : 0,
         value: rLeads.reduce((s, l) => s + (l.loan_amount || 0), 0),
+        commission: rCommission,
+        paid: rPaid,
+        outstanding: rCommission - rPaid,
       };
     });
   }, [viewBy, selectedCompany, referrers, leads]);
@@ -198,6 +215,35 @@ export function ReferrerReports({ leads, referrers, companies, statuses, selecte
         ))}
       </div>
 
+      {/* Commission stats */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Commission Summary</CardTitle></CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Referrer Commissions</p>
+              <p className="text-xl font-bold">${totalReferrerCommission.toLocaleString()}</p>
+              <div className="flex gap-4 mt-1 text-sm">
+                <span className="text-green-600">Paid: ${paidReferrerCommission.toLocaleString()}</span>
+                <span className="text-orange-600">Outstanding: ${outstandingReferrerCommission.toLocaleString()}</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Company Commissions</p>
+              <p className="text-xl font-bold">${totalCompanyCommission.toLocaleString()}</p>
+              <div className="flex gap-4 mt-1 text-sm">
+                <span className="text-green-600">Paid: ${paidCompanyCommission.toLocaleString()}</span>
+                <span className="text-orange-600">Outstanding: ${outstandingCompanyCommission.toLocaleString()}</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Total Outstanding</p>
+              <p className="text-xl font-bold text-orange-600">${(outstandingReferrerCommission + outstandingCompanyCommission).toLocaleString()}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Charts */}
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Monthly trend */}
@@ -255,7 +301,7 @@ export function ReferrerReports({ leads, referrers, companies, statuses, selecte
 
       {/* Per-referrer breakdown (company view) */}
       {viewBy === 'company' && selectedCompany !== 'all' && referrerTable.length > 0 && (
-        <Card>
+         <Card>
           <CardHeader><CardTitle className="text-base">Individual Referrer Performance</CardTitle></CardHeader>
           <CardContent className="p-0">
             <Table>
@@ -266,6 +312,9 @@ export function ReferrerReports({ leads, referrers, companies, statuses, selecte
                   <TableHead className="text-right">Settled</TableHead>
                   <TableHead className="text-right">Conversion</TableHead>
                   <TableHead className="text-right">Total Value</TableHead>
+                  <TableHead className="text-right">Commission</TableHead>
+                  <TableHead className="text-right">Paid</TableHead>
+                  <TableHead className="text-right">Outstanding</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -276,6 +325,9 @@ export function ReferrerReports({ leads, referrers, companies, statuses, selecte
                     <TableCell className="text-right">{r.settled}</TableCell>
                     <TableCell className="text-right">{r.rate}%</TableCell>
                     <TableCell className="text-right">${r.value.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">${r.commission.toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-green-600">${r.paid.toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-orange-600">${r.outstanding.toLocaleString()}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
