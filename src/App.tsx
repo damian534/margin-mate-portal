@@ -23,8 +23,13 @@ function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode;
   if (requiredRole && user && !role && !isCodeAccess) {
     return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading...</div>;
   }
-  if (requiredRole === 'broker_or_admin' && !isBrokerOrAdmin) return <Navigate to="/" />;
-  if (requiredRole && requiredRole !== 'broker_or_admin' && role !== requiredRole) return <Navigate to="/" />;
+  // Redirect mismatched roles to their correct dashboard instead of home
+  if (requiredRole === 'broker_or_admin' && !isBrokerOrAdmin) {
+    return role === 'referral_partner' ? <Navigate to="/dashboard" /> : <Navigate to="/login" />;
+  }
+  if (requiredRole && requiredRole !== 'broker_or_admin' && role !== requiredRole) {
+    return isBrokerOrAdmin ? <Navigate to="/admin" /> : <Navigate to="/login" />;
+  }
   return <>{children}</>;
 }
 
