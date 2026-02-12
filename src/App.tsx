@@ -17,19 +17,30 @@ const queryClient = new QueryClient();
 
 function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'broker' | 'referral_partner' | 'super_admin' | 'broker_or_admin' }) {
   const { user, role, loading, isBrokerOrAdmin } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading...</div>;
-  if (!user) return <Navigate to="/login" />;
-  // If user is authenticated but role hasn't loaded yet, keep showing loading
-  if (requiredRole && user && !role) {
+  
+  if (loading) {
     return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading...</div>;
   }
-  if (requiredRole === 'broker_or_admin' && !isBrokerOrAdmin) {
-    return role === 'referral_partner' ? <Navigate to="/dashboard" /> : <Navigate to="/login" />;
+  if (!user) return <Navigate to="/login" replace />;
+  
+  // No role requirement - just needs auth
+  if (!requiredRole) return <>{children}</>;
+  
+  // Role-based routing
+  if (requiredRole === 'broker_or_admin') {
+    if (isBrokerOrAdmin) return <>{children}</>;
+    return <Navigate to="/dashboard" replace />;
   }
-  if (requiredRole && requiredRole !== 'broker_or_admin' && role !== requiredRole) {
-    return isBrokerOrAdmin ? <Navigate to="/admin" /> : <Navigate to="/login" />;
-  }
-  return <>{children}</>;
+  
+  // Specific role required
+  if (role === requiredRole) return <>{children}</>;
+  
+  // Wrong role - redirect to correct dashboard
+  if (isBrokerOrAdmin) return <Navigate to="/admin" replace />;
+  if (role === 'referral_partner') return <Navigate to="/dashboard" replace />;
+  
+  // No role at all - send to home
+  return <Navigate to="/" replace />;
 }
 
 const App = () => (
