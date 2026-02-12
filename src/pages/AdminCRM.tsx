@@ -450,6 +450,7 @@ export default function AdminCRM() {
               <LeadsKanban
                 leads={filteredLeads}
                 statuses={statuses}
+                leadSources={leadSources}
                 onOpenLead={openLead}
                 onUpdateStatus={updateStatus}
               />
