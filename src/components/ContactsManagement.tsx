@@ -115,6 +115,15 @@ export function ContactsManagement({ contacts, onRefresh, isPreviewMode }: Conta
 
   const typeLabel = (t: string) => CONTACT_TYPES.find(ct => ct.value === t)?.label || t;
 
+  const formatPhone = (phone: string | null) => {
+    if (!phone) return '—';
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 10) {
+      return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`;
+    }
+    return phone;
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -192,7 +201,7 @@ export function ContactsManagement({ contacts, onRefresh, isPreviewMode }: Conta
                   <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedContact(c); setSheetOpen(true); }}>
                     <TableCell className="font-medium">{c.first_name} {c.last_name}</TableCell>
                     <TableCell>{c.email || '—'}</TableCell>
-                    <TableCell>{c.phone || '—'}</TableCell>
+                    <TableCell>{formatPhone(c.phone)}</TableCell>
                     <TableCell>{c.company || '—'}</TableCell>
                     <TableCell><span className="text-xs px-2 py-0.5 rounded-full bg-muted">{typeLabel(c.type)}</span></TableCell>
                     <TableCell className="text-muted-foreground">{format(new Date(c.created_at), 'dd MMM yyyy')}</TableCell>
