@@ -92,6 +92,42 @@ export type Database = {
         }
         Relationships: []
       }
+      invite_codes: {
+        Row: {
+          broker_id: string
+          code: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          label: string | null
+          max_uses: number | null
+          used_count: number
+        }
+        Insert: {
+          broker_id: string
+          code: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          max_uses?: number | null
+          used_count?: number
+        }
+        Update: {
+          broker_id?: string
+          code?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          max_uses?: number | null
+          used_count?: number
+        }
+        Relationships: []
+      }
       lead_sources: {
         Row: {
           created_at: string
@@ -148,6 +184,7 @@ export type Database = {
       }
       leads: {
         Row: {
+          broker_id: string | null
           company_commission: number | null
           company_commission_paid: boolean | null
           company_commission_type: string | null
@@ -170,6 +207,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          broker_id?: string | null
           company_commission?: number | null
           company_commission_paid?: boolean | null
           company_commission_type?: string | null
@@ -192,6 +230,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          broker_id?: string | null
           company_commission?: number | null
           company_commission_paid?: boolean | null
           company_commission_type?: string | null
@@ -253,6 +292,7 @@ export type Database = {
       profiles: {
         Row: {
           address: string | null
+          broker_id: string | null
           broker_notes: string | null
           company_id: string | null
           company_name: string | null
@@ -271,6 +311,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          broker_id?: string | null
           broker_notes?: string | null
           company_id?: string | null
           company_name?: string | null
@@ -289,6 +330,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          broker_id?: string | null
           broker_notes?: string | null
           company_id?: string | null
           company_name?: string | null
@@ -394,7 +436,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "broker" | "referral_partner"
+      app_role: "broker" | "referral_partner" | "super_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -522,7 +564,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["broker", "referral_partner"],
+      app_role: ["broker", "referral_partner", "super_admin"],
     },
   },
 } as const
