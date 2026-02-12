@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useLeadStatuses } from '@/hooks/useLeadStatuses';
 import { SAMPLE_LEADS, SAMPLE_NOTES } from '@/lib/sample-data';
 import { AppHeader } from '@/components/AppHeader';
 import { StatusBadge } from '@/components/StatusBadge';
+import { LeadsKanban } from '@/components/LeadsKanban';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Eye, TrendingUp, Clock, CheckCircle } from 'lucide-react';
+import { Plus, Eye, TrendingUp, Clock, CheckCircle, List, Columns } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface Lead {
@@ -33,11 +35,13 @@ interface Note {
 
 export default function PartnerDashboard() {
   const { user, isPreviewMode } = useAuth();
+  const { statuses } = useLeadStatuses();
   const navigate = useNavigate();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
+  const [leadsView, setLeadsView] = useState<'table' | 'kanban'>('table');
 
   useEffect(() => {
     if (isPreviewMode) {
@@ -133,23 +137,45 @@ export default function PartnerDashboard() {
           </Card>
         </div>
 
-        {/* Leads Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Leads</CardTitle>
-            <CardDescription>Click on a lead to see broker updates</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <p className="text-muted-foreground text-center py-8">Loading...</p>
-            ) : leads.length === 0 ? (
-              <div className="text-center py-12">
+        {/* Leads Header with view toggle */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-heading font-semibold">Your Leads</h2>
+            <p className="text-sm text-muted-foreground">Click on a lead to see broker updates</p>
+          </div>
+          <div className="flex items-center border rounded-md">
+            <Button variant={leadsView === 'table' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-2" onClick={() => setLeadsView('table')}>
+              <List className="w-4 h-4" />
+            </Button>
+            <Button variant={leadsView === 'kanban' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-2" onClick={() => setLeadsView('kanban')}>
+              <Columns className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+
+        {loading ? (
+          <p className="text-muted-foreground text-center py-8">Loading...</p>
+        ) : leads.length === 0 ? (
+          <Card>
+            <CardContent className="py-12">
+              <div className="text-center">
                 <p className="text-muted-foreground mb-4">No referrals yet</p>
                 <Button onClick={() => navigate('/submit-referral')}>
                   <Plus className="w-4 h-4 mr-2" /> Submit Your First Referral
                 </Button>
               </div>
-            ) : (
+            </CardContent>
+          </Card>
+        ) : leadsView === 'kanban' ? (
+          <LeadsKanban
+            leads={leads}
+            statuses={statuses}
+            onOpenLead={(lead) => setSelectedLead(lead)}
+            onUpdateStatus={() => {}}
+          />
+        ) : (
+          <Card>
+            <CardContent className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -163,7 +189,7 @@ export default function PartnerDashboard() {
                 </TableHeader>
                 <TableBody>
                   {leads.map(lead => (
-                    <TableRow key={lead.id} className="cursor-pointer" onClick={() => openLead(lead)}>
+                    <TableRow key={lead.id} className="cursor-pointer" onClick={() => setSelectedLead(lead)}>
                       <TableCell className="font-medium">{lead.first_name} {lead.last_name}</TableCell>
                       <TableCell>{lead.loan_purpose || '—'}</TableCell>
                       <TableCell>{lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '—'}</TableCell>
@@ -172,7 +198,7 @@ export default function PartnerDashboard() {
                       <TableCell>
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openLead(lead); }}>
+                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setSelectedLead(lead); fetchNotes(lead.id); }}>
                               <Eye className="w-4 h-4" />
                             </Button>
                           </DialogTrigger>
@@ -214,9 +240,9 @@ export default function PartnerDashboard() {
                   ))}
                 </TableBody>
               </Table>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   );

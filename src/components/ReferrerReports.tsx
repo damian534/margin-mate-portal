@@ -29,22 +29,46 @@ interface ReferrerReportsProps {
   selectedReferrerId?: string | null;
 }
 
+type DateRange = 'current_month' | 'previous_month' | 'ytd' | 'all_time';
+
 export function ReferrerReports({ leads, referrers, companies, statuses, selectedReferrerId }: ReferrerReportsProps) {
   const [viewBy, setViewBy] = useState<'company' | 'referrer'>(selectedReferrerId ? 'referrer' : 'company');
   const [selectedCompany, setSelectedCompany] = useState<string>('all');
   const [selectedReferrer, setSelectedReferrer] = useState<string>(selectedReferrerId || 'all');
+  const [dateRange, setDateRange] = useState<DateRange>('all_time');
 
-  // Filter leads
+  // Date range filter
+  const dateFilteredLeads = useMemo(() => {
+    if (dateRange === 'all_time') return leads;
+    const now = new Date();
+    let start: Date;
+    let end: Date;
+    if (dateRange === 'current_month') {
+      start = startOfMonth(now);
+      end = endOfMonth(now);
+    } else if (dateRange === 'previous_month') {
+      const prev = subMonths(now, 1);
+      start = startOfMonth(prev);
+      end = endOfMonth(prev);
+    } else {
+      // YTD
+      start = new Date(now.getFullYear(), 0, 1);
+      end = now;
+    }
+    return leads.filter(l => isWithinInterval(new Date(l.created_at), { start, end }));
+  }, [leads, dateRange]);
+
+  // Filter leads by company/referrer
   const relevantLeads = useMemo(() => {
     if (viewBy === 'company' && selectedCompany !== 'all') {
       const companyReferrerIds = referrers.filter(r => r.company_id === selectedCompany).map(r => r.user_id);
-      return leads.filter(l => l.referral_partner_id && companyReferrerIds.includes(l.referral_partner_id));
+      return dateFilteredLeads.filter(l => l.referral_partner_id && companyReferrerIds.includes(l.referral_partner_id));
     }
     if (viewBy === 'referrer' && selectedReferrer !== 'all') {
-      return leads.filter(l => l.referral_partner_id === selectedReferrer);
+      return dateFilteredLeads.filter(l => l.referral_partner_id === selectedReferrer);
     }
-    return leads;
-  }, [leads, referrers, viewBy, selectedCompany, selectedReferrer]);
+    return dateFilteredLeads;
+  }, [dateFilteredLeads, referrers, viewBy, selectedCompany, selectedReferrer]);
 
   // Stats
   const totalLeads = relevantLeads.length;
@@ -140,6 +164,16 @@ export function ReferrerReports({ leads, referrers, companies, statuses, selecte
             </SelectContent>
           </Select>
         )}
+
+        <Select value={dateRange} onValueChange={(v: DateRange) => setDateRange(v)}>
+          <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all_time">All Time</SelectItem>
+            <SelectItem value="current_month">Current Month</SelectItem>
+            <SelectItem value="previous_month">Previous Month</SelectItem>
+            <SelectItem value="ytd">Year to Date</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Summary stats */}

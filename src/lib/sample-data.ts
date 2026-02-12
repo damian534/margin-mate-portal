@@ -141,6 +141,12 @@ export const SAMPLE_REFERRERS = [
 export const SAMPLE_LEADS_WITH_REFERRERS = SAMPLE_LEADS.map((l, i) => ({
   ...l,
   referral_partner_id: i < 2 ? 'partner-1' : i < 4 ? 'partner-2' : 'preview-user-id',
+  referrer_commission: i === 4 ? 500 : null,
+  referrer_commission_type: 'on_settlement',
+  referrer_commission_paid: i === 4,
+  company_commission: i === 4 ? 2000 : i === 3 ? 1500 : null,
+  company_commission_type: 'on_settlement',
+  company_commission_paid: i === 4,
 }));
 
 export const SAMPLE_TASKS = [
