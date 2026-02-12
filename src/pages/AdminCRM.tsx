@@ -281,7 +281,13 @@ export default function AdminCRM() {
           </TabsContent>
 
           <TabsContent value="tasks" className="mt-4">
-            <TasksPanel leads={leads.map(l => ({ id: l.id, first_name: l.first_name, last_name: l.last_name }))} />
+            <TasksPanel
+              leads={leads.map(l => ({ id: l.id, first_name: l.first_name, last_name: l.last_name }))}
+              onOpenLead={(leadId) => {
+                const lead = leads.find(l => l.id === leadId);
+                if (lead) openLead(lead);
+              }}
+            />
           </TabsContent>
         </Tabs>
       </main>
