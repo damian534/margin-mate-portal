@@ -9,22 +9,25 @@ import { Logo } from '@/components/Logo';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
+type Mode = 'login' | 'forgot' | 'reset';
+
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [forgotMode, setForgotMode] = useState(false);
+  const [mode, setMode] = useState<Mode>('login');
   const navigate = useNavigate();
 
-  // Listen for PASSWORD_RECOVERY event and redirect to reset page
+  // Detect PASSWORD_RECOVERY event and switch to reset mode
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
-        navigate('/reset-password');
+        setMode('reset');
       }
     });
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +38,6 @@ export default function Login() {
       setLoading(false);
       return;
     }
-    // Fetch role to redirect to correct dashboard
     const { data: roleData } = await supabase
       .from('user_roles')
       .select('role')
@@ -59,7 +61,7 @@ export default function Login() {
     }
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${window.location.origin}/login`,
     });
     if (error) {
       toast.error(error.message);
@@ -69,6 +71,37 @@ export default function Login() {
     setLoading(false);
   };
 
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) {
+      toast.error(error.message);
+      setLoading(false);
+      return;
+    }
+    toast.success('Password updated successfully! You can now sign in.');
+    setMode('login');
+    setPassword('');
+    setConfirmPassword('');
+    setLoading(false);
+  };
+
+  const title = mode === 'reset' ? 'Set New Password' : mode === 'forgot' ? 'Reset Password' : 'Welcome Back';
+  const description = mode === 'reset'
+    ? 'Enter your new password below'
+    : mode === 'forgot'
+    ? "Enter your email and we'll send you a reset link"
+    : 'Sign in to your Margin Finance portal';
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md animate-fade-in">
@@ -76,15 +109,42 @@ export default function Login() {
           <div className="flex justify-center mb-4">
             <Logo className="h-16" />
           </div>
-          <CardTitle className="text-2xl">{forgotMode ? 'Reset Password' : 'Welcome Back'}</CardTitle>
-          <CardDescription>
-            {forgotMode
-              ? 'Enter your email and we\'ll send you a reset link'
-              : 'Sign in to your Margin Finance portal'}
-          </CardDescription>
+          <CardTitle className="text-2xl">{title}</CardTitle>
+          <CardDescription>{description}</CardDescription>
         </CardHeader>
         <CardContent>
-          {forgotMode ? (
+          {mode === 'reset' ? (
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New Password</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  minLength={6}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  minLength={6}
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Update Password
+              </Button>
+            </form>
+          ) : mode === 'forgot' ? (
             <form onSubmit={handleForgotPassword} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -104,7 +164,7 @@ export default function Login() {
               <p className="text-center text-sm text-muted-foreground">
                 <button
                   type="button"
-                  onClick={() => setForgotMode(false)}
+                  onClick={() => setMode('login')}
                   className="text-accent hover:underline font-medium"
                 >
                   Back to Sign In
@@ -130,7 +190,7 @@ export default function Login() {
                     <Label htmlFor="password">Password</Label>
                     <button
                       type="button"
-                      onClick={() => setForgotMode(true)}
+                      onClick={() => setMode('forgot')}
                       className="text-xs text-muted-foreground hover:text-accent hover:underline"
                     >
                       Forgot password?
