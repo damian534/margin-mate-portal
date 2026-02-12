@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { SAMPLE_TASKS } from '@/lib/sample-data';
@@ -11,8 +11,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { format, isPast, isToday } from 'date-fns';
+import { format, isPast, isToday, isTomorrow } from 'date-fns';
 import { Plus, Calendar, User, AlertTriangle, List, Columns } from 'lucide-react';
+
+type DueFilter = 'all' | 'overdue' | 'today' | 'tomorrow' | 'later' | 'no_date';
 
 interface Task {
   id: string;
@@ -31,12 +33,31 @@ interface TasksPanelProps {
   onOpenLead?: (leadId: string) => void;
 }
 
+function getTaskDueCategory(task: Task): DueFilter {
+  if (!task.due_date) return 'no_date';
+  const d = new Date(task.due_date);
+  if (isToday(d)) return 'today';
+  if (isTomorrow(d)) return 'tomorrow';
+  if (isPast(d)) return 'overdue';
+  return 'later';
+}
+
+const DUE_FILTER_OPTIONS: { value: DueFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'overdue', label: 'Overdue' },
+  { value: 'today', label: 'Today' },
+  { value: 'tomorrow', label: 'Tomorrow' },
+  { value: 'later', label: 'Later' },
+  { value: 'no_date', label: 'No Date' },
+];
+
 export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
   const { user, isPreviewMode } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCompleted, setShowCompleted] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [dueFilter, setDueFilter] = useState<DueFilter>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const [newTitle, setNewTitle] = useState('');
@@ -111,8 +132,29 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
     setDialogOpen(false);
   };
 
-  const displayed = tasks.filter(t => showCompleted || !t.completed);
-  const overdue = tasks.filter(t => !t.completed && t.due_date && isPast(new Date(t.due_date)) && !isToday(new Date(t.due_date)));
+  // Counts for filter badges
+  const dueCounts = useMemo(() => {
+    const active = tasks.filter(t => !t.completed);
+    return {
+      all: active.length,
+      overdue: active.filter(t => getTaskDueCategory(t) === 'overdue').length,
+      today: active.filter(t => getTaskDueCategory(t) === 'today').length,
+      tomorrow: active.filter(t => getTaskDueCategory(t) === 'tomorrow').length,
+      later: active.filter(t => getTaskDueCategory(t) === 'later').length,
+      no_date: active.filter(t => getTaskDueCategory(t) === 'no_date').length,
+    };
+  }, [tasks]);
+
+  const displayed = useMemo(() => {
+    let result = tasks.filter(t => showCompleted || !t.completed);
+    if (dueFilter !== 'all') {
+      result = result.filter(t => {
+        if (t.completed) return true; // show completed in any filter when toggled
+        return getTaskDueCategory(t) === dueFilter;
+      });
+    }
+    return result;
+  }, [tasks, showCompleted, dueFilter]);
 
   if (loading) return <p className="text-muted-foreground text-center py-12">Loading tasks...</p>;
 
@@ -122,9 +164,9 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-semibold">Follow-up Tasks</h2>
-          {overdue.length > 0 && (
+          {dueCounts.overdue > 0 && (
             <span className="flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2 py-1 rounded-full">
-              <AlertTriangle className="w-3 h-3" /> {overdue.length} overdue
+              <AlertTriangle className="w-3 h-3" /> {dueCounts.overdue} overdue
             </span>
           )}
         </div>
@@ -166,18 +208,49 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
         </div>
       </div>
 
+      {/* Due date filter tabs */}
+      <div className="flex items-center gap-1 flex-wrap">
+        {DUE_FILTER_OPTIONS.map(opt => {
+          const count = dueCounts[opt.value];
+          const isActive = dueFilter === opt.value;
+          return (
+            <Button
+              key={opt.value}
+              variant={isActive ? 'secondary' : 'ghost'}
+              size="sm"
+              className={`h-8 text-xs gap-1.5 ${opt.value === 'overdue' && count > 0 && !isActive ? 'text-destructive' : ''}`}
+              onClick={() => setDueFilter(opt.value)}
+            >
+              {opt.label}
+              {count > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                  isActive ? 'bg-background text-foreground' :
+                  opt.value === 'overdue' && count > 0 ? 'bg-destructive/10 text-destructive' :
+                  'bg-muted text-muted-foreground'
+                }`}>
+                  {count}
+                </span>
+              )}
+            </Button>
+          );
+        })}
+      </div>
+
       {/* View */}
       {viewMode === 'kanban' ? (
-        <TasksKanban tasks={showCompleted ? tasks : tasks.filter(t => !t.completed)} onToggleComplete={toggleComplete} onOpenLead={onOpenLead} />
+        <TasksKanban tasks={displayed.filter(t => !t.completed)} onToggleComplete={toggleComplete} onOpenLead={onOpenLead} />
       ) : (
         <>
           {displayed.length === 0 ? (
-            <p className="text-muted-foreground text-center py-12">No tasks yet — create one to get started</p>
+            <p className="text-muted-foreground text-center py-12">
+              {dueFilter === 'all' ? 'No tasks yet — create one to get started' : `No ${dueFilter === 'no_date' ? 'unscheduled' : dueFilter} tasks`}
+            </p>
           ) : (
             <div className="space-y-2">
               {displayed.map(task => {
-                const isOverdue = !task.completed && task.due_date && isPast(new Date(task.due_date)) && !isToday(new Date(task.due_date));
-                const isDueToday = task.due_date && isToday(new Date(task.due_date));
+                const cat = getTaskDueCategory(task);
+                const isOverdue = !task.completed && cat === 'overdue';
+                const isDueToday = !task.completed && cat === 'today';
                 return (
                   <Card key={task.id} className={`transition-opacity cursor-pointer hover:bg-muted/50 ${task.completed ? 'opacity-60' : ''} ${isOverdue ? 'border-destructive/50' : ''}`}
                     onClick={() => onOpenLead?.(task.lead_id)}>
@@ -193,7 +266,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
                           {task.due_date && (
                             <span className={`flex items-center gap-1 text-xs ${isOverdue ? 'text-destructive font-medium' : isDueToday ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
                               <Calendar className="w-3 h-3" />
-                              {isOverdue ? 'Overdue — ' : isDueToday ? 'Today — ' : ''}
+                              {isOverdue ? 'Overdue — ' : isDueToday ? 'Today — ' : cat === 'tomorrow' ? 'Tomorrow — ' : ''}
                               {format(new Date(task.due_date), 'dd MMM, HH:mm')}
                             </span>
                           )}
@@ -210,3 +283,6 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
     </div>
   );
 }
+
+export { getTaskDueCategory };
+export type { Task as TaskItem, DueFilter };
