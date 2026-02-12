@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { LeadDetailSheet } from '@/components/LeadDetailSheet';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useLeadStatuses } from '@/hooks/useLeadStatuses';
@@ -19,18 +19,14 @@ import { UserManagement } from '@/components/UserManagement';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Send, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign, Contact as ContactIcon, KeyRound, UserCog, Trash2 } from 'lucide-react';
+import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign, Contact as ContactIcon, KeyRound, UserCog } from 'lucide-react';
 
 interface Lead {
   id: string;
@@ -55,13 +51,6 @@ interface Lead {
   source_contact_id: string | null;
 }
 
-interface Note {
-  id: string;
-  content: string;
-  notify_partner: boolean;
-  created_at: string;
-  author_id: string | null;
-}
 
 interface LeadSource {
   id: string;
@@ -70,13 +59,7 @@ interface LeadSource {
   display_order: number;
 }
 
-interface Note {
-  id: string;
-  content: string;
-  notify_partner: boolean;
-  created_at: string;
-  author_id: string | null;
-}
+
 
 export default function AdminCRM() {
   const { user, isPreviewMode } = useAuth();
@@ -84,11 +67,8 @@ export default function AdminCRM() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [notes, setNotes] = useState<Note[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [newNote, setNewNote] = useState('');
-  const [notifyPartner, setNotifyPartner] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [leadsView, setLeadsView] = useState<'table' | 'kanban'>('table');
@@ -205,16 +185,9 @@ export default function AdminCRM() {
     setLeadSources((data as unknown as LeadSource[]) || []);
   };
 
-  const fetchNotes = async (leadId: string) => {
-    if (isPreviewMode) { setNotes((SAMPLE_NOTES[leadId] || []) as Note[]); return; }
-    const { data } = await supabase.from('notes').select('*').eq('lead_id', leadId).order('created_at', { ascending: false });
-    setNotes((data as Note[]) || []);
-  };
-
   const openLead = (lead: Lead) => {
     setSelectedLead(lead);
     setSheetOpen(true);
-    fetchNotes(lead.id);
   };
 
   const updateStatus = async (leadId: string, status: string) => {
@@ -231,20 +204,7 @@ export default function AdminCRM() {
     if (selectedLead?.id === leadId) setSelectedLead(prev => prev ? { ...prev, status } : null);
   };
 
-  const addNote = async () => {
-    if (!newNote.trim() || !selectedLead || !user) return;
-    if (isPreviewMode) {
-      const fakeNote: Note = { id: `preview-${Date.now()}`, content: newNote.trim(), notify_partner: notifyPartner, created_at: new Date().toISOString(), author_id: user.id };
-      setNotes(prev => [fakeNote, ...prev]);
-      toast.success(notifyPartner ? 'Note added & partner notified (preview)' : 'Note added (preview)');
-      setNewNote(''); setNotifyPartner(false); return;
-    }
-    const { error } = await supabase.from('notes').insert({ lead_id: selectedLead.id, author_id: user.id, content: newNote.trim(), notify_partner: notifyPartner });
-    if (error) { toast.error('Failed to add note'); return; }
-    toast.success(notifyPartner ? 'Note added & partner notified' : 'Note added');
-    setNewNote(''); setNotifyPartner(false);
-    fetchNotes(selectedLead.id);
-  };
+
 
   const updateCommission = async (leadId: string, fields: Record<string, any>) => {
     if (isPreviewMode) { toast.success('Commission updated (preview)'); setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...fields } : l)); return; }
@@ -514,214 +474,20 @@ export default function AdminCRM() {
       </main>
 
       {/* Lead Detail Sheet */}
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-          {selectedLead && (
-            <>
-              <SheetHeader>
-                <SheetTitle className="text-xl">{selectedLead.first_name} {selectedLead.last_name}</SheetTitle>
-              </SheetHeader>
-              <div className="mt-6 space-y-6">
-                {/* Referrer info */}
-                {getReferrerName(selectedLead.referral_partner_id) && (
-                  <div className="bg-muted/50 rounded-lg p-3 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Users className="w-4 h-4 text-primary" />
-                    </div>
-                    <div className="text-sm">
-                      <p className="font-medium">Referred by {getReferrerName(selectedLead.referral_partner_id)}</p>
-                      {getReferrerCompany(selectedLead.referral_partner_id) && (
-                        <p className="text-muted-foreground flex items-center gap-1">
-                          <Building2 className="w-3 h-3" />
-                          {getReferrerCompany(selectedLead.referral_partner_id)}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-3">
-                  <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">Details</h3>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    {selectedLead.email && <div><p className="text-muted-foreground">Email</p><p className="font-medium">{selectedLead.email}</p></div>}
-                    {selectedLead.phone && <div><p className="text-muted-foreground">Phone</p><p className="font-medium">{selectedLead.phone}</p></div>}
-                    {selectedLead.loan_purpose && <div><p className="text-muted-foreground">Purpose</p><p className="font-medium">{selectedLead.loan_purpose}</p></div>}
-                    {selectedLead.loan_amount && <div><p className="text-muted-foreground">Amount</p><p className="font-medium">${selectedLead.loan_amount.toLocaleString()}</p></div>}
-                  </div>
-                </div>
-                <Separator />
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select value={selectedLead.status} onValueChange={(v) => updateStatus(selectedLead.id, v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {statuses.map(s => <SelectItem key={s.name} value={s.name}>{s.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Separator />
-                {/* Commission Section */}
-                <div className="space-y-3">
-                  <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                    <DollarSign className="w-3.5 h-3.5" /> Commission
-                  </h3>
-                  <div className="space-y-3">
-                    {/* Referrer Commission */}
-                    <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-                      <p className="text-xs font-medium text-muted-foreground">Referrer Commission</p>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <Label className="text-xs">Amount ($)</Label>
-                          <Input
-                            type="number"
-                            placeholder="0.00"
-                            value={selectedLead.referrer_commission ?? ''}
-                            onChange={(e) => {
-                              const val = e.target.value ? parseFloat(e.target.value) : null;
-                              setSelectedLead(prev => prev ? { ...prev, referrer_commission: val } : null);
-                            }}
-                            onBlur={() => updateCommission(selectedLead.id, { referrer_commission: selectedLead.referrer_commission })}
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Type</Label>
-                          <Select
-                            value={selectedLead.referrer_commission_type}
-                            onValueChange={(v) => {
-                              setSelectedLead(prev => prev ? { ...prev, referrer_commission_type: v } : null);
-                              updateCommission(selectedLead.id, { referrer_commission_type: v });
-                            }}
-                          >
-                            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="per_lead">Per Lead</SelectItem>
-                              <SelectItem value="on_settlement">On Settlement</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id="ref-paid"
-                          checked={selectedLead.referrer_commission_paid}
-                          onCheckedChange={(v) => {
-                            const paid = v === true;
-                            setSelectedLead(prev => prev ? { ...prev, referrer_commission_paid: paid } : null);
-                            updateCommission(selectedLead.id, { referrer_commission_paid: paid });
-                          }}
-                        />
-                        <Label htmlFor="ref-paid" className="text-xs cursor-pointer">Paid</Label>
-                      </div>
-                    </div>
-                    {/* Company Commission */}
-                    <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-                      <p className="text-xs font-medium text-muted-foreground">Company/Agency Commission</p>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <Label className="text-xs">Amount ($)</Label>
-                          <Input
-                            type="number"
-                            placeholder="0.00"
-                            value={selectedLead.company_commission ?? ''}
-                            onChange={(e) => {
-                              const val = e.target.value ? parseFloat(e.target.value) : null;
-                              setSelectedLead(prev => prev ? { ...prev, company_commission: val } : null);
-                            }}
-                            onBlur={() => updateCommission(selectedLead.id, { company_commission: selectedLead.company_commission })}
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Type</Label>
-                          <Select
-                            value={selectedLead.company_commission_type}
-                            onValueChange={(v) => {
-                              setSelectedLead(prev => prev ? { ...prev, company_commission_type: v } : null);
-                              updateCommission(selectedLead.id, { company_commission_type: v });
-                            }}
-                          >
-                            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="per_lead">Per Lead</SelectItem>
-                              <SelectItem value="on_settlement">On Settlement</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id="co-paid"
-                          checked={selectedLead.company_commission_paid}
-                          onCheckedChange={(v) => {
-                            const paid = v === true;
-                            setSelectedLead(prev => prev ? { ...prev, company_commission_paid: paid } : null);
-                            updateCommission(selectedLead.id, { company_commission_paid: paid });
-                          }}
-                        />
-                        <Label htmlFor="co-paid" className="text-xs cursor-pointer">Paid</Label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <Separator />
-                <div className="space-y-3">
-                  <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">Add Note</h3>
-                  <Textarea value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder="e.g. Called the client, will call back after 5pm..." rows={3} maxLength={2000} />
-                  <div className="flex items-center gap-2">
-                    <Checkbox id="notify" checked={notifyPartner} onCheckedChange={(v) => setNotifyPartner(v === true)} />
-                    <Label htmlFor="notify" className="text-sm cursor-pointer">Notify referral partner via email</Label>
-                  </div>
-                  <Button onClick={addNote} disabled={!newNote.trim()} size="sm"><Send className="w-4 h-4 mr-2" /> Add Note</Button>
-                </div>
-                <Separator />
-                <div className="space-y-3">
-                  <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">Activity</h3>
-                  <ScrollArea className="h-64">
-                    {notes.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No notes yet</p>
-                    ) : (
-                      <div className="space-y-3">
-                        {notes.map(note => (
-                          <div key={note.id} className="bg-muted rounded-lg p-3">
-                            <p className="text-sm">{note.content}</p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <p className="text-xs text-muted-foreground">{format(new Date(note.created_at), 'dd MMM yyyy, HH:mm')}</p>
-                              {note.notify_partner && <span className="text-xs bg-accent/20 text-accent-foreground px-1.5 py-0.5 rounded">Partner notified</span>}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </ScrollArea>
-                </div>
-                <Separator />
-                <div className="pt-2">
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="sm" className="w-full gap-2">
-                        <Trash2 className="w-4 h-4" /> Delete Lead
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete this lead?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will permanently delete {selectedLead.first_name} {selectedLead.last_name} and all associated notes and tasks. This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => deleteLead(selectedLead.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
+      <LeadDetailSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        lead={selectedLead}
+        statuses={statuses}
+        referrerName={selectedLead ? getReferrerName(selectedLead.referral_partner_id) : null}
+        referrerCompany={selectedLead ? getReferrerCompany(selectedLead.referral_partner_id) : null}
+        isPreviewMode={isPreviewMode}
+        onUpdateStatus={updateStatus}
+        onUpdateCommission={updateCommission}
+        onDeleteLead={deleteLead}
+        onLeadChange={setSelectedLead}
+        sampleNotes={isPreviewMode && selectedLead ? (SAMPLE_NOTES[selectedLead.id] || []) as any : undefined}
+      />
     </div>
   );
 }
