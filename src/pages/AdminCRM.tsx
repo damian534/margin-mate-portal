@@ -25,7 +25,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Send, Filter, ListTodo, List, Columns, Building2, Users, BarChart3 } from 'lucide-react';
+import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Send, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign } from 'lucide-react';
 
 interface Lead {
   id: string;
@@ -40,6 +40,12 @@ interface Lead {
   custom_fields: Record<string, string>;
   created_at: string;
   updated_at: string;
+  referrer_commission: number | null;
+  referrer_commission_type: string;
+  referrer_commission_paid: boolean;
+  company_commission: number | null;
+  company_commission_type: string;
+  company_commission_paid: boolean;
 }
 
 interface Note {
@@ -158,6 +164,14 @@ export default function AdminCRM() {
     toast.success(notifyPartner ? 'Note added & partner notified' : 'Note added');
     setNewNote(''); setNotifyPartner(false);
     fetchNotes(selectedLead.id);
+  };
+
+  const updateCommission = async (leadId: string, fields: Record<string, any>) => {
+    if (isPreviewMode) { toast.success('Commission updated (preview)'); setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...fields } : l)); return; }
+    const { error } = await supabase.from('leads').update(fields as any).eq('id', leadId);
+    if (error) { toast.error('Failed to update commission'); return; }
+    toast.success('Commission updated');
+    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...fields } : l));
   };
 
   const getReferrerName = (partnerId: string | null) => {
@@ -407,6 +421,109 @@ export default function AdminCRM() {
                       {statuses.map(s => <SelectItem key={s.name} value={s.name}>{s.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                </div>
+                <Separator />
+                {/* Commission Section */}
+                <div className="space-y-3">
+                  <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <DollarSign className="w-3.5 h-3.5" /> Commission
+                  </h3>
+                  <div className="space-y-3">
+                    {/* Referrer Commission */}
+                    <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground">Referrer Commission</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs">Amount ($)</Label>
+                          <Input
+                            type="number"
+                            placeholder="0.00"
+                            value={selectedLead.referrer_commission ?? ''}
+                            onChange={(e) => {
+                              const val = e.target.value ? parseFloat(e.target.value) : null;
+                              setSelectedLead(prev => prev ? { ...prev, referrer_commission: val } : null);
+                            }}
+                            onBlur={() => updateCommission(selectedLead.id, { referrer_commission: selectedLead.referrer_commission })}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Type</Label>
+                          <Select
+                            value={selectedLead.referrer_commission_type}
+                            onValueChange={(v) => {
+                              setSelectedLead(prev => prev ? { ...prev, referrer_commission_type: v } : null);
+                              updateCommission(selectedLead.id, { referrer_commission_type: v });
+                            }}
+                          >
+                            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="per_lead">Per Lead</SelectItem>
+                              <SelectItem value="on_settlement">On Settlement</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="ref-paid"
+                          checked={selectedLead.referrer_commission_paid}
+                          onCheckedChange={(v) => {
+                            const paid = v === true;
+                            setSelectedLead(prev => prev ? { ...prev, referrer_commission_paid: paid } : null);
+                            updateCommission(selectedLead.id, { referrer_commission_paid: paid });
+                          }}
+                        />
+                        <Label htmlFor="ref-paid" className="text-xs cursor-pointer">Paid</Label>
+                      </div>
+                    </div>
+                    {/* Company Commission */}
+                    <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground">Company/Agency Commission</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs">Amount ($)</Label>
+                          <Input
+                            type="number"
+                            placeholder="0.00"
+                            value={selectedLead.company_commission ?? ''}
+                            onChange={(e) => {
+                              const val = e.target.value ? parseFloat(e.target.value) : null;
+                              setSelectedLead(prev => prev ? { ...prev, company_commission: val } : null);
+                            }}
+                            onBlur={() => updateCommission(selectedLead.id, { company_commission: selectedLead.company_commission })}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Type</Label>
+                          <Select
+                            value={selectedLead.company_commission_type}
+                            onValueChange={(v) => {
+                              setSelectedLead(prev => prev ? { ...prev, company_commission_type: v } : null);
+                              updateCommission(selectedLead.id, { company_commission_type: v });
+                            }}
+                          >
+                            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="per_lead">Per Lead</SelectItem>
+                              <SelectItem value="on_settlement">On Settlement</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="co-paid"
+                          checked={selectedLead.company_commission_paid}
+                          onCheckedChange={(v) => {
+                            const paid = v === true;
+                            setSelectedLead(prev => prev ? { ...prev, company_commission_paid: paid } : null);
+                            updateCommission(selectedLead.id, { company_commission_paid: paid });
+                          }}
+                        />
+                        <Label htmlFor="co-paid" className="text-xs cursor-pointer">Paid</Label>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <Separator />
                 <div className="space-y-3">

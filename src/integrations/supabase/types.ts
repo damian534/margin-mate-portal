@@ -79,6 +79,9 @@ export type Database = {
       }
       leads: {
         Row: {
+          company_commission: number | null
+          company_commission_paid: boolean | null
+          company_commission_type: string | null
           created_at: string
           custom_fields: Json | null
           email: string | null
@@ -89,10 +92,16 @@ export type Database = {
           loan_purpose: string | null
           phone: string | null
           referral_partner_id: string | null
+          referrer_commission: number | null
+          referrer_commission_paid: boolean | null
+          referrer_commission_type: string | null
           status: string
           updated_at: string
         }
         Insert: {
+          company_commission?: number | null
+          company_commission_paid?: boolean | null
+          company_commission_type?: string | null
           created_at?: string
           custom_fields?: Json | null
           email?: string | null
@@ -103,10 +112,16 @@ export type Database = {
           loan_purpose?: string | null
           phone?: string | null
           referral_partner_id?: string | null
+          referrer_commission?: number | null
+          referrer_commission_paid?: boolean | null
+          referrer_commission_type?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
+          company_commission?: number | null
+          company_commission_paid?: boolean | null
+          company_commission_type?: string | null
           created_at?: string
           custom_fields?: Json | null
           email?: string | null
@@ -117,6 +132,9 @@ export type Database = {
           loan_purpose?: string | null
           phone?: string | null
           referral_partner_id?: string | null
+          referrer_commission?: number | null
+          referrer_commission_paid?: boolean | null
+          referrer_commission_type?: string | null
           status?: string
           updated_at?: string
         }
