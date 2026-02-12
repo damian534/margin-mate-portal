@@ -65,11 +65,24 @@ interface Task {
   created_at: string;
 }
 
+interface LeadSource {
+  name: string;
+  label: string;
+}
+
+const LOAN_PURPOSE_OPTIONS = [
+  { value: 'first_home', label: 'First Home' },
+  { value: 'refinance', label: 'Refinance' },
+  { value: 'next_home', label: 'Next Home' },
+  { value: 'investment', label: 'Investment' },
+];
+
 interface LeadDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   lead: Lead | null;
   statuses: LeadStatus[];
+  leadSources?: LeadSource[];
   referrerName: string | null;
   referrerCompany: string | null;
   isPreviewMode: boolean;
@@ -104,7 +117,7 @@ function formatDatetimeLocal(d: Date) {
 }
 
 export function LeadDetailSheet({
-  open, onOpenChange, lead, statuses, referrerName, referrerCompany,
+  open, onOpenChange, lead, statuses, leadSources = [], referrerName, referrerCompany,
   isPreviewMode, onUpdateStatus, onUpdateCommission, onDeleteLead, onLeadChange, onOpenContact, sampleNotes
 }: LeadDetailSheetProps) {
   const { user } = useAuth();
@@ -410,7 +423,7 @@ export function LeadDetailSheet({
                   {lead.first_name} {lead.last_name}
                 </span>
                 {lead.loan_purpose && (
-                  <p className="text-sm font-normal text-muted-foreground">{lead.loan_purpose}</p>
+                  <p className="text-sm font-normal text-muted-foreground">{LOAN_PURPOSE_OPTIONS.find(o => o.value === lead.loan_purpose)?.label || lead.loan_purpose}</p>
                 )}
                 {lead.source_contact_id && onOpenContact && (
                   <button 
@@ -466,6 +479,12 @@ export function LeadDetailSheet({
               <Calendar className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
               <span className="text-muted-foreground">Created {format(new Date(lead.created_at), 'dd MMM yyyy')}</span>
             </div>
+            {lead.source && (
+              <div className="flex items-center gap-2">
+                <Activity className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground">Source: {leadSources.find(s => s.name === lead.source)?.label || lead.source}</span>
+              </div>
+            )}
           </div>
 
           {/* Referrer banner */}
@@ -542,18 +561,23 @@ export function LeadDetailSheet({
             </div>
             <div className="flex-1">
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">Loan Purpose</Label>
-              <Input
-                className="mt-1"
-                placeholder="e.g. Home Purchase"
+              <Select
                 value={lead.loan_purpose ?? ''}
-                onChange={async (e) => {
-                  const val = e.target.value || null;
-                  onLeadChange?.({ ...lead, loan_purpose: val });
+                onValueChange={async (val) => {
+                  const purpose = val || null;
+                  onLeadChange?.({ ...lead, loan_purpose: purpose });
                   if (!isPreviewMode) {
-                    await supabase.from('leads').update({ loan_purpose: val } as any).eq('id', lead.id);
+                    await supabase.from('leads').update({ loan_purpose: purpose } as any).eq('id', lead.id);
                   }
                 }}
-              />
+              >
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Select purpose" /></SelectTrigger>
+                <SelectContent>
+                  {LOAN_PURPOSE_OPTIONS.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
