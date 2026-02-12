@@ -279,61 +279,66 @@ export function LeadDetailSheet({
 
     return (
       <div key={task.id} className={`rounded-lg border transition-all ${isOverdue ? 'border-destructive/30 bg-destructive/5' : task.completed ? 'opacity-60' : 'bg-background'}`}>
-        <div className="flex items-start gap-2 p-2.5">
-          <Checkbox checked={task.completed} onCheckedChange={() => toggleTaskComplete(task)} className="mt-0.5" />
-          <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}>
-            {isEditing ? (
-              <div className="space-y-2" onClick={e => e.stopPropagation()}>
-                <Input value={editingTask.title} onChange={e => setEditingTask({ ...editingTask, title: e.target.value })} className="h-7 text-sm" />
-                {/* Quick follow-up buttons */}
-                <div className="flex flex-wrap gap-1">
-                  {FOLLOW_UP_OPTIONS.map(opt => (
-                    <Button key={opt.label} type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2"
-                      onClick={() => setEditingTask({ ...editingTask, dueDate: formatDatetimeLocal(getFollowUpDate(opt)) })}>
-                      {opt.label}
-                    </Button>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <Input type="datetime-local" value={editingTask.dueDate} onChange={e => setEditingTask({ ...editingTask, dueDate: e.target.value })} className="h-7 text-sm flex-1" />
-                  <Button size="sm" className="h-7 text-xs px-2" onClick={() => updateTask(task.id)}><Save className="w-3 h-3" /></Button>
-                  <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => setEditingTask(null)}><X className="w-3 h-3" /></Button>
-                </div>
+        {isEditing ? (
+          /* Edit mode — full width form */
+          <div className="p-2.5 space-y-2">
+            <Input value={editingTask.title} onChange={e => setEditingTask({ ...editingTask, title: e.target.value })} className="h-8 text-sm" autoFocus />
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5">Quick follow-up</p>
+              <div className="flex flex-wrap gap-1">
+                {FOLLOW_UP_OPTIONS.map(opt => (
+                  <Button key={opt.label} type="button" variant="outline" size="sm" className="h-6 text-[10px] px-2"
+                    onClick={() => setEditingTask({ ...editingTask, dueDate: formatDatetimeLocal(getFollowUpDate(opt)) })}>
+                    {opt.label}
+                  </Button>
+                ))}
               </div>
-            ) : (
-              <>
-                <p className={`text-sm font-medium ${task.completed ? 'line-through text-muted-foreground' : ''}`}>{task.title}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  {task.due_date && (
-                    <span className={`text-xs flex items-center gap-1 ${isOverdue ? 'text-destructive' : isDueToday ? 'text-primary' : 'text-muted-foreground'}`}>
-                      <Calendar className="w-3 h-3" />
-                      {isOverdue ? 'Overdue — ' : isDueToday ? 'Today — ' : ''}
-                      {format(new Date(task.due_date), 'dd MMM, HH:mm')}
-                    </span>
-                  )}
-                  {taskNotes.length > 0 && (
-                    <span className="text-xs text-muted-foreground flex items-center gap-0.5">
-                      <MessageSquare className="w-3 h-3" /> {taskNotes.length}
-                    </span>
-                  )}
-                  {isExpanded ? <ChevronDown className="w-3 h-3 text-muted-foreground" /> : <ChevronRight className="w-3 h-3 text-muted-foreground" />}
-                </div>
-              </>
+            </div>
+            <div className="flex gap-2">
+              <Input type="datetime-local" value={editingTask.dueDate} onChange={e => setEditingTask({ ...editingTask, dueDate: e.target.value })} className="h-8 text-sm flex-1" />
+              <Button size="sm" className="h-8 text-xs px-3" onClick={() => updateTask(task.id)} disabled={!editingTask.title.trim()}>
+                <Save className="w-3 h-3 mr-1" /> Save
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setEditingTask(null)}>Cancel</Button>
+            </div>
+          </div>
+        ) : (
+          /* View mode */
+          <div className="flex items-start gap-2 p-2.5">
+            <Checkbox checked={task.completed} onCheckedChange={() => toggleTaskComplete(task)} className="mt-0.5" />
+            <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}>
+              <p className={`text-sm font-medium ${task.completed ? 'line-through text-muted-foreground' : ''}`}>{task.title}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                {task.due_date && (
+                  <span className={`text-xs flex items-center gap-1 ${isOverdue ? 'text-destructive' : isDueToday ? 'text-primary' : 'text-muted-foreground'}`}>
+                    <Calendar className="w-3 h-3" />
+                    {isOverdue ? 'Overdue — ' : isDueToday ? 'Today — ' : ''}
+                    {format(new Date(task.due_date), 'dd MMM, HH:mm')}
+                  </span>
+                )}
+                {taskNotes.length > 0 && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                    <MessageSquare className="w-3 h-3" /> {taskNotes.length}
+                  </span>
+                )}
+                {isExpanded ? <ChevronDown className="w-3 h-3 text-muted-foreground" /> : <ChevronRight className="w-3 h-3 text-muted-foreground" />}
+              </div>
+            </div>
+            {!task.completed && (
+              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={(e) => {
+                e.stopPropagation();
+                setExpandedTaskId(task.id);
+                setEditingTask({
+                  id: task.id,
+                  title: task.title,
+                  dueDate: task.due_date ? formatDatetimeLocal(new Date(task.due_date)) : '',
+                });
+              }}>
+                <Pencil className="w-3 h-3" />
+              </Button>
             )}
           </div>
-          {!isEditing && !task.completed && (
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={(e) => {
-              e.stopPropagation();
-              setEditingTask({
-                id: task.id,
-                title: task.title,
-                dueDate: task.due_date ? formatDatetimeLocal(new Date(task.due_date)) : '',
-              });
-            }}>
-              <Pencil className="w-3 h-3" />
-            </Button>
-          )}
-        </div>
+        )}
 
         {/* Expanded: task notes + add note */}
         {isExpanded && (
