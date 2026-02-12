@@ -19,14 +19,25 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       toast.error(error.message);
       setLoading(false);
       return;
     }
+    // Fetch role to redirect to correct dashboard
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', data.user.id)
+      .maybeSingle();
+    const userRole = roleData?.role;
     toast.success('Welcome back!');
-    navigate('/');
+    if (userRole === 'broker' || userRole === 'super_admin') {
+      navigate('/admin');
+    } else {
+      navigate('/dashboard');
+    }
     setLoading(false);
   };
 
