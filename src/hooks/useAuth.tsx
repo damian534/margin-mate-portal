@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, createContext, useContext, ReactNode, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 
@@ -47,7 +47,7 @@ async function fetchRole(userId: string): Promise<AppRole | null> {
     .eq('user_id', userId)
     .maybeSingle();
   if (error) {
-    console.error('Failed to fetch role:', error.message);
+    console.error('fetchRole error:', error.message);
     return null;
   }
   return (data?.role as AppRole) ?? null;
@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isPreviewMode] = useState(getIsPreviewMode);
   const [previewRole, setPreviewRole] = useState<AppRole>('broker');
-  const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
     if (isPreviewMode) {
@@ -70,53 +70,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    let isMounted = true;
+    isMountedRef.current = true;
 
-    // Safety timeout - never stay loading forever
+    // Safety timeout
     const timeout = setTimeout(() => {
-      if (isMounted && loading) {
-        console.warn('Auth loading timeout - forcing load complete');
-        setLoading(false);
-      }
-    }, 4000);
+      if (isMountedRef.current) setLoading(false);
+    }, 5000);
 
-    // 1. Get initial session first
-    supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
-      if (!isMounted) return;
-      
-      if (initialSession?.user) {
-        setSession(initialSession);
-        setUser(initialSession.user);
-        const userRole = await fetchRole(initialSession.user.id);
-        if (isMounted) {
-          setRole(userRole);
-          setLoading(false);
-          setInitialLoadDone(true);
-        }
-      } else {
-        setLoading(false);
-        setInitialLoadDone(true);
-      }
-    }).catch(() => {
-      if (isMounted) {
-        setLoading(false);
-        setInitialLoadDone(true);
-      }
-    });
-
-    // 2. Listen for auth changes (login/logout after initial load)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-      if (!isMounted) return;
-      
-      // Skip the initial event if we already handled it
-      if (!initialLoadDone && event === 'INITIAL_SESSION') return;
-
+    const handleSession = async (newSession: Session | null) => {
+      if (!isMountedRef.current) return;
       setSession(newSession);
       setUser(newSession?.user ?? null);
-
       if (newSession?.user) {
         const userRole = await fetchRole(newSession.user.id);
-        if (isMounted) {
+        if (isMountedRef.current) {
           setRole(userRole);
           setLoading(false);
         }
@@ -124,10 +91,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setRole(null);
         setLoading(false);
       }
+    };
+
+    // Set up listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      handleSession(newSession);
     });
 
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
       clearTimeout(timeout);
       subscription.unsubscribe();
     };
