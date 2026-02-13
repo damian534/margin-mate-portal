@@ -72,10 +72,8 @@ export function ReferrerProfiles({ referrers, companies, onRefresh, isPreviewMod
       return;
     }
     setAdding(true);
-    // Create a profile with a placeholder user_id, linked to current broker
-    const placeholderUserId = crypto.randomUUID();
+    // Create a profile without a user_id — will be linked when the partner registers
     const { error } = await supabase.from('profiles').insert({
-      user_id: placeholderUserId,
       email: newPartner.email.trim(),
       full_name: newPartner.full_name.trim(),
       phone: newPartner.phone.trim() || null,
