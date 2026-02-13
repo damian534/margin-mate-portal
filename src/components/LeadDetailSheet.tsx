@@ -134,13 +134,40 @@ export function LeadDetailSheet({
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<{ id: string; title: string; dueDate: string } | null>(null);
   const [taskNoteText, setTaskNoteText] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [contactDirty, setContactDirty] = useState(false);
 
   useEffect(() => {
     if (lead && open) {
       fetchNotes(lead.id);
       fetchTasks(lead.id);
+      setEditEmail(lead.email || '');
+      setEditPhone(lead.phone || '');
+      setContactDirty(false);
     }
   }, [lead?.id, open]);
+
+  const saveContactDetails = async () => {
+    if (!lead) return;
+    const updates: any = {};
+    if (editEmail !== (lead.email || '')) updates.email = editEmail || null;
+    if (editPhone !== (lead.phone || '')) updates.phone = editPhone || null;
+    if (Object.keys(updates).length === 0) return;
+
+    if (!isPreviewMode) {
+      // Update lead
+      const { error } = await supabase.from('leads').update(updates as any).eq('id', lead.id);
+      if (error) { toast.error('Failed to save contact details'); return; }
+      // Also update linked contact if exists
+      if (lead.source_contact_id) {
+        await supabase.from('contacts').update(updates as any).eq('id', lead.source_contact_id);
+      }
+    }
+    onLeadChange?.({ ...lead, ...updates });
+    setContactDirty(false);
+    toast.success('Contact details saved');
+  };
 
   const fetchNotes = async (leadId: string) => {
     if (isPreviewMode) {
@@ -442,38 +469,57 @@ export function LeadDetailSheet({
             </SheetTitle>
           </SheetHeader>
 
+          {/* Editable contact details */}
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                <Mail className="w-3 h-3" /> Email
+              </Label>
+              <Input
+                type="email"
+                placeholder="Add email"
+                value={editEmail}
+                onChange={(e) => { setEditEmail(e.target.value); setContactDirty(true); }}
+                className="h-8 text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                <Phone className="w-3 h-3" /> Phone
+              </Label>
+              <Input
+                type="tel"
+                placeholder="Add phone"
+                value={editPhone}
+                onChange={(e) => { setEditPhone(e.target.value); setContactDirty(true); }}
+                className="h-8 text-sm"
+              />
+            </div>
+          </div>
+          {contactDirty && (
+            <div className="flex justify-end mt-2">
+              <Button size="sm" className="gap-1.5" onClick={saveContactDetails}>
+                <Save className="w-3.5 h-3.5" /> Save Contact
+              </Button>
+            </div>
+          )}
+
           {/* Quick contact actions */}
-          <div className="flex gap-2 mb-4">
-            {lead.email && (
+          <div className="flex gap-2 mt-2">
+            {editEmail && !contactDirty && (
               <Button variant="outline" size="sm" className="gap-1.5 flex-1" onClick={handleEmailClick}>
                 <Mail className="w-3.5 h-3.5" /> Email
               </Button>
             )}
-            {lead.phone && (
+            {editPhone && !contactDirty && (
               <Button variant="outline" size="sm" className="gap-1.5 flex-1" onClick={handlePhoneClick}>
                 <Phone className="w-3.5 h-3.5" /> Call
               </Button>
             )}
           </div>
 
-          {/* Contact details grid */}
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            {lead.email && (
-              <div className="flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                <a href={`mailto:${encodeURIComponent(lead.email)}`} className="text-primary hover:underline truncate" onClick={(e) => { e.preventDefault(); handleEmailClick(); }}>
-                  {lead.email}
-                </a>
-              </div>
-            )}
-            {lead.phone && (
-              <div className="flex items-center gap-2">
-                <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                <a href={`tel:${encodeURIComponent(lead.phone)}`} className="text-primary hover:underline" onClick={(e) => { e.preventDefault(); handlePhoneClick(); }}>
-                  {lead.phone}
-                </a>
-              </div>
-            )}
+          {/* Read-only info */}
+          <div className="grid grid-cols-2 gap-3 text-sm mt-2">
             {lead.loan_amount && (
               <div className="flex items-center gap-2">
                 <DollarSign className="w-3.5 h-3.5 text-muted-foreground shrink-0" />

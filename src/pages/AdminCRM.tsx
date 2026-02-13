@@ -218,8 +218,37 @@ export default function AdminCRM() {
   };
 
   const fetchContacts = async () => {
-    const { data } = await supabase.from('contacts').select('*').order('created_at', { ascending: false });
-    setContacts((data as unknown as Contact[]) || []);
+    const { data: contactsData } = await supabase.from('contacts').select('*').order('created_at', { ascending: false });
+    const contactsList = (contactsData as unknown as Contact[]) || [];
+
+    // Also include referral partners from profiles as contacts
+    if (!isPreviewMode) {
+      const { data: partnerProfiles } = await supabase.from('profiles').select('user_id, full_name, email, phone, company_name, created_at').not('broker_id', 'is', null);
+      if (partnerProfiles && partnerProfiles.length > 0) {
+        const contactEmails = new Set(contactsList.map(c => c.email?.toLowerCase()).filter(Boolean));
+        const referrerContacts: Contact[] = partnerProfiles
+          .filter(r => !r.email || !contactEmails.has(r.email.toLowerCase()))
+          .map(r => {
+            const nameParts = (r.full_name || '').split(' ');
+            return {
+              id: `referrer-${r.user_id}`,
+              first_name: nameParts[0] || '',
+              last_name: nameParts.slice(1).join(' ') || '',
+              email: r.email || null,
+              phone: r.phone || null,
+              company: r.company_name || null,
+              type: 'referrer',
+              notes: null,
+              created_by: null,
+              created_at: r.created_at || new Date().toISOString(),
+              updated_at: r.created_at || new Date().toISOString(),
+            };
+          });
+        setContacts([...contactsList, ...referrerContacts]);
+        return;
+      }
+    }
+    setContacts(contactsList);
   };
 
   const fetchLeadSources = async () => {
