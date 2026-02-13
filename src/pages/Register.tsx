@@ -38,8 +38,8 @@ export default function Register() {
 
   useEffect(() => {
     // Check if any super_admin exists — if not, first user gets to register without a code
-    supabase.from('user_roles').select('id').eq('role', 'super_admin' as any).limit(1)
-      .then(({ data }) => setHasAnySuperAdmin(!!(data && data.length > 0)));
+    supabase.rpc('has_any_super_admin')
+      .then(({ data }) => setHasAnySuperAdmin(!!data));
 
     const code = searchParams.get('code');
     if (code) {
