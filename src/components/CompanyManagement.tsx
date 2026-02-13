@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Plus, Pencil, Building2, Trash2, Users, Mail, Phone, User, UserPlus, Link2 } from 'lucide-react';
+import { Plus, Pencil, Building2, Trash2, Users, Mail, Phone, UserPlus, Link2 } from 'lucide-react';
 
 export interface Company {
   id: string;
@@ -91,7 +91,6 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
     const agents: Agent[] = [];
     const seen = new Set<string>();
 
-    // Referral partners linked by company_id OR matching company_name
     referrers.forEach(r => {
       const matchById = r.company_id === company.id;
       const matchByName = r.company_name && r.company_name.toLowerCase() === company.name.toLowerCase();
@@ -110,7 +109,6 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
       }
     });
 
-    // Contacts with matching company name
     contacts.forEach(c => {
       if (c.company && c.company.toLowerCase() === company.name.toLowerCase()) {
         const key = c.email?.toLowerCase() || c.id;
@@ -189,7 +187,7 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
         email: agentForm.email.trim() || null,
         phone: agentForm.phone.trim() || null,
         company: selectedCompany.name,
-        type: 'prospect',
+        type: 'client',
         created_by: user?.id || null,
       });
       if (error) { toast.error('Failed to add agent'); return; }
@@ -209,7 +207,6 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
       return;
     }
 
-    // Generate code
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = 'MF-';
     for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
@@ -225,6 +222,13 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
     const url = `${window.location.origin}/register?code=${code}`;
     await navigator.clipboard.writeText(url);
     toast.success(`Invite link copied! Share it with ${agent.name}`);
+  };
+
+  const handleAgentClick = (agent: Agent) => {
+    if (agent.type === 'contact') {
+      setSheetOpen(false);
+      onOpenContact?.(agent.id);
+    }
   };
 
   return (
@@ -308,7 +312,6 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
                 </SheetHeader>
 
                 <div className="mt-6 space-y-4">
-                  {/* Company details */}
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     {selectedCompany.email && (
                       <div className="flex items-center gap-2">
@@ -344,7 +347,7 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm font-semibold flex items-center gap-2">
-                        <Users className="w-4 h-4" /> Agents ({agents.length}) — Click to view
+                        <Users className="w-4 h-4" /> Agents ({agents.length})
                       </h3>
                       <Button size="sm" variant="outline" onClick={() => { setAgentForm({ firstName: '', lastName: '', email: '', phone: '' }); setAddAgentOpen(true); }}>
                         <UserPlus className="w-3.5 h-3.5 mr-1" /> Add Agent
@@ -353,16 +356,16 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
 
                     {agents.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-6">
-                        No agents linked to this company yet. Click "Add Agent" to add one.
+                        No agents linked to this company yet. Click &quot;Add Agent&quot; to add one.
                       </p>
                     ) : (
                       <div className="space-y-2">
                         {agents.map(agent => (
-                          <div key={agent.id} className="flex items-center gap-3 p-3 rounded-lg border bg-background cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => {
-                            if (agent.type === 'contact') {
-                              onOpenContact?.(agent.id);
-                            }
-                          }}>
+                          <div
+                            key={agent.id}
+                            className="flex items-center gap-3 p-3 rounded-lg border bg-background cursor-pointer hover:bg-muted/50 transition-colors"
+                            onClick={() => handleAgentClick(agent)}
+                          >
                             <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm shrink-0">
                               {agent.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                             </div>
@@ -383,7 +386,12 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
                               {agent.type !== 'referrer' && (
-                                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={(e) => { e.stopPropagation(); inviteAgent(agent); }}>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 px-2 text-xs"
+                                  onClick={(e) => { e.stopPropagation(); inviteAgent(agent); }}
+                                >
                                   <Link2 className="w-3 h-3 mr-1" /> Invite
                                 </Button>
                               )}
@@ -423,6 +431,7 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
         </DialogContent>
       </Dialog>
 
+      {/* Edit / Add Company Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
