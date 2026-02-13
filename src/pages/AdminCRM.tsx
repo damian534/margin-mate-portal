@@ -26,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { notifyPartnerStatusChange } from '@/lib/notifications';
 import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign, Contact as ContactIcon, KeyRound, UserCog, CalendarClock } from 'lucide-react';
 import { isPast, isToday, isTomorrow } from 'date-fns';
 
@@ -243,11 +244,19 @@ export default function AdminCRM() {
       if (selectedLead?.id === leadId) setSelectedLead(prev => prev ? { ...prev, status } : null);
       return;
     }
+    const lead = leads.find(l => l.id === leadId);
+    const oldStatus = lead?.status || '';
     const { error } = await supabase.from('leads').update({ status: status as any }).eq('id', leadId);
     if (error) { toast.error('Failed to update status'); return; }
     toast.success('Status updated');
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status } : l));
     if (selectedLead?.id === leadId) setSelectedLead(prev => prev ? { ...prev, status } : null);
+    // Send email notification to partner if lead has one
+    if (lead?.referral_partner_id && oldStatus !== status) {
+      const statusConfig = statuses.find(s => s.name === status);
+      notifyPartnerStatusChange(lead, oldStatus, status, statusConfig?.label || status)
+        .catch(err => console.error('Status email notification failed:', err));
+    }
   };
 
 

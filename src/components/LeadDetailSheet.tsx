@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
 import { format, isPast, isToday } from 'date-fns';
+import { notifyPartnerNote } from '@/lib/notifications';
 import {
   Mail, Phone, Send, Trash2, Users, Building2, DollarSign,
   Calendar, Plus, CheckCircle, Clock, AlertTriangle,
@@ -181,6 +182,9 @@ export function LeadDetailSheet({
     if (taskId) insertData.task_id = taskId;
     const { error } = await supabase.from('notes').insert(insertData);
     if (error) { toast.error('Failed to add note'); return; }
+    if (notifyPartner && lead.referral_partner_id) {
+      notifyPartnerNote(lead, noteContent.trim()).catch(err => console.error('Email notification failed:', err));
+    }
     toast.success(notifyPartner ? 'Note added & partner notified' : 'Note added');
     if (!taskId) { setNewNote(''); setNotifyPartner(false); }
     fetchNotes(lead.id);
