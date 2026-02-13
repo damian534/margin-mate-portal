@@ -194,10 +194,12 @@ export default function AdminCRM() {
       // Merge: registered partners + manually added ones (avoid duplicates)
       const allProfiles = brokerProfiles || [];
       const seen = new Set<string>();
+      const seenEmails = new Set<string>();
       const merged: ReferrerProfileData[] = [];
       for (const p of allProfiles) {
         if (!seen.has(p.id)) {
           seen.add(p.id);
+          if (p.email) seenEmails.add(p.email.toLowerCase());
           merged.push(p as unknown as ReferrerProfileData);
         }
       }
@@ -207,10 +209,38 @@ export default function AdminCRM() {
         for (const p of regProfiles || []) {
           if (!seen.has(p.id)) {
             seen.add(p.id);
+            if (p.email) seenEmails.add(p.email.toLowerCase());
             merged.push(p as unknown as ReferrerProfileData);
           }
         }
       }
+
+      // Also include contacts of type 'referrer' (added via Companies as agents)
+      const { data: referrerContacts } = await supabase.from('contacts').select('*').eq('type', 'referrer');
+      for (const c of referrerContacts || []) {
+        // Skip if already present by email
+        if (c.email && seenEmails.has(c.email.toLowerCase())) continue;
+        const contactAsReferrer: ReferrerProfileData = {
+          id: c.id,
+          user_id: `contact-${c.id}`,
+          full_name: `${c.first_name} ${c.last_name}`.trim(),
+          email: c.email,
+          phone: c.phone,
+          company_name: c.company || null,
+          company_id: null,
+          date_of_birth: null,
+          spouse_name: null,
+          interests: null,
+          address: null,
+          license_number: null,
+          custom_fields: {},
+          broker_notes: c.notes,
+          created_at: c.created_at,
+        };
+        merged.push(contactAsReferrer);
+        if (c.email) seenEmails.add(c.email.toLowerCase());
+      }
+
       setReferrers(merged);
     } catch (err) {
       console.error('fetchReferrers failed:', err);
