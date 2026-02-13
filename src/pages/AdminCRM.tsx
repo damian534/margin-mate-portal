@@ -478,14 +478,27 @@ export default function AdminCRM() {
               <div className="space-y-6">
                 {statuses.map(status => {
                   const statusLeads = filteredLeads.filter(l => l.status === status.name);
-                  if (statusLeads.length === 0) return null;
+                  if (statusLeads.length === 0 && !status) return null;
                   return (
-                    <div key={status.name}>
+                    <div
+                      key={status.name}
+                      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const leadId = e.dataTransfer.getData('leadId');
+                        if (leadId) updateStatus(leadId, status.name);
+                      }}
+                    >
                       <div className="flex items-center gap-2 mb-2">
                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: status.color }} />
                         <h3 className="text-sm font-semibold">{status.label}</h3>
                         <span className="text-xs text-muted-foreground">({statusLeads.length})</span>
                       </div>
+                      {statusLeads.length === 0 ? (
+                        <div className="border border-dashed rounded-lg p-4 text-center text-xs text-muted-foreground">
+                          Drop leads here
+                        </div>
+                      ) : (
                       <Card>
                         <CardContent className="p-0">
                           <Table>
@@ -502,7 +515,16 @@ export default function AdminCRM() {
                             </TableHeader>
                             <TableBody>
                               {statusLeads.map(lead => (
-                                <TableRow key={lead.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openLead(lead)}>
+                                <TableRow
+                                  key={lead.id}
+                                  draggable
+                                  onDragStart={(e) => {
+                                    e.dataTransfer.setData('leadId', lead.id);
+                                    e.dataTransfer.effectAllowed = 'move';
+                                  }}
+                                  className="cursor-grab active:cursor-grabbing hover:bg-muted/50"
+                                  onClick={() => openLead(lead)}
+                                >
                                   <TableCell className="font-medium">{lead.first_name} {lead.last_name}</TableCell>
                                   <TableCell>
                                     <span className="text-xs px-2 py-0.5 rounded-full bg-muted">
@@ -535,6 +557,7 @@ export default function AdminCRM() {
                           </Table>
                         </CardContent>
                       </Card>
+                      )}
                     </div>
                   );
                 })}
