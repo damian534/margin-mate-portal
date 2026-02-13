@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Plus, Pencil, Building2, Trash2, Users, Mail, Phone, User, UserPlus } from 'lucide-react';
+import { Plus, Pencil, Building2, Trash2, Users, Mail, Phone, User, UserPlus, Link } from 'lucide-react';
 
 export interface Company {
   id: string;
@@ -201,6 +201,31 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
     }
   };
 
+  const inviteAgent = async (agent: Agent) => {
+    if (!user) { toast.error('You must be logged in'); return; }
+    if (isPreviewMode) {
+      toast.success('Invite link copied (preview)');
+      return;
+    }
+
+    // Generate code
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = 'MF-';
+    for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+
+    const { error } = await supabase.from('invite_codes').insert({
+      broker_id: user.id,
+      code,
+      label: `${agent.name} – ${selectedCompany?.name || 'Agent'}`,
+      max_uses: 1,
+    });
+    if (error) { toast.error('Failed to create invite'); return; }
+
+    const url = `${window.location.origin}/register?code=${code}`;
+    await navigator.clipboard.writeText(url);
+    toast.success(`Invite link copied! Share it with ${agent.name}`);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -351,9 +376,16 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
                                 )}
                               </div>
                             </div>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
-                              {agent.type === 'referrer' ? 'Partner' : 'Contact'}
-                            </span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {agent.type === 'contact' && (
+                                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => inviteAgent(agent)}>
+                                  <Link className="w-3 h-3 mr-1" /> Invite
+                                </Button>
+                              )}
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                                {agent.type === 'referrer' ? 'Partner' : 'Contact'}
+                              </span>
+                            </div>
                           </div>
                         ))}
                       </div>
