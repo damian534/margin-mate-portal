@@ -225,10 +225,11 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
   };
 
   const handleAgentClick = (agent: Agent) => {
-    if (agent.type === 'contact') {
+    if (agent.type === 'contact' && onOpenContact) {
       setSheetOpen(false);
-      onOpenContact?.(agent.id);
+      onOpenContact(agent.id);
     }
+    // For referrers, we could navigate to the referrers tab in the future
   };
 
   return (
@@ -385,16 +386,14 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
                               </div>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
-                              {agent.type !== 'referrer' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-7 px-2 text-xs"
-                                  onClick={(e) => { e.stopPropagation(); inviteAgent(agent); }}
-                                >
-                                  <Link2 className="w-3 h-3 mr-1" /> Invite
-                                </Button>
-                              )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 px-2 text-xs"
+                                onClick={(e) => { e.stopPropagation(); inviteAgent(agent); }}
+                              >
+                                <Link2 className="w-3 h-3 mr-1" /> Invite
+                              </Button>
                               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
                                 {agent.type === 'referrer' ? 'Partner' : 'Contact'}
                               </span>
