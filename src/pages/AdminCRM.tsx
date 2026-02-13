@@ -694,7 +694,7 @@ export default function AdminCRM() {
           </TabsContent>
 
           <TabsContent value="users" className="mt-4">
-            <UserManagement />
+            <UserManagement companies={companies} onRefreshReferrers={fetchReferrers} />
           </TabsContent>
         </Tabs>
       </main>
