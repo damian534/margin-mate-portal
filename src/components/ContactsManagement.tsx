@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,8 @@ interface ContactsManagementProps {
   contacts: Contact[];
   onRefresh: () => void;
   isPreviewMode: boolean;
+  openContactId?: string | null;
+  onContactOpened?: () => void;
 }
 
 const CONTACT_TYPES = [
@@ -42,12 +44,24 @@ const CONTACT_TYPES = [
   { value: 'other', label: 'Other' },
 ];
 
-export function ContactsManagement({ contacts, onRefresh, isPreviewMode }: ContactsManagementProps) {
+export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openContactId, onContactOpened }: ContactsManagementProps) {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [addOpen, setAddOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  // Open a specific contact when openContactId changes
+  useEffect(() => {
+    if (openContactId && contacts.length > 0) {
+      const contact = contacts.find(c => c.id === openContactId);
+      if (contact) {
+        setSelectedContact(contact);
+        setSheetOpen(true);
+        onContactOpened?.();
+      }
+    }
+  }, [openContactId, contacts]);
 
   // Add form
   const [firstName, setFirstName] = useState('');

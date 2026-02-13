@@ -106,6 +106,7 @@ export default function AdminCRM() {
   const [reportReferrerId, setReportReferrerId] = useState<string | null>(null);
   const [taskDueFilter, setTaskDueFilter] = useState<TaskDueFilter>('all_leads');
   const [leadTasks, setLeadTasks] = useState<LeadTask[]>([]);
+  const [openContactId, setOpenContactId] = useState<string | null>(null);
 
   const defaultSources: LeadSource[] = [
     { id: 's1', name: 'referral_partner', label: 'Referral Partner', display_order: 1 },
@@ -660,7 +661,7 @@ export default function AdminCRM() {
           </TabsContent>
 
           <TabsContent value="contacts" className="mt-4">
-            <ContactsManagement contacts={contacts} onRefresh={fetchContacts} isPreviewMode={isPreviewMode} />
+            <ContactsManagement contacts={contacts} onRefresh={fetchContacts} isPreviewMode={isPreviewMode} openContactId={openContactId} onContactOpened={() => setOpenContactId(null)} />
           </TabsContent>
 
           <TabsContent value="companies" className="mt-4">
@@ -722,11 +723,7 @@ export default function AdminCRM() {
         onOpenContact={(contactId) => {
           setSheetOpen(false);
           setActiveTab('contacts');
-          // Small delay to let the sheet close before switching tabs
-          setTimeout(() => {
-            const contactEl = document.getElementById(`contact-${contactId}`);
-            contactEl?.scrollIntoView({ behavior: 'smooth' });
-          }, 300);
+          setTimeout(() => setOpenContactId(contactId), 300);
         }}
         sampleNotes={isPreviewMode && selectedLead ? (SAMPLE_NOTES[selectedLead.id] || []) as any : undefined}
       />
