@@ -1,20 +1,13 @@
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+import { supabase } from '@/integrations/supabase/client';
 
 async function callNotifyPartner(body: Record<string, unknown>) {
   try {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/notify-partner`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${SUPABASE_KEY}`,
-        apikey: SUPABASE_KEY,
-      },
-      body: JSON.stringify(body),
+    console.log("[notifications] calling notify-partner with:", JSON.stringify(body));
+    const { data, error } = await supabase.functions.invoke('notify-partner', {
+      body,
     });
-    const data = await res.json().catch(() => ({}));
-    console.log("[notifications] notify-partner response:", res.status, data);
-    return res.ok;
+    console.log("[notifications] notify-partner response:", { data, error });
+    return !error;
   } catch (err) {
     console.error("[notifications] notify-partner call failed:", err);
     return false;
