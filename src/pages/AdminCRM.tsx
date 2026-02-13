@@ -665,7 +665,7 @@ export default function AdminCRM() {
           </TabsContent>
 
           <TabsContent value="companies" className="mt-4">
-            <CompanyManagement companies={companies} onRefresh={fetchCompanies} isPreviewMode={isPreviewMode} />
+            <CompanyManagement companies={companies} onRefresh={fetchCompanies} isPreviewMode={isPreviewMode} referrers={referrers} contacts={contacts} />
           </TabsContent>
 
           <TabsContent value="referrers" className="mt-4">
