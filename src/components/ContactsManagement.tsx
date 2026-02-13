@@ -38,10 +38,7 @@ interface ContactsManagementProps {
 
 const CONTACT_TYPES = [
   { value: 'client', label: 'Client' },
-  { value: 'prospect', label: 'Prospect' },
   { value: 'referrer', label: 'Referrer' },
-  { value: 'vendor', label: 'Vendor' },
-  { value: 'other', label: 'Other' },
 ];
 
 export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openContactId, onContactOpened }: ContactsManagementProps) {
@@ -111,10 +108,12 @@ export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openCon
 
   const handleUpdate = async (field: string, value: any) => {
     if (!selectedContact) return;
-    setSelectedContact(prev => prev ? { ...prev, [field]: value } : null);
+    const updated = { ...selectedContact, [field]: value };
+    setSelectedContact(updated);
     if (isPreviewMode) return;
     const { error } = await supabase.from('contacts').update({ [field]: value } as any).eq('id', selectedContact.id);
-    if (error) toast.error('Failed to update');
+    if (error) { toast.error('Failed to update'); return; }
+    onRefresh();
   };
 
   const handleDelete = async () => {
