@@ -344,7 +344,7 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm font-semibold flex items-center gap-2">
-                        <Users className="w-4 h-4" /> Agents ({agents.length})
+                        <Users className="w-4 h-4" /> Agents ({agents.length}) — Click to view
                       </h3>
                       <Button size="sm" variant="outline" onClick={() => { setAgentForm({ firstName: '', lastName: '', email: '', phone: '' }); setAddAgentOpen(true); }}>
                         <UserPlus className="w-3.5 h-3.5 mr-1" /> Add Agent
