@@ -350,6 +350,7 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
                       <h3 className="text-sm font-semibold flex items-center gap-2">
                         <Users className="w-4 h-4" /> Agents ({agents.length})
                       </h3>
+                      <p className="text-[10px] text-destructive font-bold">v2-debug</p>
                       <Button size="sm" variant="outline" onClick={() => { setAgentForm({ firstName: '', lastName: '', email: '', phone: '' }); setAddAgentOpen(true); }}>
                         <UserPlus className="w-3.5 h-3.5 mr-1" /> Add Agent
                       </Button>
