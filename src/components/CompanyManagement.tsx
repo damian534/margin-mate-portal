@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Plus, Pencil, Building2, Trash2, Users, Mail, Phone, User } from 'lucide-react';
+import { Plus, Pencil, Building2, Trash2, Users, Mail, Phone, User, UserPlus } from 'lucide-react';
 
 export interface Company {
   id: string;
@@ -35,6 +35,7 @@ interface Agent {
 interface CompanyManagementProps {
   companies: Company[];
   onRefresh: () => void;
+  onRefreshContacts?: () => void;
   isPreviewMode?: boolean;
   referrers?: Array<{
     id: string;
@@ -56,12 +57,16 @@ interface CompanyManagementProps {
   }>;
 }
 
-export function CompanyManagement({ companies, onRefresh, isPreviewMode, referrers = [], contacts = [] }: CompanyManagementProps) {
+export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isPreviewMode, referrers = [], contacts = [] }: CompanyManagementProps) {
+  const { user } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Company | null>(null);
   const [form, setForm] = useState({ name: '', address: '', phone: '', email: '', website: '', notes: '' });
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [addAgentOpen, setAddAgentOpen] = useState(false);
+  const [agentForm, setAgentForm] = useState({ firstName: '', lastName: '', email: '', phone: '' });
+  const [savingAgent, setSavingAgent] = useState(false);
 
   const openNew = () => {
     setEditing(null);
@@ -85,9 +90,11 @@ export function CompanyManagement({ companies, onRefresh, isPreviewMode, referre
     const agents: Agent[] = [];
     const seen = new Set<string>();
 
-    // Referral partners linked by company_id
+    // Referral partners linked by company_id OR matching company_name
     referrers.forEach(r => {
-      if (r.company_id === company.id) {
+      const matchById = r.company_id === company.id;
+      const matchByName = r.company_name && r.company_name.toLowerCase() === company.name.toLowerCase();
+      if (matchById || matchByName) {
         const key = r.email?.toLowerCase() || r.id;
         if (!seen.has(key)) {
           seen.add(key);
@@ -157,6 +164,41 @@ export function CompanyManagement({ companies, onRefresh, isPreviewMode, referre
     if (error) { toast.error('Failed to delete company. It may still have referrers assigned.'); return; }
     toast.success('Company deleted');
     onRefresh();
+  };
+
+  const saveAgent = async () => {
+    if (!agentForm.firstName.trim() || !agentForm.lastName.trim()) {
+      toast.error('First and last name are required');
+      return;
+    }
+    if (!selectedCompany) return;
+
+    if (isPreviewMode) {
+      toast.success('Agent added (preview)');
+      setAddAgentOpen(false);
+      setAgentForm({ firstName: '', lastName: '', email: '', phone: '' });
+      return;
+    }
+
+    setSavingAgent(true);
+    try {
+      const { error } = await supabase.from('contacts').insert({
+        first_name: agentForm.firstName.trim(),
+        last_name: agentForm.lastName.trim(),
+        email: agentForm.email.trim() || null,
+        phone: agentForm.phone.trim() || null,
+        company: selectedCompany.name,
+        type: 'prospect',
+        created_by: user?.id || null,
+      });
+      if (error) { toast.error('Failed to add agent'); return; }
+      toast.success('Agent added to ' + selectedCompany.name);
+      setAddAgentOpen(false);
+      setAgentForm({ firstName: '', lastName: '', email: '', phone: '' });
+      onRefreshContacts?.();
+    } finally {
+      setSavingAgent(false);
+    }
   };
 
   return (
@@ -274,13 +316,18 @@ export function CompanyManagement({ companies, onRefresh, isPreviewMode, referre
 
                   {/* Agents list */}
                   <div>
-                    <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
-                      <Users className="w-4 h-4" /> Agents ({agents.length})
-                    </h3>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold flex items-center gap-2">
+                        <Users className="w-4 h-4" /> Agents ({agents.length})
+                      </h3>
+                      <Button size="sm" variant="outline" onClick={() => { setAgentForm({ firstName: '', lastName: '', email: '', phone: '' }); setAddAgentOpen(true); }}>
+                        <UserPlus className="w-3.5 h-3.5 mr-1" /> Add Agent
+                      </Button>
+                    </div>
 
                     {agents.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-6">
-                        No agents linked to this company yet. Assign referral partners or contacts to this company to see them here.
+                        No agents linked to this company yet. Click "Add Agent" to add one.
                       </p>
                     ) : (
                       <div className="space-y-2">
@@ -318,6 +365,26 @@ export function CompanyManagement({ companies, onRefresh, isPreviewMode, referre
           })()}
         </SheetContent>
       </Sheet>
+
+      {/* Add Agent Dialog */}
+      <Dialog open={addAgentOpen} onOpenChange={setAddAgentOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Agent to {selectedCompany?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>First Name *</Label><Input value={agentForm.firstName} onChange={e => setAgentForm(f => ({ ...f, firstName: e.target.value }))} maxLength={100} /></div>
+              <div><Label>Last Name *</Label><Input value={agentForm.lastName} onChange={e => setAgentForm(f => ({ ...f, lastName: e.target.value }))} maxLength={100} /></div>
+            </div>
+            <div><Label>Email</Label><Input type="email" value={agentForm.email} onChange={e => setAgentForm(f => ({ ...f, email: e.target.value }))} maxLength={255} /></div>
+            <div><Label>Phone</Label><Input value={agentForm.phone} onChange={e => setAgentForm(f => ({ ...f, phone: e.target.value }))} maxLength={20} /></div>
+            <Button onClick={saveAgent} className="w-full" disabled={savingAgent}>
+              {savingAgent ? 'Adding…' : 'Add Agent'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
