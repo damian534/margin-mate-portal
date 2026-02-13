@@ -665,7 +665,7 @@ export default function AdminCRM() {
           </TabsContent>
 
           <TabsContent value="companies" className="mt-4">
-            <CompanyManagement companies={companies} onRefresh={fetchCompanies} onRefreshContacts={fetchContacts} isPreviewMode={isPreviewMode} referrers={referrers} contacts={contacts} />
+            <CompanyManagement companies={companies} onRefresh={fetchCompanies} onRefreshContacts={fetchContacts} isPreviewMode={isPreviewMode} referrers={referrers} contacts={contacts} onOpenContact={(contactId) => { setSheetOpen(false); setActiveTab('contacts'); setTimeout(() => setOpenContactId(contactId), 300); }} />
           </TabsContent>
 
           <TabsContent value="referrers" className="mt-4">

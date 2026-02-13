@@ -37,6 +37,7 @@ interface CompanyManagementProps {
   onRefresh: () => void;
   onRefreshContacts?: () => void;
   isPreviewMode?: boolean;
+  onOpenContact?: (contactId: string) => void;
   referrers?: Array<{
     id: string;
     user_id: string;
@@ -57,7 +58,7 @@ interface CompanyManagementProps {
   }>;
 }
 
-export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isPreviewMode, referrers = [], contacts = [] }: CompanyManagementProps) {
+export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isPreviewMode, onOpenContact, referrers = [], contacts = [] }: CompanyManagementProps) {
   const { user } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Company | null>(null);
@@ -357,7 +358,11 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
                     ) : (
                       <div className="space-y-2">
                         {agents.map(agent => (
-                          <div key={agent.id} className="flex items-center gap-3 p-3 rounded-lg border bg-background">
+                          <div key={agent.id} className="flex items-center gap-3 p-3 rounded-lg border bg-background cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => {
+                            if (agent.type === 'contact') {
+                              onOpenContact?.(agent.id);
+                            }
+                          }}>
                             <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm shrink-0">
                               {agent.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                             </div>
@@ -377,8 +382,8 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
                               </div>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
-                              {agent.type === 'contact' && (
-                                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => inviteAgent(agent)}>
+                              {agent.type !== 'referrer' && (
+                                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={(e) => { e.stopPropagation(); inviteAgent(agent); }}>
                                   <Link className="w-3 h-3 mr-1" /> Invite
                                 </Button>
                               )}
