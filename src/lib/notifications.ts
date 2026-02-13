@@ -43,8 +43,10 @@ export async function notifyPartnerNote(
   lead: { first_name: string; last_name: string; referral_partner_id: string | null },
   noteContent: string
 ) {
-  if (!lead.referral_partner_id) return;
+  console.log("[notifications] notifyPartnerNote called", { lead, noteContent });
+  if (!lead.referral_partner_id) { console.warn("[notifications] No referral_partner_id"); return; }
   const email = await getPartnerEmail(lead.referral_partner_id);
+  console.log("[notifications] Partner email result:", email);
   if (!email) {
     console.warn("No email found for partner:", lead.referral_partner_id);
     return;
@@ -73,8 +75,10 @@ export async function notifyPartnerStatusChange(
   newStatus: string,
   statusLabel: string
 ) {
-  if (!lead.referral_partner_id) return;
+  console.log("[notifications] notifyPartnerStatusChange called", { lead, oldStatus, newStatus, statusLabel });
+  if (!lead.referral_partner_id) { console.warn("[notifications] No referral_partner_id"); return; }
   const email = await getPartnerEmail(lead.referral_partner_id);
+  console.log("[notifications] Partner email result:", email);
   if (!email) return;
   const partnerName = await getPartnerName(lead.referral_partner_id);
   const leadName = `${lead.first_name} ${lead.last_name}`;
