@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Plus, Pencil, Building2, Trash2, Users, Mail, Phone, User, UserPlus, Link } from 'lucide-react';
+import { Plus, Pencil, Building2, Trash2, Users, Mail, Phone, User, UserPlus, Link2 } from 'lucide-react';
 
 export interface Company {
   id: string;
@@ -384,7 +384,7 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
                             <div className="flex items-center gap-1.5 shrink-0">
                               {agent.type !== 'referrer' && (
                                 <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={(e) => { e.stopPropagation(); inviteAgent(agent); }}>
-                                  <Link className="w-3 h-3 mr-1" /> Invite
+                                  <Link2 className="w-3 h-3 mr-1" /> Invite
                                 </Button>
                               )}
                               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
