@@ -187,7 +187,7 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
         email: agentForm.email.trim() || null,
         phone: agentForm.phone.trim() || null,
         company: selectedCompany.name,
-        type: 'prospect',
+        type: 'referrer',
         created_by: user?.id || null,
       });
       if (error) { toast.error('Failed to add agent'); return; }
