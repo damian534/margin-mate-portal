@@ -12,6 +12,8 @@ import PartnerDashboard from "./pages/PartnerDashboard";
 import AdminCRM from "./pages/AdminCRM";
 import SubmitReferral from "./pages/SubmitReferral";
 import NotFound from "./pages/NotFound";
+import Tools from "./pages/Tools";
+import SellUpgradeSimulator from "./pages/SellUpgradeSimulator";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +70,16 @@ const App = () => (
             <Route path="/submit-referral" element={
               <ProtectedRoute>
                 <SubmitReferral />
+              </ProtectedRoute>
+            } />
+            <Route path="/tools" element={
+              <ProtectedRoute>
+                <Tools />
+              </ProtectedRoute>
+            } />
+            <Route path="/tools/sell-upgrade-simulator" element={
+              <ProtectedRoute>
+                <SellUpgradeSimulator />
               </ProtectedRoute>
             } />
             <Route path="*" element={<NotFound />} />
