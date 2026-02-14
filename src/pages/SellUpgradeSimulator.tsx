@@ -5,18 +5,58 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { runSimulator, SimulatorInputs, SimulatorOutputs } from '@/lib/simulator-calculations';
-import { ArrowLeft, Download, Mail, Save, TrendingUp, TrendingDown, DollarSign, Home } from 'lucide-react';
+import { ArrowLeft, Download, Mail, Save, TrendingUp, DollarSign, Home, PiggyBank, Send, MinusCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
 const fmt = (v: number) => `$${Math.round(v).toLocaleString()}`;
+
+// Currency input formatting helpers
+function formatCurrency(value: string): string {
+  const num = value.replace(/[^0-9]/g, '');
+  if (!num) return '';
+  return Number(num).toLocaleString();
+}
+
+function parseCurrency(formatted: string): string {
+  return formatted.replace(/[^0-9]/g, '');
+}
+
+function CurrencyInput({
+  value,
+  onChange,
+  placeholder,
+  label,
+}: {
+  value: string;
+  onChange: (raw: string) => void;
+  placeholder?: string;
+  label?: string;
+}) {
+  const displayValue = value ? formatCurrency(value) : '';
+  return (
+    <div>
+      {label && <Label>{label}</Label>}
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+        <Input
+          type="text"
+          inputMode="numeric"
+          className="pl-7"
+          placeholder={placeholder}
+          value={displayValue}
+          onChange={(e) => onChange(parseCurrency(e.target.value))}
+        />
+      </div>
+    </div>
+  );
+}
 
 export default function SellUpgradeSimulator() {
   const { user, isPreviewMode } = useAuth();
@@ -27,13 +67,16 @@ export default function SellUpgradeSimulator() {
   const [mortgageOwing, setMortgageOwing] = useState<string>('');
   const [sellingCostPercent, setSellingCostPercent] = useState<string>('3.0');
   const [targetPurchasePrice, setTargetPurchasePrice] = useState<string>('');
-  const [state, setState] = useState('VIC');
   const [growthPreset, setGrowthPreset] = useState<number>(5);
   const [monthsToWait, setMonthsToWait] = useState<number>(6);
-  const [conveyancingCost] = useState<number>(3000);
+  const [savings, setSavings] = useState<string>('');
+  const [homeValueAdjustment, setHomeValueAdjustment] = useState<number>(0);
   const [saving, setSaving] = useState(false);
 
+  const buyingCostPercent = 6; // flat 6% covers stamp duty, conveyancing, legals etc.
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  const chvNum = parseFloat(currentHomeValue) || 0;
 
   const inputs: SimulatorInputs | null = useMemo(() => {
     const chv = parseFloat(currentHomeValue);
@@ -46,12 +89,13 @@ export default function SellUpgradeSimulator() {
       mortgageOwing: mo,
       sellingCostPercent: sc,
       targetPurchasePrice: tp,
-      state,
       annualGrowthPercent: growthPreset,
       monthsToWait,
-      conveyancingCost,
+      buyingCostPercent,
+      savings: parseFloat(savings) || 0,
+      homeValueAdjustment,
     };
-  }, [currentHomeValue, mortgageOwing, sellingCostPercent, targetPurchasePrice, state, growthPreset, monthsToWait, conveyancingCost]);
+  }, [currentHomeValue, mortgageOwing, sellingCostPercent, targetPurchasePrice, growthPreset, monthsToWait, savings, homeValueAdjustment]);
 
   const outputs: SimulatorOutputs | null = useMemo(() => {
     if (!inputs) return null;
@@ -80,7 +124,6 @@ export default function SellUpgradeSimulator() {
 
   const handleDownloadPDF = () => {
     if (!inputs || !outputs) return;
-    // Build a printable summary and trigger print
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       toast.error('Please allow popups to download PDF');
@@ -133,9 +176,12 @@ export default function SellUpgradeSimulator() {
         <h3>Inputs</h3>
         <table>
           <tr><td>Current Home Value</td><td>${fmt(inputs.currentHomeValue)}</td></tr>
+          ${inputs.homeValueAdjustment !== 0 ? `<tr><td>Sale Price Adjustment</td><td>${fmt(inputs.homeValueAdjustment)}</td></tr>` : ''}
           <tr><td>Mortgage Owing</td><td>${fmt(inputs.mortgageOwing)}</td></tr>
           <tr><td>Selling Cost</td><td>${inputs.sellingCostPercent}%</td></tr>
           <tr><td>Target Purchase Price</td><td>${fmt(inputs.targetPurchasePrice)}</td></tr>
+          <tr><td>Buying Costs</td><td>${inputs.buyingCostPercent}%</td></tr>
+          ${inputs.savings > 0 ? `<tr><td>Savings</td><td>${fmt(inputs.savings)}</td></tr>` : ''}
           <tr><td>Growth Assumption</td><td>${inputs.annualGrowthPercent}% p.a.</td></tr>
           <tr><td>Wait Period</td><td>${inputs.monthsToWait} months</td></tr>
         </table>
@@ -143,12 +189,13 @@ export default function SellUpgradeSimulator() {
         <h3>Comparison: Sell Now vs Wait ${monthsToWait} Months</h3>
         <table>
           <tr><th></th><th>Sell Now</th><th>Wait ${monthsToWait} months</th></tr>
-          <tr><td>Sell Home Value</td><td>${fmt(inputs.currentHomeValue)}</td><td>${fmt(outputs.futureHomeValue)}</td></tr>
+          <tr><td>Sell Home Value</td><td>${fmt(outputs.adjustedHomeValue)}</td><td>${fmt(outputs.futureHomeValue)}</td></tr>
           <tr><td>Selling Costs</td><td>${fmt(outputs.sellingCosts)}</td><td>${fmt(outputs.futureSellingCosts)}</td></tr>
           <tr><td>Mortgage Owing</td><td>${fmt(inputs.mortgageOwing)}</td><td>${fmt(inputs.mortgageOwing)}</td></tr>
           <tr><td>Usable Equity</td><td>${fmt(outputs.usableEquity)}</td><td>${fmt(outputs.futureUsableEquity)}</td></tr>
           <tr><td>Target Buy Price</td><td>${fmt(inputs.targetPurchasePrice)}</td><td>${fmt(outputs.futureTargetPrice)}</td></tr>
-          <tr><td>Stamp Duty (${state})</td><td>${fmt(outputs.stampDutyNow)}</td><td>${fmt(outputs.futureStampDuty)}</td></tr>
+          <tr><td>Buying Costs (${inputs.buyingCostPercent}%)</td><td>${fmt(outputs.purchaseCostsNow)}</td><td>${fmt(outputs.futurePurchaseCosts)}</td></tr>
+          ${inputs.savings > 0 ? `<tr><td>Client Savings</td><td colspan="2">${fmt(inputs.savings)}</td></tr>` : ''}
           <tr><td>Total Funds Needed</td><td>${fmt(outputs.totalFundsNeededNow)}</td><td>${fmt(outputs.futureTotalFundsNeeded)}</td></tr>
           <tr class="highlight"><td>Loan Required</td><td>${fmt(outputs.loanRequiredNow)}</td><td>${fmt(outputs.futureLoanRequired)}</td></tr>
         </table>
@@ -179,6 +226,7 @@ export default function SellUpgradeSimulator() {
             <p><strong>Loan Required (Now):</strong> ${fmt(outputs.loanRequiredNow)}</p>
             <p><strong>Loan Required (${monthsToWait}mo):</strong> ${fmt(outputs.futureLoanRequired)}</p>
             <p><strong>Extra Loan from Waiting:</strong> ${fmt(outputs.extraLoanFromWaiting)}</p>
+            ${inputs.savings > 0 ? `<p><strong>Client Savings Applied:</strong> ${fmt(inputs.savings)}</p>` : ''}
             <hr/>
             <p style="font-size:11px;color:#999;">This tool provides general information and estimates only. It does not constitute financial advice. Seek professional advice before making decisions.</p>
           `,
@@ -191,16 +239,21 @@ export default function SellUpgradeSimulator() {
     }
   };
 
-  const comparisonRows = outputs ? [
-    { label: 'Sell Home Value', now: fmt(inputs!.currentHomeValue), future: fmt(outputs.futureHomeValue) },
+  const comparisonRows = outputs && inputs ? [
+    { label: 'Sell Home Value', now: fmt(outputs.adjustedHomeValue), future: fmt(outputs.futureHomeValue) },
     { label: 'Selling Costs', now: fmt(outputs.sellingCosts), future: fmt(outputs.futureSellingCosts) },
-    { label: 'Mortgage Owing', now: fmt(inputs!.mortgageOwing), future: fmt(inputs!.mortgageOwing) },
+    { label: 'Mortgage Owing', now: fmt(inputs.mortgageOwing), future: fmt(inputs.mortgageOwing) },
     { label: 'Usable Equity', now: fmt(outputs.usableEquity), future: fmt(outputs.futureUsableEquity) },
-    { label: 'Target Buy Price', now: fmt(inputs!.targetPurchasePrice), future: fmt(outputs.futureTargetPrice) },
-    { label: `Stamp Duty (${state})`, now: fmt(outputs.stampDutyNow), future: fmt(outputs.futureStampDuty) },
+    { label: 'Target Buy Price', now: fmt(inputs.targetPurchasePrice), future: fmt(outputs.futureTargetPrice) },
+    { label: `Buying Costs (${buyingCostPercent}%)`, now: fmt(outputs.purchaseCostsNow), future: fmt(outputs.futurePurchaseCosts) },
+    ...(inputs.savings > 0 ? [{ label: 'Client Savings', now: fmt(inputs.savings), future: fmt(inputs.savings) }] : []),
     { label: 'Total Funds Needed', now: fmt(outputs.totalFundsNeededNow), future: fmt(outputs.futureTotalFundsNeeded) },
     { label: 'Loan Required', now: fmt(outputs.loanRequiredNow), future: fmt(outputs.futureLoanRequired), highlight: true },
   ] : [];
+
+  // Home value adjustment slider range
+  const adjustmentMin = -100000;
+  const adjustmentMax = 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -219,7 +272,7 @@ export default function SellUpgradeSimulator() {
 
         {/* Inputs */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* Section A */}
+          {/* Section A – Current Home */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
@@ -227,24 +280,18 @@ export default function SellUpgradeSimulator() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label>Current Home Value ($)</Label>
-                <Input
-                  type="number"
-                  placeholder="e.g. 850000"
-                  value={currentHomeValue}
-                  onChange={(e) => setCurrentHomeValue(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Mortgage Owing ($)</Label>
-                <Input
-                  type="number"
-                  placeholder="e.g. 400000"
-                  value={mortgageOwing}
-                  onChange={(e) => setMortgageOwing(e.target.value)}
-                />
-              </div>
+              <CurrencyInput
+                label="Current Home Value"
+                placeholder="e.g. 850,000"
+                value={currentHomeValue}
+                onChange={setCurrentHomeValue}
+              />
+              <CurrencyInput
+                label="Mortgage Owing"
+                placeholder="e.g. 400,000"
+                value={mortgageOwing}
+                onChange={setMortgageOwing}
+              />
               <div>
                 <Label>Selling Cost %</Label>
                 <Input
@@ -257,7 +304,7 @@ export default function SellUpgradeSimulator() {
             </CardContent>
           </Card>
 
-          {/* Section B */}
+          {/* Section B – Next Purchase */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
@@ -265,28 +312,12 @@ export default function SellUpgradeSimulator() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label>Target Purchase Price ($)</Label>
-                <Input
-                  type="number"
-                  placeholder="e.g. 1200000"
-                  value={targetPurchasePrice}
-                  onChange={(e) => setTargetPurchasePrice(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>State</Label>
-                <Select value={state} onValueChange={setState}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="VIC">VIC</SelectItem>
-                    <SelectItem value="NSW">NSW (estimate)</SelectItem>
-                    <SelectItem value="QLD">QLD (estimate)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <CurrencyInput
+                label="Target Purchase Price"
+                placeholder="e.g. 1,200,000"
+                value={targetPurchasePrice}
+                onChange={setTargetPurchasePrice}
+              />
               <div>
                 <Label>Growth Assumption</Label>
                 <div className="flex gap-2 mt-1">
@@ -307,9 +338,69 @@ export default function SellUpgradeSimulator() {
                   ))}
                 </div>
               </div>
+              <div className="pt-1">
+                <p className="text-xs text-muted-foreground">Buying costs (stamp duty, conveyancing, legals) calculated at {buyingCostPercent}%</p>
+              </div>
             </CardContent>
           </Card>
         </div>
+
+        {/* Savings */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <PiggyBank className="w-4 h-4 text-primary" /> Client Savings
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CurrencyInput
+              label="Savings towards next purchase"
+              placeholder="e.g. 50,000"
+              value={savings}
+              onChange={setSavings}
+            />
+            <p className="text-xs text-muted-foreground mt-2">Any cash the client has saved that can go towards the purchase.</p>
+          </CardContent>
+        </Card>
+
+        {/* Home Value Adjustment Slider */}
+        {chvNum > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <MinusCircle className="w-4 h-4 text-primary" /> What If They Sell For Less?
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between mb-3">
+                <Label className="text-sm">Adjusted Sale Price</Label>
+                <span className="text-lg font-bold text-primary">
+                  {fmt(chvNum + homeValueAdjustment)}
+                  {homeValueAdjustment !== 0 && (
+                    <span className="text-sm font-normal text-destructive ml-2">
+                      ({fmt(homeValueAdjustment)})
+                    </span>
+                  )}
+                </span>
+              </div>
+              <Slider
+                value={[homeValueAdjustment]}
+                onValueChange={([v]) => setHomeValueAdjustment(v)}
+                min={adjustmentMin}
+                max={adjustmentMax}
+                step={25000}
+                className="py-2"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                <span>-$100k</span>
+                <span>-$75k</span>
+                <span>-$50k</span>
+                <span>-$25k</span>
+                <span>Full price</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Timeline Slider */}
         <Card>
@@ -469,6 +560,23 @@ export default function SellUpgradeSimulator() {
                 <Save className="w-4 h-4 mr-2" /> {saving ? 'Saving...' : 'Save Scenario'}
               </Button>
             </div>
+
+            {/* Refer to Margin */}
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="pt-6 pb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-semibold text-base">Ready to move forward?</h3>
+                  <p className="text-sm text-muted-foreground">Send this client to Margin Finance for a quick assessment.</p>
+                </div>
+                <Button
+                  size="lg"
+                  className="shrink-0"
+                  onClick={() => navigate('/submit-referral')}
+                >
+                  <Send className="w-4 h-4 mr-2" /> Refer to Margin
+                </Button>
+              </CardContent>
+            </Card>
 
             {/* Disclaimer */}
             <Separator />
