@@ -19,12 +19,6 @@ interface Props {
   resetFilters: () => void;
 }
 
-const APP_TYPES: Record<string, string> = {
-  purchase: 'Purchase',
-  refinance: 'Refinance',
-  top_up: 'Top Up',
-  purchase_refinance: 'P&R',
-};
 
 export function SettlementFiltersBar({ filters, filterOptions, isSuperAdmin, brokers, updateFilter, resetFilters }: Props) {
   return (
@@ -86,10 +80,10 @@ export function SettlementFiltersBar({ filters, filterOptions, isSuperAdmin, bro
       <div className="space-y-1">
         <Label className="text-xs text-muted-foreground">Type</Label>
         <Select value={filters.applicationType} onValueChange={v => updateFilter('applicationType', v)}>
-          <SelectTrigger className="w-[120px] h-9 text-sm"><SelectValue placeholder="All" /></SelectTrigger>
+          <SelectTrigger className="w-[140px] h-9 text-sm"><SelectValue placeholder="All" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
-            {Object.entries(APP_TYPES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+            {filterOptions.applicationTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
