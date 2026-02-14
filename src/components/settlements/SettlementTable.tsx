@@ -5,9 +5,18 @@ import type { Settlement } from '@/hooks/useSettlements';
 
 const STATUS_STYLES: Record<string, string> = {
   settled: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  pending: 'bg-amber-100 text-amber-800 border-amber-200',
-  conditional: 'bg-blue-100 text-blue-800 border-blue-200',
-  issue: 'bg-red-100 text-red-800 border-red-200',
+  booked: 'bg-blue-100 text-blue-800 border-blue-200',
+  docs_issue: 'bg-red-100 text-red-800 border-red-200',
+  docs_returned: 'bg-purple-100 text-purple-800 border-purple-200',
+  pending_approval: 'bg-amber-100 text-amber-800 border-amber-200',
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  settled: 'Settled',
+  booked: 'Booked',
+  docs_issue: 'Docs Issue',
+  docs_returned: 'Docs Returned',
+  pending_approval: 'Pending Approval',
 };
 
 const APP_TYPE_LABELS: Record<string, string> = {
@@ -56,8 +65,8 @@ export function SettlementTable({ settlements }: { settlements: Settlement[] }) 
               <TableCell className="text-sm">{APP_TYPE_LABELS[s.application_type || ''] || s.application_type || '—'}</TableCell>
               <TableCell className="text-sm">{s.lead_source || '—'}</TableCell>
               <TableCell>
-                <Badge variant="outline" className={`text-xs capitalize ${STATUS_STYLES[s.status] || ''}`}>
-                  {s.status}
+              <Badge variant="outline" className={`text-xs ${STATUS_STYLES[s.status] || ''}`}>
+                  {STATUS_LABELS[s.status] || s.status}
                 </Badge>
               </TableCell>
               <TableCell className="text-sm text-muted-foreground hidden lg:table-cell max-w-[200px] truncate">{s.security_address || '—'}</TableCell>
