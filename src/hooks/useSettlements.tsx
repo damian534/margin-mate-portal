@@ -191,13 +191,25 @@ export function useSettlements() {
     fetchSettlements();
   };
 
+  const updateSettlement = async (id: string, updates: Partial<Settlement>) => {
+    if (isPreviewMode) {
+      setSettlements(prev => prev.map(s => s.id === id ? { ...s, ...updates, updated_at: new Date().toISOString() } : s));
+      toast.success('Settlement updated (preview)');
+      return;
+    }
+    const { error } = await supabase.from('settlements').update(updates as any).eq('id', id);
+    if (error) { toast.error('Failed to update settlement'); console.error(error); return; }
+    toast.success('Settlement updated');
+    fetchSettlements();
+  };
+
   const updateFilter = (key: keyof SettlementFilters, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
   const resetFilters = () => setFilters(defaultFilters);
 
-  return { settlements: filtered, allSettlements: settlements, loading, kpis, filters, filterOptions, updateFilter, resetFilters, addSettlement, isSuperAdmin, refetch: fetchSettlements };
+  return { settlements: filtered, allSettlements: settlements, loading, kpis, filters, filterOptions, updateFilter, resetFilters, addSettlement, updateSettlement, isSuperAdmin, refetch: fetchSettlements };
 }
 
 function generateSampleSettlements(): Settlement[] {
