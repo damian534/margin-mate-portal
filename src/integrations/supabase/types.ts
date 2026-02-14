@@ -14,6 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
+      broker_activity: {
+        Row: {
+          activity_date: string
+          broker_id: string
+          created_at: string
+          id: string
+          meetings_booked: number
+          meetings_held: number
+          outbound_calls: number
+          referral_meetings_booked: number
+          updated_at: string
+        }
+        Insert: {
+          activity_date?: string
+          broker_id: string
+          created_at?: string
+          id?: string
+          meetings_booked?: number
+          meetings_held?: number
+          outbound_calls?: number
+          referral_meetings_booked?: number
+          updated_at?: string
+        }
+        Update: {
+          activity_date?: string
+          broker_id?: string
+          created_at?: string
+          id?: string
+          meetings_booked?: number
+          meetings_held?: number
+          outbound_calls?: number
+          referral_meetings_booked?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      broker_activity_targets: {
+        Row: {
+          broker_id: string
+          created_at: string
+          id: string
+          meetings_target_week: number
+          outbound_calls_target_week: number
+          referral_meetings_target_week: number
+          updated_at: string
+          week_number: number
+          year: number
+        }
+        Insert: {
+          broker_id: string
+          created_at?: string
+          id?: string
+          meetings_target_week?: number
+          outbound_calls_target_week?: number
+          referral_meetings_target_week?: number
+          updated_at?: string
+          week_number: number
+          year: number
+        }
+        Update: {
+          broker_id?: string
+          created_at?: string
+          id?: string
+          meetings_target_week?: number
+          outbound_calls_target_week?: number
+          referral_meetings_target_week?: number
+          updated_at?: string
+          week_number?: number
+          year?: number
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           address: string | null
