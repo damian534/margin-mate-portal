@@ -3,7 +3,7 @@ import { PreviewBanner } from './PreviewBanner';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, LayoutDashboard, Wrench, Settings2 } from 'lucide-react';
+import { LogOut, LayoutDashboard, Wrench, Settings2, Landmark } from 'lucide-react';
 
 export function AppHeader() {
   const { user, role, signOut, isPreviewMode, isBrokerOrAdmin } = useAuth();
@@ -47,17 +47,30 @@ export function AppHeader() {
                   Tools
                 </Button>
                 {isBrokerOrAdmin && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      const suffix = isPreviewMode ? '?preview=true' : '';
-                      navigate(`/admin/settings${suffix}`);
-                    }}
-                  >
-                    <Settings2 className="w-4 h-4 mr-2" />
-                    Settings
-                  </Button>
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const suffix = isPreviewMode ? '?preview=true' : '';
+                        navigate(`/admin/settlements${suffix}`);
+                      }}
+                    >
+                      <Landmark className="w-4 h-4 mr-2" />
+                      Settlements
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const suffix = isPreviewMode ? '?preview=true' : '';
+                        navigate(`/admin/settings${suffix}`);
+                      }}
+                    >
+                      <Settings2 className="w-4 h-4 mr-2" />
+                      Settings
+                    </Button>
+                  </>
                 )}
                 {!isPreviewMode && (
                   <Button variant="outline" size="sm" onClick={signOut}>

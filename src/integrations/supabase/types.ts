@@ -367,6 +367,114 @@ export type Database = {
           },
         ]
       }
+      settlement_targets: {
+        Row: {
+          broker_id: string
+          created_at: string
+          id: string
+          target_amount: number
+          target_month: number | null
+          target_period: string
+          target_year: number
+          updated_at: string
+        }
+        Insert: {
+          broker_id: string
+          created_at?: string
+          id?: string
+          target_amount?: number
+          target_month?: number | null
+          target_period?: string
+          target_year: number
+          updated_at?: string
+        }
+        Update: {
+          broker_id?: string
+          created_at?: string
+          id?: string
+          target_amount?: number
+          target_month?: number | null
+          target_period?: string
+          target_year?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      settlements: {
+        Row: {
+          aggregator_split: number | null
+          application_type: string | null
+          broker_id: string
+          client_name: string
+          commission_earned: number | null
+          contact_name: string | null
+          created_at: string
+          discharge_completed: boolean | null
+          id: string
+          lead_source: string | null
+          lender: string | null
+          lending_assistant_id: string | null
+          loan_amount: number
+          net_to_broker: number | null
+          notes: string | null
+          pre_settlement_check_completed: boolean | null
+          security_address: string | null
+          settlement_date: string
+          status: string
+          trail_value: number | null
+          updated_at: string
+          upfront_commission: number | null
+        }
+        Insert: {
+          aggregator_split?: number | null
+          application_type?: string | null
+          broker_id: string
+          client_name: string
+          commission_earned?: number | null
+          contact_name?: string | null
+          created_at?: string
+          discharge_completed?: boolean | null
+          id?: string
+          lead_source?: string | null
+          lender?: string | null
+          lending_assistant_id?: string | null
+          loan_amount?: number
+          net_to_broker?: number | null
+          notes?: string | null
+          pre_settlement_check_completed?: boolean | null
+          security_address?: string | null
+          settlement_date: string
+          status?: string
+          trail_value?: number | null
+          updated_at?: string
+          upfront_commission?: number | null
+        }
+        Update: {
+          aggregator_split?: number | null
+          application_type?: string | null
+          broker_id?: string
+          client_name?: string
+          commission_earned?: number | null
+          contact_name?: string | null
+          created_at?: string
+          discharge_completed?: boolean | null
+          id?: string
+          lead_source?: string | null
+          lender?: string | null
+          lending_assistant_id?: string | null
+          loan_amount?: number
+          net_to_broker?: number | null
+          notes?: string | null
+          pre_settlement_check_completed?: boolean | null
+          security_address?: string | null
+          settlement_date?: string
+          status?: string
+          trail_value?: number | null
+          updated_at?: string
+          upfront_commission?: number | null
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           completed: boolean

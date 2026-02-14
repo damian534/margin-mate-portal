@@ -24,6 +24,7 @@ import PreApprovalTracker from "./pages/PreApprovalTracker";
 import AuctionChecklist from "./pages/AuctionChecklist";
 import PrivateSaleChecklist from "./pages/PrivateSaleChecklist";
 import VendorFalloverPack from "./pages/VendorFalloverPack";
+import Settlements from "./pages/Settlements";
 
 const queryClient = new QueryClient();
 
@@ -80,6 +81,11 @@ const App = () => (
             <Route path="/admin/settings" element={
               <ProtectedRoute requiredRole="broker_or_admin">
                 <AdminSettings />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/settlements" element={
+              <ProtectedRoute requiredRole="broker_or_admin">
+                <Settlements />
               </ProtectedRoute>
             } />
             <Route path="/submit-referral" element={
