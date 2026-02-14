@@ -30,7 +30,7 @@ export function AddSettlementDialog({ onAdd }: Props) {
     application_type: 'purchase',
     lead_source: '',
     security_address: '',
-    status: 'pending',
+    status: 'booked',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,7 +55,7 @@ export function AddSettlementDialog({ onAdd }: Props) {
     });
     setSubmitting(false);
     setOpen(false);
-    setForm({ client_name: '', settlement_date: '', loan_amount: '', lender: '', application_type: 'purchase', lead_source: '', security_address: '', status: 'pending' });
+    setForm({ client_name: '', settlement_date: '', loan_amount: '', lender: '', application_type: 'purchase', lead_source: '', security_address: '', status: 'booked' });
   };
 
   const update = (key: string, value: string) => setForm(prev => ({ ...prev, [key]: value }));
@@ -101,10 +101,11 @@ export function AddSettlementDialog({ onAdd }: Props) {
               <Select value={form.status} onValueChange={v => update('status', v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="conditional">Conditional</SelectItem>
                   <SelectItem value="settled">Settled</SelectItem>
-                  <SelectItem value="issue">Issue</SelectItem>
+                  <SelectItem value="booked">Booked</SelectItem>
+                  <SelectItem value="docs_issue">Docs Issue</SelectItem>
+                  <SelectItem value="docs_returned">Docs Returned</SelectItem>
+                  <SelectItem value="pending_approval">Pending Approval</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -63,9 +63,10 @@ export function SettlementFiltersBar({ filters, filterOptions, isSuperAdmin, bro
           <SelectContent>
             <SelectItem value="all">All</SelectItem>
             <SelectItem value="settled">Settled</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="conditional">Conditional</SelectItem>
-            <SelectItem value="issue">Issue</SelectItem>
+            <SelectItem value="booked">Booked</SelectItem>
+            <SelectItem value="docs_issue">Docs Issue</SelectItem>
+            <SelectItem value="docs_returned">Docs Returned</SelectItem>
+            <SelectItem value="pending_approval">Pending Approval</SelectItem>
           </SelectContent>
         </Select>
       </div>

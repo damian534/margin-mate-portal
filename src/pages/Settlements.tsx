@@ -99,7 +99,7 @@ export default function Settlements() {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               {[
                 { label: 'Settled Volume', value: `$${kpis.totalSettledVolume.toLocaleString()}` },
-                { label: 'Pending Volume', value: `$${kpis.totalPendingVolume.toLocaleString()}` },
+                { label: 'Pipeline Volume', value: `$${kpis.totalPendingVolume.toLocaleString()}` },
                 { label: 'Avg Loan', value: `$${Math.round(kpis.avgLoanSize).toLocaleString()}` },
                 { label: 'Total Deals', value: kpis.totalDeals.toString() },
                 { label: 'MoM Growth', value: `${kpis.momGrowth >= 0 ? '+' : ''}${kpis.momGrowth.toFixed(1)}%` },

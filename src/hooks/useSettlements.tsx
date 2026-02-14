@@ -115,7 +115,7 @@ export function useSettlements() {
 
   const kpis = useMemo(() => {
     const settled = filtered.filter(s => s.status === 'settled');
-    const pending = filtered.filter(s => s.status === 'pending');
+    const pending = filtered.filter(s => s.status !== 'settled');
     const totalSettledVolume = settled.reduce((sum, s) => sum + Number(s.loan_amount), 0);
     const totalPendingVolume = pending.reduce((sum, s) => sum + Number(s.loan_amount), 0);
     const avgLoanSize = settled.length > 0 ? totalSettledVolume / settled.length : 0;
@@ -204,7 +204,7 @@ function generateSampleSettlements(): Settlement[] {
   const lenders = ['CBA', 'Westpac', 'ANZ', 'NAB', 'Macquarie', 'ING', 'Bankwest'];
   const types = ['purchase', 'refinance', 'top_up', 'purchase_refinance'];
   const sources = ['Referral Partner', 'Google', 'Existing Client', 'Direct Call', 'Instagram'];
-  const statuses = ['settled', 'pending', 'conditional', 'settled', 'settled'];
+  const statuses = ['settled', 'booked', 'docs_issue', 'docs_returned', 'pending_approval'];
   const names = ['James Wilson', 'Sarah Chen', 'Michael Brown', 'Emily Davis', 'David Kim', 'Jessica Taylor', 'Ryan Martinez', 'Amanda Nguyen', 'Chris Johnson', 'Lauren Scott', 'Mark Thompson', 'Nicole Harris'];
 
   return names.map((name, i) => ({
