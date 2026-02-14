@@ -54,8 +54,8 @@ const tools = [
     name: 'Buyer Readiness Risk Score',
     description: 'Assess how prepared a buyer is to move forward with finance.',
     icon: ShieldCheck,
-    path: null,
-    available: false,
+    path: '/tools/buyer-readiness',
+    available: true,
   },
   {
     id: 'auction-checklist',

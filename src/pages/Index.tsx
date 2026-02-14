@@ -23,7 +23,7 @@ export default function Index() {
     { id: 'loan-repayment', name: 'Loan Repayment Calculator', desc: 'Enter loan amount, rate and term — see monthly, fortnightly and weekly repayments.', icon: Calculator, path: '/tools/loan-repayment', available: true },
     { id: 'borrowing-power', name: 'Borrowing Power Estimator', desc: 'Enter income, expenses and debts — get an estimate of max borrowing capacity.', icon: Gauge, available: false },
     { id: 'refinance-savings', name: 'Refinance Savings Calculator', desc: 'Compare current loan vs new rate to show potential savings.', icon: TrendingDown, available: false },
-    { id: 'buyer-readiness', name: 'Buyer Readiness Risk Score', desc: 'Assess how prepared a buyer is to move forward with finance.', icon: ShieldCheck, available: false },
+    { id: 'buyer-readiness', name: 'Buyer Readiness Risk Score', desc: 'Assess how prepared a buyer is to move forward with finance.', icon: ShieldCheck, path: '/tools/buyer-readiness', available: true },
     { id: 'auction-checklist', name: 'Auction Finance Checklist', desc: 'Ensure buyers have everything ready before auction day.', icon: ClipboardCheck, available: false },
     { id: 'private-sale-checklist', name: 'Private Sale Finance Checklist', desc: 'Step-by-step finance readiness for private sale transactions.', icon: FileCheck2, available: false },
     { id: 'pre-approval-tracker', name: 'Pre-Approval Expiry Tracker', desc: 'Track pre-approval dates and get alerts before they expire.', icon: CalendarClock, available: false },
