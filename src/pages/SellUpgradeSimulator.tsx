@@ -17,6 +17,15 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 const fmt = (v: number) => `$${Math.round(v).toLocaleString()}`;
 
+// Calculate loan repayment per period
+function calcRepayment(principal: number, annualRate: number, years: number, frequency: 'monthly' | 'fortnightly' | 'weekly'): number {
+  if (principal <= 0 || annualRate <= 0) return 0;
+  const periodsPerYear = frequency === 'weekly' ? 52 : frequency === 'fortnightly' ? 26 : 12;
+  const totalPeriods = years * periodsPerYear;
+  const periodRate = annualRate / 100 / periodsPerYear;
+  return (principal * periodRate * Math.pow(1 + periodRate, totalPeriods)) / (Math.pow(1 + periodRate, totalPeriods) - 1);
+}
+
 // Currency input formatting helpers
 function formatCurrency(value: string): string {
   const num = value.replace(/[^0-9]/g, '');
@@ -71,6 +80,7 @@ export default function SellUpgradeSimulator() {
   const [monthsToWait, setMonthsToWait] = useState<number>(6);
   const [savings, setSavings] = useState<string>('');
   const [homeValueAdjustment, setHomeValueAdjustment] = useState<number>(0);
+  const [repaymentRate, setRepaymentRate] = useState<string>('6.0');
   const [saving, setSaving] = useState(false);
 
   const buyingCostPercent = 6; // flat 6% covers stamp duty, conveyancing, legals etc.
@@ -371,33 +381,108 @@ export default function SellUpgradeSimulator() {
                 <MinusCircle className="w-4 h-4 text-primary" /> What If They Sell For Less?
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between mb-3">
-                <Label className="text-sm">Adjusted Sale Price</Label>
-                <span className="text-lg font-bold text-primary">
-                  {fmt(chvNum + homeValueAdjustment)}
-                  {homeValueAdjustment !== 0 && (
-                    <span className="text-sm font-normal text-destructive ml-2">
-                      ({fmt(homeValueAdjustment)})
-                    </span>
-                  )}
-                </span>
+            <CardContent className="space-y-5">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <Label className="text-sm">Adjusted Sale Price</Label>
+                  <span className="text-lg font-bold text-primary">
+                    {fmt(chvNum + homeValueAdjustment)}
+                    {homeValueAdjustment !== 0 && (
+                      <span className="text-sm font-normal text-destructive ml-2">
+                        ({fmt(homeValueAdjustment)})
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <Slider
+                  value={[homeValueAdjustment]}
+                  onValueChange={([v]) => setHomeValueAdjustment(v)}
+                  min={adjustmentMin}
+                  max={adjustmentMax}
+                  step={25000}
+                  className="py-2"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                  <span>-$100k</span>
+                  <span>-$75k</span>
+                  <span>-$50k</span>
+                  <span>-$25k</span>
+                  <span>Full price</span>
+                </div>
               </div>
-              <Slider
-                value={[homeValueAdjustment]}
-                onValueChange={([v]) => setHomeValueAdjustment(v)}
-                min={adjustmentMin}
-                max={adjustmentMax}
-                step={25000}
-                className="py-2"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                <span>-$100k</span>
-                <span>-$75k</span>
-                <span>-$50k</span>
-                <span>-$25k</span>
-                <span>Full price</span>
-              </div>
+
+              {/* Repayment Impact */}
+              {outputs && (
+                <div className="space-y-3 pt-2 border-t">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold">Repayment Impact (30yr loan)</Label>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs text-muted-foreground">Rate %</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min="0.1"
+                        max="15"
+                        className="w-20 h-8 text-sm"
+                        value={repaymentRate}
+                        onChange={(e) => setRepaymentRate(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  {(() => {
+                    const rate = parseFloat(repaymentRate) || 6;
+                    const loan = outputs.loanRequiredNow;
+                    const monthly = calcRepayment(loan, rate, 30, 'monthly');
+                    const fortnightly = calcRepayment(loan, rate, 30, 'fortnightly');
+                    const weekly = calcRepayment(loan, rate, 30, 'weekly');
+
+                    // Also calculate at full price (no adjustment) for comparison
+                    const fullPriceInputs = { ...inputs!, homeValueAdjustment: 0 };
+                    const fullPriceOutputs = runSimulator(fullPriceInputs);
+                    const fullLoan = fullPriceOutputs.loanRequiredNow;
+                    const fullMonthly = calcRepayment(fullLoan, rate, 30, 'monthly');
+                    const fullFortnightly = calcRepayment(fullLoan, rate, 30, 'fortnightly');
+                    const fullWeekly = calcRepayment(fullLoan, rate, 30, 'weekly');
+
+                    const showDiff = homeValueAdjustment !== 0;
+
+                    return (
+                      <div className="space-y-3">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-[35%]">Frequency</TableHead>
+                              <TableHead>Repayment</TableHead>
+                              {showDiff && <TableHead>vs Full Price</TableHead>}
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {[
+                              { label: 'Monthly', val: monthly, full: fullMonthly },
+                              { label: 'Fortnightly', val: fortnightly, full: fullFortnightly },
+                              { label: 'Weekly', val: weekly, full: fullWeekly },
+                            ].map((r) => (
+                              <TableRow key={r.label}>
+                                <TableCell className="text-sm font-medium">{r.label}</TableCell>
+                                <TableCell className="text-sm font-semibold">{fmt(r.val)}</TableCell>
+                                {showDiff && (
+                                  <TableCell className="text-sm text-destructive">
+                                    +{fmt(r.val - r.full)}/
+                                    {r.label === 'Monthly' ? 'mo' : r.label === 'Fortnightly' ? 'fn' : 'wk'}
+                                  </TableCell>
+                                )}
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                        <p className="text-xs text-muted-foreground">
+                          Based on a loan of {fmt(loan)} at {rate}% over 30 years (P&I).
+                        </p>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
