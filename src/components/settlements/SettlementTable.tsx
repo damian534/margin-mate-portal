@@ -8,6 +8,7 @@ const STATUS_STYLES: Record<string, string> = {
   booked: 'bg-blue-100 text-blue-800 border-blue-200',
   docs_issue: 'bg-red-100 text-red-800 border-red-200',
   docs_returned: 'bg-purple-100 text-purple-800 border-purple-200',
+  docs_issued: 'bg-cyan-100 text-cyan-800 border-cyan-200',
   pending_approval: 'bg-amber-100 text-amber-800 border-amber-200',
 };
 
@@ -16,6 +17,7 @@ const STATUS_LABELS: Record<string, string> = {
   booked: 'Booked',
   docs_issue: 'Docs Issue',
   docs_returned: 'Docs Returned',
+  docs_issued: 'Docs Issued',
   pending_approval: 'Pending Approval',
 };
 

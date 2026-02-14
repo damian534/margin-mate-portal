@@ -105,6 +105,7 @@ export function AddSettlementDialog({ onAdd }: Props) {
                   <SelectItem value="booked">Booked</SelectItem>
                   <SelectItem value="docs_issue">Docs Issue</SelectItem>
                   <SelectItem value="docs_returned">Docs Returned</SelectItem>
+                  <SelectItem value="docs_issued">Docs Issued</SelectItem>
                   <SelectItem value="pending_approval">Pending Approval</SelectItem>
                 </SelectContent>
               </Select>
