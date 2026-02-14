@@ -10,6 +10,7 @@ import Register from "./pages/Register";
 import ResetPassword from "./pages/ResetPassword";
 import PartnerDashboard from "./pages/PartnerDashboard";
 import AdminCRM from "./pages/AdminCRM";
+import AdminSettings from "./pages/AdminSettings";
 import SubmitReferral from "./pages/SubmitReferral";
 import NotFound from "./pages/NotFound";
 import Preview from "./pages/Preview";
@@ -74,6 +75,11 @@ const App = () => (
             <Route path="/admin" element={
               <ProtectedRoute requiredRole="broker_or_admin">
                 <AdminCRM />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/settings" element={
+              <ProtectedRoute requiredRole="broker_or_admin">
+                <AdminSettings />
               </ProtectedRoute>
             } />
             <Route path="/submit-referral" element={
