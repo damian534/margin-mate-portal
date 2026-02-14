@@ -17,6 +17,7 @@ import SellUpgradeSimulator from "./pages/SellUpgradeSimulator";
 import LoanRepaymentCalculator from "./pages/LoanRepaymentCalculator";
 import BorrowingPowerEstimator from "./pages/BorrowingPowerEstimator";
 import RefinanceSavingsCalculator from "./pages/RefinanceSavingsCalculator";
+import BuyerReadinessScore from "./pages/BuyerReadinessScore";
 
 const queryClient = new QueryClient();
 
@@ -98,6 +99,11 @@ const App = () => (
             <Route path="/tools/refinance-savings" element={
               <ProtectedRoute>
                 <RefinanceSavingsCalculator />
+              </ProtectedRoute>
+            } />
+            <Route path="/tools/buyer-readiness" element={
+              <ProtectedRoute>
+                <BuyerReadinessScore />
               </ProtectedRoute>
             } />
             <Route path="*" element={<NotFound />} />
