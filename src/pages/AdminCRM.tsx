@@ -14,8 +14,8 @@ import { ReferrerProfiles, ReferrerProfileData } from '@/components/ReferrerProf
 import { ReferrerReports } from '@/components/ReferrerReports';
 import { AddLeadDialog } from '@/components/AddLeadDialog';
 import { ContactsManagement, Contact } from '@/components/ContactsManagement';
-import { InviteCodeManagement } from '@/components/InviteCodeManagement';
-import { UserManagement } from '@/components/UserManagement';
+
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,7 +27,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { notifyPartnerStatusChange } from '@/lib/notifications';
-import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign, Contact as ContactIcon, KeyRound, UserCog, CalendarClock } from 'lucide-react';
+import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign, Contact as ContactIcon, CalendarClock } from 'lucide-react';
 import { isPast, isToday, isTomorrow } from 'date-fns';
 
 type TaskDueFilter = 'all_leads' | 'overdue' | 'today' | 'tomorrow' | 'later' | 'no_tasks';
@@ -419,8 +419,6 @@ export default function AdminCRM() {
               { value: 'companies', label: 'Companies', icon: Building2 },
               { value: 'referrers', label: 'Referrers', icon: Users },
               { value: 'reports', label: 'Reports', icon: BarChart3 },
-              { value: 'invites', label: 'Invites', icon: KeyRound },
-              { value: 'users', label: 'Users', icon: UserCog },
             ].map((tab) => (
               <button
                 key={tab.value}
@@ -721,13 +719,8 @@ export default function AdminCRM() {
             />
           </TabsContent>
 
-          <TabsContent value="invites" className="mt-4">
-            <InviteCodeManagement />
-          </TabsContent>
 
-          <TabsContent value="users" className="mt-4">
-            <UserManagement companies={companies} onRefreshReferrers={fetchReferrers} />
-          </TabsContent>
+
         </Tabs>
       </main>
 
