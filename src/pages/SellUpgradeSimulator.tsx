@@ -529,12 +529,18 @@ export default function SellUpgradeSimulator() {
                 <CardContent className="pt-5 pb-4">
                   <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan Required (Now)</p>
                   <p className="text-xl font-bold mt-1">{fmt(outputs.loanRequiredNow)}</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    LVR: {inputs.targetPurchasePrice > 0 ? ((outputs.loanRequiredNow / inputs.targetPurchasePrice) * 100).toFixed(1) : '0.0'}%
+                  </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-5 pb-4">
                   <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan ({monthsToWait}mo)</p>
                   <p className="text-xl font-bold mt-1">{fmt(outputs.futureLoanRequired)}</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    LVR: {outputs.futureTargetPrice > 0 ? ((outputs.futureLoanRequired / outputs.futureTargetPrice) * 100).toFixed(1) : '0.0'}%
+                  </p>
                 </CardContent>
               </Card>
               <Card className={outputs.extraLoanFromWaiting > 0 ? 'border-destructive/40 bg-destructive/5' : 'border-success/40 bg-success/5'}>
