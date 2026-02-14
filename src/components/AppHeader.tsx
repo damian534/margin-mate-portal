@@ -3,7 +3,7 @@ import { PreviewBanner } from './PreviewBanner';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, LayoutDashboard } from 'lucide-react';
+import { LogOut, LayoutDashboard, Wrench } from 'lucide-react';
 
 export function AppHeader() {
   const { user, role, signOut, isPreviewMode, isBrokerOrAdmin } = useAuth();
@@ -34,6 +34,17 @@ export function AppHeader() {
                 >
                   <LayoutDashboard className="w-4 h-4 mr-2" />
                   Dashboard
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const suffix = isPreviewMode ? '?preview=true' : '';
+                    navigate(`/tools${suffix}`);
+                  }}
+                >
+                  <Wrench className="w-4 h-4 mr-2" />
+                  Tools
                 </Button>
                 {!isPreviewMode && (
                   <Button variant="outline" size="sm" onClick={signOut}>

@@ -414,6 +414,33 @@ export type Database = {
           },
         ]
       }
+      tool_scenarios: {
+        Row: {
+          created_at: string
+          id: string
+          inputs: Json
+          outputs: Json
+          tool_name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          inputs?: Json
+          outputs?: Json
+          tool_name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          inputs?: Json
+          outputs?: Json
+          tool_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
