@@ -14,6 +14,9 @@ import SubmitReferral from "./pages/SubmitReferral";
 import NotFound from "./pages/NotFound";
 import Tools from "./pages/Tools";
 import SellUpgradeSimulator from "./pages/SellUpgradeSimulator";
+import LoanRepaymentCalculator from "./pages/LoanRepaymentCalculator";
+import BorrowingPowerEstimator from "./pages/BorrowingPowerEstimator";
+import RefinanceSavingsCalculator from "./pages/RefinanceSavingsCalculator";
 
 const queryClient = new QueryClient();
 
@@ -80,6 +83,21 @@ const App = () => (
             <Route path="/tools/sell-upgrade-simulator" element={
               <ProtectedRoute>
                 <SellUpgradeSimulator />
+              </ProtectedRoute>
+            } />
+            <Route path="/tools/loan-repayment" element={
+              <ProtectedRoute>
+                <LoanRepaymentCalculator />
+              </ProtectedRoute>
+            } />
+            <Route path="/tools/borrowing-power" element={
+              <ProtectedRoute>
+                <BorrowingPowerEstimator />
+              </ProtectedRoute>
+            } />
+            <Route path="/tools/refinance-savings" element={
+              <ProtectedRoute>
+                <RefinanceSavingsCalculator />
               </ProtectedRoute>
             } />
             <Route path="*" element={<NotFound />} />

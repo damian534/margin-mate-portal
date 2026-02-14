@@ -2,7 +2,7 @@ import { AppHeader } from '@/components/AppHeader';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { ArrowRight, Users, BarChart3, Bell, Shield, TrendingUp, ShieldCheck, ClipboardCheck, FileCheck2, CalendarClock, FileText } from 'lucide-react';
+import { ArrowRight, Users, BarChart3, Bell, Shield, TrendingUp, ShieldCheck, ClipboardCheck, FileCheck2, CalendarClock, FileText, Calculator, Gauge, TrendingDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import logoIcon from '@/assets/logo-icon.png';
@@ -20,6 +20,9 @@ export default function Index() {
 
   const tools = [
     { id: 'sell-upgrade-simulator', name: 'Sell & Upgrade Timeline Simulator', desc: 'Model what happens if a vendor sells now vs waits. Includes equity, costs, growth and upgrade gap.', icon: TrendingUp, path: '/tools/sell-upgrade-simulator', available: true },
+    { id: 'loan-repayment', name: 'Loan Repayment Calculator', desc: 'Enter loan amount, rate and term — see monthly, fortnightly and weekly repayments.', icon: Calculator, path: '/tools/loan-repayment', available: true },
+    { id: 'borrowing-power', name: 'Borrowing Power Estimator', desc: 'Enter income, expenses and debts — get an estimate of max borrowing capacity.', icon: Gauge, path: '/tools/borrowing-power', available: true },
+    { id: 'refinance-savings', name: 'Refinance Savings Calculator', desc: 'Compare current loan vs new rate to show potential savings.', icon: TrendingDown, path: '/tools/refinance-savings', available: true },
     { id: 'buyer-readiness', name: 'Buyer Readiness Risk Score', desc: 'Assess how prepared a buyer is to move forward with finance.', icon: ShieldCheck, available: false },
     { id: 'auction-checklist', name: 'Auction Finance Checklist', desc: 'Ensure buyers have everything ready before auction day.', icon: ClipboardCheck, available: false },
     { id: 'private-sale-checklist', name: 'Private Sale Finance Checklist', desc: 'Step-by-step finance readiness for private sale transactions.', icon: FileCheck2, available: false },
