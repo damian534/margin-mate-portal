@@ -12,6 +12,7 @@ import PartnerDashboard from "./pages/PartnerDashboard";
 import AdminCRM from "./pages/AdminCRM";
 import SubmitReferral from "./pages/SubmitReferral";
 import NotFound from "./pages/NotFound";
+import Preview from "./pages/Preview";
 import Tools from "./pages/Tools";
 import SellUpgradeSimulator from "./pages/SellUpgradeSimulator";
 import LoanRepaymentCalculator from "./pages/LoanRepaymentCalculator";
@@ -22,12 +23,12 @@ import BuyerReadinessScore from "./pages/BuyerReadinessScore";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'broker' | 'referral_partner' | 'super_admin' | 'broker_or_admin' }) {
-  const { user, role, loading, isBrokerOrAdmin } = useAuth();
+  const { user, role, loading, isBrokerOrAdmin, isPreviewMode } = useAuth();
   
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading...</div>;
   }
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user && !isPreviewMode) return <Navigate to="/login" replace />;
   
   // No role requirement - just needs auth
   if (!requiredRole) return <>{children}</>;
@@ -106,6 +107,7 @@ const App = () => (
                 <BuyerReadinessScore />
               </ProtectedRoute>
             } />
+            <Route path="/preview" element={<Preview />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
