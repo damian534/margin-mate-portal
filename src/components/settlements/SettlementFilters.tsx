@@ -19,8 +19,52 @@ interface Props {
   resetFilters: () => void;
 }
 
+/** Get the current Australian FY label e.g. "FY26" for Jul 2025 – Jun 2026 */
+function getCurrentFY() {
+  const now = new Date();
+  const fyStartYear = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+  return { fyStartYear, label: `FY${(fyStartYear + 1).toString().slice(-2)}` };
+}
+
+function getFYPeriodDates(period: string): { from: string; to: string } | null {
+  const { fyStartYear } = getCurrentFY();
+  const fmt = (y: number, m: number, d: number) =>
+    `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+  switch (period) {
+    case 'ytd':
+      return { from: fmt(fyStartYear, 7, 1), to: new Date().toISOString().slice(0, 10) };
+    case 'q1': // Jul-Sep
+      return { from: fmt(fyStartYear, 7, 1), to: fmt(fyStartYear, 9, 30) };
+    case 'q2': // Oct-Dec
+      return { from: fmt(fyStartYear, 10, 1), to: fmt(fyStartYear, 12, 31) };
+    case 'q3': // Jan-Mar
+      return { from: fmt(fyStartYear + 1, 1, 1), to: fmt(fyStartYear + 1, 3, 31) };
+    case 'q4': // Apr-Jun
+      return { from: fmt(fyStartYear + 1, 4, 1), to: fmt(fyStartYear + 1, 6, 30) };
+    default:
+      return null;
+  }
+}
 
 export function SettlementFiltersBar({ filters, filterOptions, isSuperAdmin, brokers, updateFilter, resetFilters }: Props) {
+  const { label: fyLabel } = getCurrentFY();
+
+  const handlePeriod = (period: string) => {
+    if (period === 'all') {
+      updateFilter('dateFrom', '');
+      updateFilter('dateTo', '');
+      updateFilter('month', '');
+      return;
+    }
+    const dates = getFYPeriodDates(period);
+    if (dates) {
+      updateFilter('month', '');
+      updateFilter('dateFrom', dates.from);
+      updateFilter('dateTo', dates.to);
+    }
+  };
+
   return (
     <div className="flex flex-wrap items-end gap-3">
       {isSuperAdmin && (
@@ -35,6 +79,21 @@ export function SettlementFiltersBar({ filters, filterOptions, isSuperAdmin, bro
           </Select>
         </div>
       )}
+
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground">Period ({fyLabel})</Label>
+        <Select defaultValue="all" onValueChange={handlePeriod}>
+          <SelectTrigger className="w-[130px] h-9 text-sm"><SelectValue placeholder="All Time" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Time</SelectItem>
+            <SelectItem value="ytd">FYTD</SelectItem>
+            <SelectItem value="q1">Q1 (Jul–Sep)</SelectItem>
+            <SelectItem value="q2">Q2 (Oct–Dec)</SelectItem>
+            <SelectItem value="q3">Q3 (Jan–Mar)</SelectItem>
+            <SelectItem value="q4">Q4 (Apr–Jun)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
       <div className="space-y-1">
         <Label className="text-xs text-muted-foreground">Month</Label>

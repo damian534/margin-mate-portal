@@ -110,7 +110,7 @@ export default function Settlements() {
                 </div>
               ))}
             </div>
-            <SettlementTable settlements={settlements} onUpdate={updateSettlement} />
+            <SettlementTable settlements={settlements} onUpdate={updateSettlement} lenders={filterOptions.lenders} />
           </>
         ) : (
           <SettlementCharts settlements={settlements} />
