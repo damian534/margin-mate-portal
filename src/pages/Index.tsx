@@ -2,8 +2,9 @@ import { AppHeader } from '@/components/AppHeader';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { ArrowRight, Users, BarChart3, Bell, Shield } from 'lucide-react';
+import { ArrowRight, Users, BarChart3, Bell, Shield, TrendingUp, ShieldCheck, ClipboardCheck, FileCheck2, CalendarClock, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Badge } from '@/components/ui/badge';
 import logoIcon from '@/assets/logo-icon.png';
 
 export default function Index() {
@@ -15,6 +16,15 @@ export default function Index() {
     { icon: BarChart3, title: 'Track Progress', desc: 'Real-time status updates on every lead you send' },
     { icon: Bell, title: 'Stay Informed', desc: 'Get email notifications when your broker updates a lead' },
     { icon: Shield, title: 'Secure Portal', desc: 'Your data is protected with enterprise-grade security' },
+  ];
+
+  const tools = [
+    { id: 'sell-upgrade-simulator', name: 'Sell & Upgrade Timeline Simulator', desc: 'Model what happens if a vendor sells now vs waits. Includes equity, costs, growth and upgrade gap.', icon: TrendingUp, path: '/tools/sell-upgrade-simulator', available: true },
+    { id: 'buyer-readiness', name: 'Buyer Readiness Risk Score', desc: 'Assess how prepared a buyer is to move forward with finance.', icon: ShieldCheck, available: false },
+    { id: 'auction-checklist', name: 'Auction Finance Checklist', desc: 'Ensure buyers have everything ready before auction day.', icon: ClipboardCheck, available: false },
+    { id: 'private-sale-checklist', name: 'Private Sale Finance Checklist', desc: 'Step-by-step finance readiness for private sale transactions.', icon: FileCheck2, available: false },
+    { id: 'pre-approval-tracker', name: 'Pre-Approval Expiry Tracker', desc: 'Track pre-approval dates and get alerts before they expire.', icon: CalendarClock, available: false },
+    { id: 'vendor-fallover', name: 'Vendor Finance Fallover Protection Pack', desc: 'Generate a PDF pack to protect vendors against finance fall-through.', icon: FileText, available: false },
   ];
 
   return (
@@ -93,6 +103,45 @@ export default function Index() {
               </div>
               <h3 className="font-heading font-semibold mb-2">{f.title}</h3>
               <p className="text-sm text-muted-foreground">{f.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* Tools Section */}
+      <section className="container py-20">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-heading font-bold mb-3">Partner Tools</h2>
+          <p className="text-muted-foreground max-w-xl mx-auto">
+            Interactive calculators and resources to help you have better conversations with clients
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {tools.map((tool, i) => (
+            <motion.div
+              key={tool.id}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.3, delay: i * 0.05 }}
+              className={`bg-card rounded-xl border p-6 flex flex-col ${!tool.available ? 'opacity-60' : 'hover:shadow-lg transition-shadow'}`}
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <tool.icon className="w-5 h-5 text-primary" />
+                </div>
+                {!tool.available && <Badge variant="secondary" className="text-xs">Coming Soon</Badge>}
+              </div>
+              <h3 className="font-heading font-semibold mb-1">{tool.name}</h3>
+              <p className="text-sm text-muted-foreground mb-4 flex-1">{tool.desc}</p>
+              <Button
+                size="sm"
+                className="w-full"
+                disabled={!tool.available}
+                onClick={() => tool.path && navigate(tool.path)}
+              >
+                {tool.available ? 'Open Tool' : 'Coming Soon'}
+              </Button>
             </motion.div>
           ))}
         </div>
