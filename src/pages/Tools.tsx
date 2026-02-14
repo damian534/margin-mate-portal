@@ -39,7 +39,7 @@ const tools = [
     description: 'Enter income, expenses and debts — get an estimate of maximum borrowing capacity.',
     icon: Gauge,
     path: '/tools/borrowing-power',
-    available: true,
+    available: false,
   },
   {
     id: 'refinance-savings',
@@ -47,7 +47,7 @@ const tools = [
     description: 'Compare your current loan rate vs a new rate to see monthly savings, total interest saved and break-even.',
     icon: TrendingDown,
     path: '/tools/refinance-savings',
-    available: true,
+    available: false,
   },
   {
     id: 'buyer-readiness',
