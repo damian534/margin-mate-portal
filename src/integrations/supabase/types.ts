@@ -441,6 +441,27 @@ export type Database = {
         }
         Relationships: []
       }
+      tool_visibility: {
+        Row: {
+          is_enabled: boolean
+          tool_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          is_enabled?: boolean
+          tool_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          is_enabled?: boolean
+          tool_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string

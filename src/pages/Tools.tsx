@@ -2,8 +2,11 @@ import { AppHeader } from '@/components/AppHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/hooks/useAuth';
+import { useToolVisibility } from '@/hooks/useToolVisibility';
 import {
   TrendingUp,
   ShieldCheck,
@@ -14,130 +17,107 @@ import {
   Calculator,
   Gauge,
   TrendingDown,
+  Settings,
 } from 'lucide-react';
+import { useState } from 'react';
 
 const tools = [
-  {
-    id: 'sell-upgrade-simulator',
-    name: 'Sell & Upgrade Timeline Simulator',
-    description: 'Model what happens if a vendor sells now vs waits. Includes equity, costs, growth and upgrade gap.',
-    icon: TrendingUp,
-    path: '/tools/sell-upgrade-simulator',
-    available: true,
-  },
-  {
-    id: 'loan-repayment',
-    name: 'Loan Repayment Calculator',
-    description: 'Enter loan amount, rate and term — see monthly, fortnightly and weekly repayments plus total interest.',
-    icon: Calculator,
-    path: '/tools/loan-repayment',
-    available: true,
-  },
-  {
-    id: 'borrowing-power',
-    name: 'Borrowing Power Estimator',
-    description: 'Enter income, expenses and debts — get an estimate of maximum borrowing capacity.',
-    icon: Gauge,
-    path: '/tools/borrowing-power',
-    available: false,
-  },
-  {
-    id: 'refinance-savings',
-    name: 'Refinance Savings Calculator',
-    description: 'Compare your current loan rate vs a new rate to see monthly savings, total interest saved and break-even.',
-    icon: TrendingDown,
-    path: '/tools/refinance-savings',
-    available: false,
-  },
-  {
-    id: 'buyer-readiness',
-    name: 'Buyer Readiness Risk Score',
-    description: 'Assess how prepared a buyer is to move forward with finance.',
-    icon: ShieldCheck,
-    path: '/tools/buyer-readiness',
-    available: true,
-  },
-  {
-    id: 'auction-checklist',
-    name: 'Auction Finance Checklist',
-    description: 'Ensure buyers have everything ready before auction day.',
-    icon: ClipboardCheck,
-    path: null,
-    available: false,
-  },
-  {
-    id: 'private-sale-checklist',
-    name: 'Private Sale Finance Checklist',
-    description: 'Step-by-step finance readiness for private sale transactions.',
-    icon: FileCheck2,
-    path: null,
-    available: false,
-  },
-  {
-    id: 'pre-approval-tracker',
-    name: 'Pre-Approval Expiry Tracker',
-    description: 'Track pre-approval dates and get alerts before they expire.',
-    icon: CalendarClock,
-    path: null,
-    available: false,
-  },
-  {
-    id: 'vendor-fallover',
-    name: 'Vendor Finance Fallover Protection Pack',
-    description: 'Generate a PDF pack to protect vendors against finance fall-through.',
-    icon: FileText,
-    path: null,
-    available: false,
-  },
+  { id: 'sell-upgrade-simulator', name: 'Sell & Upgrade Timeline Simulator', description: 'Model what happens if a vendor sells now vs waits. Includes equity, costs, growth and upgrade gap.', icon: TrendingUp, path: '/tools/sell-upgrade-simulator' },
+  { id: 'loan-repayment', name: 'Loan Repayment Calculator', description: 'Enter loan amount, rate and term — see monthly, fortnightly and weekly repayments plus total interest.', icon: Calculator, path: '/tools/loan-repayment' },
+  { id: 'borrowing-power', name: 'Borrowing Power Estimator', description: 'Enter income, expenses and debts — get an estimate of maximum borrowing capacity.', icon: Gauge, path: '/tools/borrowing-power' },
+  { id: 'refinance-savings', name: 'Refinance Savings Calculator', description: 'Compare your current loan rate vs a new rate to see monthly savings, total interest saved and break-even.', icon: TrendingDown, path: '/tools/refinance-savings' },
+  { id: 'buyer-readiness', name: 'Buyer Readiness Risk Score', description: 'Assess how prepared a buyer is to move forward with finance.', icon: ShieldCheck, path: '/tools/buyer-readiness' },
+  { id: 'auction-checklist', name: 'Auction Finance Checklist', description: 'Ensure buyers have everything ready before auction day.', icon: ClipboardCheck, path: '/tools/auction-checklist' },
+  { id: 'private-sale-checklist', name: 'Private Sale Finance Checklist', description: 'Step-by-step finance readiness for private sale transactions.', icon: FileCheck2, path: '/tools/private-sale-checklist' },
+  { id: 'pre-approval-tracker', name: 'Pre-Approval Expiry Tracker', description: 'Track pre-approval dates and get alerts before they expire.', icon: CalendarClock, path: '/tools/pre-approval-tracker' },
+  { id: 'vendor-fallover', name: 'Vendor Finance Fallover Protection Pack', description: 'Generate a PDF pack to protect vendors against finance fall-through.', icon: FileText, path: '/tools/vendor-fallover' },
 ];
 
 export default function Tools() {
   const navigate = useNavigate();
+  const { role } = useAuth();
+  const { visibility, loading, toggleTool, isToolEnabled } = useToolVisibility();
+  const [showAdmin, setShowAdmin] = useState(false);
+  const isSuperAdmin = role === 'super_admin';
 
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
       <main className="container py-8 space-y-6">
-        <div>
-          <h1 className="text-3xl font-heading font-bold">Tools</h1>
-          <p className="text-muted-foreground">
-            Interactive calculators and resources for client conversations
-          </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-heading font-bold">Tools</h1>
+            <p className="text-muted-foreground">
+              Interactive calculators and resources for client conversations
+            </p>
+          </div>
+          {isSuperAdmin && (
+            <Button variant="outline" size="sm" onClick={() => setShowAdmin(!showAdmin)}>
+              <Settings className="w-4 h-4 mr-1" /> {showAdmin ? 'Done' : 'Manage'}
+            </Button>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {tools.map((tool, i) => (
-            <motion.div
-              key={tool.id}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: i * 0.05 }}
-            >
-              <Card className={`h-full flex flex-col ${!tool.available ? 'opacity-60' : 'hover:shadow-md transition-shadow'}`}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
-                      <tool.icon className="w-5 h-5 text-primary" />
-                    </div>
-                    {!tool.available && (
-                      <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
-                    )}
+        {showAdmin && isSuperAdmin && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Tool Visibility</CardTitle>
+              <CardDescription>Toggle tools on or off for all brokers and partners</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {tools.map(tool => (
+                <div key={tool.id} className="flex items-center justify-between py-1">
+                  <div className="flex items-center gap-2">
+                    <tool.icon className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm">{tool.name}</span>
                   </div>
-                  <CardTitle className="text-lg">{tool.name}</CardTitle>
-                  <CardDescription>{tool.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="mt-auto pt-0">
-                  <Button
-                    className="w-full"
-                    disabled={!tool.available}
-                    onClick={() => tool.path && navigate(tool.path)}
-                  >
-                    {tool.available ? 'Open Tool' : 'Coming Soon'}
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+                  <Switch
+                    checked={isToolEnabled(tool.id)}
+                    onCheckedChange={(checked) => toggleTool(tool.id, checked)}
+                  />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {tools
+            .filter(tool => isSuperAdmin || isToolEnabled(tool.id))
+            .map((tool, i) => {
+              const enabled = isToolEnabled(tool.id);
+              return (
+                <motion.div
+                  key={tool.id}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: i * 0.05 }}
+                >
+                  <Card className={`h-full flex flex-col ${!enabled && isSuperAdmin ? 'opacity-50 border-dashed' : 'hover:shadow-md transition-shadow'}`}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+                          <tool.icon className="w-5 h-5 text-primary" />
+                        </div>
+                        {!enabled && isSuperAdmin && (
+                          <Badge variant="secondary" className="text-xs">Hidden</Badge>
+                        )}
+                      </div>
+                      <CardTitle className="text-lg">{tool.name}</CardTitle>
+                      <CardDescription>{tool.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="mt-auto pt-0">
+                      <Button
+                        className="w-full"
+                        onClick={() => navigate(tool.path)}
+                      >
+                        Open Tool
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
         </div>
       </main>
     </div>
