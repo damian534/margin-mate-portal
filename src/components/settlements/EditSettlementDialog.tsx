@@ -23,10 +23,11 @@ function formatAmountDisplay(value: string): string {
   return isNaN(num) ? '' : num.toLocaleString('en-AU');
 }
 
-const EXISTING_CLIENT_SOURCES = ['Existing Client', 'Ref from Existing Client'];
+const REFERRED_CLIENT_SOURCE = 'Ref from Existing Client';
 
 export function EditSettlementDialog({ settlement, open, onOpenChange, onSave, onDelete, lenders, leadSources }: Props) {
   const [date, setDate] = useState('');
+  const [clientName, setClientName] = useState('');
   const [loanAmount, setLoanAmount] = useState('');
   const [loanAmountDisplay, setLoanAmountDisplay] = useState('');
   const [lender, setLender] = useState('');
@@ -38,6 +39,7 @@ export function EditSettlementDialog({ settlement, open, onOpenChange, onSave, o
   useEffect(() => {
     if (open && settlement) {
       setDate(settlement.settlement_date);
+      setClientName(settlement.client_name);
       const amt = String(settlement.loan_amount);
       setLoanAmount(amt);
       setLoanAmountDisplay(formatAmountDisplay(amt));
@@ -53,11 +55,12 @@ export function EditSettlementDialog({ settlement, open, onOpenChange, onSave, o
     if (!settlement) return;
     const source = showNewSource && newSource.trim() ? newSource.trim() : leadSource;
     onSave(settlement.id, {
+      client_name: clientName,
       settlement_date: date,
       loan_amount: Number(loanAmount.replace(/[^0-9]/g, '')),
       lender: lender || null,
       lead_source: source || null,
-      contact_name: EXISTING_CLIENT_SOURCES.includes(source) ? (contactName || null) : settlement.contact_name,
+      contact_name: source === REFERRED_CLIENT_SOURCE ? (contactName || null) : settlement.contact_name,
     });
     onOpenChange(false);
   };
@@ -88,7 +91,7 @@ export function EditSettlementDialog({ settlement, open, onOpenChange, onSave, o
   if (!settlement) return null;
 
   const currentSource = showNewSource ? newSource : leadSource;
-  const showClientPicker = EXISTING_CLIENT_SOURCES.includes(currentSource);
+  const showClientPicker = currentSource === REFERRED_CLIENT_SOURCE;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -97,10 +100,10 @@ export function EditSettlementDialog({ settlement, open, onOpenChange, onSave, o
           <DialogTitle>Edit Settlement</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
-          {/* Read-only client name */}
+          {/* Client name */}
           <div className="space-y-1.5">
-            <Label className="text-sm text-muted-foreground">Client</Label>
-            <p className="text-sm font-medium">{settlement.client_name}</p>
+            <Label className="text-sm">Client Name</Label>
+            <Input value={clientName} onChange={e => setClientName(e.target.value)} />
           </div>
 
           {/* Settlement Date */}

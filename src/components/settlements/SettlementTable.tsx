@@ -74,7 +74,12 @@ export function SettlementTable({ settlements, onUpdate, onDelete, lenders = [],
                 <TableCell className="text-sm font-mono text-right font-semibold">{formatAmount(Number(s.loan_amount))}</TableCell>
                 <TableCell className="text-sm">{s.lender || '—'}</TableCell>
                 <TableCell className="text-sm">{s.application_type || '—'}</TableCell>
-                <TableCell className="text-sm">{s.lead_source || '—'}</TableCell>
+                <TableCell className="text-sm">
+                  {s.lead_source || '—'}
+                  {s.lead_source === 'Ref from Existing Client' && s.contact_name && (
+                    <span className="block text-xs text-muted-foreground">via {s.contact_name}</span>
+                  )}
+                </TableCell>
                 <TableCell>
                   <Badge variant="outline" className={`text-xs ${STATUS_STYLES[s.status] || ''}`}>
                     {STATUS_LABELS[s.status] || s.status}
