@@ -17,7 +17,7 @@ type ViewMode = 'deals' | 'performance';
 
 export default function Settlements() {
   const { role, isPreviewMode } = useAuth();
-  const { settlements, allSettlements, loading, kpis, filters, filterOptions, updateFilter, resetFilters, addSettlement, updateSettlement, isSuperAdmin, refetch } = useSettlements();
+  const { settlements, allSettlements, loading, kpis, filters, filterOptions, updateFilter, resetFilters, addSettlement, updateSettlement, deleteSettlement, isSuperAdmin, refetch } = useSettlements();
   const [viewMode, setViewMode] = useState<ViewMode>('deals');
   const [brokers, setBrokers] = useState<{ id: string; name: string }[]>([]);
 
@@ -110,7 +110,7 @@ export default function Settlements() {
                 </div>
               ))}
             </div>
-            <SettlementTable settlements={settlements} onUpdate={updateSettlement} lenders={filterOptions.lenders} />
+            <SettlementTable settlements={settlements} onUpdate={updateSettlement} onDelete={deleteSettlement} lenders={filterOptions.lenders} leadSources={filterOptions.leadSources} />
           </>
         ) : (
           <SettlementCharts settlements={settlements} />

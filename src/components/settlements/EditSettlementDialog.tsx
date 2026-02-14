@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Trash2 } from 'lucide-react';
 import type { Settlement } from '@/hooks/useSettlements';
 
 interface Props {
@@ -11,54 +13,190 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (id: string, updates: Partial<Settlement>) => void;
+  onDelete: (id: string) => void;
   lenders: string[];
+  leadSources: string[];
 }
 
-function formatAmountWithCommas(value: number): string {
-  return value.toLocaleString('en-AU');
+function formatAmountDisplay(value: string): string {
+  const num = parseInt(value.replace(/[^0-9]/g, ''), 10);
+  return isNaN(num) ? '' : num.toLocaleString('en-AU');
 }
 
-export function EditSettlementDialog({ settlement, open, onOpenChange, onSave, lenders }: Props) {
+const EXISTING_CLIENT_SOURCES = ['Existing Client', 'Ref from Existing Client'];
+
+export function EditSettlementDialog({ settlement, open, onOpenChange, onSave, onDelete, lenders, leadSources }: Props) {
   const [date, setDate] = useState('');
+  const [loanAmount, setLoanAmount] = useState('');
+  const [loanAmountDisplay, setLoanAmountDisplay] = useState('');
+  const [lender, setLender] = useState('');
+  const [leadSource, setLeadSource] = useState('');
+  const [contactName, setContactName] = useState('');
+  const [newSource, setNewSource] = useState('');
+  const [showNewSource, setShowNewSource] = useState(false);
 
   useEffect(() => {
     if (open && settlement) {
       setDate(settlement.settlement_date);
+      const amt = String(settlement.loan_amount);
+      setLoanAmount(amt);
+      setLoanAmountDisplay(formatAmountDisplay(amt));
+      setLender(settlement.lender || '');
+      setLeadSource(settlement.lead_source || '');
+      setContactName(settlement.contact_name || '');
+      setNewSource('');
+      setShowNewSource(false);
     }
   }, [open, settlement]);
 
   const handleSave = () => {
     if (!settlement) return;
-    onSave(settlement.id, { settlement_date: date });
+    const source = showNewSource && newSource.trim() ? newSource.trim() : leadSource;
+    onSave(settlement.id, {
+      settlement_date: date,
+      loan_amount: Number(loanAmount.replace(/[^0-9]/g, '')),
+      lender: lender || null,
+      lead_source: source || null,
+      contact_name: EXISTING_CLIENT_SOURCES.includes(source) ? (contactName || null) : settlement.contact_name,
+    });
     onOpenChange(false);
+  };
+
+  const handleDelete = () => {
+    if (!settlement) return;
+    onDelete(settlement.id);
+    onOpenChange(false);
+  };
+
+  const handleLoanAmountChange = (val: string) => {
+    const raw = val.replace(/[^0-9]/g, '');
+    setLoanAmount(raw);
+    setLoanAmountDisplay(raw ? formatAmountDisplay(raw) : '');
+  };
+
+  const handleSourceChange = (val: string) => {
+    if (val === '__new__') {
+      setShowNewSource(true);
+      setLeadSource('');
+    } else {
+      setShowNewSource(false);
+      setNewSource('');
+      setLeadSource(val);
+    }
   };
 
   if (!settlement) return null;
 
+  const currentSource = showNewSource ? newSource : leadSource;
+  const showClientPicker = EXISTING_CLIENT_SOURCES.includes(currentSource);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px]">
+      <DialogContent className="sm:max-w-[440px]">
         <DialogHeader>
-          <DialogTitle>Edit Settlement Date</DialogTitle>
+          <DialogTitle>Edit Settlement</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
+          {/* Read-only client name */}
           <div className="space-y-1.5">
             <Label className="text-sm text-muted-foreground">Client</Label>
             <p className="text-sm font-medium">{settlement.client_name}</p>
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-sm text-muted-foreground">Loan Amount</Label>
-            <p className="text-sm font-medium font-mono">${formatAmountWithCommas(Number(settlement.loan_amount))}</p>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-sm text-muted-foreground">Lender</Label>
-            <p className="text-sm font-medium">{settlement.lender || '—'}</p>
-          </div>
+
+          {/* Settlement Date */}
           <div className="space-y-1.5">
             <Label className="text-sm">Settlement Date</Label>
             <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
           </div>
+
+          {/* Loan Amount */}
+          <div className="space-y-1.5">
+            <Label className="text-sm">Loan Amount</Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+              <Input
+                className="pl-7"
+                value={loanAmountDisplay}
+                onChange={e => handleLoanAmountChange(e.target.value)}
+                placeholder="500,000"
+              />
+            </div>
+          </div>
+
+          {/* Lender */}
+          <div className="space-y-1.5">
+            <Label className="text-sm">Lender</Label>
+            <Select value={lender} onValueChange={setLender}>
+              <SelectTrigger><SelectValue placeholder="Select lender" /></SelectTrigger>
+              <SelectContent>
+                {lenders.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Lead Source */}
+          <div className="space-y-1.5">
+            <Label className="text-sm">Source</Label>
+            {showNewSource ? (
+              <div className="flex gap-2">
+                <Input
+                  value={newSource}
+                  onChange={e => setNewSource(e.target.value)}
+                  placeholder="Enter new source"
+                  className="flex-1"
+                />
+                <Button type="button" variant="ghost" size="sm" onClick={() => { setShowNewSource(false); setNewSource(''); }}>
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <Select value={leadSource || 'none'} onValueChange={v => handleSourceChange(v === 'none' ? '' : v)}>
+                <SelectTrigger><SelectValue placeholder="Select source" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Source</SelectItem>
+                  {leadSources.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  <SelectItem value="__new__">+ Add New Source</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
+          {/* Referred from client */}
+          {showClientPicker && (
+            <div className="space-y-1.5">
+              <Label className="text-sm">Referred From (Client Name)</Label>
+              <Input
+                value={contactName}
+                onChange={e => setContactName(e.target.value)}
+                placeholder="Enter referring client's name"
+              />
+            </div>
+          )}
+
           <Button onClick={handleSave} className="w-full">Save Changes</Button>
+
+          {/* Delete */}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" className="w-full text-destructive hover:text-destructive hover:bg-destructive/10">
+                <Trash2 className="h-4 w-4 mr-1.5" /> Delete Settlement
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Settlement</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete the settlement for <strong>{settlement.client_name}</strong>? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </DialogContent>
     </Dialog>
