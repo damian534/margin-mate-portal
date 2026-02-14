@@ -203,13 +203,25 @@ export function useSettlements() {
     fetchSettlements();
   };
 
+  const deleteSettlement = async (id: string) => {
+    if (isPreviewMode) {
+      setSettlements(prev => prev.filter(s => s.id !== id));
+      toast.success('Settlement deleted (preview)');
+      return;
+    }
+    const { error } = await supabase.from('settlements').delete().eq('id', id);
+    if (error) { toast.error('Failed to delete settlement'); console.error(error); return; }
+    toast.success('Settlement deleted');
+    fetchSettlements();
+  };
+
   const updateFilter = (key: keyof SettlementFilters, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
   const resetFilters = () => setFilters(defaultFilters);
 
-  return { settlements: filtered, allSettlements: settlements, loading, kpis, filters, filterOptions, updateFilter, resetFilters, addSettlement, updateSettlement, isSuperAdmin, refetch: fetchSettlements };
+  return { settlements: filtered, allSettlements: settlements, loading, kpis, filters, filterOptions, updateFilter, resetFilters, addSettlement, updateSettlement, deleteSettlement, isSuperAdmin, refetch: fetchSettlements };
 }
 
 function generateSampleSettlements(): Settlement[] {
