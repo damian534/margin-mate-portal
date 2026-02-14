@@ -413,7 +413,7 @@ export default function AdminCRM() {
           {/* Navigation Grid */}
           <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
             {[
-              { value: 'leads', label: 'Leads', icon: TrendingUp, count: stats.total },
+              { value: 'leads', label: 'Leads', icon: TrendingUp },
               { value: 'tasks', label: 'Tasks', icon: ListTodo },
               { value: 'contacts', label: 'Contacts', icon: ContactIcon },
               { value: 'companies', label: 'Companies', icon: Building2 },
@@ -425,7 +425,7 @@ export default function AdminCRM() {
               <button
                 key={tab.value}
                 onClick={() => setActiveTab(tab.value)}
-                className={`relative flex flex-col items-center gap-1.5 rounded-xl border px-3 py-4 text-sm font-medium transition-all
+                className={`flex flex-col items-center gap-1.5 rounded-xl border px-3 py-4 text-sm font-medium transition-all
                   ${activeTab === tab.value
                     ? 'border-primary bg-primary/5 text-primary shadow-sm'
                     : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground'
@@ -433,11 +433,6 @@ export default function AdminCRM() {
               >
                 <tab.icon className="w-5 h-5" />
                 <span className="text-xs">{tab.label}</span>
-                {tab.count !== undefined && (
-                  <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground px-1">
-                    {tab.count}
-                  </span>
-                )}
               </button>
             ))}
           </div>
