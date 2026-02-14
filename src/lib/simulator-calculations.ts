@@ -1,21 +1,22 @@
-import { calculateStampDuty } from './stamp-duty';
-
 export interface SimulatorInputs {
   currentHomeValue: number;
   mortgageOwing: number;
   sellingCostPercent: number;
   targetPurchasePrice: number;
-  state: string;
   annualGrowthPercent: number;
   monthsToWait: number;
-  conveyancingCost: number;
+  buyingCostPercent: number;
+  savings: number;
+  homeValueAdjustment: number;
 }
 
 export interface SimulatorOutputs {
+  // Adjusted home value (after sale price adjustment)
+  adjustedHomeValue: number;
+
   // Now
   sellingCosts: number;
   usableEquity: number;
-  stampDutyNow: number;
   purchaseCostsNow: number;
   totalFundsNeededNow: number;
   loanRequiredNow: number;
@@ -26,7 +27,6 @@ export interface SimulatorOutputs {
   futureTargetPrice: number;
   futureSellingCosts: number;
   futureUsableEquity: number;
-  futureStampDuty: number;
   futurePurchaseCosts: number;
   futureTotalFundsNeeded: number;
   futureLoanRequired: number;
@@ -45,32 +45,32 @@ export function runSimulator(inputs: SimulatorInputs): SimulatorOutputs {
     mortgageOwing,
     sellingCostPercent,
     targetPurchasePrice,
-    state,
     annualGrowthPercent,
     monthsToWait,
-    conveyancingCost,
+    buyingCostPercent,
+    savings,
+    homeValueAdjustment,
   } = inputs;
 
   const monthlyRate = Math.pow(1 + annualGrowthPercent / 100, 1 / 12) - 1;
+  const adjustedHomeValue = currentHomeValue + homeValueAdjustment;
 
   // --- NOW ---
-  const sellingCosts = currentHomeValue * (sellingCostPercent / 100);
-  const usableEquity = Math.max(0, currentHomeValue - sellingCosts - mortgageOwing);
-  const stampDutyNow = calculateStampDuty(targetPurchasePrice, state);
-  const purchaseCostsNow = stampDutyNow + conveyancingCost;
+  const sellingCosts = adjustedHomeValue * (sellingCostPercent / 100);
+  const usableEquity = Math.max(0, adjustedHomeValue - sellingCosts - mortgageOwing);
+  const purchaseCostsNow = targetPurchasePrice * (buyingCostPercent / 100);
   const totalFundsNeededNow = targetPurchasePrice + purchaseCostsNow;
-  const loanRequiredNow = Math.max(0, totalFundsNeededNow - usableEquity);
-  const gapNow = targetPurchasePrice - currentHomeValue;
+  const loanRequiredNow = Math.max(0, totalFundsNeededNow - usableEquity - savings);
+  const gapNow = targetPurchasePrice - adjustedHomeValue;
 
   // --- FUTURE ---
-  const futureHomeValue = currentHomeValue * Math.pow(1 + monthlyRate, monthsToWait);
+  const futureHomeValue = adjustedHomeValue * Math.pow(1 + monthlyRate, monthsToWait);
   const futureTargetPrice = targetPurchasePrice * Math.pow(1 + monthlyRate, monthsToWait);
   const futureSellingCosts = futureHomeValue * (sellingCostPercent / 100);
   const futureUsableEquity = Math.max(0, futureHomeValue - futureSellingCosts - mortgageOwing);
-  const futureStampDuty = calculateStampDuty(futureTargetPrice, state);
-  const futurePurchaseCosts = futureStampDuty + conveyancingCost;
+  const futurePurchaseCosts = futureTargetPrice * (buyingCostPercent / 100);
   const futureTotalFundsNeeded = futureTargetPrice + futurePurchaseCosts;
-  const futureLoanRequired = Math.max(0, futureTotalFundsNeeded - futureUsableEquity);
+  const futureLoanRequired = Math.max(0, futureTotalFundsNeeded - futureUsableEquity - savings);
   const gapLater = futureTargetPrice - futureHomeValue;
 
   const extraLoanFromWaiting = futureLoanRequired - loanRequiredNow;
@@ -78,21 +78,20 @@ export function runSimulator(inputs: SimulatorInputs): SimulatorOutputs {
   // --- TIMELINE ---
   const timeline: { month: number; loanRequired: number }[] = [];
   for (let m = 0; m <= 24; m++) {
-    const fhv = currentHomeValue * Math.pow(1 + monthlyRate, m);
+    const fhv = adjustedHomeValue * Math.pow(1 + monthlyRate, m);
     const ftp = targetPurchasePrice * Math.pow(1 + monthlyRate, m);
     const fsc = fhv * (sellingCostPercent / 100);
     const fue = Math.max(0, fhv - fsc - mortgageOwing);
-    const fsd = calculateStampDuty(ftp, state);
-    const fpc = fsd + conveyancingCost;
+    const fpc = ftp * (buyingCostPercent / 100);
     const ftfn = ftp + fpc;
-    const flr = Math.max(0, ftfn - fue);
+    const flr = Math.max(0, ftfn - fue - savings);
     timeline.push({ month: m, loanRequired: flr });
   }
 
   return {
+    adjustedHomeValue,
     sellingCosts,
     usableEquity,
-    stampDutyNow,
     purchaseCostsNow,
     totalFundsNeededNow,
     loanRequiredNow,
@@ -101,7 +100,6 @@ export function runSimulator(inputs: SimulatorInputs): SimulatorOutputs {
     futureTargetPrice,
     futureSellingCosts,
     futureUsableEquity,
-    futureStampDuty,
     futurePurchaseCosts,
     futureTotalFundsNeeded,
     futureLoanRequired,
