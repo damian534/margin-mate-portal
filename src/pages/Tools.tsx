@@ -11,6 +11,9 @@ import {
   FileCheck2,
   CalendarClock,
   FileText,
+  Calculator,
+  Gauge,
+  TrendingDown,
 } from 'lucide-react';
 
 const tools = [
@@ -20,6 +23,30 @@ const tools = [
     description: 'Model what happens if a vendor sells now vs waits. Includes equity, costs, growth and upgrade gap.',
     icon: TrendingUp,
     path: '/tools/sell-upgrade-simulator',
+    available: true,
+  },
+  {
+    id: 'loan-repayment',
+    name: 'Loan Repayment Calculator',
+    description: 'Enter loan amount, rate and term — see monthly, fortnightly and weekly repayments plus total interest.',
+    icon: Calculator,
+    path: '/tools/loan-repayment',
+    available: true,
+  },
+  {
+    id: 'borrowing-power',
+    name: 'Borrowing Power Estimator',
+    description: 'Enter income, expenses and debts — get an estimate of maximum borrowing capacity.',
+    icon: Gauge,
+    path: '/tools/borrowing-power',
+    available: true,
+  },
+  {
+    id: 'refinance-savings',
+    name: 'Refinance Savings Calculator',
+    description: 'Compare your current loan rate vs a new rate to see monthly savings, total interest saved and break-even.',
+    icon: TrendingDown,
+    path: '/tools/refinance-savings',
     available: true,
   },
   {
