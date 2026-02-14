@@ -26,6 +26,7 @@ export function AddSettlementDialog({ onAdd }: Props) {
     client_name: '',
     settlement_date: '',
     loan_amount: '',
+    loan_amount_display: '',
     lender: '',
     application_type: 'purchase',
     lead_source: '',
@@ -55,7 +56,7 @@ export function AddSettlementDialog({ onAdd }: Props) {
     });
     setSubmitting(false);
     setOpen(false);
-    setForm({ client_name: '', settlement_date: '', loan_amount: '', lender: '', application_type: 'purchase', lead_source: '', security_address: '', status: 'booked' });
+    setForm({ client_name: '', settlement_date: '', loan_amount: '', loan_amount_display: '', lender: '', application_type: 'purchase', lead_source: '', security_address: '', status: 'booked' });
   };
 
   const update = (key: string, value: string) => setForm(prev => ({ ...prev, [key]: value }));
@@ -81,7 +82,17 @@ export function AddSettlementDialog({ onAdd }: Props) {
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm">Loan Amount *</Label>
-              <Input type="number" min="0" step="1000" value={form.loan_amount} onChange={e => update('loan_amount', e.target.value)} required />
+              <Input
+                value={form.loan_amount_display}
+                onChange={e => {
+                  const raw = e.target.value.replace(/[^0-9]/g, '');
+                  const num = raw ? parseInt(raw, 10) : 0;
+                  update('loan_amount', raw);
+                  setForm(prev => ({ ...prev, loan_amount: raw, loan_amount_display: raw ? num.toLocaleString('en-AU') : '' }));
+                }}
+                placeholder="e.g. 500,000"
+                required
+              />
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm">Lender</Label>

@@ -32,9 +32,10 @@ function formatAmount(amount: number) {
 interface Props {
   settlements: Settlement[];
   onUpdate?: (id: string, updates: Partial<Settlement>) => void;
+  lenders?: string[];
 }
 
-export function SettlementTable({ settlements, onUpdate }: Props) {
+export function SettlementTable({ settlements, onUpdate, lenders = [] }: Props) {
   const [editing, setEditing] = useState<Settlement | null>(null);
 
   if (settlements.length === 0) {
@@ -96,6 +97,7 @@ export function SettlementTable({ settlements, onUpdate }: Props) {
           open={!!editing}
           onOpenChange={open => { if (!open) setEditing(null); }}
           onSave={(id, updates) => { onUpdate(id, updates); setEditing(null); }}
+          lenders={lenders}
         />
       )}
     </>
