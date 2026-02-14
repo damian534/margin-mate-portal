@@ -19,6 +19,10 @@ import LoanRepaymentCalculator from "./pages/LoanRepaymentCalculator";
 import BorrowingPowerEstimator from "./pages/BorrowingPowerEstimator";
 import RefinanceSavingsCalculator from "./pages/RefinanceSavingsCalculator";
 import BuyerReadinessScore from "./pages/BuyerReadinessScore";
+import PreApprovalTracker from "./pages/PreApprovalTracker";
+import AuctionChecklist from "./pages/AuctionChecklist";
+import PrivateSaleChecklist from "./pages/PrivateSaleChecklist";
+import VendorFalloverPack from "./pages/VendorFalloverPack";
 
 const queryClient = new QueryClient();
 
@@ -105,6 +109,26 @@ const App = () => (
             <Route path="/tools/buyer-readiness" element={
               <ProtectedRoute>
                 <BuyerReadinessScore />
+              </ProtectedRoute>
+            } />
+            <Route path="/tools/pre-approval-tracker" element={
+              <ProtectedRoute>
+                <PreApprovalTracker />
+              </ProtectedRoute>
+            } />
+            <Route path="/tools/auction-checklist" element={
+              <ProtectedRoute>
+                <AuctionChecklist />
+              </ProtectedRoute>
+            } />
+            <Route path="/tools/private-sale-checklist" element={
+              <ProtectedRoute>
+                <PrivateSaleChecklist />
+              </ProtectedRoute>
+            } />
+            <Route path="/tools/vendor-fallover" element={
+              <ProtectedRoute>
+                <VendorFalloverPack />
               </ProtectedRoute>
             } />
             <Route path="/preview" element={<Preview />} />
