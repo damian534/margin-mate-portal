@@ -410,30 +410,37 @@ export default function AdminCRM() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="leads">Leads</TabsTrigger>
-            <TabsTrigger value="tasks" className="flex items-center gap-1.5">
-              <ListTodo className="w-4 h-4" /> Tasks
-            </TabsTrigger>
-            <TabsTrigger value="contacts" className="flex items-center gap-1.5">
-              <ContactIcon className="w-4 h-4" /> Contacts
-            </TabsTrigger>
-            <TabsTrigger value="companies" className="flex items-center gap-1.5">
-              <Building2 className="w-4 h-4" /> Companies
-            </TabsTrigger>
-            <TabsTrigger value="referrers" className="flex items-center gap-1.5">
-              <Users className="w-4 h-4" /> Referrers
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="flex items-center gap-1.5">
-              <BarChart3 className="w-4 h-4" /> Reports
-            </TabsTrigger>
-            <TabsTrigger value="invites" className="flex items-center gap-1.5">
-              <KeyRound className="w-4 h-4" /> Invites
-            </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-1.5">
-              <UserCog className="w-4 h-4" /> Users
-            </TabsTrigger>
-          </TabsList>
+          {/* Navigation Grid */}
+          <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+            {[
+              { value: 'leads', label: 'Leads', icon: TrendingUp, count: stats.total },
+              { value: 'tasks', label: 'Tasks', icon: ListTodo },
+              { value: 'contacts', label: 'Contacts', icon: ContactIcon },
+              { value: 'companies', label: 'Companies', icon: Building2 },
+              { value: 'referrers', label: 'Referrers', icon: Users },
+              { value: 'reports', label: 'Reports', icon: BarChart3 },
+              { value: 'invites', label: 'Invites', icon: KeyRound },
+              { value: 'users', label: 'Users', icon: UserCog },
+            ].map((tab) => (
+              <button
+                key={tab.value}
+                onClick={() => setActiveTab(tab.value)}
+                className={`relative flex flex-col items-center gap-1.5 rounded-xl border px-3 py-4 text-sm font-medium transition-all
+                  ${activeTab === tab.value
+                    ? 'border-primary bg-primary/5 text-primary shadow-sm'
+                    : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground'
+                  }`}
+              >
+                <tab.icon className="w-5 h-5" />
+                <span className="text-xs">{tab.label}</span>
+                {tab.count !== undefined && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground px-1">
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
 
           <TabsContent value="leads" className="space-y-4 mt-4">
             {/* Toolbar */}
