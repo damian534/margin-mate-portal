@@ -10,9 +10,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { toast } from 'sonner';
 import { format, isPast, isToday, isTomorrow } from 'date-fns';
-import { Plus, Calendar, User, AlertTriangle, List, Columns } from 'lucide-react';
+import { Plus, Calendar, User, AlertTriangle, List, Columns, ChevronsUpDown, Check, UserPlus } from 'lucide-react';
 
 type DueFilter = 'all' | 'overdue' | 'today' | 'tomorrow' | 'later' | 'no_date';
 
@@ -64,6 +66,9 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
   const [newDesc, setNewDesc] = useState('');
   const [newLeadId, setNewLeadId] = useState('');
   const [newDueDate, setNewDueDate] = useState('');
+  const [leadSearchOpen, setLeadSearchOpen] = useState(false);
+  const [customClientName, setCustomClientName] = useState('');
+  const [useCustomClient, setUseCustomClient] = useState(false);
 
   useEffect(() => {
     if (isPreviewMode) {
@@ -100,25 +105,55 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
   };
 
   const createTask = async () => {
-    if (!newTitle.trim() || !newLeadId) return;
+    if (!newTitle.trim()) return;
+    
+    let leadId = newLeadId;
+    let leadName = '';
+
+    if (useCustomClient) {
+      if (!customClientName.trim()) { toast.error('Enter a client name'); return; }
+      const parts = customClientName.trim().split(/\s+/);
+      const firstName = parts[0];
+      const lastName = parts.slice(1).join(' ') || 'Unknown';
+
+      if (isPreviewMode) {
+        leadId = `preview-lead-${Date.now()}`;
+        leadName = customClientName.trim();
+      } else {
+        // Create a new lead for this client
+        const { data: newLead, error: leadError } = await supabase.from('leads').insert({
+          first_name: firstName,
+          last_name: lastName,
+          broker_id: user!.id,
+          status: 'new',
+        } as any).select('id').single();
+        if (leadError || !newLead) { toast.error('Failed to create client'); return; }
+        leadId = newLead.id;
+        leadName = customClientName.trim();
+      }
+    } else {
+      if (!leadId) { toast.error('Select a lead or add a new client'); return; }
+      const lead = leads.find(l => l.id === leadId);
+      leadName = lead ? `${lead.first_name} ${lead.last_name}` : 'Unknown';
+    }
+
     if (isPreviewMode) {
-      const lead = leads.find(l => l.id === newLeadId);
       const fakeTask: Task = {
         id: `preview-${Date.now()}`,
-        lead_id: newLeadId,
+        lead_id: leadId,
         title: newTitle.trim(),
         description: newDesc.trim() || null,
         due_date: newDueDate ? new Date(newDueDate).toISOString() : null,
         completed: false,
         completed_at: null,
         created_at: new Date().toISOString(),
-        lead_name: lead ? `${lead.first_name} ${lead.last_name}` : 'Unknown',
+        lead_name: leadName,
       };
       setTasks(prev => [fakeTask, ...prev]);
       toast.success('Task created (preview)');
     } else {
       const { error } = await supabase.from('tasks').insert({
-        lead_id: newLeadId,
+        lead_id: leadId,
         title: newTitle.trim(),
         description: newDesc.trim() || null,
         due_date: newDueDate ? new Date(newDueDate).toISOString() : null,
@@ -129,6 +164,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
       fetchTasks();
     }
     setNewTitle(''); setNewDesc(''); setNewLeadId(''); setNewDueDate('');
+    setCustomClientName(''); setUseCustomClient(false);
     setDialogOpen(false);
   };
 
@@ -193,15 +229,58 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
               <div className="space-y-4 pt-2">
                 <div>
                   <Label>Lead *</Label>
-                  <select value={newLeadId} onChange={e => setNewLeadId(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                    <option value="">Select a lead...</option>
-                    {leads.map(l => <option key={l.id} value={l.id}>{l.first_name} {l.last_name}</option>)}
-                  </select>
+                  {useCustomClient ? (
+                    <div className="space-y-2">
+                      <Input
+                        value={customClientName}
+                        onChange={e => setCustomClientName(e.target.value)}
+                        placeholder="Enter client name (e.g. John Smith)"
+                        autoFocus
+                      />
+                      <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => { setUseCustomClient(false); setCustomClientName(''); }}>
+                        ← Select existing lead instead
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Popover open={leadSearchOpen} onOpenChange={setLeadSearchOpen}>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                            {newLeadId ? (() => { const l = leads.find(x => x.id === newLeadId); return l ? `${l.first_name} ${l.last_name}` : 'Select a lead...'; })() : 'Search leads...'}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Search by name..." />
+                            <CommandList>
+                              <CommandEmpty>No leads found.</CommandEmpty>
+                              <CommandGroup>
+                                {leads.map(l => (
+                                  <CommandItem
+                                    key={l.id}
+                                    value={`${l.first_name} ${l.last_name}`}
+                                    onSelect={() => { setNewLeadId(l.id); setLeadSearchOpen(false); }}
+                                  >
+                                    <Check className={`mr-2 h-4 w-4 ${newLeadId === l.id ? 'opacity-100' : 'opacity-0'}`} />
+                                    {l.first_name} {l.last_name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <Button variant="ghost" size="sm" className="text-xs h-7 gap-1" onClick={() => { setUseCustomClient(true); setNewLeadId(''); }}>
+                        <UserPlus className="w-3 h-3" /> Add new client
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 <div><Label>Task Title *</Label><Input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="e.g. Call back after 5pm" /></div>
                 <div><Label>Description</Label><Textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Optional details..." rows={2} /></div>
                 <div><Label>Due Date</Label><Input type="datetime-local" value={newDueDate} onChange={e => setNewDueDate(e.target.value)} /></div>
-                <Button onClick={createTask} disabled={!newTitle.trim() || !newLeadId} className="w-full">Create Task</Button>
+                <Button onClick={createTask} disabled={!newTitle.trim() || (!newLeadId && !useCustomClient) || (useCustomClient && !customClientName.trim())} className="w-full">Create Task</Button>
               </div>
             </DialogContent>
           </Dialog>
