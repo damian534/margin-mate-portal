@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { User, Building2, Search, Plus, X, UserPlus } from 'lucide-react';
+import { User, Building2, Search, Plus, X, UserPlus, Mail, Send } from 'lucide-react';
 
 export interface ReferrerProfileData {
   id: string;
@@ -53,6 +53,7 @@ export function ReferrerProfiles({ referrers, companies, onRefresh, isPreviewMod
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [newPartner, setNewPartner] = useState({ full_name: '', email: '', phone: '', company_id: '' });
   const [adding, setAdding] = useState(false);
+  const [inviting, setInviting] = useState(false);
 
   const filtered = referrers.filter(r => {
     if (!search) return true;
@@ -91,6 +92,59 @@ export function ReferrerProfiles({ referrers, companies, onRefresh, isPreviewMod
     setAddDialogOpen(false);
     setNewPartner({ full_name: '', email: '', phone: '', company_id: '' });
     onRefresh();
+  };
+
+  const sendInvite = async (referrer: ReferrerProfileData) => {
+    if (!referrer.email) {
+      toast.error('This partner has no email address');
+      return;
+    }
+    if (isPreviewMode) {
+      toast.success('Invite sent (preview)');
+      return;
+    }
+    setInviting(true);
+    try {
+      // Generate a unique invite code for this broker
+      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const { error: codeErr } = await supabase.from('invite_codes').insert({
+        broker_id: user!.id,
+        code,
+        label: `Invite for ${referrer.full_name || referrer.email}`,
+        max_uses: 1,
+      } as any);
+      if (codeErr) { toast.error('Failed to generate invite code'); setInviting(false); return; }
+
+      const registerUrl = `${window.location.origin}/register?code=${code}`;
+      const html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">You're Invited to Margin Finance</h2>
+          <p>Hi ${referrer.full_name || 'there'},</p>
+          <p>You've been invited to join <strong>Margin Finance</strong> as a referral partner. Register to start submitting and tracking your referrals.</p>
+          <div style="margin: 24px 0;">
+            <a href="${registerUrl}" style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">
+              Register Now
+            </a>
+          </div>
+          <p style="color: #666; font-size: 14px;">Or copy this link: <a href="${registerUrl}">${registerUrl}</a></p>
+          <p style="color: #999; font-size: 12px; margin-top: 32px;">This invitation is for ${referrer.email} only.</p>
+        </div>
+      `;
+
+      const { error: emailErr } = await supabase.functions.invoke('send-email', {
+        body: {
+          to: referrer.email,
+          subject: "You're Invited to Margin Finance",
+          html,
+        },
+      });
+      if (emailErr) { toast.error('Failed to send invite email'); setInviting(false); return; }
+      toast.success(`Invite sent to ${referrer.email}`);
+    } catch (err) {
+      console.error('sendInvite error:', err);
+      toast.error('Failed to send invite');
+    }
+    setInviting(false);
   };
 
   const openProfile = (r: ReferrerProfileData) => {
@@ -259,9 +313,38 @@ export function ReferrerProfiles({ referrers, companies, onRefresh, isPreviewMod
                 <div className="space-y-3">
                   <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">Contact Info</h3>
                   <div className="grid grid-cols-2 gap-3 text-sm">
-                    {selected.email && <div><p className="text-muted-foreground">Email</p><p className="font-medium">{selected.email}</p></div>}
-                    {selected.phone && <div><p className="text-muted-foreground">Phone</p><p className="font-medium">{selected.phone}</p></div>}
+                {selected.email && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <p className="text-muted-foreground">Email</p>
+                    <p className="font-medium flex-1">{selected.email}</p>
                   </div>
+                )}
+                {selected.phone && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <p className="text-muted-foreground">Phone</p>
+                    <p className="font-medium flex-1">{selected.phone}</p>
+                  </div>
+                )}
+                  </div>
+
+                  {/* Invite button — only for partners who haven't registered */}
+                  {selected.email && (!selected.user_id || selected.user_id.startsWith('contact-')) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 w-full"
+                      onClick={() => sendInvite(selected)}
+                      disabled={inviting}
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      {inviting ? 'Sending...' : 'Send Registration Invite'}
+                    </Button>
+                  )}
+                  {selected.user_id && !selected.user_id.startsWith('contact-') && (
+                    <div className="text-xs text-muted-foreground flex items-center gap-1.5 bg-muted/50 rounded-lg px-3 py-2">
+                      <Mail className="w-3.5 h-3.5" /> Registered user
+                    </div>
+                  )}
                 </div>
 
                 <Separator />
