@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
-type ViewMode = 'deals' | 'performance';
+type ViewMode = 'deals' | 'performance' | 'activity';
 
 export default function Settlements() {
   const { role, isPreviewMode } = useAuth();
@@ -80,6 +80,7 @@ export default function Settlements() {
             <TabsList>
               <TabsTrigger value="deals">Deals View</TabsTrigger>
               <TabsTrigger value="performance">Performance View</TabsTrigger>
+              <TabsTrigger value="activity">Activity</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -126,10 +127,22 @@ export default function Settlements() {
               </>
             )}
           </>
-        ) : (
+        ) : viewMode === 'performance' ? (
           /* ===== PERFORMANCE VIEW ===== */
           <div className="space-y-6">
-            {/* 1️⃣ Daily Activity */}
+            {/* Settlement KPIs */}
+            <div>
+              <h2 className="text-lg font-heading font-semibold mb-3">Settlements & Pipeline</h2>
+              <SettlementKPIs kpis={kpis} />
+            </div>
+
+            {/* Settlement Charts */}
+            <SettlementCharts settlements={settlements} />
+          </div>
+        ) : (
+          /* ===== ACTIVITY VIEW ===== */
+          <div className="space-y-6">
+            {/* Daily Activity */}
             <div>
               <h2 className="text-lg font-heading font-semibold mb-3">Daily & Weekly Activity</h2>
               <DailyActivityKPIs
@@ -138,30 +151,21 @@ export default function Settlements() {
               />
             </div>
 
-            {/* 2️⃣ Weekly Summary + Targets */}
+            {/* Weekly Summary + Targets */}
             <WeeklyActivitySummary weeklyTotals={weeklyTotals} targets={targets} />
 
-            {/* 3️⃣ Log Today's Activity */}
+            {/* Log Today's Activity */}
             <LogActivityPanel todayActivity={todayActivity} onSave={saveActivity} />
 
-            {/* 4️⃣ Set Targets (Super Admin only) */}
+            {/* Set Targets (Super Admin only) */}
             {isSuperAdmin && (
               <SetTargetsPanel targets={targets} brokers={brokers} onSave={saveTargets} />
             )}
 
-            {/* 5️⃣ Settlement KPIs */}
-            <div>
-              <h2 className="text-lg font-heading font-semibold mb-3">Settlements & Pipeline</h2>
-              <SettlementKPIs kpis={kpis} />
-            </div>
-
-            {/* 6️⃣ 30-Day Trend */}
+            {/* 30-Day Trend */}
             <ActivityTrendChart activities={last30Days} />
 
-            {/* 7️⃣ Settlement Charts */}
-            <SettlementCharts settlements={settlements} />
-
-            {/* 8️⃣ Leaderboard (Admin only) */}
+            {/* Leaderboard (Admin only) */}
             {isSuperAdmin && <ActivityLeaderboard data={leaderboard} />}
           </div>
         )}
