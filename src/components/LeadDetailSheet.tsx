@@ -19,7 +19,7 @@ import { format, isPast, isToday } from 'date-fns';
 import { notifyPartnerNote } from '@/lib/notifications';
 import {
   Mail, Phone, Send, Trash2, Users, Building2, DollarSign,
-  Calendar, Plus, CheckCircle, Clock, AlertTriangle,
+  Calendar, Plus, CheckCircle, CheckCircle2, Clock, AlertTriangle,
   MessageSquare, Activity, ChevronDown, ChevronRight, Pencil, X, Save
 } from 'lucide-react';
 
@@ -137,6 +137,27 @@ export function LeadDetailSheet({
   const [editEmail, setEditEmail] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [contactDirty, setContactDirty] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [editFirstName, setEditFirstName] = useState('');
+  const [editLastName, setEditLastName] = useState('');
+
+  const startNameEdit = () => {
+    setEditFirstName(lead.first_name);
+    setEditLastName(lead.last_name);
+    setEditingName(true);
+  };
+
+  const saveNameEdit = async () => {
+    const first = editFirstName.trim();
+    const last = editLastName.trim();
+    if (!first) { toast.error('First name is required'); return; }
+    onLeadChange?.({ ...lead, first_name: first, last_name: last });
+    if (!isPreviewMode) {
+      await supabase.from('leads').update({ first_name: first, last_name: last } as any).eq('id', lead.id);
+    }
+    setEditingName(false);
+    toast.success('Name updated');
+  };
 
   useEffect(() => {
     if (lead && open) {
@@ -445,15 +466,54 @@ export function LeadDetailSheet({
                 onClick={() => lead.source_contact_id && onOpenContact?.(lead.source_contact_id)}
                 title={lead.source_contact_id ? 'View contact card' : undefined}
               >
-                {lead.first_name[0]}{lead.last_name[0]}
+                {lead.first_name[0]}{lead.last_name?.[0] || ''}
               </div>
-              <div>
-                <span 
-                  className={lead.source_contact_id && onOpenContact ? 'cursor-pointer hover:text-primary transition-colors' : ''}
-                  onClick={() => lead.source_contact_id && onOpenContact?.(lead.source_contact_id)}
-                >
-                  {lead.first_name} {lead.last_name}
-                </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  {editingName ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={editFirstName}
+                        onChange={e => setEditFirstName(e.target.value)}
+                        placeholder="First name"
+                        className="h-7 text-base font-semibold w-28"
+                        autoFocus
+                      />
+                      <Input
+                        value={editLastName}
+                        onChange={e => setEditLastName(e.target.value)}
+                        placeholder="Last name"
+                        className="h-7 text-base font-semibold w-28"
+                      />
+                      <Button size="sm" variant="ghost" className="h-7 px-2" onClick={saveNameEdit}>
+                        <CheckCircle2 className="w-4 h-4 text-primary" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setEditingName(false)}>
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <span 
+                      className={`cursor-pointer hover:text-primary transition-colors`}
+                      onClick={() => {
+                        if (lead.source_contact_id && onOpenContact) {
+                          onOpenContact(lead.source_contact_id);
+                        } else {
+                          startNameEdit();
+                        }
+                      }}
+                      onDoubleClick={startNameEdit}
+                      title="Double-click to edit name"
+                    >
+                      {lead.first_name} {lead.last_name}
+                    </span>
+                  )}
+                  {!editingName && (
+                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0 opacity-50 hover:opacity-100" onClick={startNameEdit}>
+                      <Pencil className="w-3 h-3" />
+                    </Button>
+                  )}
+                </div>
                 {lead.loan_purpose && (
                   <p className="text-sm font-normal text-muted-foreground">{LOAN_PURPOSE_OPTIONS.find(o => o.value === lead.loan_purpose)?.label || lead.loan_purpose}</p>
                 )}

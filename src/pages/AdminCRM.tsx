@@ -97,7 +97,7 @@ export default function AdminCRM() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [leadsView, setLeadsView] = useState<'table' | 'kanban'>('table');
+  const [leadsView, setLeadsView] = useState<'table' | 'kanban'>('kanban');
   const [companies, setCompanies] = useState<Company[]>([]);
   const [referrers, setReferrers] = useState<ReferrerProfileData[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
