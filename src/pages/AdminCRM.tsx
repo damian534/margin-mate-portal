@@ -374,17 +374,20 @@ export default function AdminCRM() {
     setSelectedLead(null);
   };
 
-  const getReferrerName = (partnerId: string | null) => {
+  const findReferrer = (partnerId: string | null) => {
     if (!partnerId) return null;
-    const r = referrers.find(ref => ref.user_id === partnerId);
-    return r?.full_name || null;
+    return referrers.find(ref => ref.user_id === partnerId || ref.id === partnerId) || null;
+  };
+
+  const getReferrerName = (partnerId: string | null) => {
+    return findReferrer(partnerId)?.full_name || null;
   };
 
   const getReferrerCompany = (partnerId: string | null) => {
-    if (!partnerId) return null;
-    const r = referrers.find(ref => ref.user_id === partnerId);
-    if (!r?.company_id) return null;
-    return companies.find(c => c.id === r.company_id)?.name || null;
+    const r = findReferrer(partnerId);
+    if (!r) return null;
+    if (r.company_id) return companies.find(c => c.id === r.company_id)?.name || null;
+    return r.company_name || null;
   };
 
   const stats = {
