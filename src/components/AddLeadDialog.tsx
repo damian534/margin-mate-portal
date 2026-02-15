@@ -19,9 +19,11 @@ interface LeadSource {
 }
 
 interface ReferrerOption {
-  user_id: string;
+  id: string;
+  user_id: string | null;
   full_name: string | null;
   email: string | null;
+  company_name?: string | null;
 }
 
 interface ContactOption {
@@ -201,7 +203,7 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
                 <PopoverTrigger asChild>
                   <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
                     {selectedReferrerId
-                      ? referrers.find(r => r.user_id === selectedReferrerId)?.full_name || 'Selected'
+                      ? referrers.find(r => (r.user_id || r.id) === selectedReferrerId)?.full_name || 'Selected'
                       : 'Search referrer...'}
                     <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
@@ -212,19 +214,23 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
                     <CommandList>
                       <CommandEmpty>No referrer found.</CommandEmpty>
                       <CommandGroup>
-                        {referrers.map(r => (
+                        {referrers.map(r => {
+                          const referrerId = r.user_id || r.id;
+                          return (
                           <CommandItem
-                            key={r.user_id}
-                            value={`${r.full_name || ''} ${r.email || ''}`}
-                            onSelect={() => { setSelectedReferrerId(r.user_id); setReferrerOpen(false); }}
+                            key={referrerId}
+                            value={`${r.full_name || ''} ${r.email || ''} ${r.company_name || ''}`}
+                            onSelect={() => { setSelectedReferrerId(referrerId); setReferrerOpen(false); }}
                           >
-                            <Check className={cn("mr-2 h-4 w-4", selectedReferrerId === r.user_id ? "opacity-100" : "opacity-0")} />
+                            <Check className={cn("mr-2 h-4 w-4", selectedReferrerId === referrerId ? "opacity-100" : "opacity-0")} />
                             <div>
                               <p className="text-sm font-medium">{r.full_name || 'Unnamed'}</p>
                               {r.email && <p className="text-xs text-muted-foreground">{r.email}</p>}
+                              {r.company_name && <p className="text-xs text-muted-foreground">{r.company_name}</p>}
                             </div>
                           </CommandItem>
-                        ))}
+                          );
+                        })}
                       </CommandGroup>
                     </CommandList>
                   </Command>
