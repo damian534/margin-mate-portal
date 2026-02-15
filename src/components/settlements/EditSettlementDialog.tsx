@@ -35,6 +35,8 @@ export function EditSettlementDialog({ settlement, open, onOpenChange, onSave, o
   const [contactName, setContactName] = useState('');
   const [newSource, setNewSource] = useState('');
   const [showNewSource, setShowNewSource] = useState(false);
+  const [status, setStatus] = useState('');
+  const [securityAddress, setSecurityAddress] = useState('');
 
   useEffect(() => {
     if (open && settlement) {
@@ -46,6 +48,8 @@ export function EditSettlementDialog({ settlement, open, onOpenChange, onSave, o
       setLender(settlement.lender || '');
       setLeadSource(settlement.lead_source || '');
       setContactName(settlement.contact_name || '');
+      setStatus(settlement.status || 'pending');
+      setSecurityAddress(settlement.security_address || '');
       setNewSource('');
       setShowNewSource(false);
     }
@@ -61,6 +65,8 @@ export function EditSettlementDialog({ settlement, open, onOpenChange, onSave, o
       lender: lender || null,
       lead_source: source || null,
       contact_name: source === REFERRED_CLIENT_SOURCE ? (contactName || null) : settlement.contact_name,
+      status,
+      security_address: securityAddress || null,
     });
     onOpenChange(false);
   };
@@ -175,6 +181,32 @@ export function EditSettlementDialog({ settlement, open, onOpenChange, onSave, o
               />
             </div>
           )}
+
+          {/* Status */}
+          <div className="space-y-1.5">
+            <Label className="text-sm">Status</Label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="settled">Settled</SelectItem>
+                <SelectItem value="booked">Booked</SelectItem>
+                <SelectItem value="docs_issue">Docs Issue</SelectItem>
+                <SelectItem value="docs_returned">Docs Returned</SelectItem>
+                <SelectItem value="docs_issued">Docs Issued</SelectItem>
+                <SelectItem value="pending_approval">Pending Approval</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Security Address */}
+          <div className="space-y-1.5">
+            <Label className="text-sm">Security Address</Label>
+            <Input
+              value={securityAddress}
+              onChange={e => setSecurityAddress(e.target.value)}
+              placeholder="Enter security address"
+            />
+          </div>
 
           <Button onClick={handleSave} className="w-full">Save Changes</Button>
 

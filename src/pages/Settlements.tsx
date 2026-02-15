@@ -107,8 +107,9 @@ export default function Settlements() {
               <div className="text-center py-16 text-muted-foreground">Loading settlements...</div>
             ) : (
               <>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                   {[
+                    { label: 'Total Volume', value: `$${(kpis.totalSettledVolume + kpis.totalPendingVolume).toLocaleString()}` },
                     { label: 'Settled Volume', value: `$${kpis.totalSettledVolume.toLocaleString()}` },
                     { label: 'Pipeline Volume', value: `$${kpis.totalPendingVolume.toLocaleString()}` },
                     { label: 'Avg Loan', value: `$${Math.round(kpis.avgLoanSize).toLocaleString()}` },
