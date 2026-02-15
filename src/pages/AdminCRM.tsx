@@ -311,6 +311,28 @@ export default function AdminCRM() {
     toast.success('Status updated');
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status } : l));
     if (selectedLead?.id === leadId) setSelectedLead(prev => prev ? { ...prev, status } : null);
+
+    // Auto-create settlement when lead moves to "settled"
+    if (status === 'settled' && oldStatus !== 'settled' && lead && user) {
+      const srcContact = lead.source_contact_id ? contacts.find(ct => ct.id === lead.source_contact_id) : null;
+      const contactName = srcContact ? `${srcContact.first_name} ${srcContact.last_name}`.trim() : null;
+      const { error: settError } = await supabase.from('settlements').insert({
+        broker_id: user.id,
+        client_name: `${lead.first_name} ${lead.last_name}`.trim(),
+        settlement_date: new Date().toISOString().split('T')[0],
+        loan_amount: lead.loan_amount || 0,
+        lead_source: lead.source || null,
+        status: 'settled',
+        contact_name: contactName || null,
+      } as any);
+      if (settError) {
+        console.error('Failed to auto-create settlement:', settError);
+        toast.error('Status updated but failed to create settlement record');
+      } else {
+        toast.success('Settlement record created automatically');
+      }
+    }
+
     // Send email notification to partner if lead has one
     if (lead?.referral_partner_id && oldStatus !== status) {
       const statusConfig = statuses.find(s => s.name === status);
