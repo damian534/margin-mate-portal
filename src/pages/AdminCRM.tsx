@@ -184,19 +184,25 @@ export default function AdminCRM() {
   const fetchReferrers = async () => {
     try {
       // Fetch profiles that are referral_partners (registered) OR manually added (have broker_id but no role yet)
-      const { data: roles } = await supabase.from('user_roles').select('user_id').eq('role', 'referral_partner');
-      const registeredIds = roles?.map(r => r.user_id) || [];
+      const { data: roles } = await supabase.from('user_roles').select('user_id, role');
+      const registeredPartnerIds = roles?.filter(r => r.role === 'referral_partner').map(r => r.user_id) || [];
+      // Collect broker_staff and broker user_ids to exclude from referrers
+      const staffAndBrokerIds = new Set(
+        roles?.filter(r => r.role === 'broker_staff' || r.role === 'broker' || r.role === 'super_admin').map(r => r.user_id) || []
+      );
       
       // Fetch all profiles with broker_id (includes manually added ones)
       const { data: brokerProfiles, error: bpError } = await supabase.from('profiles').select('*').not('broker_id', 'is', null);
       if (bpError) console.error('Error fetching broker profiles:', bpError);
       
-      // Merge: registered partners + manually added ones (avoid duplicates)
+      // Merge: registered partners + manually added ones (avoid duplicates), exclude staff/brokers
       const allProfiles = brokerProfiles || [];
       const seen = new Set<string>();
       const seenEmails = new Set<string>();
       const merged: ReferrerProfileData[] = [];
       for (const p of allProfiles) {
+        // Skip broker_staff, brokers, and super_admins
+        if (p.user_id && staffAndBrokerIds.has(p.user_id)) continue;
         if (!seen.has(p.id)) {
           seen.add(p.id);
           if (p.email) seenEmails.add(p.email.toLowerCase());
@@ -204,8 +210,8 @@ export default function AdminCRM() {
         }
       }
       // Also add any registered partners whose profiles don't have broker_id set
-      if (registeredIds.length) {
-        const { data: regProfiles } = await supabase.from('profiles').select('*').in('user_id', registeredIds);
+      if (registeredPartnerIds.length) {
+        const { data: regProfiles } = await supabase.from('profiles').select('*').in('user_id', registeredPartnerIds);
         for (const p of regProfiles || []) {
           if (!seen.has(p.id)) {
             seen.add(p.id);

@@ -70,7 +70,7 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
         user_id: p.user_id,
         email: p.email,
         full_name: p.full_name,
-        role: roleMap.get(p.user_id) || null,
+        role: p.user_id ? (roleMap.get(p.user_id) || null) : null,
         created_at: p.created_at,
         company_name: p.company_name,
         company_id: p.company_id,
@@ -382,7 +382,7 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
                 </TableRow>
               ) : (
                 users.map(u => (
-                  <TableRow key={u.user_id}>
+                  <TableRow key={u.user_id || u.email || u.full_name}>
                     <TableCell className="font-medium">{u.full_name || '—'}</TableCell>
                     <TableCell>{u.email || '—'}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{u.company_name || '—'}</TableCell>
@@ -406,7 +406,7 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
                               </SelectContent>
                             </Select>
                           )}
-                          {u.email && !u.user_id && u.user_id !== user?.id && (
+                          {u.email && !u.user_id && (
                             <Button
                               variant="outline"
                               size="sm"
