@@ -20,8 +20,11 @@ import { notifyPartnerNote } from '@/lib/notifications';
 import {
   Mail, Phone, Send, Trash2, Users, Building2, DollarSign,
   Calendar, Plus, CheckCircle, CheckCircle2, Clock, AlertTriangle,
-  MessageSquare, Activity, ChevronDown, ChevronRight, Pencil, X, Save
+  MessageSquare, Activity, ChevronDown, ChevronRight, Pencil, X, Save,
+  Search, UserPlus, ExternalLink, Award
 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 interface Lead {
   id: string;
@@ -82,6 +85,10 @@ interface ContactOption {
   id: string;
   first_name: string;
   last_name: string;
+  email?: string | null;
+  phone?: string | null;
+  company?: string | null;
+  type?: string;
 }
 
 interface LeadDetailSheetProps {
@@ -148,6 +155,7 @@ export function LeadDetailSheet({
   const [editFirstName, setEditFirstName] = useState('');
   const [editLastName, setEditLastName] = useState('');
   const [sourceContactReferralCount, setSourceContactReferralCount] = useState<number | null>(null);
+  const [contactPickerOpen, setContactPickerOpen] = useState(false);
 
   const startNameEdit = () => {
     setEditFirstName(lead.first_name);
@@ -727,7 +735,7 @@ export function LeadDetailSheet({
             </div>
           </div>
 
-          {/* Lead Source + Contact Card Row */}
+          {/* Lead Source */}
           <div className="flex gap-3">
             <div className="flex-1">
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">Lead Source</Label>
@@ -750,9 +758,7 @@ export function LeadDetailSheet({
               </Select>
             </div>
             <div className="flex-1">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">
-                {lead.source === 'client_referral' || lead.source === 'existing_client' ? 'Referred From' : 'Contact Card'}
-              </Label>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Contact Card</Label>
               {lead.source_contact_id && onOpenContact ? (
                 <div className="flex items-center gap-1 mt-1">
                   <Button variant="outline" size="sm" className="flex-1 gap-1.5" onClick={() => onOpenContact(lead.source_contact_id!)}>
@@ -771,27 +777,6 @@ export function LeadDetailSheet({
                     <X className="w-3.5 h-3.5" />
                   </Button>
                 </div>
-              ) : (lead.source === 'client_referral' || lead.source === 'existing_client') ? (
-                <Select
-                  value=""
-                  onValueChange={async (contactId) => {
-                    onLeadChange?.({ ...lead, source_contact_id: contactId });
-                    if (!isPreviewMode) {
-                      await supabase.from('leads').update({ source_contact_id: contactId } as any).eq('id', lead.id);
-                      // Refresh referral count
-                      const { count } = await supabase.from('leads').select('id', { count: 'exact', head: true }).eq('source_contact_id', contactId);
-                      setSourceContactReferralCount(count ?? 0);
-                    }
-                    toast.success('Contact linked');
-                  }}
-                >
-                  <SelectTrigger className="mt-1"><SelectValue placeholder="Select referring client" /></SelectTrigger>
-                  <SelectContent>
-                    {contactsList.map(c => (
-                      <SelectItem key={c.id} value={c.id}>{c.first_name} {c.last_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               ) : (
                 <div className="mt-1 h-10 flex items-center">
                   <span className="text-sm text-muted-foreground">No linked contact</span>
@@ -799,6 +784,136 @@ export function LeadDetailSheet({
               )}
             </div>
           </div>
+
+          {/* Referred From — rich contact card */}
+          {(lead.source === 'client_referral' || lead.source === 'existing_client') && (
+            <div className="rounded-xl border border-border bg-muted/20 overflow-hidden">
+              <div className="px-4 py-2.5 bg-muted/40 border-b border-border flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Award className="w-4 h-4 text-primary" />
+                  <span className="text-xs font-semibold uppercase tracking-wider text-foreground">Referred From</span>
+                </div>
+                {lead.source_contact_id && sourceContactReferralCount !== null && sourceContactReferralCount > 0 && (
+                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold">
+                    {sourceContactReferralCount} referral{sourceContactReferralCount !== 1 ? 's' : ''} total
+                  </span>
+                )}
+              </div>
+              {lead.source_contact_id ? (() => {
+                const linkedContact = contactsList.find(c => c.id === lead.source_contact_id);
+                return linkedContact ? (
+                  <div className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+                        {linkedContact.first_name[0]}{linkedContact.last_name?.[0] || ''}
+                      </div>
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm text-foreground">{linkedContact.first_name} {linkedContact.last_name}</span>
+                          {linkedContact.type && (
+                            <span className="text-[10px] uppercase tracking-wider bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-medium">
+                              {linkedContact.type}
+                            </span>
+                          )}
+                        </div>
+                        {linkedContact.company && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Building2 className="w-3 h-3 shrink-0" /> {linkedContact.company}
+                          </p>
+                        )}
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                          {linkedContact.email && (
+                            <a href={`mailto:${linkedContact.email}`} className="text-xs text-primary hover:underline flex items-center gap-1">
+                              <Mail className="w-3 h-3" /> {linkedContact.email}
+                            </a>
+                          )}
+                          {linkedContact.phone && (
+                            <a href={`tel:${linkedContact.phone}`} className="text-xs text-primary hover:underline flex items-center gap-1">
+                              <Phone className="w-3 h-3" /> {linkedContact.phone}
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-3 pt-3 border-t border-border">
+                      {onOpenContact && (
+                        <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-8" onClick={() => onOpenContact(lead.source_contact_id!)}>
+                          <ExternalLink className="w-3 h-3" /> Open Contact
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="sm" className="gap-1.5 text-xs h-8 text-muted-foreground hover:text-destructive"
+                        onClick={async () => {
+                          onLeadChange?.({ ...lead, source_contact_id: null });
+                          if (!isPreviewMode) {
+                            await supabase.from('leads').update({ source_contact_id: null } as any).eq('id', lead.id);
+                          }
+                          setSourceContactReferralCount(null);
+                          toast.success('Contact unlinked');
+                        }}
+                      >
+                        <X className="w-3 h-3" /> Unlink
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 text-center">
+                    <p className="text-sm text-muted-foreground">Contact not found</p>
+                  </div>
+                );
+              })() : (
+                <div className="p-4">
+                  <Popover open={contactPickerOpen} onOpenChange={setContactPickerOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start gap-2 text-muted-foreground font-normal h-10">
+                        <Search className="w-4 h-4 shrink-0" />
+                        <span>Search for referring client...</span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[320px] p-0 bg-background border border-border shadow-lg z-[100]" align="start">
+                      <Command>
+                        <CommandInput placeholder="Type a name to search..." />
+                        <CommandList>
+                          <CommandEmpty>No contacts found.</CommandEmpty>
+                          <CommandGroup>
+                            {contactsList.map(c => (
+                              <CommandItem
+                                key={c.id}
+                                value={`${c.first_name} ${c.last_name} ${c.email || ''} ${c.company || ''}`}
+                                onSelect={async () => {
+                                  setContactPickerOpen(false);
+                                  onLeadChange?.({ ...lead, source_contact_id: c.id });
+                                  if (!isPreviewMode) {
+                                    await supabase.from('leads').update({ source_contact_id: c.id } as any).eq('id', lead.id);
+                                    const { count } = await supabase.from('leads').select('id', { count: 'exact', head: true }).eq('source_contact_id', c.id);
+                                    setSourceContactReferralCount(count ?? 0);
+                                  }
+                                  toast.success(`Linked to ${c.first_name} ${c.last_name}`);
+                                }}
+                                className="flex items-center gap-3 px-3 py-2.5 cursor-pointer"
+                              >
+                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+                                  {c.first_name[0]}{c.last_name?.[0] || ''}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{c.first_name} {c.last_name}</p>
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    {c.company || c.email || c.phone || 'No details'}
+                                  </p>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    Search by name, email, or company
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           <Separator />
 
