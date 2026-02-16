@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Shield, ShieldCheck, KeyRound, Loader2, Plus, UserPlus } from 'lucide-react';
+import { Shield, ShieldCheck, KeyRound, Loader2, Plus, UserPlus, Send } from 'lucide-react';
 import { Company } from '@/components/CompanyManagement';
 
 interface UserWithRole {
@@ -34,6 +34,7 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [resettingEmail, setResettingEmail] = useState<string | null>(null);
+  const [invitingEmail, setInvitingEmail] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -130,8 +131,40 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
         return;
       }
 
-      const roleLabel = form.role === 'referral_partner' ? 'Referral Partner' : form.role === 'broker_staff' ? 'Admin Staff' : 'Broker';
-      toast.success(`${form.fullName.trim()} added as ${roleLabel}`);
+      // Auto-generate invite code and send email
+      const targetRole = form.role;
+      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      await supabase.from('invite_codes').insert({
+        broker_id: user!.id,
+        code,
+        label: `Invite for ${form.fullName.trim()}`,
+        max_uses: 1,
+        target_role: targetRole,
+      } as any);
+
+      const registerUrl = `${window.location.origin}/register?code=${code}`;
+      const roleLabel = targetRole === 'broker_staff' ? 'an admin staff member' : targetRole === 'broker' ? 'a broker' : 'a referral partner';
+      const html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">You're Invited to Margin Finance</h2>
+          <p>Hi ${form.fullName.trim()},</p>
+          <p>You've been invited to join <strong>Margin Finance</strong> as ${roleLabel}. Register to get started.</p>
+          <div style="margin: 24px 0;">
+            <a href="${registerUrl}" style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">
+              Register Now
+            </a>
+          </div>
+          <p style="color: #666; font-size: 14px;">Or copy this link: <a href="${registerUrl}">${registerUrl}</a></p>
+          <p style="color: #999; font-size: 12px; margin-top: 32px;">This invitation is for ${form.email.trim()} only.</p>
+        </div>
+      `;
+
+      await supabase.functions.invoke('send-email', {
+        body: { to: form.email.trim().toLowerCase(), subject: "You're Invited to Margin Finance", html },
+      });
+
+      const roleLabelMsg = form.role === 'referral_partner' ? 'Referral Partner' : form.role === 'broker_staff' ? 'Admin Staff' : 'Broker';
+      toast.success(`${form.fullName.trim()} added as ${roleLabelMsg} — invite sent to ${form.email.trim()}`);
       setAddOpen(false);
       resetForm();
       fetchUsers();
@@ -208,6 +241,53 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
     }
     setResettingEmail(null);
   };
+
+  const sendInvite = async (u: UserWithRole) => {
+    if (!u.email) { toast.error('No email address'); return; }
+    if (isPreviewMode) { toast.success('Invite sent (preview)'); return; }
+    setInvitingEmail(u.email);
+    try {
+      // Determine target role from the form role or current intended role
+      const targetRole = u.role || 'referral_partner';
+      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const { error: codeErr } = await supabase.from('invite_codes').insert({
+        broker_id: user!.id,
+        code,
+        label: `Invite for ${u.full_name || u.email}`,
+        max_uses: 1,
+        target_role: targetRole,
+      } as any);
+      if (codeErr) { toast.error('Failed to generate invite code'); setInvitingEmail(null); return; }
+
+      const registerUrl = `${window.location.origin}/register?code=${code}`;
+      const roleLabel = targetRole === 'broker_staff' ? 'an admin staff member' : targetRole === 'broker' ? 'a broker' : 'a referral partner';
+      const html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">You're Invited to Margin Finance</h2>
+          <p>Hi ${u.full_name || 'there'},</p>
+          <p>You've been invited to join <strong>Margin Finance</strong> as ${roleLabel}. Register to get started.</p>
+          <div style="margin: 24px 0;">
+            <a href="${registerUrl}" style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">
+              Register Now
+            </a>
+          </div>
+          <p style="color: #666; font-size: 14px;">Or copy this link: <a href="${registerUrl}">${registerUrl}</a></p>
+          <p style="color: #999; font-size: 12px; margin-top: 32px;">This invitation is for ${u.email} only.</p>
+        </div>
+      `;
+
+      const { error: emailErr } = await supabase.functions.invoke('send-email', {
+        body: { to: u.email, subject: "You're Invited to Margin Finance", html },
+      });
+      if (emailErr) { toast.error('Failed to send invite email'); setInvitingEmail(null); return; }
+      toast.success(`Invite sent to ${u.email}`);
+    } catch (err) {
+      console.error('sendInvite error:', err);
+      toast.error('Failed to send invite');
+    }
+    setInvitingEmail(null);
+  };
+
 
   const getRoleBadge = (role: string | null) => {
     switch (role) {
@@ -326,7 +406,23 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
                               </SelectContent>
                             </Select>
                           )}
-                          {u.email && u.user_id !== user?.id && (
+                          {u.email && !u.user_id && u.user_id !== user?.id && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 h-8"
+                              disabled={invitingEmail === u.email}
+                              onClick={() => sendInvite(u)}
+                            >
+                              {invitingEmail === u.email ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Send className="w-3 h-3" />
+                              )}
+                              Send Invite
+                            </Button>
+                          )}
+                          {u.email && u.user_id && u.user_id !== user?.id && (
                             <Button
                               variant="outline"
                               size="sm"
