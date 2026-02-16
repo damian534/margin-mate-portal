@@ -768,6 +768,7 @@ export default function AdminCRM() {
           const c = contacts.find(ct => ct.id === selectedLead.source_contact_id);
           return c ? `${c.first_name} ${c.last_name}` : null;
         })() : null}
+        contacts={contacts}
         isPreviewMode={isPreviewMode}
         onUpdateStatus={updateStatus}
         onUpdateCommission={updateCommission}

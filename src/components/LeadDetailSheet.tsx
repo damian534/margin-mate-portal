@@ -78,6 +78,12 @@ const LOAN_PURPOSE_OPTIONS = [
   { value: 'investment', label: 'Investment' },
 ];
 
+interface ContactOption {
+  id: string;
+  first_name: string;
+  last_name: string;
+}
+
 interface LeadDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -87,6 +93,7 @@ interface LeadDetailSheetProps {
   referrerName: string | null;
   referrerCompany: string | null;
   sourceContactName?: string | null;
+  contacts?: ContactOption[];
   isPreviewMode: boolean;
   onUpdateStatus: (leadId: string, status: string) => void;
   onUpdateCommission: (leadId: string, fields: Record<string, any>) => void;
@@ -120,7 +127,7 @@ function formatDatetimeLocal(d: Date) {
 
 export function LeadDetailSheet({
   open, onOpenChange, lead, statuses, leadSources = [], referrerName, referrerCompany, sourceContactName,
-  isPreviewMode, onUpdateStatus, onUpdateCommission, onDeleteLead, onLeadChange, onOpenContact, sampleNotes
+  contacts: contactsList = [], isPreviewMode, onUpdateStatus, onUpdateCommission, onDeleteLead, onLeadChange, onOpenContact, sampleNotes
 }: LeadDetailSheetProps) {
   const { user } = useAuth();
   const [notes, setNotes] = useState<Note[]>([]);
@@ -743,11 +750,48 @@ export function LeadDetailSheet({
               </Select>
             </div>
             <div className="flex-1">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Contact Card</Label>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                {lead.source === 'client_referral' || lead.source === 'existing_client' ? 'Referred From' : 'Contact Card'}
+              </Label>
               {lead.source_contact_id && onOpenContact ? (
-                <Button variant="outline" size="sm" className="mt-1 w-full gap-1.5" onClick={() => onOpenContact(lead.source_contact_id!)}>
-                  <Users className="w-3.5 h-3.5" /> View Contact
-                </Button>
+                <div className="flex items-center gap-1 mt-1">
+                  <Button variant="outline" size="sm" className="flex-1 gap-1.5" onClick={() => onOpenContact(lead.source_contact_id!)}>
+                    <Users className="w-3.5 h-3.5" /> View Contact
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-muted-foreground hover:text-destructive" title="Unlink contact"
+                    onClick={async () => {
+                      onLeadChange?.({ ...lead, source_contact_id: null });
+                      if (!isPreviewMode) {
+                        await supabase.from('leads').update({ source_contact_id: null } as any).eq('id', lead.id);
+                      }
+                      setSourceContactReferralCount(null);
+                      toast.success('Contact unlinked');
+                    }}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              ) : (lead.source === 'client_referral' || lead.source === 'existing_client') ? (
+                <Select
+                  value=""
+                  onValueChange={async (contactId) => {
+                    onLeadChange?.({ ...lead, source_contact_id: contactId });
+                    if (!isPreviewMode) {
+                      await supabase.from('leads').update({ source_contact_id: contactId } as any).eq('id', lead.id);
+                      // Refresh referral count
+                      const { count } = await supabase.from('leads').select('id', { count: 'exact', head: true }).eq('source_contact_id', contactId);
+                      setSourceContactReferralCount(count ?? 0);
+                    }
+                    toast.success('Contact linked');
+                  }}
+                >
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Select referring client" /></SelectTrigger>
+                  <SelectContent>
+                    {contactsList.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.first_name} {c.last_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               ) : (
                 <div className="mt-1 h-10 flex items-center">
                   <span className="text-sm text-muted-foreground">No linked contact</span>
