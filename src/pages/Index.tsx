@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToolVisibility } from '@/hooks/useToolVisibility';
 import { ArrowRight, Users, BarChart3, Bell, Shield, TrendingUp, ShieldCheck, ClipboardCheck, FileCheck2, CalendarClock, FileText, Calculator, Gauge, TrendingDown } from 'lucide-react';
 import { motion } from 'framer-motion';
-import marginIconTm from '@/assets/margin-icon-tm.png';
+
 
 export default function Index() {
   const navigate = useNavigate();
@@ -37,7 +37,7 @@ export default function Index() {
 
       {/* Hero */}
       <section className="relative overflow-hidden bg-background">
-        <img src={marginIconTm} alt="Margin Finance" className="absolute top-8 right-8 h-16 md:h-24 opacity-90" />
+        
         <div className="relative container py-24 lg:py-36 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}

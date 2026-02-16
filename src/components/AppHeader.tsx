@@ -18,7 +18,7 @@ export function AppHeader() {
             const suffix = isPreviewMode ? '?preview=true' : '';
             navigate(`/${suffix}`);
           }} className="flex items-center">
-            <Logo className="h-14" />
+            <Logo className="h-20" />
           </button>
           <nav className="flex items-center gap-3">
             {user ? (
