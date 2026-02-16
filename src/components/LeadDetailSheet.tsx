@@ -126,7 +126,7 @@ export function LeadDetailSheet({
   const [notes, setNotes] = useState<Note[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newNote, setNewNote] = useState('');
-  const [notifyPartner, setNotifyPartner] = useState(false);
+  const [notifyPartner, setNotifyPartner] = useState(!!lead?.referral_partner_id);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
@@ -166,6 +166,7 @@ export function LeadDetailSheet({
       setEditEmail(lead.email || '');
       setEditPhone(lead.phone || '');
       setContactDirty(false);
+      setNotifyPartner(!!lead.referral_partner_id);
     }
   }, [lead?.id, open]);
 
