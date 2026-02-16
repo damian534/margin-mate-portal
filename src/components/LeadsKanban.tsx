@@ -109,7 +109,7 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
   };
 
   return (
-    <div>
+    <div className="min-w-0 overflow-hidden">
       {/* Collapse/Expand All toggle */}
       <div className="flex justify-end mb-2">
         <Button
@@ -126,7 +126,7 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
         </Button>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-4" style={{ minHeight: '60vh' }}>
+      <div className="flex gap-3 pb-4 overflow-x-auto" style={{ minHeight: '60vh', minWidth: 0 }}>
         {statuses.map(status => {
           const columnLeads = leads.filter(l => l.status === status.name);
           const totalAmount = columnLeads.reduce((sum, l) => sum + (l.loan_amount || 0), 0);
