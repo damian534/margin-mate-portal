@@ -115,7 +115,7 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
 
       // Create a profile entry (no auth account yet — will link when they register)
       const { error: profileError } = await supabase.from('profiles').insert({
-        user_id: crypto.randomUUID(), // placeholder until they register
+        user_id: null,
         email: form.email.trim().toLowerCase(),
         full_name: form.fullName.trim(),
         broker_id: user?.id || null,
@@ -144,7 +144,11 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
     }
   };
 
-  const promoteToRole = async (userId: string, newRole: 'broker' | 'referral_partner') => {
+  const promoteToRole = async (userId: string | null, newRole: 'broker' | 'referral_partner' | 'broker_staff') => {
+    if (!userId) {
+      toast.error('This user hasn\'t registered yet — role will be assigned when they sign up');
+      return;
+    }
     if (isPreviewMode) {
       setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, role: newRole } : u));
       toast.success(`Role updated to ${newRole} (preview)`);
@@ -310,7 +314,7 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
                           {u.role !== 'super_admin' && u.user_id !== user?.id && (
                             <Select
                               value={u.role || ''}
-                              onValueChange={(v) => promoteToRole(u.user_id, v as 'broker' | 'referral_partner')}
+                              onValueChange={(v) => promoteToRole(u.user_id, v as 'broker' | 'referral_partner' | 'broker_staff')}
                             >
                               <SelectTrigger className="w-40 h-8">
                                 <SelectValue placeholder="Set role" />
