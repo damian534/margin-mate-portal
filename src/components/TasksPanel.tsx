@@ -58,7 +58,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCompleted, setShowCompleted] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
   const [dueFilter, setDueFilter] = useState<DueFilter>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
 
