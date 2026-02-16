@@ -140,6 +140,7 @@ export function LeadDetailSheet({
   const [editingName, setEditingName] = useState(false);
   const [editFirstName, setEditFirstName] = useState('');
   const [editLastName, setEditLastName] = useState('');
+  const [sourceContactReferralCount, setSourceContactReferralCount] = useState<number | null>(null);
 
   const startNameEdit = () => {
     setEditFirstName(lead.first_name);
@@ -167,6 +168,14 @@ export function LeadDetailSheet({
       setEditPhone(lead.phone || '');
       setContactDirty(false);
       setNotifyPartner(!!lead.referral_partner_id);
+      // Fetch referral count for source contact
+      if (lead.source_contact_id && !isPreviewMode) {
+        supabase.from('leads').select('id', { count: 'exact', head: true })
+          .eq('source_contact_id', lead.source_contact_id)
+          .then(({ count }) => setSourceContactReferralCount(count ?? 0));
+      } else {
+        setSourceContactReferralCount(null);
+      }
     }
   }, [lead?.id, open]);
 
@@ -519,12 +528,19 @@ export function LeadDetailSheet({
                   <p className="text-sm font-normal text-muted-foreground">{LOAN_PURPOSE_OPTIONS.find(o => o.value === lead.loan_purpose)?.label || lead.loan_purpose}</p>
                 )}
                 {lead.source_contact_id && onOpenContact && (
-                  <button 
-                    onClick={() => onOpenContact(lead.source_contact_id!)}
-                    className="text-xs text-primary hover:underline flex items-center gap-1 mt-0.5"
-                  >
-                    <Users className="w-3 h-3" /> View contact card
-                  </button>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <button 
+                      onClick={() => onOpenContact(lead.source_contact_id!)}
+                      className="text-xs text-primary hover:underline flex items-center gap-1"
+                    >
+                      <Users className="w-3 h-3" /> View contact card
+                    </button>
+                    {sourceContactReferralCount !== null && sourceContactReferralCount > 0 && (
+                      <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">
+                        {sourceContactReferralCount} referral{sourceContactReferralCount !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
             </SheetTitle>
