@@ -247,8 +247,20 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
     if (isPreviewMode) { toast.success('Invite sent (preview)'); return; }
     setInvitingEmail(u.email);
     try {
-      // Determine target role from the form role or current intended role
-      const targetRole = u.role || 'referral_partner';
+      // Determine target role: check existing invite codes for this user first, then fall back
+      let targetRole = u.role || 'referral_partner';
+      if (!u.role) {
+        const { data: existingCode } = await supabase
+          .from('invite_codes')
+          .select('target_role')
+          .ilike('label', `%${u.full_name || u.email}%`)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (existingCode?.target_role) {
+          targetRole = existingCode.target_role;
+        }
+      }
       const code = Math.random().toString(36).substring(2, 8).toUpperCase();
       const { error: codeErr } = await supabase.from('invite_codes').insert({
         broker_id: user!.id,
