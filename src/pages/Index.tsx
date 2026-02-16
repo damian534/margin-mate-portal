@@ -53,8 +53,7 @@ export default function Index() {
               <span className="text-primary">Connect</span>
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
-              The Margin Finance referral portal makes it simple to send us clients
-              and track every lead from submission to settlement.
+              Making every connection count
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               {user ? (
