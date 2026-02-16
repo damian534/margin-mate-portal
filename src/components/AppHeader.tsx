@@ -12,8 +12,8 @@ export function AppHeader() {
   return (
     <>
       <PreviewBanner />
-      <header className="border-b bg-card">
-        <div className="container flex items-center justify-between h-16">
+      <header className="border-b bg-card py-4">
+        <div className="container flex items-center justify-between">
           <button onClick={() => {
             const suffix = isPreviewMode ? '?preview=true' : '';
             navigate(`/${suffix}`);
