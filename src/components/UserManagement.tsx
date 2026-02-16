@@ -39,7 +39,7 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
   const [form, setForm] = useState({
     fullName: '',
     email: '',
-    role: 'referral_partner' as 'broker' | 'referral_partner',
+    role: 'referral_partner' as 'broker' | 'referral_partner' | 'broker_staff',
     companyId: '',
   });
 
@@ -130,7 +130,8 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
         return;
       }
 
-      toast.success(`${form.fullName.trim()} added as ${form.role === 'referral_partner' ? 'Referral Partner' : 'Broker'}`);
+      const roleLabel = form.role === 'referral_partner' ? 'Referral Partner' : form.role === 'broker_staff' ? 'Admin Staff' : 'Broker';
+      toast.success(`${form.fullName.trim()} added as ${roleLabel}`);
       setAddOpen(false);
       resetForm();
       fetchUsers();
@@ -243,15 +244,16 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
                 </div>
                 <div>
                   <Label className="text-xs">Role</Label>
-                  <Select value={form.role} onValueChange={(v) => setForm(f => ({ ...f, role: v as 'broker' | 'referral_partner' }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="referral_partner">Referral Partner</SelectItem>
-                      <SelectItem value="broker">Broker</SelectItem>
-                    </SelectContent>
-                  </Select>
+                   <Select value={form.role} onValueChange={(v) => setForm(f => ({ ...f, role: v as 'broker' | 'referral_partner' | 'broker_staff' }))}>
+                     <SelectTrigger><SelectValue /></SelectTrigger>
+                     <SelectContent>
+                       <SelectItem value="referral_partner">Referral Partner</SelectItem>
+                       <SelectItem value="broker">Broker</SelectItem>
+                       <SelectItem value="broker_staff">Admin Staff</SelectItem>
+                     </SelectContent>
+                   </Select>
                 </div>
-                {form.role === 'referral_partner' && (
+                {(form.role === 'referral_partner' || form.role === 'broker_staff') && (
                   <div>
                     <Label className="text-xs">Company</Label>
                     <Select value={form.companyId} onValueChange={(v) => setForm(f => ({ ...f, companyId: v }))}>
@@ -264,9 +266,9 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
                     </Select>
                   </div>
                 )}
-                <p className="text-xs text-muted-foreground">
-                  This creates a pre-registered profile. When they sign up with the same email, their account will automatically link.
-                </p>
+                 <p className="text-xs text-muted-foreground">
+                   This creates a pre-registered profile. Send them an invite code so they can register — their account will automatically link.
+                 </p>
                 <Button onClick={handleAddUser} disabled={saving || !form.fullName.trim() || !form.email.trim()} className="w-full">
                   {saving ? 'Adding...' : 'Add User'}
                 </Button>
