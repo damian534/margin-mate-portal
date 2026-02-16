@@ -33,35 +33,36 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [registerAs, setRegisterAs] = useState<'broker' | 'partner'>('partner');
   const [hasAnySuperAdmin, setHasAnySuperAdmin] = useState<boolean | null>(null);
+  const [inviteTargetRole, setInviteTargetRole] = useState<string | null>(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    // Check if any super_admin exists — if not, first user gets to register without a code
     supabase.rpc('has_any_super_admin')
       .then(({ data }) => setHasAnySuperAdmin(!!data));
 
     const code = searchParams.get('code');
     if (code) {
       setInviteCode(code);
-      setRegisterAs('partner'); // Invite links are for partners or staff — both need codes
+      setRegisterAs('partner');
       validateCode(code);
     }
   }, [searchParams]);
 
   const validateCode = async (code: string) => {
-    if (!code.trim()) { setCodeValid(null); return; }
+    if (!code.trim()) { setCodeValid(null); setInviteTargetRole(null); return; }
     const { data } = await supabase
       .from('invite_codes')
-      .select('id, is_active, max_uses, used_count, expires_at')
+      .select('id, is_active, max_uses, used_count, expires_at, target_role')
       .eq('code', code.trim())
       .eq('is_active', true)
       .maybeSingle();
     
-    if (!data) { setCodeValid(false); return; }
+    if (!data) { setCodeValid(false); setInviteTargetRole(null); return; }
     if (data.max_uses && data.used_count >= data.max_uses) { setCodeValid(false); return; }
     if (data.expires_at && new Date(data.expires_at) < new Date()) { setCodeValid(false); return; }
     setCodeValid(true);
+    setInviteTargetRole(data.target_role || null);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -114,33 +115,40 @@ export default function Register() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleRegister} className="space-y-4">
-            {/* Role selector */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => { setRegisterAs('broker'); setInviteCode(''); setCodeValid(null); }}
-                className={`rounded-lg border-2 p-3 text-center transition-all ${
-                  registerAs === 'broker'
-                    ? 'border-primary bg-primary/5 text-primary'
-                    : 'border-border text-muted-foreground hover:border-primary/40'
-                }`}
-              >
-                <Building2 className="w-5 h-5 mx-auto mb-1" />
-                <span className="text-sm font-medium">Broker</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setRegisterAs('partner')}
-                className={`rounded-lg border-2 p-3 text-center transition-all ${
-                  registerAs === 'partner'
-                    ? 'border-primary bg-primary/5 text-primary'
-                    : 'border-border text-muted-foreground hover:border-primary/40'
-                }`}
-              >
-                <Users className="w-5 h-5 mx-auto mb-1" />
-                <span className="text-sm font-medium">Referral Partner</span>
-              </button>
-            </div>
+            {/* Role selector — hidden when invite code determines role */}
+            {inviteTargetRole === 'broker_staff' ? (
+              <div className="rounded-lg border-2 border-primary bg-primary/5 p-3 text-center">
+                <Building2 className="w-5 h-5 mx-auto mb-1 text-primary" />
+                <span className="text-sm font-medium text-primary">Admin Staff</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setRegisterAs('broker'); setInviteCode(''); setCodeValid(null); setInviteTargetRole(null); }}
+                  className={`rounded-lg border-2 p-3 text-center transition-all ${
+                    registerAs === 'broker'
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-border text-muted-foreground hover:border-primary/40'
+                  }`}
+                >
+                  <Building2 className="w-5 h-5 mx-auto mb-1" />
+                  <span className="text-sm font-medium">Broker</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRegisterAs('partner')}
+                  className={`rounded-lg border-2 p-3 text-center transition-all ${
+                    registerAs === 'partner'
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-border text-muted-foreground hover:border-primary/40'
+                  }`}
+                >
+                  <Users className="w-5 h-5 mx-auto mb-1" />
+                  <span className="text-sm font-medium">Referral Partner</span>
+                </button>
+              </div>
+            )}
 
             {/* Invite code — only for partners when super admin exists */}
             {registerAs === 'partner' && hasAnySuperAdmin !== false && (
