@@ -28,7 +28,7 @@ import Settlements from "./pages/Settlements";
 
 const queryClient = new QueryClient();
 
-function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'broker' | 'referral_partner' | 'super_admin' | 'broker_or_admin' }) {
+function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'broker' | 'referral_partner' | 'super_admin' | 'broker_or_admin' | 'broker_staff' }) {
   const { user, role, loading, isBrokerOrAdmin, isPreviewMode } = useAuth();
   
   if (loading) {

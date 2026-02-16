@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -42,6 +43,7 @@ const CONTACT_TYPES = [
 ];
 
 export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openContactId, onContactOpened }: ContactsManagementProps) {
+  const { effectiveBrokerId } = useAuth();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [addOpen, setAddOpen] = useState(false);
@@ -99,6 +101,7 @@ export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openCon
       company: company.trim() || null,
       type,
       notes: notes.trim() || null,
+      created_by: effectiveBrokerId,
     } as any);
     if (error) { toast.error('Failed to add contact'); setSaving(false); return; }
     toast.success('Contact added');

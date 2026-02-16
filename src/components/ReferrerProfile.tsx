@@ -43,7 +43,7 @@ interface ReferrerProfilesProps {
 }
 
 export function ReferrerProfiles({ referrers, companies, onRefresh, isPreviewMode, onViewReport }: ReferrerProfilesProps) {
-  const { user } = useAuth();
+  const { user, effectiveBrokerId } = useAuth();
   const [selected, setSelected] = useState<ReferrerProfileData | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -80,7 +80,7 @@ export function ReferrerProfiles({ referrers, companies, onRefresh, isPreviewMod
       phone: newPartner.phone.trim() || null,
       company_id: newPartner.company_id || null,
       company_name: newPartner.company_id ? companies.find(c => c.id === newPartner.company_id)?.name || null : null,
-      broker_id: user?.id,
+      broker_id: effectiveBrokerId || user?.id,
     } as any);
     setAdding(false);
     if (error) {

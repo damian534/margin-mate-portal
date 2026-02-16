@@ -25,13 +25,13 @@ export interface ActivityTargets {
 }
 
 export function useBrokerActivity(selectedBrokerId?: string) {
-  const { user, role, isPreviewMode } = useAuth();
+  const { user, role, isPreviewMode, effectiveBrokerId: authBrokerId } = useAuth();
   const [activities, setActivities] = useState<BrokerActivity[]>([]);
   const [targets, setTargets] = useState<ActivityTargets | null>(null);
   const [loading, setLoading] = useState(true);
 
   const isSuperAdmin = role === 'super_admin';
-  const effectiveBrokerId = selectedBrokerId && isSuperAdmin ? selectedBrokerId : user?.id;
+  const effectiveBrokerId = selectedBrokerId && isSuperAdmin ? selectedBrokerId : authBrokerId;
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
@@ -113,7 +113,7 @@ export function useBrokerActivity(selectedBrokerId?: string) {
     }
     if (!user?.id) return;
 
-    const payload = { broker_id: user.id, activity_date: today, ...data };
+    const payload = { broker_id: effectiveBrokerId || user.id, activity_date: today, ...data };
     const { error } = await supabase
       .from('broker_activity')
       .upsert(payload as any, { onConflict: 'broker_id,activity_date' });

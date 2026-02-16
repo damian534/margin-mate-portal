@@ -88,7 +88,7 @@ interface LeadSource {
 
 
 export default function AdminCRM() {
-  const { user, isPreviewMode } = useAuth();
+  const { user, isPreviewMode, effectiveBrokerId } = useAuth();
   const { statuses, addStatus, updateStatus: updateLeadStatus, deleteStatus, reorderStatuses } = useLeadStatuses();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
@@ -317,7 +317,7 @@ export default function AdminCRM() {
       const srcContact = lead.source_contact_id ? contacts.find(ct => ct.id === lead.source_contact_id) : null;
       const contactName = srcContact ? `${srcContact.first_name} ${srcContact.last_name}`.trim() : null;
       const { error: settError } = await supabase.from('settlements').insert({
-        broker_id: user.id,
+        broker_id: effectiveBrokerId || user.id,
         client_name: `${lead.first_name} ${lead.last_name}`.trim(),
         settlement_date: new Date().toISOString().split('T')[0],
         loan_amount: lead.loan_amount || 0,

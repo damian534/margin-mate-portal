@@ -19,7 +19,7 @@ const APP_TYPES = [
 ];
 
 export function AddSettlementDialog({ onAdd }: Props) {
-  const { user } = useAuth();
+  const { user, effectiveBrokerId } = useAuth();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -39,7 +39,7 @@ export function AddSettlementDialog({ onAdd }: Props) {
     if (!form.client_name || !form.settlement_date || !form.loan_amount) return;
     setSubmitting(true);
     await onAdd({
-      broker_id: user?.id || '',
+      broker_id: effectiveBrokerId || user?.id || '',
       lending_assistant_id: null,
       client_name: form.client_name.trim(),
       settlement_date: form.settlement_date,
