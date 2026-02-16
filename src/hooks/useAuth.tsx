@@ -2,7 +2,7 @@ import { useState, useEffect, createContext, useContext, ReactNode, useRef } fro
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 
-type AppRole = 'broker' | 'referral_partner' | 'super_admin';
+type AppRole = 'broker' | 'referral_partner' | 'super_admin' | 'broker_staff';
 
 interface AuthContextType {
   user: User | null;
@@ -11,6 +11,8 @@ interface AuthContextType {
   loading: boolean;
   isPreviewMode: boolean;
   isBrokerOrAdmin: boolean;
+  isStaff: boolean;
+  effectiveBrokerId: string | null;
   signOut: () => Promise<void>;
   setPreviewRole: (role: AppRole) => void;
 }
@@ -22,6 +24,8 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   isPreviewMode: false,
   isBrokerOrAdmin: false,
+  isStaff: false,
+  effectiveBrokerId: null,
   signOut: async () => {},
   setPreviewRole: () => {},
 });
@@ -60,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isPreviewMode] = useState(getIsPreviewMode);
   const [previewRole, setPreviewRole] = useState<AppRole>('broker');
+  const [staffBrokerId, setStaffBrokerId] = useState<string | null>(null);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -72,7 +77,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     isMountedRef.current = true;
 
-    // Safety timeout
     const timeout = setTimeout(() => {
       if (isMountedRef.current) setLoading(false);
     }, 5000);
@@ -85,15 +89,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userRole = await fetchRole(newSession.user.id);
         if (isMountedRef.current) {
           setRole(userRole);
+          // If broker_staff, fetch their broker_id from profiles
+          if (userRole === 'broker_staff') {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('broker_id')
+              .eq('user_id', newSession.user.id)
+              .maybeSingle();
+            if (isMountedRef.current) {
+              setStaffBrokerId(profile?.broker_id ?? null);
+            }
+          } else {
+            setStaffBrokerId(null);
+          }
           setLoading(false);
         }
       } else {
         setRole(null);
+        setStaffBrokerId(null);
         setLoading(false);
       }
     };
 
-    // Set up listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
       handleSession(newSession);
     });
@@ -117,12 +134,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setSession(null);
     setRole(null);
+    setStaffBrokerId(null);
   };
 
-  const isBrokerOrAdmin = role === 'broker' || role === 'super_admin';
+  const isBrokerOrAdmin = role === 'broker' || role === 'super_admin' || role === 'broker_staff';
+  const isStaff = role === 'broker_staff';
+  // For broker_staff, use their linked broker's ID. For brokers/admins, use their own ID.
+  const effectiveBrokerId = isStaff ? staffBrokerId : (user?.id ?? null);
 
   return (
-    <AuthContext.Provider value={{ user, session, role, loading, isPreviewMode, isBrokerOrAdmin, signOut, setPreviewRole }}>
+    <AuthContext.Provider value={{ user, session, role, loading, isPreviewMode, isBrokerOrAdmin, isStaff, effectiveBrokerId, signOut, setPreviewRole }}>
       {children}
     </AuthContext.Provider>
   );

@@ -44,6 +44,7 @@ export default function Register() {
     const code = searchParams.get('code');
     if (code) {
       setInviteCode(code);
+      setRegisterAs('partner'); // Invite links are for partners or staff — both need codes
       validateCode(code);
     }
   }, [searchParams]);

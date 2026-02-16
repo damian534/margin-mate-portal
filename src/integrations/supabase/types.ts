@@ -174,6 +174,7 @@ export type Database = {
           is_active: boolean
           label: string | null
           max_uses: number | null
+          target_role: string | null
           used_count: number
         }
         Insert: {
@@ -185,6 +186,7 @@ export type Database = {
           is_active?: boolean
           label?: string | null
           max_uses?: number | null
+          target_role?: string | null
           used_count?: number
         }
         Update: {
@@ -196,6 +198,7 @@ export type Database = {
           is_active?: boolean
           label?: string | null
           max_uses?: number | null
+          target_role?: string | null
           used_count?: number
         }
         Relationships: []
@@ -674,6 +677,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_broker_or_staff: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {

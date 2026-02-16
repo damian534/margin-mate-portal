@@ -59,17 +59,19 @@ export function AppHeader() {
                       <Landmark className="w-4 h-4 mr-2" />
                       Settlements
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        const suffix = isPreviewMode ? '?preview=true' : '';
-                        navigate(`/admin/settings${suffix}`);
-                      }}
-                    >
-                      <Settings2 className="w-4 h-4 mr-2" />
-                      Settings
-                    </Button>
+                    {role !== 'broker_staff' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const suffix = isPreviewMode ? '?preview=true' : '';
+                          navigate(`/admin/settings${suffix}`);
+                        }}
+                      >
+                        <Settings2 className="w-4 h-4 mr-2" />
+                        Settings
+                      </Button>
+                    )}
                   </>
                 )}
                 {!isPreviewMode && (

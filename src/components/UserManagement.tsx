@@ -210,6 +210,8 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
         return <Badge variant="default" className="gap-1"><ShieldCheck className="w-3 h-3" /> Super Admin</Badge>;
       case 'broker':
         return <Badge variant="secondary" className="gap-1"><Shield className="w-3 h-3" /> Broker</Badge>;
+      case 'broker_staff':
+        return <Badge variant="secondary" className="gap-1"><Shield className="w-3 h-3" /> Staff</Badge>;
       case 'referral_partner':
         return <Badge variant="outline" className="gap-1">Partner</Badge>;
       default:
@@ -313,6 +315,7 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="broker">Broker</SelectItem>
+                                <SelectItem value="broker_staff">Staff</SelectItem>
                                 <SelectItem value="referral_partner">Partner</SelectItem>
                               </SelectContent>
                             </Select>

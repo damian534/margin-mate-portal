@@ -22,6 +22,7 @@ interface InviteCode {
   expires_at: string | null;
   is_active: boolean;
   created_at: string;
+  target_role: string;
 }
 
 export function InviteCodeManagement() {
@@ -31,12 +32,13 @@ export function InviteCodeManagement() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newLabel, setNewLabel] = useState('');
   const [newMaxUses, setNewMaxUses] = useState('');
+  const [newTargetRole, setNewTargetRole] = useState<'referral_partner' | 'broker_staff'>('referral_partner');
 
   useEffect(() => {
     if (isPreviewMode) {
       setCodes([
-        { id: '1', broker_id: 'preview', code: 'MARGIN-ABC123', label: 'General invite', used_count: 3, max_uses: null, expires_at: null, is_active: true, created_at: new Date().toISOString() },
-        { id: '2', broker_id: 'preview', code: 'MARGIN-XYZ789', label: 'RE Agency', used_count: 1, max_uses: 10, expires_at: null, is_active: true, created_at: new Date().toISOString() },
+        { id: '1', broker_id: 'preview', code: 'MARGIN-ABC123', label: 'General invite', used_count: 3, max_uses: null, expires_at: null, is_active: true, created_at: new Date().toISOString(), target_role: 'referral_partner' },
+        { id: '2', broker_id: 'preview', code: 'MARGIN-XYZ789', label: 'Admin Staff', used_count: 1, max_uses: 10, expires_at: null, is_active: true, created_at: new Date().toISOString(), target_role: 'broker_staff' },
       ]);
       setLoading(false);
       return;
@@ -65,11 +67,12 @@ export function InviteCodeManagement() {
     const code = generateCode();
 
     if (isPreviewMode) {
-      setCodes(prev => [{ id: `preview-${Date.now()}`, broker_id: user.id, code, label: newLabel || null, used_count: 0, max_uses: newMaxUses ? parseInt(newMaxUses) : null, expires_at: null, is_active: true, created_at: new Date().toISOString() }, ...prev]);
+      setCodes(prev => [{ id: `preview-${Date.now()}`, broker_id: user.id, code, label: newLabel || null, used_count: 0, max_uses: newMaxUses ? parseInt(newMaxUses) : null, expires_at: null, is_active: true, created_at: new Date().toISOString(), target_role: newTargetRole }, ...prev]);
       toast.success('Invite code created (preview)');
       setDialogOpen(false);
       setNewLabel('');
       setNewMaxUses('');
+      setNewTargetRole('referral_partner');
       return;
     }
 
@@ -78,13 +81,15 @@ export function InviteCodeManagement() {
       code,
       label: newLabel.trim() || null,
       max_uses: newMaxUses ? parseInt(newMaxUses) : null,
-    });
+      target_role: newTargetRole,
+    } as any);
 
     if (error) { toast.error('Failed to create invite code'); return; }
     toast.success('Invite code created!');
     setDialogOpen(false);
     setNewLabel('');
     setNewMaxUses('');
+    setNewTargetRole('referral_partner');
     fetchCodes();
   };
 
@@ -125,6 +130,38 @@ export function InviteCodeManagement() {
             </DialogHeader>
             <div className="space-y-4 mt-2">
               <div className="space-y-2">
+                <Label>Invite Type</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setNewTargetRole('referral_partner')}
+                    className={`rounded-lg border-2 p-2.5 text-center text-sm font-medium transition-all ${
+                      newTargetRole === 'referral_partner'
+                        ? 'border-primary bg-primary/5 text-primary'
+                        : 'border-border text-muted-foreground hover:border-primary/40'
+                    }`}
+                  >
+                    Referral Partner
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewTargetRole('broker_staff')}
+                    className={`rounded-lg border-2 p-2.5 text-center text-sm font-medium transition-all ${
+                      newTargetRole === 'broker_staff'
+                        ? 'border-primary bg-primary/5 text-primary'
+                        : 'border-border text-muted-foreground hover:border-primary/40'
+                    }`}
+                  >
+                    Admin Staff
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {newTargetRole === 'broker_staff'
+                    ? 'Staff get full CRM access under your account (no settings or invites)'
+                    : 'Partners can submit and track their referrals'}
+                </p>
+              </div>
+              <div className="space-y-2">
                 <Label>Label (optional)</Label>
                 <Input
                   value={newLabel}
@@ -157,6 +194,7 @@ export function InviteCodeManagement() {
             <TableHeader>
               <TableRow>
                 <TableHead>Code</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead>Label</TableHead>
                 <TableHead>Uses</TableHead>
                 <TableHead>Status</TableHead>
@@ -168,6 +206,11 @@ export function InviteCodeManagement() {
               {codes.map(code => (
                 <TableRow key={code.id}>
                   <TableCell className="font-mono font-medium">{code.code}</TableCell>
+                  <TableCell>
+                    <Badge variant={code.target_role === 'broker_staff' ? 'secondary' : 'outline'}>
+                      {code.target_role === 'broker_staff' ? 'Staff' : 'Partner'}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{code.label || '—'}</TableCell>
                   <TableCell>
                     {code.used_count}{code.max_uses ? ` / ${code.max_uses}` : ''}

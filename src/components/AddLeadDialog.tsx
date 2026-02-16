@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,6 +44,7 @@ interface AddLeadDialogProps {
 }
 
 export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode, onLeadAdded, onContactCreated }: AddLeadDialogProps) {
+  const { effectiveBrokerId } = useAuth();
   const [open, setOpen] = useState(false);
   const [source, setSource] = useState('direct_call');
   const [firstName, setFirstName] = useState('');
@@ -100,7 +102,8 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
       email: newContactEmail.trim() || null,
       phone: newContactPhone.trim() || null,
       type: 'client',
-    }).select('id').maybeSingle();
+      created_by: effectiveBrokerId,
+    } as any).select('id').maybeSingle();
     if (error) { toast.error('Failed to create contact'); return null; }
     onContactCreated?.();
     return data?.id || null;
@@ -132,7 +135,8 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
         email: email.trim() || null,
         phone: phone.trim() || null,
         type: 'client',
-      }).select('id').maybeSingle();
+        created_by: effectiveBrokerId,
+      } as any).select('id').maybeSingle();
       if (contactErr) {
         console.error('Failed to auto-create contact:', contactErr);
       } else {
@@ -152,6 +156,7 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
       referral_partner_id: needsReferrer ? (selectedReferrerId || null) : null,
       source_contact_id: sourceContactId,
       status: 'new',
+      broker_id: effectiveBrokerId,
     };
 
     if (isPreviewMode) {
