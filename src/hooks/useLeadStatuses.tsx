@@ -77,6 +77,13 @@ export function useLeadStatuses() {
       setStatuses(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
       return true;
     }
+    // If the name is changing, update all leads with the old name first
+    if (updates.name) {
+      const oldStatus = statuses.find(s => s.id === id);
+      if (oldStatus && oldStatus.name !== updates.name) {
+        await supabase.from('leads').update({ status: updates.name }).eq('status', oldStatus.name);
+      }
+    }
     const { error } = await supabase.from('lead_statuses').update(updates).eq('id', id);
     if (error) return false;
     await fetchStatuses();
