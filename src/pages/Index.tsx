@@ -2,15 +2,12 @@ import { AppHeader } from '@/components/AppHeader';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useToolVisibility } from '@/hooks/useToolVisibility';
-import { ArrowRight, Users, BarChart3, Bell, Shield, TrendingUp, ShieldCheck, ClipboardCheck, FileCheck2, CalendarClock, FileText, Calculator, Gauge, TrendingDown } from 'lucide-react';
+import { ArrowRight, Users, BarChart3, Bell, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
-
 
 export default function Index() {
   const navigate = useNavigate();
   const { user, role, isBrokerOrAdmin } = useAuth();
-  const { isToolEnabled } = useToolVisibility();
 
   const features = [
     { icon: Users, title: 'Easy Referrals', desc: 'Submit client leads in seconds with our simple form' },
@@ -19,25 +16,12 @@ export default function Index() {
     { icon: Shield, title: 'Secure Portal', desc: 'Your data is protected with enterprise-grade security' },
   ];
 
-  const tools = [
-    { id: 'sell-upgrade-simulator', name: 'Sell & Upgrade Timeline Simulator', desc: 'Model what happens if a vendor sells now vs waits. Includes equity, costs, growth and upgrade gap.', icon: TrendingUp, path: '/tools/sell-upgrade-simulator' },
-    { id: 'loan-repayment', name: 'Loan Repayment Calculator', desc: 'Enter loan amount, rate and term — see monthly, fortnightly and weekly repayments.', icon: Calculator, path: '/tools/loan-repayment' },
-    { id: 'borrowing-power', name: 'Borrowing Power Estimator', desc: 'Enter income, expenses and debts — get an estimate of max borrowing capacity.', icon: Gauge, path: '/tools/borrowing-power' },
-    { id: 'refinance-savings', name: 'Refinance Savings Calculator', desc: 'Compare current loan vs new rate to show potential savings.', icon: TrendingDown, path: '/tools/refinance-savings' },
-    { id: 'buyer-readiness', name: 'Buyer Readiness Risk Score', desc: 'Assess how prepared a buyer is to move forward with finance.', icon: ShieldCheck, path: '/tools/buyer-readiness' },
-    { id: 'auction-checklist', name: 'Auction Finance Checklist', desc: 'Ensure buyers have everything ready before auction day.', icon: ClipboardCheck, path: '/tools/auction-checklist' },
-    { id: 'private-sale-checklist', name: 'Private Sale Finance Checklist', desc: 'Step-by-step finance readiness for private sale transactions.', icon: FileCheck2, path: '/tools/private-sale-checklist' },
-    { id: 'pre-approval-tracker', name: 'Pre-Approval Expiry Tracker', desc: 'Track pre-approval dates and get alerts before they expire.', icon: CalendarClock, path: '/tools/pre-approval-tracker' },
-    { id: 'vendor-fallover', name: 'Vendor Finance Fallover Protection Pack', desc: 'Generate a PDF pack to protect vendors against finance fall-through.', icon: FileText, path: '/tools/vendor-fallover' },
-  ];
-
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
 
       {/* Hero */}
       <section className="relative overflow-hidden bg-background">
-        
         <div className="relative container py-24 lg:py-36 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -107,43 +91,6 @@ export default function Index() {
               </div>
               <h3 className="font-heading font-semibold mb-2">{f.title}</h3>
               <p className="text-sm text-muted-foreground">{f.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* Tools Section */}
-      <section className="container py-20">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-heading font-bold mb-3">Partner Tools</h2>
-          <p className="text-muted-foreground max-w-xl mx-auto">
-            Interactive calculators and resources to help you have better conversations with clients
-          </p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {tools.filter(tool => isToolEnabled(tool.id)).map((tool, i) => (
-            <motion.div
-              key={tool.id}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.3, delay: i * 0.05 }}
-              className="bg-card rounded-xl border p-6 flex flex-col hover:shadow-lg transition-shadow"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <tool.icon className="w-5 h-5 text-primary" />
-                </div>
-              </div>
-              <h3 className="font-heading font-semibold mb-1">{tool.name}</h3>
-              <p className="text-sm text-muted-foreground mb-4 flex-1">{tool.desc}</p>
-              <Button
-                size="sm"
-                className="w-full"
-                onClick={() => navigate(tool.path)}
-              >
-                Open Tool
-              </Button>
             </motion.div>
           ))}
         </div>
