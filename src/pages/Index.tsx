@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToolVisibility } from '@/hooks/useToolVisibility';
 import { ArrowRight, Users, BarChart3, Bell, Shield, TrendingUp, ShieldCheck, ClipboardCheck, FileCheck2, CalendarClock, FileText, Calculator, Gauge, TrendingDown } from 'lucide-react';
 import { motion } from 'framer-motion';
-import logoIcon from '@/assets/logo-icon.png';
+import marginIconTm from '@/assets/margin-icon-tm.png';
 
 export default function Index() {
   const navigate = useNavigate();
@@ -37,6 +37,7 @@ export default function Index() {
 
       {/* Hero */}
       <section className="relative overflow-hidden bg-background">
+        <img src={marginIconTm} alt="Margin Finance" className="absolute top-8 right-8 h-16 md:h-24 opacity-90" />
         <div className="relative container py-24 lg:py-36 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -47,9 +48,9 @@ export default function Index() {
               <Shield className="w-4 h-4" />
               Trusted Referral Partner Portal
             </div>
-            <h1 className="text-4xl md:text-6xl font-heading font-bold text-foreground mb-6 leading-tight">
-              Your Referrals,<br />
-              <span className="text-primary">Rewarded</span>
+            <h1 className="text-4xl md:text-6xl font-heading font-bold mb-6 leading-tight">
+              <span className="text-foreground">Margin</span>{' '}
+              <span className="text-primary">Connect</span>
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
               The Margin Finance referral portal makes it simple to send us clients
