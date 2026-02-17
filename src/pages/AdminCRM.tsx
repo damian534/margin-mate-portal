@@ -769,6 +769,7 @@ export default function AdminCRM() {
           return c ? `${c.first_name} ${c.last_name}` : null;
         })() : null}
         contacts={contacts}
+        referrers={referrers}
         isPreviewMode={isPreviewMode}
         onUpdateStatus={updateStatus}
         onUpdateCommission={updateCommission}
