@@ -649,9 +649,9 @@ export function LeadDetailSheet({
                 <span className="text-xs font-semibold uppercase tracking-wider text-foreground">Referral Partner</span>
               </div>
             </div>
-            {lead.referral_partner_id && referrerName ? (
-              <div className="p-3">
-                <div className="flex items-center gap-3">
+            <div className="p-3">
+              {lead.referral_partner_id && referrerName && (
+                <div className="flex items-center gap-3 mb-2">
                   <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
                     {referrerName.split(' ').map(n => n[0]).join('').slice(0, 2)}
                   </div>
@@ -675,55 +675,71 @@ export function LeadDetailSheet({
                     <X className="w-3.5 h-3.5" />
                   </Button>
                 </div>
-              </div>
-            ) : (
-              <div className="p-3">
-                <Popover open={partnerPickerOpen} onOpenChange={setPartnerPickerOpen}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start gap-2 text-muted-foreground font-normal h-9">
-                      <Search className="w-4 h-4 shrink-0" />
-                      <span>Search for referral partner...</span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[320px] p-0 bg-background border border-border shadow-lg z-[100]" align="start">
-                    <Command>
-                      <CommandInput placeholder="Type a name to search..." />
-                      <CommandList>
-                        <CommandEmpty>No partners found.</CommandEmpty>
-                        <CommandGroup>
-                          {referrersList.map(r => (
-                            <CommandItem
-                              key={r.id}
-                              value={`${r.full_name || ''} ${r.email || ''} ${r.company_name || ''}`}
-                              onSelect={async () => {
-                                setPartnerPickerOpen(false);
-                                const partnerId = r.user_id || r.id;
-                                onLeadChange?.({ ...lead, referral_partner_id: partnerId });
-                                if (!isPreviewMode) {
-                                  await supabase.from('leads').update({ referral_partner_id: partnerId } as any).eq('id', lead.id);
-                                }
-                                toast.success(`Linked to ${r.full_name || 'partner'}`);
-                              }}
-                              className="flex items-center gap-3 px-3 py-2.5 cursor-pointer"
-                            >
-                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
-                                {(r.full_name || '?').split(' ').map(n => n[0]).join('').slice(0, 2)}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">{r.full_name || 'Unknown'}</p>
-                                <p className="text-xs text-muted-foreground truncate">
-                                  {r.company_name || r.email || r.phone || 'No details'}
-                                </p>
-                              </div>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-            )}
+              )}
+              {lead.referral_partner_id && !referrerName && (
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-xs shrink-0">?</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-muted-foreground italic">Unknown partner</p>
+                  </div>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive" title="Remove partner"
+                    onClick={async () => {
+                      onLeadChange?.({ ...lead, referral_partner_id: null });
+                      if (!isPreviewMode) {
+                        await supabase.from('leads').update({ referral_partner_id: null } as any).eq('id', lead.id);
+                      }
+                      toast.success('Referral partner removed');
+                    }}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              )}
+              <Popover open={partnerPickerOpen} onOpenChange={setPartnerPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start gap-2 text-muted-foreground font-normal h-9">
+                    <Search className="w-4 h-4 shrink-0" />
+                    <span>{lead.referral_partner_id ? 'Change referral partner...' : 'Search for referral partner...'}</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[320px] p-0 bg-background border border-border shadow-lg z-[100]" align="start">
+                  <Command>
+                    <CommandInput placeholder="Type a name to search..." />
+                    <CommandList>
+                      <CommandEmpty>No partners found.</CommandEmpty>
+                      <CommandGroup>
+                        {referrersList.map(r => (
+                          <CommandItem
+                            key={r.id}
+                            value={`${r.full_name || ''} ${r.email || ''} ${r.company_name || ''}`}
+                            onSelect={async () => {
+                              setPartnerPickerOpen(false);
+                              const partnerId = r.user_id || r.id;
+                              onLeadChange?.({ ...lead, referral_partner_id: partnerId });
+                              if (!isPreviewMode) {
+                                await supabase.from('leads').update({ referral_partner_id: partnerId } as any).eq('id', lead.id);
+                              }
+                              toast.success(`Linked to ${r.full_name || 'partner'}`);
+                            }}
+                            className="flex items-center gap-3 px-3 py-2.5 cursor-pointer"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+                              {(r.full_name || '?').split(' ').map(n => n[0]).join('').slice(0, 2)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{r.full_name || 'Unknown'}</p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {r.company_name || r.email || r.phone || 'No details'}
+                              </p>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
           {/* Client referral banner */}
           {sourceContactName && !referrerName && (
