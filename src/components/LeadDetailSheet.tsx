@@ -21,8 +21,10 @@ import {
   Mail, Phone, Send, Trash2, Users, Building2, DollarSign,
   Calendar, Plus, CheckCircle, CheckCircle2, Clock, AlertTriangle,
   MessageSquare, Activity, ChevronDown, ChevronRight, Pencil, X, Save,
-  Search, UserPlus, ExternalLink, Award
+  Search, UserPlus, ExternalLink, Award, FileText, ClipboardList
 } from 'lucide-react';
+import { FactFindPanel } from '@/components/factfind/FactFindPanel';
+import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectionPanel';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
@@ -1018,14 +1020,20 @@ export function LeadDetailSheet({
 
           {/* Tabs: Timeline (Tasks + Activity), Commission */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full grid grid-cols-2">
-              <TabsTrigger value="timeline" className="gap-1.5 text-xs">
+            <TabsList className="w-full grid grid-cols-4">
+              <TabsTrigger value="timeline" className="gap-1 text-xs px-1.5">
                 <Activity className="w-3.5 h-3.5" /> Timeline
                 {pendingTasks.length > 0 && (
-                  <span className="ml-1 bg-primary/10 text-primary text-xs px-1.5 py-0.5 rounded-full">{pendingTasks.length}</span>
+                  <span className="ml-0.5 bg-primary/10 text-primary text-[10px] px-1 py-0.5 rounded-full">{pendingTasks.length}</span>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="commission" className="gap-1.5 text-xs">
+              <TabsTrigger value="factfind" className="gap-1 text-xs px-1.5">
+                <ClipboardList className="w-3.5 h-3.5" /> Fact Find
+              </TabsTrigger>
+              <TabsTrigger value="documents" className="gap-1 text-xs px-1.5">
+                <FileText className="w-3.5 h-3.5" /> Docs
+              </TabsTrigger>
+              <TabsTrigger value="commission" className="gap-1 text-xs px-1.5">
                 <DollarSign className="w-3.5 h-3.5" /> Commission
               </TabsTrigger>
             </TabsList>
@@ -1150,6 +1158,16 @@ export function LeadDetailSheet({
                   )}
                 </ScrollArea>
               </div>
+            </TabsContent>
+
+            {/* Fact Find Tab */}
+            <TabsContent value="factfind" className="mt-4">
+              <FactFindPanel leadId={lead.id} isPreviewMode={isPreviewMode} />
+            </TabsContent>
+
+            {/* Documents Tab */}
+            <TabsContent value="documents" className="mt-4">
+              <DocumentCollectionPanel leadId={lead.id} isPreviewMode={isPreviewMode} />
             </TabsContent>
 
             {/* Commission Tab */}
