@@ -25,7 +25,7 @@ import AuctionChecklist from "./pages/AuctionChecklist";
 import PrivateSaleChecklist from "./pages/PrivateSaleChecklist";
 import VendorFalloverPack from "./pages/VendorFalloverPack";
 import Settlements from "./pages/Settlements";
-
+import ClientPortal from "./pages/ClientPortal";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'broker' | 'referral_partner' | 'super_admin' | 'broker_or_admin' | 'broker_staff' }) {
@@ -144,6 +144,7 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/preview" element={<Preview />} />
+            <Route path="/client-portal/:token" element={<ClientPortal />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
