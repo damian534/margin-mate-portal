@@ -526,6 +526,7 @@ export type Database = {
           full_name: string | null
           id: string
           interests: string | null
+          is_director: boolean
           license_number: string | null
           phone: string | null
           spouse_name: string | null
@@ -545,6 +546,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           interests?: string | null
+          is_director?: boolean
           license_number?: string | null
           phone?: string | null
           spouse_name?: string | null
@@ -564,6 +566,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           interests?: string | null
+          is_director?: boolean
           license_number?: string | null
           phone?: string | null
           spouse_name?: string | null
@@ -806,6 +809,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_director_company_id: { Args: { _user_id: string }; Returns: string }
       get_my_broker_id: { Args: { _user_id: string }; Returns: string }
       has_any_super_admin: { Args: never; Returns: boolean }
       has_role: {

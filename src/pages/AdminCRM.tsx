@@ -10,6 +10,7 @@ import { TasksPanel } from '@/components/TasksPanel';
 import { LeadsKanban } from '@/components/LeadsKanban';
 import { StatusSettings } from '@/components/StatusSettings';
 import { CompanyManagement, Company } from '@/components/CompanyManagement';
+import { CompanyCRM } from '@/components/company/CompanyCRM';
 import { ReferrerProfiles, ReferrerProfileData } from '@/components/ReferrerProfile';
 import { ReferrerReports } from '@/components/ReferrerReports';
 import { AddLeadDialog } from '@/components/AddLeadDialog';
@@ -107,6 +108,7 @@ export default function AdminCRM() {
   const [taskDueFilter, setTaskDueFilter] = useState<TaskDueFilter>('all_leads');
   const [leadTasks, setLeadTasks] = useState<LeadTask[]>([]);
   const [openContactId, setOpenContactId] = useState<string | null>(null);
+  const [selectedCompanyCRM, setSelectedCompanyCRM] = useState<Company | null>(null);
 
   const defaultSources: LeadSource[] = [
     { id: 's1', name: 'referral_partner', label: 'Referral Partner', display_order: 1 },
@@ -726,7 +728,19 @@ export default function AdminCRM() {
           </TabsContent>
 
           <TabsContent value="companies" className="mt-4">
-            <CompanyManagement companies={companies} onRefresh={fetchCompanies} onRefreshContacts={fetchContacts} isPreviewMode={isPreviewMode} referrers={referrers} contacts={contacts} onOpenContact={(contactId) => { setSheetOpen(false); setActiveTab('contacts'); setTimeout(() => setOpenContactId(contactId), 300); }} />
+            {selectedCompanyCRM ? (
+              <CompanyCRM
+                company={selectedCompanyCRM}
+                leads={leads}
+                referrers={referrers}
+                contacts={contacts}
+                onBack={() => setSelectedCompanyCRM(null)}
+                onOpenLead={openLead}
+                isPreviewMode={isPreviewMode}
+              />
+            ) : (
+              <CompanyManagement companies={companies} onRefresh={fetchCompanies} onRefreshContacts={fetchContacts} isPreviewMode={isPreviewMode} referrers={referrers} contacts={contacts} onOpenContact={(contactId) => { setSheetOpen(false); setActiveTab('contacts'); setTimeout(() => setOpenContactId(contactId), 300); }} onOpenCompanyCRM={(company) => setSelectedCompanyCRM(company)} />
+            )}
           </TabsContent>
 
           <TabsContent value="referrers" className="mt-4">
