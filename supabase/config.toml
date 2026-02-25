@@ -2,3 +2,6 @@ project_id = "capydxuqpclcwadhwgvz"
 
 [functions.inbound-lead]
 verify_jwt = false
+
+[functions.company-leaderboard]
+verify_jwt = false

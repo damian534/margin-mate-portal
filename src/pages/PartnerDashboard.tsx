@@ -7,6 +7,7 @@ import { AppHeader } from '@/components/AppHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { LeadsKanban } from '@/components/LeadsKanban';
 import { CompanyCRM } from '@/components/company/CompanyCRM';
+import { AgentGamification } from '@/components/company/AgentGamification';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -14,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Eye, TrendingUp, Clock, CheckCircle, List, Columns, Crown } from 'lucide-react';
+import { Plus, Eye, TrendingUp, Clock, CheckCircle, List, Columns, Crown, Trophy } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface Lead {
@@ -41,6 +42,16 @@ interface Note {
   created_at: string;
 }
 
+interface LeaderboardEntry {
+  user_id: string;
+  name: string;
+  leads_count: number;
+  settled_count: number;
+  loan_volume: number;
+  score: number;
+  lead_dates: string[];
+}
+
 export default function PartnerDashboard() {
   const { user, isPreviewMode } = useAuth();
   const { statuses } = useLeadStatuses();
@@ -58,6 +69,13 @@ export default function PartnerDashboard() {
   const [directorReferrers, setDirectorReferrers] = useState<any[]>([]);
   const [directorLeads, setDirectorLeads] = useState<Lead[]>([]);
 
+  // Gamification state (for all agents in a company)
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [myRank, setMyRank] = useState<number | null>(null);
+  const [totalAgents, setTotalAgents] = useState(0);
+  const [companyName, setCompanyName] = useState<string | null>(null);
+  const [hasCompany, setHasCompany] = useState(false);
+
   useEffect(() => {
     if (isPreviewMode) {
       setLeads(SAMPLE_LEADS as unknown as Lead[]);
@@ -67,7 +85,28 @@ export default function PartnerDashboard() {
     if (!user) return;
     fetchLeads();
     checkDirectorStatus();
+    fetchLeaderboard();
   }, [user, isPreviewMode]);
+
+  const fetchLeaderboard = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase.functions.invoke('company-leaderboard');
+      if (error) {
+        console.error('Leaderboard fetch error:', error);
+        return;
+      }
+      if (data?.leaderboard?.length > 0) {
+        setLeaderboard(data.leaderboard);
+        setMyRank(data.myRank);
+        setTotalAgents(data.totalAgents);
+        setCompanyName(data.companyName);
+        setHasCompany(true);
+      }
+    } catch (err) {
+      console.error('Leaderboard error:', err);
+    }
+  };
 
   const checkDirectorStatus = async () => {
     if (!user) return;
@@ -80,18 +119,14 @@ export default function PartnerDashboard() {
     if (profile && (profile as any).is_director && (profile as any).company_id) {
       setIsDirector(true);
 
-      // Fetch the company record
       const { data: company } = await supabase
         .from('companies')
         .select('*')
         .eq('id', (profile as any).company_id)
         .maybeSingle();
 
-      if (company) {
-        setDirectorCompany(company);
-      }
+      if (company) setDirectorCompany(company);
 
-      // Fetch all profiles in same company (these are the referrers/agents)
       const { data: agents } = await supabase
         .from('profiles')
         .select('*')
@@ -99,7 +134,6 @@ export default function PartnerDashboard() {
 
       setDirectorReferrers(agents || []);
 
-      // Fetch all leads for company agents (director RLS policy allows this)
       const agentIds = (agents || []).filter((a: any) => a.user_id).map((a: any) => a.user_id);
       if (agentIds.length > 0) {
         const { data: cLeads } = await supabase
@@ -141,6 +175,10 @@ export default function PartnerDashboard() {
     settled: leads.filter(l => l.status === 'settled').length,
   };
 
+  const directorTabCount = isDirector && directorCompany ? 2 : 0;
+  const gamificationTabCount = hasCompany && !isDirector ? 1 : 0;
+  const totalTabs = 1 + directorTabCount + gamificationTabCount;
+
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
@@ -164,7 +202,7 @@ export default function PartnerDashboard() {
           </Button>
         </div>
 
-        {/* Stats - My leads always shown */}
+        {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card>
             <CardContent className="pt-6 flex items-center gap-4">
@@ -201,17 +239,16 @@ export default function PartnerDashboard() {
           </Card>
         </div>
 
+        {/* Director view */}
         {isDirector && directorCompany ? (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="my-leads">My Leads</TabsTrigger>
               <TabsTrigger value="company" className="gap-1.5"><Crown className="w-4 h-4" /> Company CRM</TabsTrigger>
             </TabsList>
-
             <TabsContent value="my-leads" className="mt-4">
               {renderMyLeads()}
             </TabsContent>
-
             <TabsContent value="company" className="mt-4">
               <CompanyCRM
                 company={directorCompany}
@@ -223,7 +260,28 @@ export default function PartnerDashboard() {
               />
             </TabsContent>
           </Tabs>
+        ) : hasCompany ? (
+          /* Regular agent with a company — show gamification tab */
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="my-leads">My Leads</TabsTrigger>
+              <TabsTrigger value="achievements" className="gap-1.5"><Trophy className="w-4 h-4" /> Achievements</TabsTrigger>
+            </TabsList>
+            <TabsContent value="my-leads" className="mt-4">
+              {renderMyLeads()}
+            </TabsContent>
+            <TabsContent value="achievements" className="mt-4">
+              <AgentGamification
+                leaderboard={leaderboard}
+                myRank={myRank}
+                totalAgents={totalAgents}
+                companyName={companyName}
+                currentUserId={user?.id || ''}
+              />
+            </TabsContent>
+          </Tabs>
         ) : (
+          /* No company — just leads */
           <>
             {renderLeadsHeader()}
             {renderLeadsContent()}
