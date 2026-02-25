@@ -6,17 +6,16 @@ import { SAMPLE_LEADS, SAMPLE_NOTES } from '@/lib/sample-data';
 import { AppHeader } from '@/components/AppHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { LeadsKanban } from '@/components/LeadsKanban';
-import { CompanyLeaderboard } from '@/components/company/CompanyLeaderboard';
+import { CompanyCRM } from '@/components/company/CompanyCRM';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Eye, TrendingUp, Clock, CheckCircle, List, Columns, Building2, Users, DollarSign, BarChart3, Crown } from 'lucide-react';
-import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { Plus, Eye, TrendingUp, Clock, CheckCircle, List, Columns, Crown } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface Lead {
   id: string;
@@ -27,24 +26,19 @@ interface Lead {
   loan_amount: number | null;
   loan_purpose: string | null;
   status: string;
-  source?: string | null;
+  source: string | null;
   created_at: string;
   referral_partner_id: string | null;
-  referrer_commission?: number | null;
-  referrer_commission_paid?: boolean | null;
+  referrer_commission: number | null;
+  referrer_commission_paid: boolean | null;
+  company_commission: number | null;
+  company_commission_paid: boolean | null;
 }
 
 interface Note {
   id: string;
   content: string;
   created_at: string;
-}
-
-interface CompanyAgent {
-  id: string;
-  user_id: string;
-  full_name: string | null;
-  email: string | null;
 }
 
 export default function PartnerDashboard() {
@@ -56,15 +50,17 @@ export default function PartnerDashboard() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [leadsView, setLeadsView] = useState<'table' | 'kanban'>('table');
-  const [isDirector, setIsDirector] = useState(false);
-  const [companyName, setCompanyName] = useState<string | null>(null);
-  const [companyAgents, setCompanyAgents] = useState<CompanyAgent[]>([]);
-  const [companyLeads, setCompanyLeads] = useState<Lead[]>([]);
   const [activeTab, setActiveTab] = useState('my-leads');
+
+  // Director state
+  const [isDirector, setIsDirector] = useState(false);
+  const [directorCompany, setDirectorCompany] = useState<any>(null);
+  const [directorReferrers, setDirectorReferrers] = useState<any[]>([]);
+  const [directorLeads, setDirectorLeads] = useState<Lead[]>([]);
 
   useEffect(() => {
     if (isPreviewMode) {
-      setLeads(SAMPLE_LEADS as Lead[]);
+      setLeads(SAMPLE_LEADS as unknown as Lead[]);
       setLoading(false);
       return;
     }
@@ -83,26 +79,35 @@ export default function PartnerDashboard() {
 
     if (profile && (profile as any).is_director && (profile as any).company_id) {
       setIsDirector(true);
-      setCompanyName((profile as any).company_name || 'My Company');
 
-      // Fetch all agents in same company
+      // Fetch the company record
+      const { data: company } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('id', (profile as any).company_id)
+        .maybeSingle();
+
+      if (company) {
+        setDirectorCompany(company);
+      }
+
+      // Fetch all profiles in same company (these are the referrers/agents)
       const { data: agents } = await supabase
         .from('profiles')
-        .select('id, user_id, full_name, email')
+        .select('*')
         .eq('company_id', (profile as any).company_id);
 
-      const agentsList = (agents || []).filter(a => a.user_id) as CompanyAgent[];
-      setCompanyAgents(agentsList);
+      setDirectorReferrers(agents || []);
 
       // Fetch all leads for company agents (director RLS policy allows this)
-      const agentIds = agentsList.map(a => a.user_id).filter(Boolean);
+      const agentIds = (agents || []).filter((a: any) => a.user_id).map((a: any) => a.user_id);
       if (agentIds.length > 0) {
         const { data: cLeads } = await supabase
           .from('leads')
           .select('*')
           .in('referral_partner_id', agentIds)
           .order('created_at', { ascending: false });
-        setCompanyLeads((cLeads as Lead[]) || []);
+        setDirectorLeads((cLeads as Lead[]) || []);
       }
     }
   };
@@ -130,48 +135,10 @@ export default function PartnerDashboard() {
     setNotes((data as Note[]) || []);
   };
 
-  const openLead = (lead: Lead) => {
-    setSelectedLead(lead);
-    fetchNotes(lead.id);
-  };
-
   const stats = {
     total: leads.length,
     active: leads.filter(l => !['settled', 'lost'].includes(l.status)).length,
     settled: leads.filter(l => l.status === 'settled').length,
-  };
-
-  const companyStats = useMemo(() => ({
-    total: companyLeads.length,
-    active: companyLeads.filter(l => !['settled', 'lost'].includes(l.status)).length,
-    settled: companyLeads.filter(l => l.status === 'settled').length,
-    volume: companyLeads.filter(l => l.status === 'settled').reduce((s, l) => s + (l.loan_amount || 0), 0),
-  }), [companyLeads]);
-
-  // Status breakdown for company
-  const companyStatusBreakdown = useMemo(() => {
-    const counts: Record<string, number> = {};
-    companyLeads.forEach(l => { counts[l.status] = (counts[l.status] || 0) + 1; });
-    return statuses.map(s => ({ name: s.label, value: counts[s.name] || 0, color: s.color })).filter(s => s.value > 0);
-  }, [companyLeads, statuses]);
-
-  // Monthly trends for company
-  const companyMonthlyTrends = useMemo(() => {
-    const months = [];
-    for (let i = 5; i >= 0; i--) {
-      const date = subMonths(new Date(), i);
-      const s = startOfMonth(date);
-      const e = endOfMonth(date);
-      const ml = companyLeads.filter(l => isWithinInterval(new Date(l.created_at), { start: s, end: e }));
-      months.push({ month: format(date, 'MMM'), leads: ml.length, settled: ml.filter(l => l.status === 'settled').length });
-    }
-    return months;
-  }, [companyLeads]);
-
-  const getAgentName = (partnerId: string | null) => {
-    if (!partnerId) return '—';
-    const agent = companyAgents.find(a => a.user_id === partnerId);
-    return agent?.full_name || '—';
   };
 
   return (
@@ -181,15 +148,15 @@ export default function PartnerDashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-heading font-bold">
-              {isDirector ? (
+              {isDirector && directorCompany ? (
                 <span className="flex items-center gap-2">
                   <Crown className="w-7 h-7 text-primary" />
-                  {companyName} Dashboard
+                  {directorCompany.name} Dashboard
                 </span>
               ) : 'My Referrals'}
             </h1>
             <p className="text-muted-foreground">
-              {isDirector ? 'Director view — see all agent activity' : 'Track all your submitted leads'}
+              {isDirector ? 'Director view — full company CRM' : 'Track all your submitted leads'}
             </p>
           </div>
           <Button onClick={() => navigate('/submit-referral')}>
@@ -234,123 +201,26 @@ export default function PartnerDashboard() {
           </Card>
         </div>
 
-        {isDirector ? (
+        {isDirector && directorCompany ? (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="my-leads">My Leads</TabsTrigger>
-              <TabsTrigger value="company" className="gap-1.5"><Building2 className="w-4 h-4" /> Company</TabsTrigger>
-              <TabsTrigger value="leaderboard" className="gap-1.5"><TrendingUp className="w-4 h-4" /> Leaderboard</TabsTrigger>
+              <TabsTrigger value="company" className="gap-1.5"><Crown className="w-4 h-4" /> Company CRM</TabsTrigger>
             </TabsList>
 
             <TabsContent value="my-leads" className="mt-4">
               {renderMyLeads()}
             </TabsContent>
 
-            <TabsContent value="company" className="space-y-6 mt-4">
-              {/* Company KPIs */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {[
-                  { label: 'Agents', value: companyAgents.length, icon: Users },
-                  { label: 'Total Leads', value: companyStats.total, icon: TrendingUp },
-                  { label: 'Settled', value: companyStats.settled, icon: CheckCircle },
-                  { label: 'Volume', value: `$${companyStats.volume.toLocaleString()}`, icon: DollarSign },
-                ].map(s => (
-                  <Card key={s.label}>
-                    <CardContent className="pt-5 pb-4 flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <s.icon className="w-4 h-4 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-xl font-bold">{s.value}</p>
-                        <p className="text-xs text-muted-foreground">{s.label}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              {/* Charts */}
-              <div className="grid lg:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader><CardTitle className="text-base">Monthly Activity</CardTitle></CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={240}>
-                      <BarChart data={companyMonthlyTrends}>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                        <XAxis dataKey="month" className="text-xs" />
-                        <YAxis className="text-xs" />
-                        <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius)' }} />
-                        <Bar dataKey="leads" name="Leads" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="settled" name="Settled" fill="hsl(142, 76%, 36%)" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader><CardTitle className="text-base">Pipeline Status</CardTitle></CardHeader>
-                  <CardContent>
-                    {companyStatusBreakdown.length === 0 ? (
-                      <p className="text-muted-foreground text-center py-12">No leads</p>
-                    ) : (
-                      <div className="flex items-center gap-6">
-                        <ResponsiveContainer width="50%" height={200}>
-                          <PieChart>
-                            <Pie data={companyStatusBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} strokeWidth={2}>
-                              {companyStatusBreakdown.map((entry, idx) => <Cell key={idx} fill={entry.color} />)}
-                            </Pie>
-                            <Tooltip />
-                          </PieChart>
-                        </ResponsiveContainer>
-                        <div className="space-y-2 flex-1">
-                          {companyStatusBreakdown.map(s => (
-                            <div key={s.name} className="flex items-center gap-2 text-sm">
-                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color }} />
-                              <span className="flex-1">{s.name}</span>
-                              <span className="font-medium">{s.value}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* All company leads table */}
-              <Card>
-                <CardHeader><CardTitle className="text-base">All Company Leads ({companyLeads.length})</CardTitle></CardHeader>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Client</TableHead>
-                        <TableHead>Agent</TableHead>
-                        <TableHead>Purpose</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Date</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {companyLeads.map(lead => (
-                        <TableRow key={lead.id}>
-                          <TableCell className="font-medium">{lead.first_name} {lead.last_name}</TableCell>
-                          <TableCell className="text-sm">{getAgentName(lead.referral_partner_id || null)}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{lead.loan_purpose || '—'}</TableCell>
-                          <TableCell>{lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '—'}</TableCell>
-                          <TableCell><StatusBadge status={lead.status} /></TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{format(new Date(lead.created_at), 'dd MMM yyyy')}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="leaderboard" className="mt-4">
-              <CompanyLeaderboard leads={companyLeads} agents={companyAgents} />
+            <TabsContent value="company" className="mt-4">
+              <CompanyCRM
+                company={directorCompany}
+                leads={directorLeads}
+                referrers={directorReferrers}
+                contacts={[]}
+                onBack={() => setActiveTab('my-leads')}
+                isPreviewMode={isPreviewMode}
+              />
             </TabsContent>
           </Tabs>
         ) : (
