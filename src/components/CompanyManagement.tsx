@@ -38,6 +38,7 @@ interface CompanyManagementProps {
   onRefreshContacts?: () => void;
   isPreviewMode?: boolean;
   onOpenContact?: (contactId: string) => void;
+  onOpenCompanyCRM?: (company: Company) => void;
   referrers?: Array<{
     id: string;
     user_id: string;
@@ -58,7 +59,7 @@ interface CompanyManagementProps {
   }>;
 }
 
-export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isPreviewMode, onOpenContact, referrers = [], contacts = [] }: CompanyManagementProps) {
+export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isPreviewMode, onOpenContact, onOpenCompanyCRM, referrers = [], contacts = [] }: CompanyManagementProps) {
   const { user } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Company | null>(null);
@@ -258,7 +259,7 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
                 {companies.map(c => {
                   const agentCount = getCompanyAgents(c).length;
                   return (
-                    <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openCompany(c)}>
+                    <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => onOpenCompanyCRM ? onOpenCompanyCRM(c) : openCompany(c)}>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
