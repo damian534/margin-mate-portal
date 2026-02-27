@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   ArrowLeft, Wallet, Target, TrendingUp, PiggyBank, Sparkles,
   Building, Home, User, Users, Calculator, DollarSign, Building2,
-  Settings2, Info, Calendar, ArrowDown, ArrowUp,
+  Settings2, Info, Calendar, ArrowDown, ArrowUp, Loader2, Eye, Download,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { NGInputField } from "@/components/negative-gearing/NGInputField";
@@ -22,6 +22,12 @@ import { calculateMarginalTaxRate, calculateTaxPayable } from "@/lib/negative-ge
 import { calculateDepreciation, estimateConstructionCost, getDepreciationDescription } from "@/lib/negative-gearing/depreciation";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { SuburbSearchInput } from "@/components/negative-gearing/SuburbSearchInput";
+import { SuburbAnalysisCard } from "@/components/negative-gearing/SuburbAnalysisCard";
+import { SuburbReportModal } from "@/components/negative-gearing/SuburbReportModal";
+import { SuburbAnalysis, analyzeSuburbGrowth } from "@/lib/suburbAnalysis";
+import { generateSuburbReportPdf } from "@/lib/pdf/suburbReportPdf";
+import { toast } from "sonner";
 
 // ─── Result Card ───
 function ResultCard({ title, value, subtitle, icon, variant = "default", size = "default" }: {
@@ -154,6 +160,33 @@ export default function NegativeGearingCalculator() {
   // Growth
   const [growthRate, setGrowthRate] = useState(6);
   const [projectionPeriod, setProjectionPeriod] = useState(10);
+  const [growthRateSource, setGrowthRateSource] = useState<'manual' | 'suburb'>('manual');
+  const [selectedSuburb, setSelectedSuburb] = useState("");
+  const [suburbState, setSuburbState] = useState<string>("VIC");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [suburbAnalysis, setSuburbAnalysis] = useState<SuburbAnalysis | null>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
+
+  const handleSuburbChange = (suburb: string, st: string) => { setSelectedSuburb(suburb); setSuburbState(st); setSuburbAnalysis(null); };
+
+  const handleAnalyzeSuburb = async () => {
+    if (!selectedSuburb || selectedSuburb.length < 2) { toast.error("Please enter a suburb name to analyse."); return; }
+    setIsAnalyzing(true); setSuburbAnalysis(null);
+    try {
+      const result = await analyzeSuburbGrowth(selectedSuburb, suburbState, projectionPeriod);
+      if (result.success && result.data) { setSuburbAnalysis(result.data); toast.success(`Growth analysis for ${selectedSuburb}, ${suburbState} is ready.`); }
+      else { toast.error(result.error || "Unable to analyse this suburb."); }
+    } catch { toast.error("Failed to connect to analysis service."); }
+    finally { setIsAnalyzing(false); }
+  };
+
+  const handleApplyRate = (rate: number) => { setGrowthRate(rate); toast.success(`Set annual growth rate to ${rate.toFixed(1)}%`); };
+
+  const handleDownloadSuburbPDF = async () => {
+    if (!suburbAnalysis) return;
+    await generateSuburbReportPdf({ analysis: suburbAnalysis, projectionPeriod });
+    toast.success(`Suburb report for ${suburbAnalysis.suburb} saved.`);
+  };
 
   // Computed
   const stampDuty = useMemo(() => calculateStampDuty(purchasePrice, state), [purchasePrice, state]);
@@ -271,7 +304,52 @@ export default function NegativeGearingCalculator() {
 
             {/* Growth Tab */}
             <TabsContent value="growth" className="m-0 p-4 sm:p-6 space-y-4">
-              <NGInputField label="Annual Growth Rate" id="growth-rate" value={growthRate} onChange={setGrowthRate} suffix="% p.a." max={20} step={0.5} helperText="Historical Australian average: 6-7% p.a." />
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-foreground">Rate Source</Label>
+                <Tabs value={growthRateSource} onValueChange={(v) => setGrowthRateSource(v as 'manual' | 'suburb')} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="suburb" className="flex items-center gap-1"><Sparkles className="h-3.5 w-3.5" />Suburb Finder</TabsTrigger>
+                    <TabsTrigger value="manual">Manual</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+
+              {growthRateSource === 'suburb' && (
+                <div className="space-y-4 p-4 bg-primary/5 rounded-lg border border-primary/20 overflow-visible">
+                  <div className="flex items-center gap-2 mb-2"><Sparkles className="h-4 w-4 text-primary" /><p className="text-sm font-medium text-foreground">AI Suburb Growth Analysis</p></div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 overflow-visible">
+                    <div className="md:col-span-2 overflow-visible">
+                      <SuburbSearchInput value={selectedSuburb} selectedState={suburbState} onChange={handleSuburbChange} isLoading={isAnalyzing} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-foreground">State</Label>
+                      <Select value={suburbState} onValueChange={setSuburbState}>
+                        <SelectTrigger className="h-11 rounded-lg"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {['NSW','VIC','QLD','SA','WA','TAS','NT','ACT'].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <Button onClick={handleAnalyzeSuburb} disabled={isAnalyzing || !selectedSuburb} className="w-full">
+                    {isAnalyzing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Analysing {selectedSuburb}...</> : <><Sparkles className="mr-2 h-4 w-4" />Analyse Suburb Growth</>}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">Search for historical property data, market trends, and get a detailed suburb report with recommended growth rate.</p>
+                  {suburbAnalysis && (
+                    <div className="space-y-4">
+                      <SuburbAnalysisCard analysis={suburbAnalysis} onApplyRate={handleApplyRate} />
+                      <div className="grid grid-cols-2 gap-3">
+                        <Button onClick={() => setShowReportModal(true)} className="w-full"><Eye className="mr-2 h-4 w-4" />View Full Report</Button>
+                        <Button onClick={handleDownloadSuburbPDF} variant="outline" className="w-full"><Download className="mr-2 h-4 w-4" />Download PDF</Button>
+                      </div>
+                      <SuburbReportModal open={showReportModal} onOpenChange={setShowReportModal} analysis={suburbAnalysis} projectionPeriod={projectionPeriod} onApplyRate={(rate) => { handleApplyRate(rate); setShowReportModal(false); }} onDownloadPDF={handleDownloadSuburbPDF} />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <NGInputField label="Annual Growth Rate" id="growth-rate" value={growthRate} onChange={setGrowthRate} suffix="% p.a." max={20} step={0.5}
+                helperText={growthRateSource === 'manual' ? "Historical Australian average: 6-7% p.a." : suburbAnalysis ? `Recommended: ${suburbAnalysis.recommendedGrowthRate.toFixed(1)}% p.a.` : "Adjust if needed based on your research"} />
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Projection Period</Label>
                 <Select value={projectionPeriod.toString()} onValueChange={(v) => setProjectionPeriod(parseInt(v))}>
