@@ -24,6 +24,7 @@ import PreApprovalTracker from "./pages/PreApprovalTracker";
 import AuctionChecklist from "./pages/AuctionChecklist";
 import PrivateSaleChecklist from "./pages/PrivateSaleChecklist";
 import VendorFalloverPack from "./pages/VendorFalloverPack";
+import StampDutyCalculator from "./pages/StampDutyCalculator";
 import Settlements from "./pages/Settlements";
 import ClientPortal from "./pages/ClientPortal";
 const queryClient = new QueryClient();
@@ -141,6 +142,11 @@ const App = () => (
             <Route path="/tools/vendor-fallover" element={
               <ProtectedRoute>
                 <VendorFalloverPack />
+              </ProtectedRoute>
+            } />
+            <Route path="/tools/stamp-duty" element={
+              <ProtectedRoute>
+                <StampDutyCalculator />
               </ProtectedRoute>
             } />
             <Route path="/preview" element={<Preview />} />
