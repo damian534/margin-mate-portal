@@ -18,6 +18,7 @@ import {
   Gauge,
   TrendingDown,
   Settings,
+  Landmark,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -31,6 +32,7 @@ const tools = [
   { id: 'private-sale-checklist', name: 'Private Sale Finance Checklist', description: 'Step-by-step finance readiness for private sale transactions.', icon: FileCheck2, path: '/tools/private-sale-checklist' },
   { id: 'pre-approval-tracker', name: 'Pre-Approval Expiry Tracker', description: 'Track pre-approval dates and get alerts before they expire.', icon: CalendarClock, path: '/tools/pre-approval-tracker' },
   { id: 'vendor-fallover', name: 'Vendor Finance Fallover Protection Pack', description: 'Generate a PDF pack to protect vendors against finance fall-through.', icon: FileText, path: '/tools/vendor-fallover' },
+  { id: 'stamp-duty', name: 'Stamp Duty Calculator', description: 'Estimate stamp duty across all Australian states with first home buyer concessions.', icon: Landmark, path: '/tools/stamp-duty' },
 ];
 
 export default function Tools() {
