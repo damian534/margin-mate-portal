@@ -17,13 +17,6 @@ import Preview from "./pages/Preview";
 import Tools from "./pages/Tools";
 import SellUpgradeSimulator from "./pages/SellUpgradeSimulator";
 import LoanRepaymentCalculator from "./pages/LoanRepaymentCalculator";
-import BorrowingPowerEstimator from "./pages/BorrowingPowerEstimator";
-import RefinanceSavingsCalculator from "./pages/RefinanceSavingsCalculator";
-import BuyerReadinessScore from "./pages/BuyerReadinessScore";
-import PreApprovalTracker from "./pages/PreApprovalTracker";
-import AuctionChecklist from "./pages/AuctionChecklist";
-import PrivateSaleChecklist from "./pages/PrivateSaleChecklist";
-import VendorFalloverPack from "./pages/VendorFalloverPack";
 import StampDutyCalculator from "./pages/StampDutyCalculator";
 import NegativeGearingCalculator from "./pages/NegativeGearingCalculator";
 import Settlements from "./pages/Settlements";
@@ -108,41 +101,6 @@ const App = () => (
             <Route path="/tools/loan-repayment" element={
               <ProtectedRoute>
                 <LoanRepaymentCalculator />
-              </ProtectedRoute>
-            } />
-            <Route path="/tools/borrowing-power" element={
-              <ProtectedRoute>
-                <BorrowingPowerEstimator />
-              </ProtectedRoute>
-            } />
-            <Route path="/tools/refinance-savings" element={
-              <ProtectedRoute>
-                <RefinanceSavingsCalculator />
-              </ProtectedRoute>
-            } />
-            <Route path="/tools/buyer-readiness" element={
-              <ProtectedRoute>
-                <BuyerReadinessScore />
-              </ProtectedRoute>
-            } />
-            <Route path="/tools/pre-approval-tracker" element={
-              <ProtectedRoute>
-                <PreApprovalTracker />
-              </ProtectedRoute>
-            } />
-            <Route path="/tools/auction-checklist" element={
-              <ProtectedRoute>
-                <AuctionChecklist />
-              </ProtectedRoute>
-            } />
-            <Route path="/tools/private-sale-checklist" element={
-              <ProtectedRoute>
-                <PrivateSaleChecklist />
-              </ProtectedRoute>
-            } />
-            <Route path="/tools/vendor-fallover" element={
-              <ProtectedRoute>
-                <VendorFalloverPack />
               </ProtectedRoute>
             } />
             <Route path="/tools/stamp-duty" element={
