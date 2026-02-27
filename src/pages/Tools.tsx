@@ -12,6 +12,7 @@ import {
   Calculator,
   Settings,
   Landmark,
+  Briefcase,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -20,6 +21,7 @@ const tools = [
   { id: 'loan-repayment', name: 'Loan Repayment Calculator', description: 'Enter loan amount, rate and term — see monthly, fortnightly and weekly repayments plus total interest.', icon: Calculator, path: '/tools/loan-repayment' },
   { id: 'stamp-duty', name: 'Stamp Duty Calculator', description: 'Estimate stamp duty across all Australian states with first home buyer concessions.', icon: Landmark, path: '/tools/stamp-duty' },
   { id: 'negative-gearing', name: 'Investment Property Calculator', description: 'Negative gearing tax benefits, cashflow analysis, depreciation, and long-term equity projections.', icon: TrendingUp, path: '/tools/negative-gearing', brokerOnly: true },
+  { id: 'portfolio-advisor', name: 'Portfolio Advisor', description: 'Multi-property portfolio analysis with CGT, hold vs sell scenarios, and combined projections.', icon: Briefcase, path: '/tools/portfolio-advisor', brokerOnly: true },
 ];
 
 export default function Tools() {
