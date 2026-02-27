@@ -21,6 +21,7 @@ import StampDutyCalculator from "./pages/StampDutyCalculator";
 import NegativeGearingCalculator from "./pages/NegativeGearingCalculator";
 import Settlements from "./pages/Settlements";
 import ClientPortal from "./pages/ClientPortal";
+import PortfolioAdvisor from "./pages/PortfolioAdvisor";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'broker' | 'referral_partner' | 'super_admin' | 'broker_or_admin' | 'broker_staff' }) {
@@ -111,6 +112,11 @@ const App = () => (
             <Route path="/tools/negative-gearing" element={
               <ProtectedRoute requiredRole="broker_or_admin">
                 <NegativeGearingCalculator />
+              </ProtectedRoute>
+            } />
+            <Route path="/tools/portfolio-advisor" element={
+              <ProtectedRoute requiredRole="broker_or_admin">
+                <PortfolioAdvisor />
               </ProtectedRoute>
             } />
             <Route path="/preview" element={<Preview />} />
