@@ -9,14 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToolVisibility } from '@/hooks/useToolVisibility';
 import {
   TrendingUp,
-  ShieldCheck,
-  ClipboardCheck,
-  FileCheck2,
-  CalendarClock,
-  FileText,
   Calculator,
-  Gauge,
-  TrendingDown,
   Settings,
   Landmark,
 } from 'lucide-react';
@@ -25,13 +18,6 @@ import { useState } from 'react';
 const tools = [
   { id: 'sell-upgrade-simulator', name: 'Sell & Upgrade Timeline Simulator', description: 'Model what happens if a vendor sells now vs waits. Includes equity, costs, growth and upgrade gap.', icon: TrendingUp, path: '/tools/sell-upgrade-simulator' },
   { id: 'loan-repayment', name: 'Loan Repayment Calculator', description: 'Enter loan amount, rate and term — see monthly, fortnightly and weekly repayments plus total interest.', icon: Calculator, path: '/tools/loan-repayment' },
-  { id: 'borrowing-power', name: 'Borrowing Power Estimator', description: 'Enter income, expenses and debts — get an estimate of maximum borrowing capacity.', icon: Gauge, path: '/tools/borrowing-power' },
-  { id: 'refinance-savings', name: 'Refinance Savings Calculator', description: 'Compare your current loan rate vs a new rate to see monthly savings, total interest saved and break-even.', icon: TrendingDown, path: '/tools/refinance-savings' },
-  { id: 'buyer-readiness', name: 'Buyer Readiness Risk Score', description: 'Assess how prepared a buyer is to move forward with finance.', icon: ShieldCheck, path: '/tools/buyer-readiness' },
-  { id: 'auction-checklist', name: 'Auction Finance Checklist', description: 'Ensure buyers have everything ready before auction day.', icon: ClipboardCheck, path: '/tools/auction-checklist' },
-  { id: 'private-sale-checklist', name: 'Private Sale Finance Checklist', description: 'Step-by-step finance readiness for private sale transactions.', icon: FileCheck2, path: '/tools/private-sale-checklist' },
-  { id: 'pre-approval-tracker', name: 'Pre-Approval Expiry Tracker', description: 'Track pre-approval dates and get alerts before they expire.', icon: CalendarClock, path: '/tools/pre-approval-tracker' },
-  { id: 'vendor-fallover', name: 'Vendor Finance Fallover Protection Pack', description: 'Generate a PDF pack to protect vendors against finance fall-through.', icon: FileText, path: '/tools/vendor-fallover' },
   { id: 'stamp-duty', name: 'Stamp Duty Calculator', description: 'Estimate stamp duty across all Australian states with first home buyer concessions.', icon: Landmark, path: '/tools/stamp-duty' },
   { id: 'negative-gearing', name: 'Investment Property Calculator', description: 'Negative gearing tax benefits, cashflow analysis, depreciation, and long-term equity projections.', icon: TrendingUp, path: '/tools/negative-gearing', brokerOnly: true },
 ];
