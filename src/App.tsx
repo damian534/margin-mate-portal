@@ -25,6 +25,7 @@ import AuctionChecklist from "./pages/AuctionChecklist";
 import PrivateSaleChecklist from "./pages/PrivateSaleChecklist";
 import VendorFalloverPack from "./pages/VendorFalloverPack";
 import StampDutyCalculator from "./pages/StampDutyCalculator";
+import NegativeGearingCalculator from "./pages/NegativeGearingCalculator";
 import Settlements from "./pages/Settlements";
 import ClientPortal from "./pages/ClientPortal";
 const queryClient = new QueryClient();
@@ -147,6 +148,11 @@ const App = () => (
             <Route path="/tools/stamp-duty" element={
               <ProtectedRoute>
                 <StampDutyCalculator />
+              </ProtectedRoute>
+            } />
+            <Route path="/tools/negative-gearing" element={
+              <ProtectedRoute requiredRole="broker_or_admin">
+                <NegativeGearingCalculator />
               </ProtectedRoute>
             } />
             <Route path="/preview" element={<Preview />} />

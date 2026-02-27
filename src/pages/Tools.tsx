@@ -33,11 +33,12 @@ const tools = [
   { id: 'pre-approval-tracker', name: 'Pre-Approval Expiry Tracker', description: 'Track pre-approval dates and get alerts before they expire.', icon: CalendarClock, path: '/tools/pre-approval-tracker' },
   { id: 'vendor-fallover', name: 'Vendor Finance Fallover Protection Pack', description: 'Generate a PDF pack to protect vendors against finance fall-through.', icon: FileText, path: '/tools/vendor-fallover' },
   { id: 'stamp-duty', name: 'Stamp Duty Calculator', description: 'Estimate stamp duty across all Australian states with first home buyer concessions.', icon: Landmark, path: '/tools/stamp-duty' },
+  { id: 'negative-gearing', name: 'Investment Property Calculator', description: 'Negative gearing tax benefits, cashflow analysis, depreciation, and long-term equity projections.', icon: TrendingUp, path: '/tools/negative-gearing', brokerOnly: true },
 ];
 
 export default function Tools() {
   const navigate = useNavigate();
-  const { role } = useAuth();
+  const { role, isBrokerOrAdmin } = useAuth();
   const { visibility, loading, toggleTool, isToolEnabled } = useToolVisibility();
   const [showAdmin, setShowAdmin] = useState(false);
   const isSuperAdmin = role === 'super_admin';
@@ -85,7 +86,7 @@ export default function Tools() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {tools
-            .filter(tool => isSuperAdmin || isToolEnabled(tool.id))
+            .filter(tool => (isSuperAdmin || isToolEnabled(tool.id)) && (!tool.brokerOnly || isBrokerOrAdmin))
             .map((tool, i) => {
               const enabled = isToolEnabled(tool.id);
               return (
@@ -103,6 +104,9 @@ export default function Tools() {
                         </div>
                         {!enabled && isSuperAdmin && (
                           <Badge variant="secondary" className="text-xs">Hidden</Badge>
+                        )}
+                        {tool.brokerOnly && (
+                          <Badge variant="outline" className="text-xs">Broker Only</Badge>
                         )}
                       </div>
                       <CardTitle className="text-lg">{tool.name}</CardTitle>
