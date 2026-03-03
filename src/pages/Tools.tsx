@@ -13,6 +13,7 @@ import {
   Settings,
   Landmark,
   Briefcase,
+  Building2,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -22,6 +23,7 @@ const tools = [
   { id: 'stamp-duty', name: 'Stamp Duty Calculator', description: 'Estimate stamp duty across all Australian states with first home buyer concessions.', icon: Landmark, path: '/tools/stamp-duty' },
   { id: 'negative-gearing', name: 'Investment Property Calculator', description: 'Negative gearing tax benefits, cashflow analysis, depreciation, and long-term equity projections.', icon: TrendingUp, path: '/tools/negative-gearing', brokerOnly: true },
   { id: 'portfolio-advisor', name: 'Portfolio Advisor', description: 'Multi-property portfolio analysis with CGT, hold vs sell scenarios, and combined projections.', icon: Briefcase, path: '/tools/portfolio-advisor', brokerOnly: true },
+  { id: 'feasibility', name: 'Development Feasibility', description: 'Model land + build + finance with multi-scenario comparison, partner equity splits, and sensitivity analysis.', icon: Building2, path: '/tools/feasibility', brokerOnly: true },
 ];
 
 export default function Tools() {
