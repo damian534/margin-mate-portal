@@ -20,7 +20,8 @@ import { MonthlyTable } from '@/components/feasibility/MonthlyTable';
 import { SensitivityPanel } from '@/components/feasibility/SensitivityPanel';
 import { ScenarioComparison } from '@/components/feasibility/ScenarioComparison';
 import { ExtrasTab } from '@/components/feasibility/ExtrasTab';
-import { Copy, Plus, RotateCcw } from 'lucide-react';
+import { Copy, Plus, RotateCcw, Download } from 'lucide-react';
+import { generateFeasibilityPdf } from '@/lib/pdf/feasibilityPdf';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function FeasibilityCalculator() {
@@ -93,6 +94,7 @@ export default function FeasibilityCalculator() {
             <Button size="sm" variant="outline" onClick={duplicateScenario}><Copy className="w-4 h-4" /></Button>
             <Button size="sm" variant="outline" onClick={addScenario}><Plus className="w-4 h-4" /></Button>
             <Button size="sm" variant="outline" onClick={resetScenario}><RotateCcw className="w-4 h-4" /></Button>
+            <Button size="sm" variant="outline" onClick={() => generateFeasibilityPdf(activeScenario.inputs, outputs)}><Download className="w-4 h-4" /></Button>
           </div>
         </div>
 
