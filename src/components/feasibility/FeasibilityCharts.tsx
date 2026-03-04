@@ -75,13 +75,20 @@ export function CostBreakdownChart({ outputs }: Props) {
     { name: 'Selling', value: Math.round(outputs.selling_costs) },
   ];
 
+  // Add optional cost buckets if non-zero
+  if (outputs.council_contributions > 0) data.push({ name: 'Council', value: Math.round(outputs.council_contributions) });
+  if (outputs.arch_eng_fees > 0) data.push({ name: 'Arch/Eng', value: Math.round(outputs.arch_eng_fees) });
+  if (outputs.qs_pm_fees > 0) data.push({ name: 'QS/PM', value: Math.round(outputs.qs_pm_fees) });
+  if (outputs.marketing_staging > 0) data.push({ name: 'Marketing', value: Math.round(outputs.marketing_staging) });
+  if (outputs.debt_establishment_fees > 0) data.push({ name: 'Debt Fees', value: Math.round(outputs.debt_establishment_fees) });
+
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm">Cost Breakdown</CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={200}>
+        <ResponsiveContainer width="100%" height={Math.max(200, data.length * 28)}>
           <BarChart data={data} layout="vertical">
             <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
             <XAxis type="number" tickFormatter={fmt} tick={{ fontSize: 10 }} />

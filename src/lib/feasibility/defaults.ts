@@ -50,6 +50,55 @@ export const defaultInputs: ScenarioInputs = {
   profit_split_by_ownership: true,
   equity_by_contribution: true,
   soft_cost_spread: 'even',
+
+  // Toggle 1: Council
+  include_council_contributions: false,
+  council_contributions_amount: 0,
+  council_contributions_timing: 'upfront',
+  council_contributions_custom_month: 1,
+
+  // Toggle 2: Arch/Eng
+  include_arch_eng_percent: false,
+  arch_eng_percent_of_build: 0.06,
+  arch_eng_timing: 'spread_prebuild',
+  arch_eng_custom_schedule: [],
+
+  // Toggle 3: QS/PM
+  include_qs_pm_fees: false,
+  qs_pm_method: 'percent_of_build',
+  qs_pm_fixed_amount: 0,
+  qs_pm_percent_of_build: 0.02,
+  qs_pm_monthly_amount: 5000,
+  qs_pm_start_month: 1,
+  qs_pm_end_month: 20,
+  qs_pm_timing: 'spread_build',
+
+  // Toggle 4: Marketing
+  include_marketing_staging: false,
+  marketing_method: 'percent_of_revenue',
+  marketing_fixed_amount: 0,
+  marketing_percent_of_revenue: 0.01,
+  marketing_timing: 'settlement',
+  marketing_spread_months: 4,
+  marketing_custom_month: 18,
+
+  // Toggle 5: Debt Establishment Fees
+  include_debt_establishment_fees: false,
+  land_establishment_fee_percent: 0.01,
+  construction_establishment_fee_percent: 0.01,
+  debt_fee_payment_method: 'upfront',
+  debt_fee_timing: 'split',
+
+  // Toggle 6: Presales / Staged Settlement
+  include_presales_staged_settlement: false,
+  presales_start_month: 7,
+  presales_schedule_method: 'staged_percent',
+  staged_settlement_rows: [
+    { id: uid(), stage_name: 'Final Settlement', stage_month: 20, stage_percent: 100 },
+  ],
+  unit_staging_rows: [],
+  custom_revenue_rows: [],
+  debt_repayment_strategy: 'final_settlement',
 };
 
 export const scenarioAInputs: ScenarioInputs = {

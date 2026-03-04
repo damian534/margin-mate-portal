@@ -6,7 +6,6 @@ interface Props {
 }
 
 const fmt = (v: number) => '$' + Math.round(v).toLocaleString();
-const fmtPct = (v: number) => (v * 100).toFixed(1) + '%';
 
 export function OutputCards({ outputs }: Props) {
   const cards = [
@@ -25,16 +24,40 @@ export function OutputCards({ outputs }: Props) {
     { label: 'Equity Multiple', value: outputs.equity_multiple.toFixed(2) + 'x' },
   ];
 
+  // Show optional cost breakdown if any are non-zero
+  const optionalCards = [
+    outputs.council_contributions > 0 && { label: 'Council/Headworks', value: fmt(outputs.council_contributions) },
+    outputs.arch_eng_fees > 0 && { label: 'Arch/Eng Fees', value: fmt(outputs.arch_eng_fees) },
+    outputs.qs_pm_fees > 0 && { label: 'QS/PM Fees', value: fmt(outputs.qs_pm_fees) },
+    outputs.marketing_staging > 0 && { label: 'Marketing/Staging', value: fmt(outputs.marketing_staging) },
+    outputs.debt_establishment_fees > 0 && { label: 'Debt Estab. Fees', value: fmt(outputs.debt_establishment_fees) },
+    outputs.optional_costs_total > 0 && { label: 'Optional Costs Total', value: fmt(outputs.optional_costs_total), color: 'text-amber-600' },
+  ].filter(Boolean) as { label: string; value: string; color?: string }[];
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-      {cards.map(c => (
-        <Card key={c.label}>
-          <CardContent className="p-3">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{c.label}</div>
-            <div className={`text-lg font-bold ${c.color ?? ''}`}>{c.value}</div>
-          </CardContent>
-        </Card>
-      ))}
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        {cards.map(c => (
+          <Card key={c.label}>
+            <CardContent className="p-3">
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{c.label}</div>
+              <div className={`text-lg font-bold ${c.color ?? ''}`}>{c.value}</div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      {optionalCards.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {optionalCards.map(c => (
+            <Card key={c.label}>
+              <CardContent className="p-3">
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{c.label}</div>
+                <div className={`text-sm font-semibold ${c.color ?? ''}`}>{c.value}</div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

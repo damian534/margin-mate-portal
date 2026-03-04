@@ -19,6 +19,7 @@ import { CashflowChart, DebtChart, CostBreakdownChart } from '@/components/feasi
 import { MonthlyTable } from '@/components/feasibility/MonthlyTable';
 import { SensitivityPanel } from '@/components/feasibility/SensitivityPanel';
 import { ScenarioComparison } from '@/components/feasibility/ScenarioComparison';
+import { ExtrasTab } from '@/components/feasibility/ExtrasTab';
 import { Copy, Plus, RotateCcw } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -101,10 +102,11 @@ export default function FeasibilityCalculator() {
           <div>
             <ScrollArea className="h-[calc(100vh-200px)]">
               <Tabs defaultValue="site" className="w-full">
-                <TabsList className="grid grid-cols-3 mb-3">
+                <TabsList className="grid grid-cols-4 mb-3">
                   <TabsTrigger value="site" className="text-xs">Site</TabsTrigger>
                   <TabsTrigger value="approvals" className="text-xs">Approvals</TabsTrigger>
                   <TabsTrigger value="construction" className="text-xs">Build</TabsTrigger>
+                  <TabsTrigger value="extras" className="text-xs">Extras</TabsTrigger>
                 </TabsList>
                 <TabsList className="grid grid-cols-3 mb-3">
                   <TabsTrigger value="finance" className="text-xs">Finance</TabsTrigger>
@@ -118,6 +120,7 @@ export default function FeasibilityCalculator() {
                 <TabsContent value="finance"><FinanceTab inputs={activeScenario.inputs} onChange={updateInputs} /></TabsContent>
                 <TabsContent value="sales"><SalesTab inputs={activeScenario.inputs} onChange={updateInputs} /></TabsContent>
                 <TabsContent value="partners"><PartnersTab inputs={activeScenario.inputs} onChange={updateInputs} /></TabsContent>
+                <TabsContent value="extras"><ExtrasTab inputs={activeScenario.inputs} onChange={updateInputs} /></TabsContent>
               </Tabs>
             </ScrollArea>
           </div>
