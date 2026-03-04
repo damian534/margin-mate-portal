@@ -16,6 +16,7 @@ export function ScenarioComparison({ scenarios }: Props) {
     { label: 'Gross Revenue', key: 'gross_revenue' },
     { label: 'Dev Cost (inc interest)', key: 'total_dev_cost_inc_interest' },
     { label: 'Total Interest', key: 'total_interest' },
+    { label: 'Optional Costs', key: 'optional_costs_total' },
     { label: 'Net Profit', key: 'net_profit_after_tax' },
     { label: 'Total Equity', key: 'total_equity_required' },
     { label: 'Peak Debt', key: 'peak_debt' },

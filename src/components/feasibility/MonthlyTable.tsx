@@ -10,6 +10,8 @@ interface Props {
 const fmt = (v: number) => v === 0 ? '-' : '$' + Math.round(v).toLocaleString();
 
 export function MonthlyTable({ outputs }: Props) {
+  const hasOptional = outputs.optional_costs_total > 0;
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -17,7 +19,7 @@ export function MonthlyTable({ outputs }: Props) {
       </CardHeader>
       <CardContent className="p-0">
         <ScrollArea className="w-full">
-          <div className="min-w-[900px]">
+          <div className="min-w-[1100px]">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -26,11 +28,13 @@ export function MonthlyTable({ outputs }: Props) {
                   <TableHead className="text-[10px] text-right">Site</TableHead>
                   <TableHead className="text-[10px] text-right">Soft</TableHead>
                   <TableHead className="text-[10px] text-right">Build</TableHead>
+                  {hasOptional && <TableHead className="text-[10px] text-right">Optional</TableHead>}
                   <TableHead className="text-[10px] text-right">Land Bal</TableHead>
                   <TableHead className="text-[10px] text-right">Constr Bal</TableHead>
                   <TableHead className="text-[10px] text-right">Interest</TableHead>
                   <TableHead className="text-[10px] text-right">Equity</TableHead>
                   <TableHead className="text-[10px] text-right">Revenue</TableHead>
+                  <TableHead className="text-[10px] text-right">Net CF</TableHead>
                   <TableHead className="text-[10px] text-right">Total Debt</TableHead>
                 </TableRow>
               </TableHeader>
@@ -42,11 +46,13 @@ export function MonthlyTable({ outputs }: Props) {
                     <TableCell className="text-[10px] text-right">{fmt(m.site_costs)}</TableCell>
                     <TableCell className="text-[10px] text-right">{fmt(m.soft_costs)}</TableCell>
                     <TableCell className="text-[10px] text-right">{fmt(m.build_costs)}</TableCell>
+                    {hasOptional && <TableCell className="text-[10px] text-right">{fmt(m.optional_costs)}</TableCell>}
                     <TableCell className="text-[10px] text-right">{fmt(m.land_balance)}</TableCell>
                     <TableCell className="text-[10px] text-right">{fmt(m.construction_balance)}</TableCell>
                     <TableCell className="text-[10px] text-right">{fmt(m.total_interest)}</TableCell>
                     <TableCell className="text-[10px] text-right">{fmt(m.equity_injection)}</TableCell>
                     <TableCell className="text-[10px] text-right">{fmt(m.revenue)}</TableCell>
+                    <TableCell className="text-[10px] text-right">{fmt(m.net_cashflow)}</TableCell>
                     <TableCell className="text-[10px] text-right">{fmt(m.total_debt)}</TableCell>
                   </TableRow>
                 ))}
