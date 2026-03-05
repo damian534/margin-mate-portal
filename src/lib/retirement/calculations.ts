@@ -21,6 +21,8 @@ export interface RetirementInputs {
   rentGrowthRate: number;        // e.g. 3.0
   vacancyPct: number;            // e.g. 2.0
   haircut: number;               // e.g. 0
+  // CGT
+  cgtRate: number;               // flat effective rate e.g. 25
   // Toggles
   includeCashflow: boolean;
   includeSchedule: boolean;
@@ -34,9 +36,9 @@ export interface RetirementInputs {
 
 export interface RetirementResults {
   yearsToRetirement: number;
-  incomeAtRetirement: number;        // inflated
-  assetBaseRequired: number;         // at retirement
-  assetBaseToday: number;            // PV equivalent
+  incomeAtRetirement: number;
+  assetBaseRequired: number;
+  assetBaseToday: number;
   propertiesNeeded: number;
   propertyValueAtRetirement: number;
   cashPerProperty: number;
@@ -54,12 +56,34 @@ export interface RetirementResults {
     propertiesNeeded: number;
   }[];
   purchaseSchedule: { year: number; cumulativeProperties: number; cumulativeCash: number }[];
+  // End position (per property)
+  loanBalanceAtRetirement: number;
+  capitalGainPerProperty: number;
+  cgtPayablePerProperty: number;
+  netProceedsPerProperty: number;
+  // Totals
+  totalGrossValue: number;
+  totalLoanBalance: number;
+  totalCapitalGain: number;
+  totalCgtPayable: number;
+  totalNetProceeds: number;
+  totalNetInvestable: number;   // net proceeds after CGT, used to fund retirement
 }
 
 function pmt(rate: number, nper: number, pv: number): number {
   if (rate === 0) return pv / nper;
   const pvif = Math.pow(1 + rate, nper);
   return (rate * pv * pvif) / (pvif - 1);
+}
+
+function loanBalanceAfterMonths(principal: number, monthlyRate: number, totalMonths: number, elapsedMonths: number, isIO: boolean): number {
+  if (isIO) return principal;
+  if (monthlyRate === 0) return principal - (principal / totalMonths) * elapsedMonths;
+  const monthlyPayment = pmt(monthlyRate, totalMonths, principal);
+  // Remaining balance = PV of remaining payments
+  const remainingMonths = totalMonths - elapsedMonths;
+  if (remainingMonths <= 0) return 0;
+  return principal * Math.pow(1 + monthlyRate, elapsedMonths) - monthlyPayment * ((Math.pow(1 + monthlyRate, elapsedMonths) - 1) / monthlyRate);
 }
 
 export function calculateRetirement(i: RetirementInputs): RetirementResults {
@@ -71,32 +95,55 @@ export function calculateRetirement(i: RetirementInputs): RetirementResults {
   // Step 1 — Inflate income
   const incomeAtRetirement = i.desiredIncome * Math.pow(1 + inf, n);
 
-  // Step 2 — Required asset base
+  // Step 2 — Required asset base (this is the NET investable amount needed)
   const assetBaseRequired = w > 0 ? incomeAtRetirement / w : 0;
 
   // Step 3 — PV of asset base
   const assetBaseToday = g > 0 ? assetBaseRequired / Math.pow(1 + g, n) : assetBaseRequired;
 
-  // Step 4 — Properties
+  // Step 4 — Property values at retirement
   const propertyValueAtRetirement = i.propertyPrice * Math.pow(1 + g, n);
   const effectiveValue = propertyValueAtRetirement * (1 - i.haircut / 100);
-  const propertiesNeeded = effectiveValue > 0 ? Math.ceil(assetBaseRequired / effectiveValue) : 0;
 
-  // Step 5 — Capital per property
+  // Step 5 — Loan balance at retirement
   const dep = i.depositPct / 100;
   const costs = i.purchaseCostsPct / 100;
-  const cashPerProperty = i.propertyPrice * dep + i.propertyPrice * costs;
   const loanPerProperty = i.propertyPrice * (1 - dep);
+  const rm = i.interestRate / 100 / 12;
+  const totalMonths = i.loanTermYears * 12;
+  const elapsedMonths = Math.min(n * 12, totalMonths);
+  const loanBalanceAtRetirement = Math.max(0, loanBalanceAfterMonths(loanPerProperty, rm, totalMonths, elapsedMonths, i.loanType === 'io'));
+
+  // Step 6 — CGT per property
+  const capitalGainPerProperty = Math.max(0, effectiveValue - i.propertyPrice);
+  const discountedGain = capitalGainPerProperty * 0.5; // 50% discount (held >12 months)
+  const cgtRate = i.cgtRate / 100;
+  const cgtPayablePerProperty = discountedGain * cgtRate;
+
+  // Step 7 — Net proceeds per property
+  const netProceedsPerProperty = effectiveValue - loanBalanceAtRetirement - cgtPayablePerProperty;
+
+  // Step 8 — How many properties needed so total net proceeds >= assetBaseRequired
+  const propertiesNeeded = netProceedsPerProperty > 0 ? Math.ceil(assetBaseRequired / netProceedsPerProperty) : 0;
+
+  // Capital per property
+  const cashPerProperty = i.propertyPrice * dep + i.propertyPrice * costs;
   const totalCashNeeded = propertiesNeeded * cashPerProperty;
 
-  // Step 6 — Repayments
-  const rm = i.interestRate / 100 / 12;
-  const m = i.loanTermYears * 12;
+  // Totals
+  const totalGrossValue = effectiveValue * propertiesNeeded;
+  const totalLoanBalance = loanBalanceAtRetirement * propertiesNeeded;
+  const totalCapitalGain = capitalGainPerProperty * propertiesNeeded;
+  const totalCgtPayable = cgtPayablePerProperty * propertiesNeeded;
+  const totalNetProceeds = netProceedsPerProperty * propertiesNeeded;
+  const totalNetInvestable = totalNetProceeds;
+
+  // Repayments
   const monthlyRepayment = i.loanType === 'io'
     ? loanPerProperty * rm
-    : pmt(rm, m, loanPerProperty);
+    : pmt(rm, totalMonths, loanPerProperty);
 
-  // Step 7 — Cashflow
+  // Cashflow
   const grossRentAnnual = i.propertyPrice * (i.rentalYield / 100);
   const netRentAnnual = grossRentAnnual * (1 - i.expenseAllowancePct / 100 - i.vacancyPct / 100);
   const monthlyNetRent = netRentAnnual / 12;
@@ -115,7 +162,7 @@ export function calculateRetirement(i: RetirementInputs): RetirementResults {
     inflated: i.desiredIncome * Math.pow(1 + inf, yr),
   }));
 
-  // Sensitivity
+  // Sensitivity (also factors in CGT)
   const scenarios = [
     { label: 'Conservative', growth: Math.max(0, i.assetGrowthRate - 2), inflation: i.inflationRate + 1, wr: Math.max(0.5, i.withdrawalRate - 0.5) },
     { label: 'Base Case', growth: i.assetGrowthRate, inflation: i.inflationRate, wr: i.withdrawalRate },
@@ -124,9 +171,12 @@ export function calculateRetirement(i: RetirementInputs): RetirementResults {
   const sensitivity = scenarios.map(s => {
     const sInc = i.desiredIncome * Math.pow(1 + s.inflation / 100, n);
     const sAsset = s.wr > 0 ? sInc / (s.wr / 100) : 0;
-    const sPropVal = i.propertyPrice * Math.pow(1 + s.growth / 100, n);
-    const sEffective = sPropVal * (1 - i.haircut / 100);
-    const sProps = sEffective > 0 ? Math.ceil(sAsset / sEffective) : 0;
+    const sPropVal = i.propertyPrice * Math.pow(1 + s.growth / 100, n) * (1 - i.haircut / 100);
+    const sGain = Math.max(0, sPropVal - i.propertyPrice);
+    const sCgt = sGain * 0.5 * cgtRate;
+    const sLoanBal = loanBalanceAfterMonths(loanPerProperty, rm, totalMonths, elapsedMonths, i.loanType === 'io');
+    const sNetPerProp = sPropVal - Math.max(0, sLoanBal) - sCgt;
+    const sProps = sNetPerProp > 0 ? Math.ceil(sAsset / sNetPerProp) : 0;
     return { label: s.label, incomeAtRetirement: sInc, assetBaseRequired: sAsset, propertiesNeeded: sProps };
   });
 
@@ -138,7 +188,6 @@ export function calculateRetirement(i: RetirementInputs): RetirementResults {
       bought++;
       purchaseSchedule.push({ year: yr, cumulativeProperties: bought, cumulativeCash: bought * cashPerProperty });
     }
-    // If still need more, buy remaining at last opportunity
     if (bought < propertiesNeeded) {
       purchaseSchedule.push({ year: n - 1, cumulativeProperties: propertiesNeeded, cumulativeCash: propertiesNeeded * cashPerProperty });
     }
@@ -152,7 +201,7 @@ export function calculateRetirement(i: RetirementInputs): RetirementResults {
     assetBaseRequired,
     assetBaseToday,
     propertiesNeeded,
-    propertyValueAtRetirement,
+    propertyValueAtRetirement: effectiveValue,
     cashPerProperty,
     loanPerProperty,
     totalCashNeeded,
@@ -163,6 +212,16 @@ export function calculateRetirement(i: RetirementInputs): RetirementResults {
     incomePath,
     sensitivity,
     purchaseSchedule,
+    loanBalanceAtRetirement,
+    capitalGainPerProperty,
+    cgtPayablePerProperty,
+    netProceedsPerProperty,
+    totalGrossValue,
+    totalLoanBalance,
+    totalCapitalGain,
+    totalCgtPayable,
+    totalNetProceeds,
+    totalNetInvestable,
   };
 }
 
