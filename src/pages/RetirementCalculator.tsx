@@ -234,8 +234,7 @@ export default function RetirementCalculator() {
                     <NGInputField label="Rent Growth" id="rent-growth" value={rentGrowthRate} onChange={setRentGrowthRate} suffix="% p.a." step={0.5} max={10} />
                   )}
                   <NGInputField label="Vacancy Allowance" id="vacancy" value={vacancyPct} onChange={setVacancyPct} suffix="% of rent" step={1} max={10} />
-                </>
-              )}
+            </InputSection>
             </InputSection>
 
             {/* Optional Toggles */}
