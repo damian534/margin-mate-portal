@@ -235,7 +235,6 @@ export default function RetirementCalculator() {
                   )}
                   <NGInputField label="Vacancy Allowance" id="vacancy" value={vacancyPct} onChange={setVacancyPct} suffix="% of rent" step={1} max={10} />
             </InputSection>
-            </InputSection>
 
             {/* Optional Toggles */}
             <InputSection title="Optional Features" icon={<Settings2 className="h-5 w-5 text-primary" />}>
