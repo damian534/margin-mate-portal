@@ -168,9 +168,23 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
       return;
     }
 
-    const { error } = await supabase.from('leads').insert(leadData as any);
+    const { data: newLead, error } = await supabase.from('leads').insert(leadData as any).select('id, email').maybeSingle();
     if (error) { toast.error('Failed to add lead'); setSaving(false); return; }
     toast.success('Lead added successfully');
+
+    // Auto-send fact find email if lead has an email
+    if (newLead?.email) {
+      supabase.functions.invoke('send-fact-find', {
+        body: { lead_id: newLead.id, app_url: window.location.origin },
+      }).then(({ data, error: fnErr }) => {
+        if (fnErr || data?.error) {
+          console.error('Auto-send fact find failed:', fnErr || data?.error);
+        } else {
+          toast.success('Fact Find email sent to ' + newLead.email);
+        }
+      });
+    }
+
     setSaving(false);
     resetForm();
     setOpen(false);
