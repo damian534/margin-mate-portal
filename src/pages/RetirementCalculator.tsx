@@ -25,15 +25,26 @@ import {
 
 function ResultCard({ title, value, subtitle, icon, variant = "default", size = "default" }: {
   title: string; value: string; subtitle?: string; icon?: React.ReactNode;
-  variant?: "default" | "positive" | "negative"; size?: "default" | "large" | "featured";
+  variant?: "default" | "positive" | "negative" | "success" | "warning"; size?: "default" | "large" | "featured";
 }) {
-  const colors = { default: "text-foreground", positive: "text-primary", negative: "text-destructive" };
+  const colors = { default: "text-foreground", positive: "text-primary", negative: "text-destructive", success: "text-success", warning: "text-warning" };
+  const bgStyles = {
+    default: size === "large" ? "bg-secondary/30" : "",
+    positive: "bg-primary/5 border-primary/20",
+    negative: "bg-destructive/5 border-destructive/20",
+    success: "bg-success/5 border-success/20",
+    warning: "bg-warning/5 border-warning/20",
+  };
+  const iconColors = {
+    default: "text-muted-foreground", positive: "text-primary", negative: "text-destructive",
+    success: "text-success", warning: "text-warning",
+  };
   return (
-    <Card className={cn("border-border/50 shadow-sm", size === "large" && "bg-secondary/30", size === "featured" && "bg-primary/10 border-primary/20")}>
+    <Card className={cn("border-border/50 shadow-sm", bgStyles[variant], size === "featured" && "bg-success/10 border-success/30")}>
       <CardContent className={cn("p-4", (size === "large" || size === "featured") && "p-6")}>
         <div className={cn(size === "featured" ? "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2" : "flex flex-col gap-2")}>
           <div className="flex items-center gap-2">
-            {icon && <div className="text-muted-foreground shrink-0">{icon}</div>}
+            {icon && <div className={cn("shrink-0", iconColors[variant])}>{icon}</div>}
             <p className={cn("font-medium text-muted-foreground", size === "featured" ? "text-base" : "text-sm")}>{title}</p>
           </div>
           <p className={cn("font-bold", size === "featured" ? "text-3xl" : size === "large" ? "text-2xl" : "text-xl", colors[variant])}>{value}</p>
@@ -115,16 +126,14 @@ export default function RetirementCalculator() {
 
         {/* ── Headline Results ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <ResultCard title="Income at Retirement" value={formatCurrency(r.incomeAtRetirement)} subtitle={`Today's $${annualIncome.toLocaleString()} inflated over ${yearsToRetirement} yrs`} icon={<DollarSign className="h-5 w-5" />} size="large" />
-          <ResultCard title="Asset Base Required" value={formatCurrency(r.assetBaseRequired)} subtitle={`At ${withdrawalMode === 'withdrawal' ? 'withdrawal' : 'yield'} rate of ${formatPercent(withdrawalRate)}`} icon={<Target className="h-5 w-5" />} size="large" />
-          <ResultCard title="Equivalent Today" value={formatCurrency(r.assetBaseToday)} subtitle={`PV at ${formatPercent(assetGrowthRate)} growth`} icon={<TrendingUp className="h-5 w-5" />} variant="positive" size="large" />
-          {assetType === 'property' && (
-            <ResultCard title="Properties Needed" value={`${r.propertiesNeeded}`} subtitle={`@ ${formatCurrency(propertyPrice)} each today`} icon={<Building className="h-5 w-5" />} variant="positive" size="large" />
-          )}
+          <ResultCard title="Income at Retirement" value={formatCurrency(r.incomeAtRetirement)} subtitle={`Today's $${annualIncome.toLocaleString()} inflated over ${yearsToRetirement} yrs`} icon={<DollarSign className="h-5 w-5" />} variant="warning" size="large" />
+          <ResultCard title="Asset Base Required" value={formatCurrency(r.assetBaseRequired)} subtitle={`At ${withdrawalMode === 'withdrawal' ? 'withdrawal' : 'yield'} rate of ${formatPercent(withdrawalRate)}`} icon={<Target className="h-5 w-5" />} variant="positive" size="large" />
+          <ResultCard title="Equivalent Today" value={formatCurrency(r.assetBaseToday)} subtitle={`PV at ${formatPercent(assetGrowthRate)} growth`} icon={<TrendingUp className="h-5 w-5" />} variant="success" size="large" />
+          <ResultCard title="Properties Needed" value={`${r.propertiesNeeded}`} subtitle={`@ ${formatCurrency(propertyPrice)} each today`} icon={<Building className="h-5 w-5" />} variant="success" size="large" />
         </div>
 
         {/* ── Plain English Summary ── */}
-        <Card className="bg-primary/5 border-primary/20">
+        <Card className="bg-success/5 border-success/20">
           <CardContent className="p-6">
             <p className="text-sm leading-relaxed text-foreground">
               To generate <strong>{formatCurrency(r.incomeAtRetirement)}/yr</strong> in retirement at age {retirementAge}, 
