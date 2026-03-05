@@ -132,6 +132,7 @@ export default function ClientPortal() {
           leadId={leadId}
           token={token}
           onComplete={() => setFactFindComplete(true)}
+          prefill={{ email: leadEmail, phone: leadPhone, firstName: leadFirstName, lastName: leadLastName }}
         />
       </>
     );
@@ -164,6 +165,7 @@ export default function ClientPortal() {
                 setFactFindComplete(true);
                 if (hasDocuments) setActiveTab('documents');
               }}
+              prefill={{ email: leadEmail, phone: leadPhone, firstName: leadFirstName, lastName: leadLastName }}
             />
           </TabsContent>
 
