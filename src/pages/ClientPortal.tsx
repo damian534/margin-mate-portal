@@ -34,6 +34,10 @@ export default function ClientPortal() {
   const [error, setError] = useState<string | null>(null);
   const [leadName, setLeadName] = useState('');
   const [leadId, setLeadId] = useState<string | null>(null);
+  const [leadEmail, setLeadEmail] = useState('');
+  const [leadPhone, setLeadPhone] = useState('');
+  const [leadFirstName, setLeadFirstName] = useState('');
+  const [leadLastName, setLeadLastName] = useState('');
   const [documents, setDocuments] = useState<DocumentRequest[]>([]);
   const [activeTab, setActiveTab] = useState('factfind');
   const [factFindComplete, setFactFindComplete] = useState(false);
@@ -60,6 +64,12 @@ export default function ClientPortal() {
     const data = await res.json();
     setLeadId(data.lead_id);
     setLeadName(data.lead_name);
+    setLeadEmail(data.lead_email || '');
+    setLeadPhone(data.lead_phone || '');
+    // Split lead_name into first/last
+    const nameParts = (data.lead_name || '').split(' ');
+    setLeadFirstName(nameParts[0] || '');
+    setLeadLastName(nameParts.slice(1).join(' ') || '');
     setDocuments(data.documents || []);
     setLoading(false);
   };
@@ -122,6 +132,7 @@ export default function ClientPortal() {
           leadId={leadId}
           token={token}
           onComplete={() => setFactFindComplete(true)}
+          prefill={{ email: leadEmail, phone: leadPhone, firstName: leadFirstName, lastName: leadLastName }}
         />
       </>
     );
@@ -154,6 +165,7 @@ export default function ClientPortal() {
                 setFactFindComplete(true);
                 if (hasDocuments) setActiveTab('documents');
               }}
+              prefill={{ email: leadEmail, phone: leadPhone, firstName: leadFirstName, lastName: leadLastName }}
             />
           </TabsContent>
 

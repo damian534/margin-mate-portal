@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { WizardField } from './types';
 import { RepeatableFieldGroup } from './RepeatableFieldGroup';
+import { Play } from 'lucide-react';
 
 interface Props {
   field: WizardField;
@@ -21,20 +22,21 @@ export function MortgageWizardField({ field, value, onChange, data, readOnly }: 
   if (field.condition && !field.condition(data)) return null;
 
   const val = value ?? '';
-  const colSpan = field.half ? '' : 'col-span-2';
 
+  // Heading and info are handled in the parent now for conversational layout,
+  // but we still support them here for nested/repeatable contexts
   if (field.type === 'heading') {
     return (
-      <div className="col-span-2 pt-4 pb-1">
-        <h3 className="text-sm font-semibold text-foreground">{field.label}</h3>
-        {field.description && <p className="text-xs text-muted-foreground mt-0.5">{field.description}</p>}
+      <div className="pt-4 pb-1">
+        <h3 className="text-base font-semibold text-foreground">{field.label}</h3>
+        {field.description && <p className="text-sm text-muted-foreground mt-0.5">{field.description}</p>}
       </div>
     );
   }
 
   if (field.type === 'info') {
     return (
-      <div className="col-span-2 rounded-lg border border-border bg-muted/30 p-4">
+      <div className="rounded-xl border border-border bg-muted/30 p-4">
         <p className="text-sm text-muted-foreground leading-relaxed">{field.label}</p>
       </div>
     );
@@ -42,19 +44,23 @@ export function MortgageWizardField({ field, value, onChange, data, readOnly }: 
 
   if (field.type === 'button-group') {
     return (
-      <div className="col-span-2 flex flex-col items-center gap-4 py-6">
-        {field.label && <p className="text-sm font-medium text-foreground">{field.label}</p>}
-        <div className="flex gap-3">
+      <div className="space-y-3">
+        {field.label && (
+          <p className="text-sm sm:text-base font-medium text-foreground" 
+             dangerouslySetInnerHTML={{ __html: field.label }} />
+        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Play className="w-3.5 h-3.5 text-destructive fill-destructive shrink-0" />
           {field.options?.map(opt => (
             <button
               key={opt.value}
               type="button"
               disabled={readOnly}
               className={cn(
-                "px-8 py-3 rounded-full border-2 text-sm font-medium transition-all",
+                "px-5 py-2.5 rounded-full border-2 text-sm font-medium transition-all",
                 val === opt.value
-                  ? "border-primary bg-primary text-primary-foreground shadow-md"
-                  : "border-border bg-background text-foreground hover:border-primary/50 hover:bg-muted/50"
+                  ? "border-foreground bg-foreground text-background shadow-sm"
+                  : "border-border bg-background text-foreground hover:border-foreground/40"
               )}
               onClick={() => onChange(field.key, opt.value)}
             >
@@ -68,7 +74,7 @@ export function MortgageWizardField({ field, value, onChange, data, readOnly }: 
 
   if (field.type === 'repeatable') {
     return (
-      <div className="col-span-2">
+      <div>
         <RepeatableFieldGroup
           field={field}
           items={Array.isArray(val) ? val : []}
@@ -82,10 +88,10 @@ export function MortgageWizardField({ field, value, onChange, data, readOnly }: 
 
   if (field.type === 'select') {
     return (
-      <div className={colSpan}>
-        <Label className="text-xs font-medium text-foreground">{field.label}</Label>
+      <div>
+        <Label className="text-sm font-medium text-foreground">{field.label}</Label>
         <Select value={val} onValueChange={(v) => onChange(field.key, v)} disabled={readOnly}>
-          <SelectTrigger className="mt-1.5 h-11 rounded-lg border-border bg-background">
+          <SelectTrigger className="mt-2 h-12 rounded-xl border-border bg-background text-sm">
             <SelectValue placeholder={field.placeholder || 'Select...'} />
           </SelectTrigger>
           <SelectContent>
@@ -98,15 +104,15 @@ export function MortgageWizardField({ field, value, onChange, data, readOnly }: 
 
   if (field.type === 'textarea') {
     return (
-      <div className={colSpan}>
-        <Label className="text-xs font-medium text-foreground">{field.label}</Label>
-        {field.description && <p className="text-xs text-muted-foreground mt-0.5">{field.description}</p>}
+      <div>
+        <Label className="text-sm font-medium text-foreground">{field.label}</Label>
+        {field.description && <p className="text-xs text-muted-foreground mt-1">{field.description}</p>}
         <Textarea
           value={val}
           onChange={(e) => onChange(field.key, e.target.value)}
           placeholder={field.placeholder}
           rows={3}
-          className="mt-1.5 rounded-lg border-border"
+          className="mt-2 rounded-xl border-border text-sm"
           disabled={readOnly}
         />
       </div>
@@ -115,25 +121,26 @@ export function MortgageWizardField({ field, value, onChange, data, readOnly }: 
 
   if (field.type === 'radio') {
     return (
-      <div className={colSpan}>
-        <Label className="text-xs font-medium text-foreground">{field.label}</Label>
+      <div>
+        <Label className="text-sm font-medium text-foreground">{field.label}</Label>
         <RadioGroup
           value={val}
           onValueChange={(v) => onChange(field.key, v)}
-          className="mt-2 flex flex-wrap gap-3"
+          className="mt-3 flex flex-wrap gap-2"
           disabled={readOnly}
         >
+          <Play className="w-3.5 h-3.5 text-destructive fill-destructive shrink-0 mt-2.5" />
           {field.options?.map(o => (
             <label
               key={o.value}
               className={cn(
-                "flex items-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer transition-all text-sm",
+                "flex items-center gap-2 px-5 py-2.5 rounded-full border-2 cursor-pointer transition-all text-sm font-medium",
                 val === o.value
-                  ? "border-primary bg-primary/5 text-foreground"
-                  : "border-border bg-background text-foreground hover:border-primary/40"
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-border bg-background text-foreground hover:border-foreground/40"
               )}
             >
-              <RadioGroupItem value={o.value} id={`${field.key}-${o.value}`} />
+              <RadioGroupItem value={o.value} id={`${field.key}-${o.value}`} className="sr-only" />
               <span>{o.label}</span>
             </label>
           ))}
@@ -144,7 +151,7 @@ export function MortgageWizardField({ field, value, onChange, data, readOnly }: 
 
   if (field.type === 'checkbox') {
     return (
-      <div className={cn("flex items-start gap-3 py-1", colSpan)}>
+      <div className="flex items-start gap-3 py-1">
         <Checkbox
           checked={!!val}
           onCheckedChange={(v) => onChange(field.key, v === true)}
@@ -158,15 +165,15 @@ export function MortgageWizardField({ field, value, onChange, data, readOnly }: 
 
   if (field.type === 'currency') {
     return (
-      <div className={colSpan}>
-        <Label className="text-xs font-medium text-foreground">{field.label}</Label>
-        {field.description && <p className="text-xs text-muted-foreground mt-0.5">{field.description}</p>}
-        <div className="relative mt-1.5">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+      <div>
+        <Label className="text-sm font-medium text-foreground">{field.label}</Label>
+        {field.description && <p className="text-xs text-muted-foreground mt-1">{field.description}</p>}
+        <div className="relative mt-2">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
           <Input
             type="text"
             inputMode="numeric"
-            className="pl-7 h-11 rounded-lg border-border"
+            className="pl-8 h-12 rounded-xl border-border text-sm"
             placeholder={field.placeholder || '0'}
             value={val ? Number(val).toLocaleString() : ''}
             onChange={(e) => {
@@ -182,15 +189,15 @@ export function MortgageWizardField({ field, value, onChange, data, readOnly }: 
 
   // text, number, email, tel, date
   return (
-    <div className={colSpan}>
-      <Label className="text-xs font-medium text-foreground">{field.label}</Label>
-      {field.description && <p className="text-xs text-muted-foreground mt-0.5">{field.description}</p>}
+    <div>
+      <Label className="text-sm font-medium text-foreground">{field.label}</Label>
+      {field.description && <p className="text-xs text-muted-foreground mt-1">{field.description}</p>}
       <Input
         type={field.type}
         value={val}
         onChange={(e) => onChange(field.key, e.target.value)}
         placeholder={field.placeholder}
-        className="mt-1.5 h-11 rounded-lg border-border"
+        className="mt-2 h-12 rounded-xl border-border text-sm"
         disabled={readOnly}
       />
     </div>
