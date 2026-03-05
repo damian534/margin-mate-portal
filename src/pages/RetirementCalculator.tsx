@@ -393,7 +393,7 @@ export default function RetirementCalculator() {
             {/* Charts */}
             <Card className="border-border/50 shadow-sm">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Asset Growth Path</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2"><TrendingUp className="h-5 w-5 text-success" /> Asset Growth Path</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-72">
@@ -403,8 +403,8 @@ export default function RetirementCalculator() {
                       <XAxis dataKey="year" label={{ value: "Year", position: "insideBottom", offset: -5 }} className="text-xs" />
                       <YAxis tickFormatter={chartCurrencyFormatter} className="text-xs" width={90} />
                       <RechartsTooltip formatter={(v: number) => formatCurrency(v)} labelFormatter={(l) => `Year ${l} (Age ${currentAge + Number(l)})`} />
-                      <ReferenceLine y={r.assetBaseRequired} stroke="hsl(var(--primary))" strokeDasharray="5 5" label={{ value: "Target", position: "right", fill: "hsl(var(--primary))" }} />
-                      <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} name="Asset Value" />
+                      <ReferenceLine y={r.assetBaseRequired} stroke="hsl(var(--warning))" strokeDasharray="5 5" label={{ value: "Target", position: "right", fill: "hsl(var(--warning))" }} />
+                      <Line type="monotone" dataKey="value" stroke="hsl(var(--success))" strokeWidth={2} dot={false} name="Asset Value" />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
