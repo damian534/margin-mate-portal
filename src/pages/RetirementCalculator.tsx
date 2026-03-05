@@ -204,6 +204,15 @@ export default function RetirementCalculator() {
                 </RadioGroup>
                 <NGInputField label={withdrawalMode === 'withdrawal' ? 'Withdrawal Rate' : 'Net Yield'} id="withdrawal-rate" value={withdrawalRate} onChange={setWithdrawalRate} suffix="%" step={0.5} max={10} />
               </div>
+              <Separator />
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Capital Gains Tax (Simplified)</Label>
+                <p className="text-xs text-muted-foreground flex items-start gap-1 mb-2">
+                  <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                  Flat effective tax rate applied to 50% of the capital gain (after CGT discount for assets held &gt;12 months).
+                </p>
+                <NGInputField label="Effective CGT Rate" id="cgt-rate" value={cgtRate} onChange={setCgtRate} suffix="%" step={1} max={47} />
+              </div>
             </InputSection>
 
             {/* Property Plan */}
