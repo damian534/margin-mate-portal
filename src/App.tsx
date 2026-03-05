@@ -23,6 +23,7 @@ import Settlements from "./pages/Settlements";
 import ClientPortal from "./pages/ClientPortal";
 import PortfolioAdvisor from "./pages/PortfolioAdvisor";
 import FeasibilityCalculator from "./pages/FeasibilityCalculator";
+import RetirementCalculator from "./pages/RetirementCalculator";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'broker' | 'referral_partner' | 'super_admin' | 'broker_or_admin' | 'broker_staff' }) {
@@ -123,6 +124,11 @@ const App = () => (
             <Route path="/tools/feasibility" element={
               <ProtectedRoute requiredRole="broker_or_admin">
                 <FeasibilityCalculator />
+              </ProtectedRoute>
+            } />
+            <Route path="/tools/retirement" element={
+              <ProtectedRoute requiredRole="broker_or_admin">
+                <RetirementCalculator />
               </ProtectedRoute>
             } />
             <Route path="/preview" element={<Preview />} />
