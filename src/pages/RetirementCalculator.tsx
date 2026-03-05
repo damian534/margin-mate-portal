@@ -8,8 +8,6 @@ import { Slider } from "@/components/ui/slider";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Separator } from "@/components/ui/separator";
 import {
   ArrowLeft, Target, TrendingUp, Building, User, DollarSign,
   Calendar, Settings2, Info, PiggyBank, Wallet, BarChart3, Clock
