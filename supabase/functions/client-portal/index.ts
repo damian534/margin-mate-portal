@@ -55,7 +55,7 @@ serve(async (req) => {
       // Get lead info
       const { data: lead } = await supabase
         .from("leads")
-        .select("first_name, last_name")
+        .select("first_name, last_name, email, phone")
         .eq("id", tokenData.lead_id)
         .single();
 
