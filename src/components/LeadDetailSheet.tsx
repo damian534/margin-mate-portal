@@ -169,6 +169,28 @@ export function LeadDetailSheet({
   const [sourceContactReferralCount, setSourceContactReferralCount] = useState<number | null>(null);
   const [contactPickerOpen, setContactPickerOpen] = useState(false);
   const [partnerPickerOpen, setPartnerPickerOpen] = useState(false);
+  const [sendingFactFind, setSendingFactFind] = useState(false);
+
+  const handleSendFactFind = async () => {
+    if (!lead?.email) { toast.error('Lead has no email address'); return; }
+    setSendingFactFind(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-fact-find', {
+        body: {
+          lead_id: lead.id,
+          app_url: window.location.origin,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success('Fact Find email sent to ' + lead.email);
+      addNote('📋 Fact Find invitation sent via email', 'note');
+    } catch (e: any) {
+      console.error('Send fact find error:', e);
+      toast.error(e?.message || 'Failed to send Fact Find email');
+    }
+    setSendingFactFind(false);
+  };
 
   const startNameEdit = () => {
     setEditFirstName(lead.first_name);
