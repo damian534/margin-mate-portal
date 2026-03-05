@@ -75,6 +75,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         lead_id: tokenData.lead_id,
         lead_name: lead ? `${lead.first_name} ${lead.last_name}` : "Client",
+        lead_email: lead?.email || "",
+        lead_phone: lead?.phone || "",
         fact_find: factFind || [],
         documents: documents || [],
       }), {
