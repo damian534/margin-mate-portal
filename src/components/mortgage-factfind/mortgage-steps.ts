@@ -258,140 +258,7 @@ export const MORTGAGE_STEPS: WizardStep[] = [
   },
 
   // ═══════════════════════════════════════════════════════
-  //  3. OBJECTIVES
-  // ═══════════════════════════════════════════════════════
-  {
-    id: 'objectives',
-    title: 'Your Objectives',
-    subtitle: 'Tell us what you\'re looking to achieve.',
-    sectionKey: 'mff_objectives',
-    fields: [
-      { key: 'objectives', label: 'What are your key objectives for this loan?', type: 'textarea', placeholder: 'e.g. Purchase my first home, refinance for a better rate, consolidate debt...' },
-      {
-        key: 'timeframe',
-        label: 'Desired timeframe',
-        type: 'select',
-        options: [
-          { value: 'asap', label: 'As soon as possible' },
-          { value: '1_month', label: 'Within 1 month' },
-          { value: '1_3_months', label: '1–3 months' },
-          { value: '3_6_months', label: '3–6 months' },
-          { value: '6_plus', label: '6+ months / Just exploring' },
-        ],
-      },
-      {
-        key: 'priorities',
-        label: 'What is most important to you?',
-        type: 'select',
-        options: [
-          { value: 'lowest_rate', label: 'Lowest interest rate' },
-          { value: 'lowest_fees', label: 'Lowest fees' },
-          { value: 'flexibility', label: 'Flexibility (offset, redraw, extra repayments)' },
-          { value: 'speed', label: 'Speed of approval' },
-          { value: 'specific_lender', label: 'Specific lender preference' },
-        ],
-      },
-      { key: 'priority_notes', label: 'Anything else we should know about your priorities?', type: 'textarea', placeholder: 'Optional' },
-    ],
-  },
-
-  // ═══════════════════════════════════════════════════════
-  //  4. LOAN REQUIREMENTS
-  // ═══════════════════════════════════════════════════════
-  {
-    id: 'loan_requirements',
-    title: 'Loan Requirements',
-    subtitle: 'Details about the loan you need.',
-    sectionKey: 'mff_loan_requirements',
-    fields: [
-      {
-        key: 'loan_purpose',
-        label: 'Purpose of Loan',
-        type: 'select',
-        required: true,
-        options: [
-          { value: 'purchase_owner_occupied', label: 'Purchase – Owner Occupied' },
-          { value: 'purchase_investment', label: 'Purchase – Investment' },
-          { value: 'refinance', label: 'Refinance' },
-          { value: 'construction', label: 'Construction' },
-          { value: 'renovation', label: 'Renovation' },
-          { value: 'equity_release', label: 'Equity Release' },
-          { value: 'debt_consolidation', label: 'Debt Consolidation' },
-          { value: 'top_up', label: 'Top Up' },
-          { value: 'other', label: 'Other' },
-        ],
-      },
-      { key: 'purchase_price', label: 'Purchase Price / Property Value', type: 'currency', half: true },
-      { key: 'deposit_amount', label: 'Deposit Available', type: 'currency', half: true },
-      { key: 'loan_amount_sought', label: 'Loan Amount Required', type: 'currency' },
-      { key: 'property_address', label: 'Property Address (if known)', type: 'text', placeholder: 'Address of property being purchased / refinanced' },
-      { key: 'property_state', label: 'State', type: 'select', half: true, options: STATES },
-      {
-        key: 'property_type',
-        label: 'Property Type',
-        type: 'select',
-        half: true,
-        options: [
-          { value: 'house', label: 'House' },
-          { value: 'townhouse', label: 'Townhouse' },
-          { value: 'apartment', label: 'Apartment / Unit' },
-          { value: 'land', label: 'Vacant Land' },
-          { value: 'rural', label: 'Rural / Acreage' },
-          { value: 'commercial', label: 'Commercial' },
-          { value: 'other', label: 'Other' },
-        ],
-      },
-      {
-        key: 'repayment_type',
-        label: 'Preferred Repayment Type',
-        type: 'radio',
-        options: [
-          { value: 'principal_interest', label: 'Principal & Interest' },
-          { value: 'interest_only', label: 'Interest Only' },
-          { value: 'no_preference', label: 'No Preference' },
-        ],
-      },
-      {
-        key: 'rate_type',
-        label: 'Preferred Rate Type',
-        type: 'radio',
-        options: [
-          { value: 'variable', label: 'Variable' },
-          { value: 'fixed', label: 'Fixed' },
-          { value: 'split', label: 'Split' },
-          { value: 'no_preference', label: 'No Preference' },
-        ],
-      },
-      {
-        key: 'loan_term',
-        label: 'Preferred Loan Term',
-        type: 'select',
-        half: true,
-        options: [
-          { value: '30', label: '30 years' },
-          { value: '25', label: '25 years' },
-          { value: '20', label: '20 years' },
-          { value: '15', label: '15 years' },
-          { value: '10', label: '10 years' },
-        ],
-      },
-      {
-        key: 'offset_account',
-        label: 'Offset Account Required?',
-        type: 'radio',
-        options: [
-          { value: 'yes', label: 'Yes' },
-          { value: 'no', label: 'No' },
-          { value: 'no_preference', label: 'No Preference' },
-        ],
-      },
-      { key: 'first_home_buyer', label: 'First Home Buyer?', type: 'radio', options: YES_NO },
-      { key: 'settlement_timeframe', label: 'Settlement Timeframe', type: 'text', placeholder: 'e.g. 30 days, 60 days, ASAP' },
-    ],
-  },
-
-  // ═══════════════════════════════════════════════════════
-  //  5. PRIMARY APPLICANT – PERSONAL DETAILS
+  //  3. PRIMARY APPLICANT – PERSONAL DETAILS
   // ═══════════════════════════════════════════════════════
   {
     id: 'primary_personal',
@@ -641,7 +508,140 @@ export const MORTGAGE_STEPS: WizardStep[] = [
   },
 
   // ═══════════════════════════════════════════════════════
-  //  11. REAL ESTATE ASSETS – HOME
+  //  5. OBJECTIVES
+  // ═══════════════════════════════════════════════════════
+  {
+    id: 'objectives',
+    title: 'Your Objectives',
+    subtitle: 'Tell us what you\'re looking to achieve.',
+    sectionKey: 'mff_objectives',
+    fields: [
+      { key: 'objectives', label: 'What are your key objectives for this loan?', type: 'textarea', placeholder: 'e.g. Purchase my first home, refinance for a better rate, consolidate debt...' },
+      {
+        key: 'timeframe',
+        label: 'Desired timeframe',
+        type: 'select',
+        options: [
+          { value: 'asap', label: 'As soon as possible' },
+          { value: '1_month', label: 'Within 1 month' },
+          { value: '1_3_months', label: '1–3 months' },
+          { value: '3_6_months', label: '3–6 months' },
+          { value: '6_plus', label: '6+ months / Just exploring' },
+        ],
+      },
+      {
+        key: 'priorities',
+        label: 'What is most important to you?',
+        type: 'select',
+        options: [
+          { value: 'lowest_rate', label: 'Lowest interest rate' },
+          { value: 'lowest_fees', label: 'Lowest fees' },
+          { value: 'flexibility', label: 'Flexibility (offset, redraw, extra repayments)' },
+          { value: 'speed', label: 'Speed of approval' },
+          { value: 'specific_lender', label: 'Specific lender preference' },
+        ],
+      },
+      { key: 'priority_notes', label: 'Anything else we should know about your priorities?', type: 'textarea', placeholder: 'Optional' },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════
+  //  6. LOAN REQUIREMENTS
+  // ═══════════════════════════════════════════════════════
+  {
+    id: 'loan_requirements',
+    title: 'Loan Requirements',
+    subtitle: 'Details about the loan you need.',
+    sectionKey: 'mff_loan_requirements',
+    fields: [
+      {
+        key: 'loan_purpose',
+        label: 'Purpose of Loan',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'purchase_owner_occupied', label: 'Purchase – Owner Occupied' },
+          { value: 'purchase_investment', label: 'Purchase – Investment' },
+          { value: 'refinance', label: 'Refinance' },
+          { value: 'construction', label: 'Construction' },
+          { value: 'renovation', label: 'Renovation' },
+          { value: 'equity_release', label: 'Equity Release' },
+          { value: 'debt_consolidation', label: 'Debt Consolidation' },
+          { value: 'top_up', label: 'Top Up' },
+          { value: 'other', label: 'Other' },
+        ],
+      },
+      { key: 'purchase_price', label: 'Purchase Price / Property Value', type: 'currency', half: true },
+      { key: 'deposit_amount', label: 'Deposit Available', type: 'currency', half: true },
+      { key: 'loan_amount_sought', label: 'Loan Amount Required', type: 'currency' },
+      { key: 'property_address', label: 'Property Address (if known)', type: 'text', placeholder: 'Address of property being purchased / refinanced' },
+      { key: 'property_state', label: 'State', type: 'select', half: true, options: STATES },
+      {
+        key: 'property_type',
+        label: 'Property Type',
+        type: 'select',
+        half: true,
+        options: [
+          { value: 'house', label: 'House' },
+          { value: 'townhouse', label: 'Townhouse' },
+          { value: 'apartment', label: 'Apartment / Unit' },
+          { value: 'land', label: 'Vacant Land' },
+          { value: 'rural', label: 'Rural / Acreage' },
+          { value: 'commercial', label: 'Commercial' },
+          { value: 'other', label: 'Other' },
+        ],
+      },
+      {
+        key: 'repayment_type',
+        label: 'Preferred Repayment Type',
+        type: 'radio',
+        options: [
+          { value: 'principal_interest', label: 'Principal & Interest' },
+          { value: 'interest_only', label: 'Interest Only' },
+          { value: 'no_preference', label: 'No Preference' },
+        ],
+      },
+      {
+        key: 'rate_type',
+        label: 'Preferred Rate Type',
+        type: 'radio',
+        options: [
+          { value: 'variable', label: 'Variable' },
+          { value: 'fixed', label: 'Fixed' },
+          { value: 'split', label: 'Split' },
+          { value: 'no_preference', label: 'No Preference' },
+        ],
+      },
+      {
+        key: 'loan_term',
+        label: 'Preferred Loan Term',
+        type: 'select',
+        half: true,
+        options: [
+          { value: '30', label: '30 years' },
+          { value: '25', label: '25 years' },
+          { value: '20', label: '20 years' },
+          { value: '15', label: '15 years' },
+          { value: '10', label: '10 years' },
+        ],
+      },
+      {
+        key: 'offset_account',
+        label: 'Offset Account Required?',
+        type: 'radio',
+        options: [
+          { value: 'yes', label: 'Yes' },
+          { value: 'no', label: 'No' },
+          { value: 'no_preference', label: 'No Preference' },
+        ],
+      },
+      { key: 'first_home_buyer', label: 'First Home Buyer?', type: 'radio', options: YES_NO },
+      { key: 'settlement_timeframe', label: 'Settlement Timeframe', type: 'text', placeholder: 'e.g. 30 days, 60 days, ASAP' },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════
+  //  7. REAL ESTATE ASSETS – HOME
   // ═══════════════════════════════════════════════════════
   {
     id: 'real_estate_home',
