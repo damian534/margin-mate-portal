@@ -413,7 +413,7 @@ export default function RetirementCalculator() {
 
             <Card className="border-border/50 shadow-sm">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2"><DollarSign className="h-5 w-5 text-primary" /> Income: Today vs Inflated</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2"><DollarSign className="h-5 w-5 text-warning" /> Income: Today vs Inflated</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-72">
@@ -423,8 +423,8 @@ export default function RetirementCalculator() {
                       <XAxis dataKey="year" label={{ value: "Year", position: "insideBottom", offset: -5 }} className="text-xs" />
                       <YAxis tickFormatter={chartCurrencyFormatter} className="text-xs" width={90} />
                       <RechartsTooltip formatter={(v: number) => formatCurrency(v)} labelFormatter={(l) => `Year ${l}`} />
-                      <Line type="monotone" dataKey="today" stroke="hsl(var(--muted-foreground))" strokeWidth={1} strokeDasharray="5 5" dot={false} name="Today's Dollars" />
-                      <Line type="monotone" dataKey="inflated" stroke="hsl(var(--destructive))" strokeWidth={2} dot={false} name="Inflation-Adjusted" />
+                      <Line type="monotone" dataKey="today" stroke="hsl(var(--success))" strokeWidth={1} strokeDasharray="5 5" dot={false} name="Today's Dollars" />
+                      <Line type="monotone" dataKey="inflated" stroke="hsl(var(--warning))" strokeWidth={2} dot={false} name="Inflation-Adjusted" />
                       <Legend />
                     </LineChart>
                   </ResponsiveContainer>
