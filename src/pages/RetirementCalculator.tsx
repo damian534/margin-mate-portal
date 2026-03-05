@@ -10,7 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Separator } from "@/components/ui/separator";
 import {
   ArrowLeft, Target, TrendingUp, Building, User, DollarSign,
-  Calendar, Settings2, Info, PiggyBank, Wallet, BarChart3, Clock
+  Calendar, Settings2, Info, PiggyBank, Wallet, BarChart3, Clock,
+  Home, ArrowRight, Minus, BadgeDollarSign,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { NGInputField } from "@/components/negative-gearing/NGInputField";
@@ -84,6 +85,7 @@ export default function RetirementCalculator() {
   const [vacancyPct, setVacancyPct] = useState(2.0);
   const [haircut, setHaircut] = useState(0);
   const [linkRentToInflation, setLinkRentToInflation] = useState(true);
+  const [cgtRate, setCgtRate] = useState(25);
 
   // Toggles
   const [includeCashflow, setIncludeCashflow] = useState(false);
@@ -102,10 +104,10 @@ export default function RetirementCalculator() {
     inflationRate, assetGrowthRate, withdrawalMode, withdrawalRate,
     assetType, propertyPrice, purchaseCostsPct, depositPct,
     loanType, loanTermYears, interestRate, rentalYield, expenseAllowancePct,
-    rentGrowthRate: effectiveRentGrowth, vacancyPct, haircut,
+    rentGrowthRate: effectiveRentGrowth, vacancyPct, haircut, cgtRate,
     includeCashflow, includeSchedule, includeTax, includeDebtReduction, extraRepayment,
     scheduleMode, scheduleInterval,
-  }), [currentAge, retirementAge, annualIncome, inflationRate, assetGrowthRate, withdrawalMode, withdrawalRate, assetType, propertyPrice, purchaseCostsPct, depositPct, loanType, loanTermYears, interestRate, rentalYield, expenseAllowancePct, effectiveRentGrowth, vacancyPct, haircut, includeCashflow, includeSchedule, includeTax, includeDebtReduction, extraRepayment, scheduleMode, scheduleInterval]);
+  }), [currentAge, retirementAge, annualIncome, inflationRate, assetGrowthRate, withdrawalMode, withdrawalRate, assetType, propertyPrice, purchaseCostsPct, depositPct, loanType, loanTermYears, interestRate, rentalYield, expenseAllowancePct, effectiveRentGrowth, vacancyPct, haircut, cgtRate, includeCashflow, includeSchedule, includeTax, includeDebtReduction, extraRepayment, scheduleMode, scheduleInterval]);
 
   const r = useMemo(() => calculateRetirement(inputs), [inputs]);
   const yearsToRetirement = r.yearsToRetirement;
