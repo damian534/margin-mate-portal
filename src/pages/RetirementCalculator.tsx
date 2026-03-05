@@ -62,7 +62,7 @@ export default function RetirementCalculator() {
   const [withdrawalRate, setWithdrawalRate] = useState(4.0);
 
   // Property plan
-  const [assetType, setAssetType] = useState<'property' | 'shares' | 'mixed'>('property');
+  const [assetType] = useState<'property'>('property');
   const [propertyPrice, setPropertyPrice] = useState(750000);
   const [purchaseCostsPct, setPurchaseCostsPct] = useState(5.0);
   const [depositPct, setDepositPct] = useState(20);
@@ -178,41 +178,30 @@ export default function RetirementCalculator() {
               <NGInputField label="Asset Growth Rate" id="growth" value={assetGrowthRate} onChange={setAssetGrowthRate} suffix="% p.a." step={0.5} max={20} />
               <Separator />
               <div className="space-y-3">
-                <Label className="text-sm font-medium">Income / Withdrawal Rule at Retirement</Label>
+                <Label className="text-sm font-medium">Post-Sale Investment Return</Label>
+                <p className="text-xs text-muted-foreground flex items-start gap-1 mb-2">
+                  <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                  At retirement you sell your properties and invest the proceeds. What sustainable annual return (or withdrawal rate) will that investment produce?
+                </p>
                 <RadioGroup value={withdrawalMode} onValueChange={(v) => setWithdrawalMode(v as 'withdrawal' | 'yield')}>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="withdrawal" id="wm-withdrawal" />
-                    <Label htmlFor="wm-withdrawal" className="text-sm cursor-pointer">Withdrawal Rate (% of assets)</Label>
+                    <Label htmlFor="wm-withdrawal" className="text-sm cursor-pointer">Safe Withdrawal Rate (% of portfolio)</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="yield" id="wm-yield" />
-                    <Label htmlFor="wm-yield" className="text-sm cursor-pointer">Net Yield (% of assets)</Label>
+                    <Label htmlFor="wm-yield" className="text-sm cursor-pointer">Expected Net Yield (% of portfolio)</Label>
                   </div>
                 </RadioGroup>
                 <NGInputField label={withdrawalMode === 'withdrawal' ? 'Withdrawal Rate' : 'Net Yield'} id="withdrawal-rate" value={withdrawalRate} onChange={setWithdrawalRate} suffix="%" step={0.5} max={10} />
-                <p className="text-xs text-muted-foreground flex items-start gap-1">
-                  <Info className="h-3 w-3 mt-0.5 shrink-0" />
-                  This is the % your asset base can sustainably produce as income.
-                </p>
               </div>
             </InputSection>
 
             {/* Property Plan */}
-            <InputSection title="Property Plan Builder" icon={<Building className="h-5 w-5 text-primary" />}>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Preferred Asset Type</Label>
-                <Select value={assetType} onValueChange={(v) => setAssetType(v as 'property' | 'shares' | 'mixed')}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="property">Property</SelectItem>
-                    <SelectItem value="shares">Shares</SelectItem>
-                    <SelectItem value="mixed">Mixed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {assetType === 'property' && (
-                <>
+            <InputSection title="Property Plan" icon={<Building className="h-5 w-5 text-primary" />}>
+              <p className="text-xs text-muted-foreground mb-2">
+                Define the type of property you'd buy today. At retirement, you sell and invest the proceeds to fund your passive income.
+              </p>
                   <NGInputField label="Average Property Purchase Price Today" id="prop-price" value={propertyPrice} onChange={setPropertyPrice} prefix="$" step={25000} />
                   <NGInputField label="Purchase Costs (stamp duty + legals)" id="purchase-costs" value={purchaseCostsPct} onChange={setPurchaseCostsPct} suffix="%" step={0.5} max={15} />
                   
