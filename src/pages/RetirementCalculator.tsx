@@ -150,6 +150,87 @@ export default function RetirementCalculator() {
           </CardContent>
         </Card>
 
+        {/* ── End Position Visual ── */}
+        <Card className="border-border/50 shadow-sm overflow-hidden">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Home className="h-5 w-5 text-primary" /> End Position at Retirement (Age {retirementAge})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Property icons row */}
+            <div className="flex flex-wrap gap-4 justify-center">
+              {Array.from({ length: Math.min(r.propertiesNeeded, 8) }).map((_, idx) => (
+                <div key={idx} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-secondary/40 border border-border/50 min-w-[120px]">
+                  <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Home className="h-7 w-7 text-primary" />
+                  </div>
+                  <span className="text-xs font-semibold text-foreground">Property {idx + 1}</span>
+                  <span className="text-sm font-bold text-success">{formatCurrency(r.propertyValueAtRetirement)}</span>
+                  <span className="text-[10px] text-muted-foreground">Projected value</span>
+                </div>
+              ))}
+              {r.propertiesNeeded > 8 && (
+                <div className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-secondary/40 border border-border/50 min-w-[120px]">
+                  <span className="text-2xl font-bold text-muted-foreground">+{r.propertiesNeeded - 8}</span>
+                  <span className="text-xs text-muted-foreground">more properties</span>
+                </div>
+              )}
+            </div>
+
+            {/* Waterfall breakdown */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-primary" /> Portfolio Summary
+                </h4>
+                <div className="space-y-2">
+                  {[
+                    { label: 'Total Gross Value', value: r.totalGrossValue, color: 'text-foreground', bold: true },
+                    { label: 'Outstanding Loans', value: -r.totalLoanBalance, color: 'text-destructive', bold: false },
+                    { label: 'Total Capital Gain', value: r.totalCapitalGain, color: 'text-muted-foreground', bold: false },
+                    { label: `CGT Payable (${cgtRate}% on 50% gain)`, value: -r.totalCgtPayable, color: 'text-destructive', bold: false },
+                  ].map((row) => (
+                    <div key={row.label} className={cn("flex justify-between text-sm px-3 py-2 rounded-lg", row.bold ? "bg-muted/50" : "")}>
+                      <span className="text-muted-foreground">{row.label}</span>
+                      <span className={cn("font-medium", row.color)}>{formatCurrency(row.value)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <BadgeDollarSign className="h-4 w-4 text-success" /> Net Result
+                </h4>
+                <div className="rounded-xl border-2 border-success/30 bg-success/5 p-5 space-y-4">
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Net Investable Proceeds</p>
+                    <p className="text-3xl font-bold text-success">{formatCurrency(r.totalNetInvestable)}</p>
+                  </div>
+                  <Separator />
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Invested at {formatPercent(withdrawalRate)}</span>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-semibold text-success">{formatCurrency(r.totalNetInvestable * withdrawalRate / 100)}/yr</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Target income</span>
+                    <span className="font-semibold text-warning">{formatCurrency(r.incomeAtRetirement)}/yr</span>
+                  </div>
+                  <div className={cn("flex items-center justify-between text-sm p-2 rounded-lg", r.totalNetInvestable * withdrawalRate / 100 >= r.incomeAtRetirement ? "bg-success/10" : "bg-warning/10")}>
+                    <span className="font-medium">{r.totalNetInvestable * withdrawalRate / 100 >= r.incomeAtRetirement ? '✅ Goal Achieved' : '⚠️ Shortfall'}</span>
+                    <span className={cn("font-bold", r.totalNetInvestable * withdrawalRate / 100 >= r.incomeAtRetirement ? "text-success" : "text-warning")}>
+                      {formatCurrency(Math.abs(r.totalNetInvestable * withdrawalRate / 100 - r.incomeAtRetirement))}
+                      {r.totalNetInvestable * withdrawalRate / 100 >= r.incomeAtRetirement ? ' surplus' : ' short'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* ── Left Panel: Inputs ── */}
           <div className="lg:col-span-2 space-y-5">
