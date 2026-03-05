@@ -9,7 +9,7 @@ export interface RetirementInputs {
   withdrawalMode: 'withdrawal' | 'yield';
   withdrawalRate: number;        // e.g. 4.0
   // Property plan
-  assetType: 'property' | 'shares' | 'mixed';
+  assetType: 'property';
   propertyPrice: number;
   purchaseCostsPct: number;      // e.g. 5.0
   depositPct: number;            // e.g. 20
