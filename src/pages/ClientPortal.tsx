@@ -34,6 +34,10 @@ export default function ClientPortal() {
   const [error, setError] = useState<string | null>(null);
   const [leadName, setLeadName] = useState('');
   const [leadId, setLeadId] = useState<string | null>(null);
+  const [leadEmail, setLeadEmail] = useState('');
+  const [leadPhone, setLeadPhone] = useState('');
+  const [leadFirstName, setLeadFirstName] = useState('');
+  const [leadLastName, setLeadLastName] = useState('');
   const [documents, setDocuments] = useState<DocumentRequest[]>([]);
   const [activeTab, setActiveTab] = useState('factfind');
   const [factFindComplete, setFactFindComplete] = useState(false);
