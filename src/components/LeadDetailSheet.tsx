@@ -610,7 +610,7 @@ export function LeadDetailSheet({
           )}
 
           {/* Quick contact actions */}
-          <div className="flex gap-2 mt-2">
+          <div className="flex gap-2 mt-2 flex-wrap">
             {editEmail && !contactDirty && (
               <Button variant="outline" size="sm" className="gap-1.5 flex-1" onClick={handleEmailClick}>
                 <Mail className="w-3.5 h-3.5" /> Email
@@ -619,6 +619,18 @@ export function LeadDetailSheet({
             {editPhone && !contactDirty && (
               <Button variant="outline" size="sm" className="gap-1.5 flex-1" onClick={handlePhoneClick}>
                 <Phone className="w-3.5 h-3.5" /> Call
+              </Button>
+            )}
+            {editEmail && !contactDirty && (
+              <Button
+                variant="default"
+                size="sm"
+                className="gap-1.5 flex-1"
+                disabled={sendingFactFind}
+                onClick={handleSendFactFind}
+              >
+                <ClipboardList className="w-3.5 h-3.5" />
+                {sendingFactFind ? 'Sending...' : 'Send Fact Find'}
               </Button>
             )}
           </div>
