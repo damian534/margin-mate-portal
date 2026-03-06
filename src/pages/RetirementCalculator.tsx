@@ -58,12 +58,15 @@ function ResultCard({ title, value, subtitle, icon, variant = "default", size = 
 
 export default function RetirementCalculator() {
   const navigate = useNavigate();
+  const [step, setStep] = useState<1 | 2>(1);
 
   // Personal
   const [currentAge, setCurrentAge] = useState(40);
   const [retirementAge, setRetirementAge] = useState(60);
   const [desiredIncome, setDesiredIncome] = useState(100000);
   const [incomeFreq, setIncomeFreq] = useState<'annual' | 'monthly'>('annual');
+  const [introIncomeFreq, setIntroIncomeFreq] = useState<'weekly' | 'monthly' | 'annual'>('weekly');
+  const [introIncome, setIntroIncome] = useState(2000);
 
   // Assumptions
   const [inflationRate, setInflationRate] = useState(3.0);
