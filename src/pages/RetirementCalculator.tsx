@@ -99,7 +99,8 @@ export default function RetirementCalculator() {
   const [scheduleMode, setScheduleMode] = useState<'all_now' | 'every_x_years'>('all_now');
   const [scheduleInterval, setScheduleInterval] = useState(3);
 
-  const annualIncome = incomeFreq === 'monthly' ? desiredIncome * 12 : desiredIncome;
+  const introAnnualIncome = introIncomeFreq === 'weekly' ? introIncome * 52 : introIncomeFreq === 'monthly' ? introIncome * 12 : introIncome;
+  const annualIncome = step === 1 ? introAnnualIncome : (incomeFreq === 'monthly' ? desiredIncome * 12 : desiredIncome);
   const effectiveRentGrowth = linkRentToInflation ? inflationRate : rentGrowthRate;
 
   const inputs: RetirementInputs = useMemo(() => ({
