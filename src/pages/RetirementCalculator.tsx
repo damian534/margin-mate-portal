@@ -67,6 +67,7 @@ export default function RetirementCalculator() {
   const [incomeFreq, setIncomeFreq] = useState<'annual' | 'monthly'>('annual');
   const [introIncomeFreq, setIntroIncomeFreq] = useState<'weekly' | 'monthly' | 'annual'>('weekly');
   const [introIncome, setIntroIncome] = useState(2000);
+  const [introPropertyCount, setIntroPropertyCount] = useState(2);
 
   // Assumptions
   const [inflationRate, setInflationRate] = useState(3.0);
