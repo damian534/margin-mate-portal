@@ -17,7 +17,7 @@ import { useNavigate } from "react-router-dom";
 import { NGInputField } from "@/components/negative-gearing/NGInputField";
 import { InputSection } from "@/components/advisor/InputSection";
 import { Disclaimer } from "@/components/advisor/Disclaimer";
-import { calculateRetirement, formatCurrency, formatPercent, RetirementInputs } from "@/lib/retirement/calculations";
+import { calculateRetirement, reversePropertyPrice, formatCurrency, formatPercent, RetirementInputs } from "@/lib/retirement/calculations";
 import { cn } from "@/lib/utils";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
