@@ -225,6 +225,66 @@ export function calculateRetirement(i: RetirementInputs): RetirementResults {
   };
 }
 
+/**
+ * Reverse-calculate: given a desired number of properties, what price does each need to be?
+ * Returns the minimum property price (today) so that N properties produce enough net proceeds.
+ */
+export function reversePropertyPrice(
+  numProperties: number,
+  i: Omit<RetirementInputs, 'propertyPrice'>
+): number {
+  const n = Math.max(1, i.retirementAge - i.currentAge);
+  const inf = i.inflationRate / 100;
+  const g = i.assetGrowthRate / 100;
+  const w = i.withdrawalRate / 100;
+  const dep = i.depositPct / 100;
+  const cgt = i.cgtRate / 100;
+  const h = i.haircut / 100;
+
+  const incomeAtRetirement = i.desiredIncome * Math.pow(1 + inf, n);
+  const assetBaseRequired = w > 0 ? incomeAtRetirement / w : 0;
+  if (numProperties <= 0 || assetBaseRequired <= 0) return 0;
+
+  const targetPerProperty = assetBaseRequired / numProperties;
+
+  // Net proceeds per property = P*G - loanBal(P*(1-dep)) - CGT
+  // where G = (1+g)^n * (1-h)
+  const G = Math.pow(1 + g, n) * (1 - h);
+
+  // Loan balance factor: loanBal = P*(1-dep)*k where k depends on loan type
+  const rm = i.interestRate / 100 / 12;
+  const totalMonths = i.loanTermYears * 12;
+  const elapsedMonths = Math.min(n * 12, totalMonths);
+
+  let loanFactor: number;
+  if (i.loanType === 'io') {
+    loanFactor = 1 - dep; // loanBal = P*(1-dep)
+  } else {
+    // For PI, loanBal is linear in principal. Compute the fraction remaining.
+    if (elapsedMonths >= totalMonths) {
+      loanFactor = 0;
+    } else if (rm === 0) {
+      loanFactor = (1 - dep) * (1 - elapsedMonths / totalMonths);
+    } else {
+      // fraction of principal remaining after elapsedMonths
+      const pmtPerDollar = pmt(rm, totalMonths, 1);
+      const balPerDollar = Math.pow(1 + rm, elapsedMonths) - pmtPerDollar * ((Math.pow(1 + rm, elapsedMonths) - 1) / rm);
+      loanFactor = (1 - dep) * Math.max(0, balPerDollar);
+    }
+  }
+
+  // CGT factor: CGT = (P*G - P) * 0.5 * cgtRate = P*(G-1)*0.5*cgt (when G > 1)
+  const cgtFactor = G > 1 ? (G - 1) * 0.5 * cgt : 0;
+
+  // netProceeds = P * (G - loanFactor - cgtFactor)
+  const netFactor = G - loanFactor - cgtFactor;
+  if (netFactor <= 0) return 0;
+
+  const requiredPrice = targetPerProperty / netFactor;
+  // Round up to nearest $5k for cleanliness
+  return Math.ceil(requiredPrice / 5000) * 5000;
+}
+
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-AU', {
     style: 'currency', currency: 'AUD',
