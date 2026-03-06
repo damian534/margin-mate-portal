@@ -261,8 +261,8 @@ export default function RetirementCalculator() {
                 <Separator />
 
                 {/* Purchase Timeline */}
-                {r.propertiesNeeded > 0 && (() => {
-                  const n = r.propertiesNeeded;
+                {introPropertyCount > 0 && (() => {
+                  const n = introPropertyCount;
                   const years = r.yearsToRetirement;
                   // Space purchases evenly: first one now, rest spread across the timeline
                   const timeline = Array.from({ length: n }, (_, idx) => {
@@ -298,7 +298,7 @@ export default function RetirementCalculator() {
                                   </p>
                                 </div>
                                 <div className="text-right">
-                                  <p className="text-sm font-medium text-foreground">{formatCurrency(propertyPrice)}</p>
+                                  <p className="text-sm font-medium text-foreground">{formatCurrency(reversedPrice)}</p>
                                   <p className="text-xs text-muted-foreground">
                                     {formatCurrency(r.cashPerProperty)} deposit + costs
                                   </p>
@@ -352,7 +352,7 @@ export default function RetirementCalculator() {
                     <Building className="h-5 w-5 text-success shrink-0 mt-0.5" />
                     <div>
                       <p className="font-medium text-foreground">
-                        Each {formatCurrency(propertyPrice)} property could be worth {formatCurrency(r.propertyValueAtRetirement)}
+                        Each {formatCurrency(reversedPrice)} property could be worth {formatCurrency(r.propertyValueAtRetirement)}
                       </p>
                       <p className="text-muted-foreground text-xs">At {formatPercent(assetGrowthRate)} average growth per year</p>
                     </div>
@@ -369,9 +369,10 @@ export default function RetirementCalculator() {
                 </div>
 
                 <Button size="lg" className="w-full text-base" onClick={() => {
-                  // Sync intro income to detailed view
+                  // Sync intro values to detailed view
                   setDesiredIncome(introIncomeFreq === 'annual' ? introIncome : introAnnualIncome);
                   setIncomeFreq('annual');
+                  setPropertyPrice(reversedPrice);
                   setStep(2);
                 }}>
                   See Full Breakdown <ArrowRight className="ml-2 h-5 w-5" />
