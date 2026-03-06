@@ -709,6 +709,8 @@ export default function RetirementCalculator() {
         </div>
 
         <Disclaimer />
+        </>
+        )}
       </main>
     </div>
   );
