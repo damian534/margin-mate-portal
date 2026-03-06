@@ -122,14 +122,172 @@ export default function RetirementCalculator() {
     <div className="min-h-screen bg-background">
       <AppHeader />
       <main className="container py-6 md:py-8 space-y-6 max-w-6xl">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/tools')}>
-          <ArrowLeft className="w-4 h-4 mr-1" /> Tools
+        <Button variant="ghost" size="sm" onClick={() => step === 2 ? setStep(1) : navigate('/tools')}>
+          <ArrowLeft className="w-4 h-4 mr-1" /> {step === 2 ? 'Back to Overview' : 'Tools'}
         </Button>
         <div>
-          <h1 className="text-2xl md:text-3xl font-heading font-bold">Retirement Reverse Engineer</h1>
-          <p className="text-muted-foreground text-sm">Work backwards from your passive income goal to a practical investment plan</p>
+          <h1 className="text-2xl md:text-3xl font-heading font-bold">
+            {step === 1 ? 'Passive Income Planner' : 'Retirement Reverse Engineer'}
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            {step === 1 ? 'Let\'s work out what it takes to retire on your terms' : 'Work backwards from your passive income goal to a practical investment plan'}
+          </p>
         </div>
 
+        {step === 1 ? (
+          /* ═══════════════════ STEP 1 — Simple Intro ═══════════════════ */
+          <div className="space-y-8 max-w-2xl mx-auto">
+            {/* Input Card */}
+            <Card className="border-primary/20 shadow-lg">
+              <CardContent className="p-6 md:p-8 space-y-6">
+                <div className="text-center mb-2">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
+                    <PiggyBank className="h-8 w-8 text-primary" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-foreground">Answer 3 questions</h2>
+                  <p className="text-sm text-muted-foreground">We'll show you a property strategy to get there</p>
+                </div>
+
+                <Separator />
+
+                {/* Q1: Current Age */}
+                <div className="space-y-3">
+                  <Label className="text-base font-semibold flex items-center gap-2">
+                    <User className="h-4 w-4 text-primary" /> How old are you?
+                  </Label>
+                  <div className="flex items-center gap-4">
+                    <Slider value={[currentAge]} onValueChange={([v]) => setCurrentAge(v)} min={18} max={70} step={1} className="flex-1" />
+                    <span className="text-2xl font-bold text-foreground w-16 text-right">{currentAge}</span>
+                  </div>
+                </div>
+
+                {/* Q2: Retirement Age */}
+                <div className="space-y-3">
+                  <Label className="text-base font-semibold flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-primary" /> When do you want to retire?
+                  </Label>
+                  <div className="flex items-center gap-4">
+                    <Slider value={[retirementAge]} onValueChange={([v]) => setRetirementAge(v)} min={currentAge + 1} max={80} step={1} className="flex-1" />
+                    <span className="text-2xl font-bold text-foreground w-16 text-right">{retirementAge}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">That's {retirementAge - currentAge} years from now</p>
+                </div>
+
+                {/* Q3: Desired Income */}
+                <div className="space-y-3">
+                  <Label className="text-base font-semibold flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-primary" /> How much passive income do you want?
+                  </Label>
+                  <div className="flex gap-1 mb-3">
+                    {(['weekly', 'monthly', 'annual'] as const).map(f => (
+                      <Button key={f} size="sm" variant={introIncomeFreq === f ? 'default' : 'outline'} className="text-xs h-8 flex-1 capitalize" onClick={() => {
+                        if (f === 'weekly') setIntroIncome(2000);
+                        else if (f === 'monthly') setIntroIncome(8000);
+                        else setIntroIncome(100000);
+                        setIntroIncomeFreq(f);
+                      }}>
+                        {f}
+                      </Button>
+                    ))}
+                  </div>
+                  <NGInputField
+                    label={`Net income per ${introIncomeFreq} (today's dollars)`}
+                    id="intro-income"
+                    value={introIncome}
+                    onChange={setIntroIncome}
+                    prefix="$"
+                    step={introIncomeFreq === 'weekly' ? 100 : introIncomeFreq === 'monthly' ? 500 : 5000}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    = {formatCurrency(introAnnualIncome)} per year in today's dollars
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Results Card */}
+            <Card className="border-success/30 bg-success/5 shadow-lg overflow-hidden">
+              <CardContent className="p-6 md:p-8 space-y-6">
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-foreground mb-1">Your Property Strategy</h3>
+                  <p className="text-xs text-muted-foreground">Based on conservative assumptions</p>
+                </div>
+
+                {/* Big number */}
+                <div className="text-center py-4">
+                  <div className="flex items-center justify-center gap-4 mb-3">
+                    {Array.from({ length: Math.min(r.propertiesNeeded, 5) }).map((_, idx) => (
+                      <div key={idx} className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                        <Home className="h-7 w-7 text-primary" />
+                      </div>
+                    ))}
+                    {r.propertiesNeeded > 5 && (
+                      <div className="w-14 h-14 rounded-xl bg-muted/50 flex items-center justify-center border border-border/50">
+                        <span className="text-sm font-bold text-muted-foreground">+{r.propertiesNeeded - 5}</span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-4xl md:text-5xl font-bold text-success">{r.propertiesNeeded} {r.propertiesNeeded === 1 ? 'property' : 'properties'}</p>
+                  <p className="text-muted-foreground mt-2 text-sm">is what you need to retire on your terms</p>
+                </div>
+
+                <Separator />
+
+                {/* Summary bullets */}
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-background/50">
+                    <Calendar className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-foreground">
+                        You have {r.yearsToRetirement} years to build your portfolio
+                      </p>
+                      <p className="text-muted-foreground text-xs">Retiring at age {retirementAge}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-background/50">
+                    <DollarSign className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-foreground">
+                        Your {formatCurrency(introAnnualIncome)}/yr will be worth {formatCurrency(r.incomeAtRetirement)}/yr
+                      </p>
+                      <p className="text-muted-foreground text-xs">Adjusted for inflation over {r.yearsToRetirement} years</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-background/50">
+                    <Building className="h-5 w-5 text-success shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-foreground">
+                        Each {formatCurrency(propertyPrice)} property could be worth {formatCurrency(r.propertyValueAtRetirement)}
+                      </p>
+                      <p className="text-muted-foreground text-xs">At {formatPercent(assetGrowthRate)} average growth per year</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-background/50">
+                    <Target className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-foreground">
+                        Net proceeds after loans & tax: {formatCurrency(r.totalNetInvestable)}
+                      </p>
+                      <p className="text-muted-foreground text-xs">Invested at {formatPercent(withdrawalRate)} = {formatCurrency(r.totalNetInvestable * withdrawalRate / 100)}/yr passive income</p>
+                    </div>
+                  </div>
+                </div>
+
+                <Button size="lg" className="w-full text-base" onClick={() => {
+                  // Sync intro income to detailed view
+                  setDesiredIncome(introIncomeFreq === 'annual' ? introIncome : introAnnualIncome);
+                  setIncomeFreq('annual');
+                  setStep(2);
+                }}>
+                  See Full Breakdown <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+                <p className="text-xs text-center text-muted-foreground">Customise every assumption, view charts, sensitivity analysis & more</p>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+        /* ═══════════════════ STEP 2 — Full Detail (existing) ═══════════════════ */
+        <>
         {/* ── Headline Results ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <ResultCard title="Income at Retirement" value={formatCurrency(r.incomeAtRetirement)} subtitle={`Today's $${annualIncome.toLocaleString()} inflated over ${yearsToRetirement} yrs`} icon={<DollarSign className="h-5 w-5" />} variant="warning" size="large" />
