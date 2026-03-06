@@ -17,7 +17,7 @@ import { useNavigate } from "react-router-dom";
 import { NGInputField } from "@/components/negative-gearing/NGInputField";
 import { InputSection } from "@/components/advisor/InputSection";
 import { Disclaimer } from "@/components/advisor/Disclaimer";
-import { calculateRetirement, formatCurrency, formatPercent, RetirementInputs } from "@/lib/retirement/calculations";
+import { calculateRetirement, reversePropertyPrice, formatCurrency, formatPercent, RetirementInputs } from "@/lib/retirement/calculations";
 import { cn } from "@/lib/utils";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
@@ -67,6 +67,7 @@ export default function RetirementCalculator() {
   const [incomeFreq, setIncomeFreq] = useState<'annual' | 'monthly'>('annual');
   const [introIncomeFreq, setIntroIncomeFreq] = useState<'weekly' | 'monthly' | 'annual'>('weekly');
   const [introIncome, setIntroIncome] = useState(2000);
+  const [introPropertyCount, setIntroPropertyCount] = useState(2);
 
   // Assumptions
   const [inflationRate, setInflationRate] = useState(3.0);
@@ -103,15 +104,28 @@ export default function RetirementCalculator() {
   const annualIncome = step === 1 ? introAnnualIncome : (incomeFreq === 'monthly' ? desiredIncome * 12 : desiredIncome);
   const effectiveRentGrowth = linkRentToInflation ? inflationRate : rentGrowthRate;
 
-  const inputs: RetirementInputs = useMemo(() => ({
-    currentAge, retirementAge, desiredIncome: annualIncome,
+  // Reverse-calculate the property price needed for the chosen number of properties (Step 1)
+  const reversedPrice = useMemo(() => reversePropertyPrice(introPropertyCount, {
+    currentAge, retirementAge, desiredIncome: introAnnualIncome,
     inflationRate, assetGrowthRate, withdrawalMode, withdrawalRate,
-    assetType, propertyPrice, purchaseCostsPct, depositPct,
+    assetType, purchaseCostsPct, depositPct,
     loanType, loanTermYears, interestRate, rentalYield, expenseAllowancePct,
     rentGrowthRate: effectiveRentGrowth, vacancyPct, haircut, cgtRate,
     includeCashflow, includeSchedule, includeTax, includeDebtReduction, extraRepayment,
     scheduleMode, scheduleInterval,
-  }), [currentAge, retirementAge, annualIncome, inflationRate, assetGrowthRate, withdrawalMode, withdrawalRate, assetType, propertyPrice, purchaseCostsPct, depositPct, loanType, loanTermYears, interestRate, rentalYield, expenseAllowancePct, effectiveRentGrowth, vacancyPct, haircut, cgtRate, includeCashflow, includeSchedule, includeTax, includeDebtReduction, extraRepayment, scheduleMode, scheduleInterval]);
+  }), [introPropertyCount, currentAge, retirementAge, introAnnualIncome, inflationRate, assetGrowthRate, withdrawalMode, withdrawalRate, assetType, purchaseCostsPct, depositPct, loanType, loanTermYears, interestRate, rentalYield, expenseAllowancePct, effectiveRentGrowth, vacancyPct, haircut, cgtRate, includeCashflow, includeSchedule, includeTax, includeDebtReduction, extraRepayment, scheduleMode, scheduleInterval]);
+
+  const effectivePropertyPrice = step === 1 ? reversedPrice : propertyPrice;
+
+  const inputs: RetirementInputs = useMemo(() => ({
+    currentAge, retirementAge, desiredIncome: annualIncome,
+    inflationRate, assetGrowthRate, withdrawalMode, withdrawalRate,
+    assetType, propertyPrice: effectivePropertyPrice, purchaseCostsPct, depositPct,
+    loanType, loanTermYears, interestRate, rentalYield, expenseAllowancePct,
+    rentGrowthRate: effectiveRentGrowth, vacancyPct, haircut, cgtRate,
+    includeCashflow, includeSchedule, includeTax, includeDebtReduction, extraRepayment,
+    scheduleMode, scheduleInterval,
+  }), [currentAge, retirementAge, annualIncome, inflationRate, assetGrowthRate, withdrawalMode, withdrawalRate, assetType, effectivePropertyPrice, purchaseCostsPct, depositPct, loanType, loanTermYears, interestRate, rentalYield, expenseAllowancePct, effectiveRentGrowth, vacancyPct, haircut, cgtRate, includeCashflow, includeSchedule, includeTax, includeDebtReduction, extraRepayment, scheduleMode, scheduleInterval]);
 
   const r = useMemo(() => calculateRetirement(inputs), [inputs]);
   const yearsToRetirement = r.yearsToRetirement;
@@ -202,6 +216,18 @@ export default function RetirementCalculator() {
                     = {formatCurrency(introAnnualIncome)} per year in today's dollars
                   </p>
                 </div>
+
+                {/* Q4: How many properties */}
+                <div className="space-y-3">
+                  <Label className="text-base font-semibold flex items-center gap-2">
+                    <Home className="h-4 w-4 text-primary" /> How many properties do you want to buy?
+                  </Label>
+                  <div className="flex items-center gap-4">
+                    <Slider value={[introPropertyCount]} onValueChange={([v]) => setIntroPropertyCount(v)} min={1} max={6} step={1} className="flex-1" />
+                    <span className="text-2xl font-bold text-foreground w-16 text-right">{introPropertyCount}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">We'll calculate the minimum price each property needs to be</p>
+                </div>
               </CardContent>
             </Card>
 
@@ -213,29 +239,30 @@ export default function RetirementCalculator() {
                   <p className="text-xs text-muted-foreground">Based on conservative assumptions</p>
                 </div>
 
-                {/* Big number */}
+                {/* Big number — now shows price per property */}
                 <div className="text-center py-4">
                   <div className="flex items-center justify-center gap-4 mb-3">
-                    {Array.from({ length: Math.min(r.propertiesNeeded, 5) }).map((_, idx) => (
+                    {Array.from({ length: Math.min(introPropertyCount, 5) }).map((_, idx) => (
                       <div key={idx} className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
                         <Home className="h-7 w-7 text-primary" />
                       </div>
                     ))}
-                    {r.propertiesNeeded > 5 && (
+                    {introPropertyCount > 5 && (
                       <div className="w-14 h-14 rounded-xl bg-muted/50 flex items-center justify-center border border-border/50">
-                        <span className="text-sm font-bold text-muted-foreground">+{r.propertiesNeeded - 5}</span>
+                        <span className="text-sm font-bold text-muted-foreground">+{introPropertyCount - 5}</span>
                       </div>
                     )}
                   </div>
-                  <p className="text-4xl md:text-5xl font-bold text-success">{r.propertiesNeeded} {r.propertiesNeeded === 1 ? 'property' : 'properties'}</p>
-                  <p className="text-muted-foreground mt-2 text-sm">is what you need to retire on your terms</p>
+                  <p className="text-4xl md:text-5xl font-bold text-success">{introPropertyCount} {introPropertyCount === 1 ? 'property' : 'properties'}</p>
+                  <p className="text-lg font-semibold text-foreground mt-2">at {formatCurrency(reversedPrice)} each</p>
+                  <p className="text-muted-foreground mt-1 text-sm">is what you need to retire on your terms</p>
                 </div>
 
                 <Separator />
 
                 {/* Purchase Timeline */}
-                {r.propertiesNeeded > 0 && (() => {
-                  const n = r.propertiesNeeded;
+                {introPropertyCount > 0 && (() => {
+                  const n = introPropertyCount;
                   const years = r.yearsToRetirement;
                   // Space purchases evenly: first one now, rest spread across the timeline
                   const timeline = Array.from({ length: n }, (_, idx) => {
@@ -271,7 +298,7 @@ export default function RetirementCalculator() {
                                   </p>
                                 </div>
                                 <div className="text-right">
-                                  <p className="text-sm font-medium text-foreground">{formatCurrency(propertyPrice)}</p>
+                                  <p className="text-sm font-medium text-foreground">{formatCurrency(reversedPrice)}</p>
                                   <p className="text-xs text-muted-foreground">
                                     {formatCurrency(r.cashPerProperty)} deposit + costs
                                   </p>
@@ -325,7 +352,7 @@ export default function RetirementCalculator() {
                     <Building className="h-5 w-5 text-success shrink-0 mt-0.5" />
                     <div>
                       <p className="font-medium text-foreground">
-                        Each {formatCurrency(propertyPrice)} property could be worth {formatCurrency(r.propertyValueAtRetirement)}
+                        Each {formatCurrency(reversedPrice)} property could be worth {formatCurrency(r.propertyValueAtRetirement)}
                       </p>
                       <p className="text-muted-foreground text-xs">At {formatPercent(assetGrowthRate)} average growth per year</p>
                     </div>
@@ -342,9 +369,10 @@ export default function RetirementCalculator() {
                 </div>
 
                 <Button size="lg" className="w-full text-base" onClick={() => {
-                  // Sync intro income to detailed view
+                  // Sync intro values to detailed view
                   setDesiredIncome(introIncomeFreq === 'annual' ? introIncome : introAnnualIncome);
                   setIncomeFreq('annual');
+                  setPropertyPrice(reversedPrice);
                   setStep(2);
                 }}>
                   See Full Breakdown <ArrowRight className="ml-2 h-5 w-5" />
