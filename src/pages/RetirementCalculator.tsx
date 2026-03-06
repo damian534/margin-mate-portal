@@ -216,6 +216,18 @@ export default function RetirementCalculator() {
                     = {formatCurrency(introAnnualIncome)} per year in today's dollars
                   </p>
                 </div>
+
+                {/* Q4: How many properties */}
+                <div className="space-y-3">
+                  <Label className="text-base font-semibold flex items-center gap-2">
+                    <Home className="h-4 w-4 text-primary" /> How many properties do you want to buy?
+                  </Label>
+                  <div className="flex items-center gap-4">
+                    <Slider value={[introPropertyCount]} onValueChange={([v]) => setIntroPropertyCount(v)} min={1} max={6} step={1} className="flex-1" />
+                    <span className="text-2xl font-bold text-foreground w-16 text-right">{introPropertyCount}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">We'll calculate the minimum price each property needs to be</p>
+                </div>
               </CardContent>
             </Card>
 
@@ -227,22 +239,23 @@ export default function RetirementCalculator() {
                   <p className="text-xs text-muted-foreground">Based on conservative assumptions</p>
                 </div>
 
-                {/* Big number */}
+                {/* Big number — now shows price per property */}
                 <div className="text-center py-4">
                   <div className="flex items-center justify-center gap-4 mb-3">
-                    {Array.from({ length: Math.min(r.propertiesNeeded, 5) }).map((_, idx) => (
+                    {Array.from({ length: Math.min(introPropertyCount, 5) }).map((_, idx) => (
                       <div key={idx} className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
                         <Home className="h-7 w-7 text-primary" />
                       </div>
                     ))}
-                    {r.propertiesNeeded > 5 && (
+                    {introPropertyCount > 5 && (
                       <div className="w-14 h-14 rounded-xl bg-muted/50 flex items-center justify-center border border-border/50">
-                        <span className="text-sm font-bold text-muted-foreground">+{r.propertiesNeeded - 5}</span>
+                        <span className="text-sm font-bold text-muted-foreground">+{introPropertyCount - 5}</span>
                       </div>
                     )}
                   </div>
-                  <p className="text-4xl md:text-5xl font-bold text-success">{r.propertiesNeeded} {r.propertiesNeeded === 1 ? 'property' : 'properties'}</p>
-                  <p className="text-muted-foreground mt-2 text-sm">is what you need to retire on your terms</p>
+                  <p className="text-4xl md:text-5xl font-bold text-success">{introPropertyCount} {introPropertyCount === 1 ? 'property' : 'properties'}</p>
+                  <p className="text-lg font-semibold text-foreground mt-2">at {formatCurrency(reversedPrice)} each</p>
+                  <p className="text-muted-foreground mt-1 text-sm">is what you need to retire on your terms</p>
                 </div>
 
                 <Separator />
