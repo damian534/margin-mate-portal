@@ -233,6 +233,74 @@ export default function RetirementCalculator() {
 
                 <Separator />
 
+                {/* Purchase Timeline */}
+                {r.propertiesNeeded > 0 && (() => {
+                  const n = r.propertiesNeeded;
+                  const years = r.yearsToRetirement;
+                  // Space purchases evenly: first one now, rest spread across the timeline
+                  const timeline = Array.from({ length: n }, (_, idx) => {
+                    const buyYear = n === 1 ? 0 : Math.round((idx / (n - 1)) * Math.min(years - 1, years * 0.8));
+                    return { propertyNum: idx + 1, year: buyYear, age: currentAge + buyYear };
+                  });
+                  return (
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-primary" /> Your Purchase Timeline
+                      </h4>
+                      <div className="relative">
+                        {/* Timeline line */}
+                        <div className="absolute left-[19px] top-3 bottom-3 w-0.5 bg-border" />
+                        <div className="space-y-0">
+                          {timeline.map((item, idx) => (
+                            <div key={idx} className="flex items-center gap-4 relative py-2">
+                              {/* Dot */}
+                              <div className={cn(
+                                "w-10 h-10 rounded-full flex items-center justify-center shrink-0 z-10 border-2",
+                                idx === 0 ? "bg-primary text-primary-foreground border-primary" : "bg-background border-primary/40"
+                              )}>
+                                <Home className={cn("h-4 w-4", idx === 0 ? "text-primary-foreground" : "text-primary")} />
+                              </div>
+                              {/* Content */}
+                              <div className="flex-1 flex items-center justify-between bg-background/80 rounded-lg px-4 py-3 border border-border/50">
+                                <div>
+                                  <p className="font-semibold text-sm text-foreground">
+                                    Property {item.propertyNum}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {item.year === 0 ? 'Buy now' : `Buy in year ${item.year}`} · Age {item.age}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-sm font-medium text-foreground">{formatCurrency(propertyPrice)}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {formatCurrency(r.cashPerProperty)} deposit + costs
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          {/* Retirement marker */}
+                          <div className="flex items-center gap-4 relative py-2">
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 z-10 border-2 bg-success text-success-foreground border-success">
+                              <Target className="h-4 w-4" />
+                            </div>
+                            <div className="flex-1 bg-success/10 rounded-lg px-4 py-3 border border-success/30">
+                              <p className="font-semibold text-sm text-foreground">
+                                🎉 Retire at age {retirementAge}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Portfolio worth {formatCurrency(r.totalGrossValue)} · Passive income {formatCurrency(r.incomeAtRetirement)}/yr
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <Separator />
+
                 {/* Summary bullets */}
                 <div className="space-y-3 text-sm">
                   <div className="flex items-start gap-3 p-3 rounded-lg bg-background/50">
