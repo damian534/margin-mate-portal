@@ -104,15 +104,28 @@ export default function RetirementCalculator() {
   const annualIncome = step === 1 ? introAnnualIncome : (incomeFreq === 'monthly' ? desiredIncome * 12 : desiredIncome);
   const effectiveRentGrowth = linkRentToInflation ? inflationRate : rentGrowthRate;
 
-  const inputs: RetirementInputs = useMemo(() => ({
-    currentAge, retirementAge, desiredIncome: annualIncome,
+  // Reverse-calculate the property price needed for the chosen number of properties (Step 1)
+  const reversedPrice = useMemo(() => reversePropertyPrice(introPropertyCount, {
+    currentAge, retirementAge, desiredIncome: introAnnualIncome,
     inflationRate, assetGrowthRate, withdrawalMode, withdrawalRate,
-    assetType, propertyPrice, purchaseCostsPct, depositPct,
+    assetType, purchaseCostsPct, depositPct,
     loanType, loanTermYears, interestRate, rentalYield, expenseAllowancePct,
     rentGrowthRate: effectiveRentGrowth, vacancyPct, haircut, cgtRate,
     includeCashflow, includeSchedule, includeTax, includeDebtReduction, extraRepayment,
     scheduleMode, scheduleInterval,
-  }), [currentAge, retirementAge, annualIncome, inflationRate, assetGrowthRate, withdrawalMode, withdrawalRate, assetType, propertyPrice, purchaseCostsPct, depositPct, loanType, loanTermYears, interestRate, rentalYield, expenseAllowancePct, effectiveRentGrowth, vacancyPct, haircut, cgtRate, includeCashflow, includeSchedule, includeTax, includeDebtReduction, extraRepayment, scheduleMode, scheduleInterval]);
+  }), [introPropertyCount, currentAge, retirementAge, introAnnualIncome, inflationRate, assetGrowthRate, withdrawalMode, withdrawalRate, assetType, purchaseCostsPct, depositPct, loanType, loanTermYears, interestRate, rentalYield, expenseAllowancePct, effectiveRentGrowth, vacancyPct, haircut, cgtRate, includeCashflow, includeSchedule, includeTax, includeDebtReduction, extraRepayment, scheduleMode, scheduleInterval]);
+
+  const effectivePropertyPrice = step === 1 ? reversedPrice : propertyPrice;
+
+  const inputs: RetirementInputs = useMemo(() => ({
+    currentAge, retirementAge, desiredIncome: annualIncome,
+    inflationRate, assetGrowthRate, withdrawalMode, withdrawalRate,
+    assetType, propertyPrice: effectivePropertyPrice, purchaseCostsPct, depositPct,
+    loanType, loanTermYears, interestRate, rentalYield, expenseAllowancePct,
+    rentGrowthRate: effectiveRentGrowth, vacancyPct, haircut, cgtRate,
+    includeCashflow, includeSchedule, includeTax, includeDebtReduction, extraRepayment,
+    scheduleMode, scheduleInterval,
+  }), [currentAge, retirementAge, annualIncome, inflationRate, assetGrowthRate, withdrawalMode, withdrawalRate, assetType, effectivePropertyPrice, purchaseCostsPct, depositPct, loanType, loanTermYears, interestRate, rentalYield, expenseAllowancePct, effectiveRentGrowth, vacancyPct, haircut, cgtRate, includeCashflow, includeSchedule, includeTax, includeDebtReduction, extraRepayment, scheduleMode, scheduleInterval]);
 
   const r = useMemo(() => calculateRetirement(inputs), [inputs]);
   const yearsToRetirement = r.yearsToRetirement;
