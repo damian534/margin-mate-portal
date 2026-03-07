@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   ArrowLeft, Target, TrendingUp, Building, User, DollarSign,
   Calendar, Settings2, Info, PiggyBank, Wallet, BarChart3, Clock,
-  Home, ArrowRight, Minus, BadgeDollarSign,
+  Home, ArrowRight, Minus, BadgeDollarSign, Download,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { NGInputField } from "@/components/negative-gearing/NGInputField";
@@ -19,6 +19,8 @@ import { InputSection } from "@/components/advisor/InputSection";
 import { Disclaimer } from "@/components/advisor/Disclaimer";
 import { calculateRetirement, reversePropertyPrice, formatCurrency, formatPercent, RetirementInputs } from "@/lib/retirement/calculations";
 import { cn } from "@/lib/utils";
+import { generateRetirementPdf } from "@/lib/pdf/retirementPdf";
+import { toast } from "sonner";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
   ResponsiveContainer, Legend, ReferenceLine,
@@ -802,6 +804,21 @@ export default function RetirementCalculator() {
               </CardContent>
             </Card>
           </div>
+        </div>
+
+        {/* Download PDF button */}
+        <div className="flex justify-center pt-2">
+          <Button variant="outline" size="lg" onClick={async () => {
+            try {
+              await generateRetirementPdf(inputs, r);
+              toast.success("PDF downloaded successfully");
+            } catch (e) {
+              console.error(e);
+              toast.error("Failed to generate PDF");
+            }
+          }}>
+            <Download className="h-4 w-4 mr-2" /> Download as PDF
+          </Button>
         </div>
 
         <Disclaimer />
