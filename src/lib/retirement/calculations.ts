@@ -34,9 +34,38 @@ export interface RetirementInputs {
   scheduleInterval: number;      // years between purchases
 }
 
+/**
+ * Given a desired NET (after-tax) income, find the GROSS income needed.
+ * Uses Australian marginal tax rates + 2% Medicare levy.
+ * Iterative approach since tax is non-linear.
+ */
+export function grossUpFromNet(netIncome: number): { grossIncome: number; taxPayable: number; medicareLevy: number; effectiveRate: number } {
+  if (netIncome <= 0) return { grossIncome: 0, taxPayable: 0, medicareLevy: 0, effectiveRate: 0 };
+  
+  // Iterative: start with gross = net, then adjust
+  let gross = netIncome;
+  for (let iter = 0; iter < 20; iter++) {
+    const tax = calculateTaxPayable(gross);
+    const medicare = gross * 0.02;
+    const resultNet = gross - tax - medicare;
+    const diff = netIncome - resultNet;
+    if (Math.abs(diff) < 1) break;
+    gross += diff;
+  }
+  
+  const taxPayable = calculateTaxPayable(gross);
+  const medicareLevy = gross * 0.02;
+  const effectiveRate = gross > 0 ? ((taxPayable + medicareLevy) / gross) * 100 : 0;
+  
+  return { grossIncome: gross, taxPayable, medicareLevy, effectiveRate };
+}
+
 export interface RetirementResults {
   yearsToRetirement: number;
-  incomeAtRetirement: number;
+  incomeAtRetirement: number;        // NET desired at retirement (inflated)
+  grossIncomeAtRetirement: number;   // GROSS needed to achieve net after tax
+  taxOnRetirementIncome: number;     // Tax + Medicare on gross
+  effectiveTaxRate: number;          // Effective tax rate %
   assetBaseRequired: number;
   assetBaseToday: number;
   propertiesNeeded: number;
@@ -67,7 +96,7 @@ export interface RetirementResults {
   totalCapitalGain: number;
   totalCgtPayable: number;
   totalNetProceeds: number;
-  totalNetInvestable: number;   // net proceeds after CGT, used to fund retirement
+  totalNetInvestable: number;
 }
 
 function pmt(rate: number, nper: number, pv: number): number {
