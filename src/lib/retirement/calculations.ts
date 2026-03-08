@@ -1,5 +1,5 @@
 // Retirement Reverse Engineer calculations
-
+import { calculateTaxPayable } from '@/lib/advisor/taxRates';
 export interface RetirementInputs {
   currentAge: number;
   retirementAge: number;
@@ -34,9 +34,38 @@ export interface RetirementInputs {
   scheduleInterval: number;      // years between purchases
 }
 
+/**
+ * Given a desired NET (after-tax) income, find the GROSS income needed.
+ * Uses Australian marginal tax rates + 2% Medicare levy.
+ * Iterative approach since tax is non-linear.
+ */
+export function grossUpFromNet(netIncome: number): { grossIncome: number; taxPayable: number; medicareLevy: number; effectiveRate: number } {
+  if (netIncome <= 0) return { grossIncome: 0, taxPayable: 0, medicareLevy: 0, effectiveRate: 0 };
+  
+  // Iterative: start with gross = net, then adjust
+  let gross = netIncome;
+  for (let iter = 0; iter < 20; iter++) {
+    const tax = calculateTaxPayable(gross);
+    const medicare = gross * 0.02;
+    const resultNet = gross - tax - medicare;
+    const diff = netIncome - resultNet;
+    if (Math.abs(diff) < 1) break;
+    gross += diff;
+  }
+  
+  const taxPayable = calculateTaxPayable(gross);
+  const medicareLevy = gross * 0.02;
+  const effectiveRate = gross > 0 ? ((taxPayable + medicareLevy) / gross) * 100 : 0;
+  
+  return { grossIncome: gross, taxPayable, medicareLevy, effectiveRate };
+}
+
 export interface RetirementResults {
   yearsToRetirement: number;
-  incomeAtRetirement: number;
+  incomeAtRetirement: number;        // NET desired at retirement (inflated)
+  grossIncomeAtRetirement: number;   // GROSS needed to achieve net after tax
+  taxOnRetirementIncome: number;     // Tax + Medicare on gross
+  effectiveTaxRate: number;          // Effective tax rate %
   assetBaseRequired: number;
   assetBaseToday: number;
   propertiesNeeded: number;
@@ -67,7 +96,7 @@ export interface RetirementResults {
   totalCapitalGain: number;
   totalCgtPayable: number;
   totalNetProceeds: number;
-  totalNetInvestable: number;   // net proceeds after CGT, used to fund retirement
+  totalNetInvestable: number;
 }
 
 function pmt(rate: number, nper: number, pv: number): number {
@@ -92,11 +121,17 @@ export function calculateRetirement(i: RetirementInputs): RetirementResults {
   const g = i.assetGrowthRate / 100;
   const w = i.withdrawalRate / 100;
 
-  // Step 1 — Inflate income
-  const incomeAtRetirement = i.desiredIncome * Math.pow(1 + inf, n);
+  // Step 1 — Inflate NET income to retirement
+  const netIncomeAtRetirement = i.desiredIncome * Math.pow(1 + inf, n);
 
-  // Step 2 — Required asset base (this is the NET investable amount needed)
-  const assetBaseRequired = w > 0 ? incomeAtRetirement / w : 0;
+  // Step 1b — Gross up: find gross income needed so that after tax + Medicare, net = desired
+  const taxBreakdown = grossUpFromNet(netIncomeAtRetirement);
+  const grossIncomeAtRetirement = taxBreakdown.grossIncome;
+  const taxOnRetirementIncome = taxBreakdown.taxPayable + taxBreakdown.medicareLevy;
+  const effectiveTaxRate = taxBreakdown.effectiveRate;
+
+  // Step 2 — Required asset base must generate the GROSS income (since tax comes out of it)
+  const assetBaseRequired = w > 0 ? grossIncomeAtRetirement / w : 0;
 
   // Step 3 — PV of asset base
   const assetBaseToday = g > 0 ? assetBaseRequired / Math.pow(1 + g, n) : assetBaseRequired;
@@ -169,15 +204,16 @@ export function calculateRetirement(i: RetirementInputs): RetirementResults {
     { label: 'Optimistic', growth: i.assetGrowthRate + 2, inflation: Math.max(0, i.inflationRate - 1), wr: i.withdrawalRate + 0.5 },
   ];
   const sensitivity = scenarios.map(s => {
-    const sInc = i.desiredIncome * Math.pow(1 + s.inflation / 100, n);
-    const sAsset = s.wr > 0 ? sInc / (s.wr / 100) : 0;
+    const sNetInc = i.desiredIncome * Math.pow(1 + s.inflation / 100, n);
+    const sGrossInc = grossUpFromNet(sNetInc).grossIncome;
+    const sAsset = s.wr > 0 ? sGrossInc / (s.wr / 100) : 0;
     const sPropVal = i.propertyPrice * Math.pow(1 + s.growth / 100, n) * (1 - i.haircut / 100);
     const sGain = Math.max(0, sPropVal - i.propertyPrice);
     const sCgt = sGain * 0.5 * cgtRate;
     const sLoanBal = loanBalanceAfterMonths(loanPerProperty, rm, totalMonths, elapsedMonths, i.loanType === 'io');
     const sNetPerProp = sPropVal - Math.max(0, sLoanBal) - sCgt;
     const sProps = sNetPerProp > 0 ? Math.ceil(sAsset / sNetPerProp) : 0;
-    return { label: s.label, incomeAtRetirement: sInc, assetBaseRequired: sAsset, propertiesNeeded: sProps };
+    return { label: s.label, incomeAtRetirement: sNetInc, assetBaseRequired: sAsset, propertiesNeeded: sProps };
   });
 
   // Purchase schedule
@@ -197,7 +233,10 @@ export function calculateRetirement(i: RetirementInputs): RetirementResults {
 
   return {
     yearsToRetirement: n,
-    incomeAtRetirement,
+    incomeAtRetirement: netIncomeAtRetirement,
+    grossIncomeAtRetirement,
+    taxOnRetirementIncome,
+    effectiveTaxRate,
     assetBaseRequired,
     assetBaseToday,
     propertiesNeeded,
@@ -241,8 +280,9 @@ export function reversePropertyPrice(
   const cgt = i.cgtRate / 100;
   const h = i.haircut / 100;
 
-  const incomeAtRetirement = i.desiredIncome * Math.pow(1 + inf, n);
-  const assetBaseRequired = w > 0 ? incomeAtRetirement / w : 0;
+  const netIncomeAtRetirement = i.desiredIncome * Math.pow(1 + inf, n);
+  const grossIncomeAtRetirement = grossUpFromNet(netIncomeAtRetirement).grossIncome;
+  const assetBaseRequired = w > 0 ? grossIncomeAtRetirement / w : 0;
   if (numProperties <= 0 || assetBaseRequired <= 0) return 0;
 
   const targetPerProperty = assetBaseRequired / numProperties;
