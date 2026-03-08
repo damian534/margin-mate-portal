@@ -204,15 +204,16 @@ export function calculateRetirement(i: RetirementInputs): RetirementResults {
     { label: 'Optimistic', growth: i.assetGrowthRate + 2, inflation: Math.max(0, i.inflationRate - 1), wr: i.withdrawalRate + 0.5 },
   ];
   const sensitivity = scenarios.map(s => {
-    const sInc = i.desiredIncome * Math.pow(1 + s.inflation / 100, n);
-    const sAsset = s.wr > 0 ? sInc / (s.wr / 100) : 0;
+    const sNetInc = i.desiredIncome * Math.pow(1 + s.inflation / 100, n);
+    const sGrossInc = grossUpFromNet(sNetInc).grossIncome;
+    const sAsset = s.wr > 0 ? sGrossInc / (s.wr / 100) : 0;
     const sPropVal = i.propertyPrice * Math.pow(1 + s.growth / 100, n) * (1 - i.haircut / 100);
     const sGain = Math.max(0, sPropVal - i.propertyPrice);
     const sCgt = sGain * 0.5 * cgtRate;
     const sLoanBal = loanBalanceAfterMonths(loanPerProperty, rm, totalMonths, elapsedMonths, i.loanType === 'io');
     const sNetPerProp = sPropVal - Math.max(0, sLoanBal) - sCgt;
     const sProps = sNetPerProp > 0 ? Math.ceil(sAsset / sNetPerProp) : 0;
-    return { label: s.label, incomeAtRetirement: sInc, assetBaseRequired: sAsset, propertiesNeeded: sProps };
+    return { label: s.label, incomeAtRetirement: sNetInc, assetBaseRequired: sAsset, propertiesNeeded: sProps };
   });
 
   // Purchase schedule
