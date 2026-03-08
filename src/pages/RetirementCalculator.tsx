@@ -268,12 +268,31 @@ export default function RetirementCalculator() {
                   const years = r.yearsToRetirement;
                   // Space purchases evenly: first one now, rest spread across the timeline
                    const g = assetGrowthRate / 100;
-                  const timeline = Array.from({ length: n }, (_, idx) => {
-                    const buyYear = n === 1 ? 0 : Math.round((idx / (n - 1)) * Math.min(years - 1, years * 0.8));
-                    const growthYears = years - buyYear;
-                    const projectedValue = reversedPrice * Math.pow(1 + g, growthYears);
-                    return { propertyNum: idx + 1, year: buyYear, age: currentAge + buyYear, projectedValue };
-                  });
+                   const dep = depositPct / 100;
+                   const loanPerProp = reversedPrice * (1 - dep);
+                   const rm = interestRate / 100 / 12;
+                   const totalLoanMonths = loanTermYears * 12;
+                   const isIO = loanType === 'io';
+                   const timeline = Array.from({ length: n }, (_, idx) => {
+                     const buyYear = n === 1 ? 0 : Math.round((idx / (n - 1)) * Math.min(years - 1, years * 0.8));
+                     const growthYears = years - buyYear;
+                     const projectedValue = reversedPrice * Math.pow(1 + g, growthYears);
+                     // Loan balance at retirement for this property
+                     const elapsedMonths = Math.min(growthYears * 12, totalLoanMonths);
+                     let loanBal: number;
+                     if (isIO) {
+                       loanBal = loanPerProp;
+                     } else if (rm === 0) {
+                       loanBal = loanPerProp - (loanPerProp / totalLoanMonths) * elapsedMonths;
+                     } else if (elapsedMonths >= totalLoanMonths) {
+                       loanBal = 0;
+                     } else {
+                       const monthlyPmt = (rm * loanPerProp * Math.pow(1 + rm, totalLoanMonths)) / (Math.pow(1 + rm, totalLoanMonths) - 1);
+                       loanBal = loanPerProp * Math.pow(1 + rm, elapsedMonths) - monthlyPmt * ((Math.pow(1 + rm, elapsedMonths) - 1) / rm);
+                     }
+                     loanBal = Math.max(0, loanBal);
+                     return { propertyNum: idx + 1, year: buyYear, age: currentAge + buyYear, projectedValue, loanBalance: loanBal };
+                   });
                   return (
                     <div className="space-y-3">
                       <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
