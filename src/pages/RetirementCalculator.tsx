@@ -267,9 +267,12 @@ export default function RetirementCalculator() {
                   const n = introPropertyCount;
                   const years = r.yearsToRetirement;
                   // Space purchases evenly: first one now, rest spread across the timeline
+                   const g = assetGrowthRate / 100;
                   const timeline = Array.from({ length: n }, (_, idx) => {
                     const buyYear = n === 1 ? 0 : Math.round((idx / (n - 1)) * Math.min(years - 1, years * 0.8));
-                    return { propertyNum: idx + 1, year: buyYear, age: currentAge + buyYear };
+                    const growthYears = years - buyYear;
+                    const projectedValue = reversedPrice * Math.pow(1 + g, growthYears);
+                    return { propertyNum: idx + 1, year: buyYear, age: currentAge + buyYear, projectedValue };
                   });
                   return (
                     <div className="space-y-3">
@@ -302,7 +305,7 @@ export default function RetirementCalculator() {
                                 <div className="text-right">
                                   <p className="text-sm font-medium text-foreground">{formatCurrency(reversedPrice)}</p>
                                   <p className="text-xs text-muted-foreground">
-                                    {formatCurrency(r.cashPerProperty)} deposit + costs
+                                    Worth {formatCurrency(item.projectedValue)} at retirement
                                   </p>
                                 </div>
                               </div>
@@ -353,10 +356,10 @@ export default function RetirementCalculator() {
                   <div className="flex items-start gap-3 p-3 rounded-lg bg-background/50">
                     <Building className="h-5 w-5 text-success shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-medium text-foreground">
-                        Each {formatCurrency(reversedPrice)} property could be worth {formatCurrency(r.propertyValueAtRetirement)}
+                       <p className="font-medium text-foreground">
+                        A {formatCurrency(reversedPrice)} property bought today could be worth {formatCurrency(r.propertyValueAtRetirement)} at retirement
                       </p>
-                      <p className="text-muted-foreground text-xs">At {formatPercent(assetGrowthRate)} average growth per year</p>
+                      <p className="text-muted-foreground text-xs">At {formatPercent(assetGrowthRate)} average growth per year · Properties bought later will have less growth time</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3 p-3 rounded-lg bg-background/50">
@@ -419,24 +422,37 @@ export default function RetirementCalculator() {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Property icons row */}
-            <div className="flex flex-wrap gap-4 justify-center">
-              {Array.from({ length: Math.min(r.propertiesNeeded, 8) }).map((_, idx) => (
-                <div key={idx} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-secondary/40 border border-border/50 min-w-[120px]">
-                  <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Home className="h-7 w-7 text-primary" />
+            {(() => {
+              const nProps = r.propertiesNeeded;
+              const years = r.yearsToRetirement;
+              const g = assetGrowthRate / 100;
+              const endTimeline = Array.from({ length: nProps }, (_, idx) => {
+                const buyYear = nProps === 1 ? 0 : Math.round((idx / (nProps - 1)) * Math.min(years - 1, years * 0.8));
+                const growthYears = years - buyYear;
+                const projectedValue = propertyPrice * Math.pow(1 + g, growthYears);
+                return { propertyNum: idx + 1, buyYear, growthYears, projectedValue };
+              });
+              return (
+              <div className="flex flex-wrap gap-4 justify-center">
+                {endTimeline.slice(0, 8).map((item, idx) => (
+                  <div key={idx} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-secondary/40 border border-border/50 min-w-[120px]">
+                    <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Home className="h-7 w-7 text-primary" />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground">Property {item.propertyNum}</span>
+                    <span className="text-sm font-bold text-success">{formatCurrency(item.projectedValue)}</span>
+                    <span className="text-[10px] text-muted-foreground">{item.growthYears}yr growth</span>
                   </div>
-                  <span className="text-xs font-semibold text-foreground">Property {idx + 1}</span>
-                  <span className="text-sm font-bold text-success">{formatCurrency(r.propertyValueAtRetirement)}</span>
-                  <span className="text-[10px] text-muted-foreground">Projected value</span>
-                </div>
-              ))}
-              {r.propertiesNeeded > 8 && (
-                <div className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-secondary/40 border border-border/50 min-w-[120px]">
-                  <span className="text-2xl font-bold text-muted-foreground">+{r.propertiesNeeded - 8}</span>
-                  <span className="text-xs text-muted-foreground">more properties</span>
-                </div>
-              )}
-            </div>
+                ))}
+                {r.propertiesNeeded > 8 && (
+                  <div className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-secondary/40 border border-border/50 min-w-[120px]">
+                    <span className="text-2xl font-bold text-muted-foreground">+{r.propertiesNeeded - 8}</span>
+                    <span className="text-xs text-muted-foreground">more properties</span>
+                  </div>
+                )}
+              </div>
+              );
+            })()}
 
             {/* Waterfall breakdown */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
