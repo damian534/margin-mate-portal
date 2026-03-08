@@ -260,6 +260,28 @@ export default function RetirementCalculator() {
                   <p className="text-muted-foreground mt-1 text-sm">is what you need to retire on your terms</p>
                 </div>
 
+                {/* Tax gross-up breakdown */}
+                <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Net income goal (today)</span>
+                    <span className="font-medium text-foreground">{formatCurrency(introAnnualIncome)}/yr</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Net income at retirement (inflated)</span>
+                    <span className="font-medium text-foreground">{formatCurrency(r.incomeAtRetirement)}/yr</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Tax + Medicare ({formatPercent(r.effectiveTaxRate)} effective)</span>
+                    <span className="font-medium text-destructive">+{formatCurrency(r.taxOnRetirementIncome)}/yr</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between font-semibold">
+                    <span className="text-foreground">Gross income needed</span>
+                    <span className="text-foreground">{formatCurrency(r.grossIncomeAtRetirement)}/yr</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">Based on Australian marginal tax rates + 2% Medicare levy</p>
+                </div>
+
                 <Separator />
 
                 {/* Purchase Timeline */}
