@@ -481,7 +481,6 @@ export default function RetirementCalculator() {
                     <span className="text-[10px] text-muted-foreground">{item.growthYears}yr growth</span>
                     <span className="text-[10px] text-destructive">Loan: {formatCurrency(item.loanBalance)}</span>
                   </div>
-                  </div>
                 ))}
                 {r.propertiesNeeded > 8 && (
                   <div className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-secondary/40 border border-border/50 min-w-[120px]">
