@@ -531,30 +531,31 @@ export default function RetirementCalculator() {
                 <div className="rounded-xl border-2 border-success/30 bg-success/5 p-5 space-y-4">
                   <div className="text-center">
                     <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Net Investable Proceeds</p>
-                    <p className="text-3xl font-bold text-success">{formatCurrency(r.totalNetInvestable)}</p>
+                    <p className="text-3xl font-bold text-success">{formatCurrency(actualNetProceeds)}</p>
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Invested at {formatPercent(withdrawalRate)}</span>
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-semibold text-success">{formatCurrency(r.totalNetInvestable * withdrawalRate / 100)}/yr</span>
+                    <span className="font-semibold text-success">{formatCurrency(actualNetProceeds * withdrawalRate / 100)}/yr</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Target income</span>
                     <span className="font-semibold text-warning">{formatCurrency(r.incomeAtRetirement)}/yr</span>
                   </div>
-                  <div className={cn("flex items-center justify-between text-sm p-2 rounded-lg", r.totalNetInvestable * withdrawalRate / 100 >= r.incomeAtRetirement ? "bg-success/10" : "bg-warning/10")}>
-                    <span className="font-medium">{r.totalNetInvestable * withdrawalRate / 100 >= r.incomeAtRetirement ? '✅ Goal Achieved' : '⚠️ Shortfall'}</span>
-                    <span className={cn("font-bold", r.totalNetInvestable * withdrawalRate / 100 >= r.incomeAtRetirement ? "text-success" : "text-warning")}>
-                      {formatCurrency(Math.abs(r.totalNetInvestable * withdrawalRate / 100 - r.incomeAtRetirement))}
-                      {r.totalNetInvestable * withdrawalRate / 100 >= r.incomeAtRetirement ? ' surplus' : ' short'}
+                  <div className={cn("flex items-center justify-between text-sm p-2 rounded-lg", actualNetProceeds * withdrawalRate / 100 >= r.incomeAtRetirement ? "bg-success/10" : "bg-warning/10")}>
+                    <span className="font-medium">{actualNetProceeds * withdrawalRate / 100 >= r.incomeAtRetirement ? '✅ Goal Achieved' : '⚠️ Shortfall'}</span>
+                    <span className={cn("font-bold", actualNetProceeds * withdrawalRate / 100 >= r.incomeAtRetirement ? "text-success" : "text-warning")}>
+                      {formatCurrency(Math.abs(actualNetProceeds * withdrawalRate / 100 - r.incomeAtRetirement))}
+                      {actualNetProceeds * withdrawalRate / 100 >= r.incomeAtRetirement ? ' surplus' : ' short'}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+            </>
+            );
+            })()}
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* ── Left Panel: Inputs ── */}
