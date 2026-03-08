@@ -478,7 +478,8 @@ export default function RetirementCalculator() {
               const cgtR = cgtRate / 100;
               const h = haircut / 100;
               const endTimeline = Array.from({ length: nProps }, (_, idx) => {
-                const buyYear = nProps === 1 ? 0 : Math.round((idx / (nProps - 1)) * Math.min(years - 1, years * 0.8));
+                const lastAllowedYear = Math.max(0, years - 5);
+                const buyYear = nProps === 1 ? 0 : Math.round((idx / (nProps - 1)) * lastAllowedYear);
                 const growthYears = years - buyYear;
                 const projectedValue = propertyPrice * Math.pow(1 + g, growthYears) * (1 - h);
                 const elapsedMonths = Math.min(growthYears * 12, totalLoanMonths);

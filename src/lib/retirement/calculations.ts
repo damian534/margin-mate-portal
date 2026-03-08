@@ -217,15 +217,24 @@ export function calculateRetirement(i: RetirementInputs): RetirementResults {
   });
 
   // Purchase schedule
+  const MIN_GROWTH_YEARS = 5;
+  const lastAllowedYear = Math.max(0, n - MIN_GROWTH_YEARS);
   const purchaseSchedule: { year: number; cumulativeProperties: number; cumulativeCash: number }[] = [];
   if (i.includeSchedule && i.scheduleMode === 'every_x_years' && i.scheduleInterval > 0) {
     let bought = 0;
-    for (let yr = 0; yr < n && bought < propertiesNeeded; yr += i.scheduleInterval) {
+    for (let yr = 0; yr <= lastAllowedYear && bought < propertiesNeeded; yr += i.scheduleInterval) {
       bought++;
       purchaseSchedule.push({ year: yr, cumulativeProperties: bought, cumulativeCash: bought * cashPerProperty });
     }
     if (bought < propertiesNeeded) {
-      purchaseSchedule.push({ year: n - 1, cumulativeProperties: propertiesNeeded, cumulativeCash: propertiesNeeded * cashPerProperty });
+      // Squeeze remaining into allowed window
+      const remainingInterval = bought > 0 ? Math.max(1, Math.floor(lastAllowedYear / propertiesNeeded)) : i.scheduleInterval;
+      let yr = purchaseSchedule.length > 0 ? purchaseSchedule[purchaseSchedule.length - 1].year + remainingInterval : 0;
+      while (bought < propertiesNeeded && yr <= lastAllowedYear) {
+        bought++;
+        purchaseSchedule.push({ year: yr, cumulativeProperties: bought, cumulativeCash: bought * cashPerProperty });
+        yr += remainingInterval;
+      }
     }
   } else {
     purchaseSchedule.push({ year: 0, cumulativeProperties: propertiesNeeded, cumulativeCash: totalCashNeeded });
