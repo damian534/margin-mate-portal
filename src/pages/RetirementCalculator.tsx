@@ -74,8 +74,8 @@ export default function RetirementCalculator() {
   // Assumptions
   const [inflationRate, setInflationRate] = useState(3.0);
   const [assetGrowthRate, setAssetGrowthRate] = useState(5.0);
-  const [withdrawalMode, setWithdrawalMode] = useState<'withdrawal' | 'yield'>('withdrawal');
-  const [withdrawalRate, setWithdrawalRate] = useState(4.0);
+  const [withdrawalMode, setWithdrawalMode] = useState<'withdrawal' | 'yield'>('yield');
+  const [withdrawalRate, setWithdrawalRate] = useState(7.0);
 
   // Property plan
   const [assetType] = useState<'property'>('property');
