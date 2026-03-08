@@ -556,6 +556,8 @@ export default function RetirementCalculator() {
             </>
             );
             })()}
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* ── Left Panel: Inputs ── */}
