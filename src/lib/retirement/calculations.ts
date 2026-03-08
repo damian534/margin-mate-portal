@@ -232,7 +232,10 @@ export function calculateRetirement(i: RetirementInputs): RetirementResults {
 
   return {
     yearsToRetirement: n,
-    incomeAtRetirement,
+    incomeAtRetirement: netIncomeAtRetirement,
+    grossIncomeAtRetirement,
+    taxOnRetirementIncome,
+    effectiveTaxRate,
     assetBaseRequired,
     assetBaseToday,
     propertiesNeeded,
