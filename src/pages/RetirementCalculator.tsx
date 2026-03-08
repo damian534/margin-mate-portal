@@ -453,10 +453,12 @@ export default function RetirementCalculator() {
               const rm = interestRate / 100 / 12;
               const totalLoanMonths = loanTermYears * 12;
               const isIO = loanType === 'io';
+              const cgtR = cgtRate / 100;
+              const h = haircut / 100;
               const endTimeline = Array.from({ length: nProps }, (_, idx) => {
                 const buyYear = nProps === 1 ? 0 : Math.round((idx / (nProps - 1)) * Math.min(years - 1, years * 0.8));
                 const growthYears = years - buyYear;
-                const projectedValue = propertyPrice * Math.pow(1 + g, growthYears);
+                const projectedValue = propertyPrice * Math.pow(1 + g, growthYears) * (1 - h);
                 const elapsedMonths = Math.min(growthYears * 12, totalLoanMonths);
                 let loanBal: number;
                 if (isIO) { loanBal = loanPerProp; }
@@ -467,9 +469,20 @@ export default function RetirementCalculator() {
                   loanBal = loanPerProp * Math.pow(1 + rm, elapsedMonths) - monthlyPmt * ((Math.pow(1 + rm, elapsedMonths) - 1) / rm);
                 }
                 loanBal = Math.max(0, loanBal);
-                return { propertyNum: idx + 1, buyYear, growthYears, projectedValue, loanBalance: loanBal };
+                const gain = Math.max(0, projectedValue - propertyPrice);
+                const cgtPayable = gain * 0.5 * cgtR;
+                return { propertyNum: idx + 1, buyYear, growthYears, projectedValue, loanBalance: loanBal, capitalGain: gain, cgtPayable };
               });
+
+              // Accurate totals based on per-property calculations
+              const actualTotalGross = endTimeline.reduce((s, p) => s + p.projectedValue, 0);
+              const actualTotalLoans = endTimeline.reduce((s, p) => s + p.loanBalance, 0);
+              const actualTotalGain = endTimeline.reduce((s, p) => s + p.capitalGain, 0);
+              const actualTotalCgt = endTimeline.reduce((s, p) => s + p.cgtPayable, 0);
+              const actualNetProceeds = actualTotalGross - actualTotalLoans - actualTotalCgt;
+
               return (
+              <>
               <div className="flex flex-wrap gap-4 justify-center">
                 {endTimeline.slice(0, 8).map((item, idx) => (
                   <div key={idx} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-secondary/40 border border-border/50 min-w-[120px]">
@@ -489,8 +502,6 @@ export default function RetirementCalculator() {
                   </div>
                 )}
               </div>
-              );
-            })()}
 
             {/* Waterfall breakdown */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -500,10 +511,10 @@ export default function RetirementCalculator() {
                 </h4>
                 <div className="space-y-2">
                   {[
-                    { label: 'Total Gross Value', value: r.totalGrossValue, color: 'text-foreground', bold: true },
-                    { label: 'Outstanding Loans', value: -r.totalLoanBalance, color: 'text-destructive', bold: false },
-                    { label: 'Total Capital Gain', value: r.totalCapitalGain, color: 'text-muted-foreground', bold: false },
-                    { label: `CGT Payable (${cgtRate}% on 50% gain)`, value: -r.totalCgtPayable, color: 'text-destructive', bold: false },
+                    { label: 'Total Gross Value', value: actualTotalGross, color: 'text-foreground', bold: true },
+                    { label: 'Outstanding Loans', value: -actualTotalLoans, color: 'text-destructive', bold: false },
+                    { label: 'Total Capital Gain', value: actualTotalGain, color: 'text-muted-foreground', bold: false },
+                    { label: `CGT Payable (${cgtRate}% on 50% gain)`, value: -actualTotalCgt, color: 'text-destructive', bold: false },
                   ].map((row) => (
                     <div key={row.label} className={cn("flex justify-between text-sm px-3 py-2 rounded-lg", row.bold ? "bg-muted/50" : "")}>
                       <span className="text-muted-foreground">{row.label}</span>
@@ -520,28 +531,31 @@ export default function RetirementCalculator() {
                 <div className="rounded-xl border-2 border-success/30 bg-success/5 p-5 space-y-4">
                   <div className="text-center">
                     <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Net Investable Proceeds</p>
-                    <p className="text-3xl font-bold text-success">{formatCurrency(r.totalNetInvestable)}</p>
+                    <p className="text-3xl font-bold text-success">{formatCurrency(actualNetProceeds)}</p>
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Invested at {formatPercent(withdrawalRate)}</span>
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-semibold text-success">{formatCurrency(r.totalNetInvestable * withdrawalRate / 100)}/yr</span>
+                    <span className="font-semibold text-success">{formatCurrency(actualNetProceeds * withdrawalRate / 100)}/yr</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Target income</span>
                     <span className="font-semibold text-warning">{formatCurrency(r.incomeAtRetirement)}/yr</span>
                   </div>
-                  <div className={cn("flex items-center justify-between text-sm p-2 rounded-lg", r.totalNetInvestable * withdrawalRate / 100 >= r.incomeAtRetirement ? "bg-success/10" : "bg-warning/10")}>
-                    <span className="font-medium">{r.totalNetInvestable * withdrawalRate / 100 >= r.incomeAtRetirement ? '✅ Goal Achieved' : '⚠️ Shortfall'}</span>
-                    <span className={cn("font-bold", r.totalNetInvestable * withdrawalRate / 100 >= r.incomeAtRetirement ? "text-success" : "text-warning")}>
-                      {formatCurrency(Math.abs(r.totalNetInvestable * withdrawalRate / 100 - r.incomeAtRetirement))}
-                      {r.totalNetInvestable * withdrawalRate / 100 >= r.incomeAtRetirement ? ' surplus' : ' short'}
+                  <div className={cn("flex items-center justify-between text-sm p-2 rounded-lg", actualNetProceeds * withdrawalRate / 100 >= r.incomeAtRetirement ? "bg-success/10" : "bg-warning/10")}>
+                    <span className="font-medium">{actualNetProceeds * withdrawalRate / 100 >= r.incomeAtRetirement ? '✅ Goal Achieved' : '⚠️ Shortfall'}</span>
+                    <span className={cn("font-bold", actualNetProceeds * withdrawalRate / 100 >= r.incomeAtRetirement ? "text-success" : "text-warning")}>
+                      {formatCurrency(Math.abs(actualNetProceeds * withdrawalRate / 100 - r.incomeAtRetirement))}
+                      {actualNetProceeds * withdrawalRate / 100 >= r.incomeAtRetirement ? ' surplus' : ' short'}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
+            </>
+            );
+            })()}
           </CardContent>
         </Card>
 
