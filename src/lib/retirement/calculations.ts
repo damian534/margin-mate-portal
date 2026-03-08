@@ -280,8 +280,9 @@ export function reversePropertyPrice(
   const cgt = i.cgtRate / 100;
   const h = i.haircut / 100;
 
-  const incomeAtRetirement = i.desiredIncome * Math.pow(1 + inf, n);
-  const assetBaseRequired = w > 0 ? incomeAtRetirement / w : 0;
+  const netIncomeAtRetirement = i.desiredIncome * Math.pow(1 + inf, n);
+  const grossIncomeAtRetirement = grossUpFromNet(netIncomeAtRetirement).grossIncome;
+  const assetBaseRequired = w > 0 ? grossIncomeAtRetirement / w : 0;
   if (numProperties <= 0 || assetBaseRequired <= 0) return 0;
 
   const targetPerProperty = assetBaseRequired / numProperties;
