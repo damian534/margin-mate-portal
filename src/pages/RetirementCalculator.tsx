@@ -453,10 +453,12 @@ export default function RetirementCalculator() {
               const rm = interestRate / 100 / 12;
               const totalLoanMonths = loanTermYears * 12;
               const isIO = loanType === 'io';
+              const cgtR = cgtRate / 100;
+              const h = haircut / 100;
               const endTimeline = Array.from({ length: nProps }, (_, idx) => {
                 const buyYear = nProps === 1 ? 0 : Math.round((idx / (nProps - 1)) * Math.min(years - 1, years * 0.8));
                 const growthYears = years - buyYear;
-                const projectedValue = propertyPrice * Math.pow(1 + g, growthYears);
+                const projectedValue = propertyPrice * Math.pow(1 + g, growthYears) * (1 - h);
                 const elapsedMonths = Math.min(growthYears * 12, totalLoanMonths);
                 let loanBal: number;
                 if (isIO) { loanBal = loanPerProp; }
@@ -467,9 +469,20 @@ export default function RetirementCalculator() {
                   loanBal = loanPerProp * Math.pow(1 + rm, elapsedMonths) - monthlyPmt * ((Math.pow(1 + rm, elapsedMonths) - 1) / rm);
                 }
                 loanBal = Math.max(0, loanBal);
-                return { propertyNum: idx + 1, buyYear, growthYears, projectedValue, loanBalance: loanBal };
+                const gain = Math.max(0, projectedValue - propertyPrice);
+                const cgtPayable = gain * 0.5 * cgtR;
+                return { propertyNum: idx + 1, buyYear, growthYears, projectedValue, loanBalance: loanBal, capitalGain: gain, cgtPayable };
               });
+
+              // Accurate totals based on per-property calculations
+              const actualTotalGross = endTimeline.reduce((s, p) => s + p.projectedValue, 0);
+              const actualTotalLoans = endTimeline.reduce((s, p) => s + p.loanBalance, 0);
+              const actualTotalGain = endTimeline.reduce((s, p) => s + p.capitalGain, 0);
+              const actualTotalCgt = endTimeline.reduce((s, p) => s + p.cgtPayable, 0);
+              const actualNetProceeds = actualTotalGross - actualTotalLoans - actualTotalCgt;
+
               return (
+              <>
               <div className="flex flex-wrap gap-4 justify-center">
                 {endTimeline.slice(0, 8).map((item, idx) => (
                   <div key={idx} className="flex flex-col items-center gap-2 p-4 rounded-xl bg-secondary/40 border border-border/50 min-w-[120px]">
@@ -489,8 +502,6 @@ export default function RetirementCalculator() {
                   </div>
                 )}
               </div>
-              );
-            })()}
 
             {/* Waterfall breakdown */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -500,10 +511,10 @@ export default function RetirementCalculator() {
                 </h4>
                 <div className="space-y-2">
                   {[
-                    { label: 'Total Gross Value', value: r.totalGrossValue, color: 'text-foreground', bold: true },
-                    { label: 'Outstanding Loans', value: -r.totalLoanBalance, color: 'text-destructive', bold: false },
-                    { label: 'Total Capital Gain', value: r.totalCapitalGain, color: 'text-muted-foreground', bold: false },
-                    { label: `CGT Payable (${cgtRate}% on 50% gain)`, value: -r.totalCgtPayable, color: 'text-destructive', bold: false },
+                    { label: 'Total Gross Value', value: actualTotalGross, color: 'text-foreground', bold: true },
+                    { label: 'Outstanding Loans', value: -actualTotalLoans, color: 'text-destructive', bold: false },
+                    { label: 'Total Capital Gain', value: actualTotalGain, color: 'text-muted-foreground', bold: false },
+                    { label: `CGT Payable (${cgtRate}% on 50% gain)`, value: -actualTotalCgt, color: 'text-destructive', bold: false },
                   ].map((row) => (
                     <div key={row.label} className={cn("flex justify-between text-sm px-3 py-2 rounded-lg", row.bold ? "bg-muted/50" : "")}>
                       <span className="text-muted-foreground">{row.label}</span>
