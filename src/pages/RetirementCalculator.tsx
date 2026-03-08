@@ -330,7 +330,6 @@ export default function RetirementCalculator() {
                                     Loan bal. {formatCurrency(item.loanBalance)} at retirement
                                   </p>
                                 </div>
-                                </div>
                               </div>
                             </div>
                           ))}
