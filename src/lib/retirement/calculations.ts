@@ -121,11 +121,17 @@ export function calculateRetirement(i: RetirementInputs): RetirementResults {
   const g = i.assetGrowthRate / 100;
   const w = i.withdrawalRate / 100;
 
-  // Step 1 — Inflate income
-  const incomeAtRetirement = i.desiredIncome * Math.pow(1 + inf, n);
+  // Step 1 — Inflate NET income to retirement
+  const netIncomeAtRetirement = i.desiredIncome * Math.pow(1 + inf, n);
 
-  // Step 2 — Required asset base (this is the NET investable amount needed)
-  const assetBaseRequired = w > 0 ? incomeAtRetirement / w : 0;
+  // Step 1b — Gross up: find gross income needed so that after tax + Medicare, net = desired
+  const taxBreakdown = grossUpFromNet(netIncomeAtRetirement);
+  const grossIncomeAtRetirement = taxBreakdown.grossIncome;
+  const taxOnRetirementIncome = taxBreakdown.taxPayable + taxBreakdown.medicareLevy;
+  const effectiveTaxRate = taxBreakdown.effectiveRate;
+
+  // Step 2 — Required asset base must generate the GROSS income (since tax comes out of it)
+  const assetBaseRequired = w > 0 ? grossIncomeAtRetirement / w : 0;
 
   // Step 3 — PV of asset base
   const assetBaseToday = g > 0 ? assetBaseRequired / Math.pow(1 + g, n) : assetBaseRequired;
