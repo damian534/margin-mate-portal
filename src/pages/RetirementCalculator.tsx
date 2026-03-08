@@ -448,11 +448,26 @@ export default function RetirementCalculator() {
               const nProps = r.propertiesNeeded;
               const years = r.yearsToRetirement;
               const g = assetGrowthRate / 100;
+              const dep = depositPct / 100;
+              const loanPerProp = propertyPrice * (1 - dep);
+              const rm = interestRate / 100 / 12;
+              const totalLoanMonths = loanTermYears * 12;
+              const isIO = loanType === 'io';
               const endTimeline = Array.from({ length: nProps }, (_, idx) => {
                 const buyYear = nProps === 1 ? 0 : Math.round((idx / (nProps - 1)) * Math.min(years - 1, years * 0.8));
                 const growthYears = years - buyYear;
                 const projectedValue = propertyPrice * Math.pow(1 + g, growthYears);
-                return { propertyNum: idx + 1, buyYear, growthYears, projectedValue };
+                const elapsedMonths = Math.min(growthYears * 12, totalLoanMonths);
+                let loanBal: number;
+                if (isIO) { loanBal = loanPerProp; }
+                else if (rm === 0) { loanBal = loanPerProp - (loanPerProp / totalLoanMonths) * elapsedMonths; }
+                else if (elapsedMonths >= totalLoanMonths) { loanBal = 0; }
+                else {
+                  const monthlyPmt = (rm * loanPerProp * Math.pow(1 + rm, totalLoanMonths)) / (Math.pow(1 + rm, totalLoanMonths) - 1);
+                  loanBal = loanPerProp * Math.pow(1 + rm, elapsedMonths) - monthlyPmt * ((Math.pow(1 + rm, elapsedMonths) - 1) / rm);
+                }
+                loanBal = Math.max(0, loanBal);
+                return { propertyNum: idx + 1, buyYear, growthYears, projectedValue, loanBalance: loanBal };
               });
               return (
               <div className="flex flex-wrap gap-4 justify-center">
@@ -464,6 +479,8 @@ export default function RetirementCalculator() {
                     <span className="text-xs font-semibold text-foreground">Property {item.propertyNum}</span>
                     <span className="text-sm font-bold text-success">{formatCurrency(item.projectedValue)}</span>
                     <span className="text-[10px] text-muted-foreground">{item.growthYears}yr growth</span>
+                    <span className="text-[10px] text-destructive">Loan: {formatCurrency(item.loanBalance)}</span>
+                  </div>
                   </div>
                 ))}
                 {r.propertiesNeeded > 8 && (
