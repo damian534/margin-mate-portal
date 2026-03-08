@@ -326,6 +326,10 @@ export default function RetirementCalculator() {
                                   <p className="text-xs text-muted-foreground">
                                     Worth {formatCurrency(item.projectedValue)} at retirement
                                   </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Loan bal. {formatCurrency(item.loanBalance)} at retirement
+                                  </p>
+                                </div>
                                 </div>
                               </div>
                             </div>
