@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { notifyNewLead } from '@/lib/notifications';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
