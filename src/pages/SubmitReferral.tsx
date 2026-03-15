@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { notifyNewLead } from '@/lib/notifications';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { AppHeader } from '@/components/AppHeader';
@@ -71,6 +72,18 @@ export default function SubmitReferral() {
     }
 
     toast.success('Referral submitted successfully!');
+
+    // Notify broker of new lead
+    notifyNewLead({
+      first_name: form.first_name.trim(),
+      last_name: form.last_name.trim(),
+      email: form.email.trim() || null,
+      phone: form.phone.trim() || null,
+      loan_amount: form.loan_amount ? parseFloat(form.loan_amount) : null,
+      loan_purpose: form.loan_purpose || null,
+      source: 'referral_partner',
+    }, brokerId);
+
     navigate('/dashboard');
     setLoading(false);
   };

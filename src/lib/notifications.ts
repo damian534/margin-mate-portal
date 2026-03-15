@@ -30,6 +30,30 @@ export async function notifyPartnerNote(
   });
 }
 
+export async function notifyNewLead(
+  lead: {
+    first_name: string;
+    last_name: string;
+    email?: string | null;
+    phone?: string | null;
+    loan_amount?: number | null;
+    loan_purpose?: string | null;
+    source?: string | null;
+  },
+  brokerId: string | null
+) {
+  if (!brokerId) return;
+  try {
+    console.log("[notifications] calling notify-new-lead");
+    const { error } = await supabase.functions.invoke('notify-new-lead', {
+      body: { lead, broker_id: brokerId },
+    });
+    if (error) console.error("[notifications] notify-new-lead error:", error);
+  } catch (err) {
+    console.error("[notifications] notify-new-lead call failed:", err);
+  }
+}
+
 export async function notifyPartnerStatusChange(
   lead: { first_name: string; last_name: string; referral_partner_id: string | null },
   oldStatus: string,

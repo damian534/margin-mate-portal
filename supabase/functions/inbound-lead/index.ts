@@ -162,6 +162,32 @@ If the email was forwarded, the actual lead's details are in the forwarded conte
       });
     }
 
+    // Notify broker of new inbound lead via email
+    try {
+      const notifyRes = await fetch(`${supabaseUrl}/functions/v1/notify-new-lead`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({
+          lead: {
+            first_name: lead.first_name || "Unknown",
+            last_name: lead.last_name || "",
+            email: lead.email || null,
+            phone: lead.phone || null,
+            loan_amount: lead.loan_amount || null,
+            loan_purpose: lead.loan_purpose || null,
+            source: "website",
+          },
+          broker_id: brokerId,
+        }),
+      });
+      console.log("Notify new lead response:", notifyRes.status);
+    } catch (notifyErr) {
+      console.error("Failed to notify broker:", notifyErr);
+    }
+
     console.log("Lead created successfully:", newLead?.id);
 
     return new Response(JSON.stringify({ success: true, lead_id: newLead?.id }), {

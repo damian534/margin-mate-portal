@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { notifyNewLead } from '@/lib/notifications';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -171,6 +172,9 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
     const { data: newLead, error } = await supabase.from('leads').insert(leadData as any).select('id, email').maybeSingle();
     if (error) { toast.error('Failed to add lead'); setSaving(false); return; }
     toast.success('Lead added successfully');
+
+    // Notify broker of new lead
+    notifyNewLead(leadData, effectiveBrokerId || null);
 
     // Auto-send fact find email if lead has an email
     if (newLead?.email) {
