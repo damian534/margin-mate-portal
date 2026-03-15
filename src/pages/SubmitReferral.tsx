@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { notifyNewLead } from '@/lib/notifications';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { AppHeader } from '@/components/AppHeader';
