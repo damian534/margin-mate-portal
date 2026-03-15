@@ -173,6 +173,9 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
     if (error) { toast.error('Failed to add lead'); setSaving(false); return; }
     toast.success('Lead added successfully');
 
+    // Notify broker of new lead
+    notifyNewLead(leadData, effectiveBrokerId || null);
+
     // Auto-send fact find email if lead has an email
     if (newLead?.email) {
       supabase.functions.invoke('send-fact-find', {
