@@ -839,6 +839,36 @@ export function LeadDetailSheet({
             </div>
           </div>
 
+          {/* Assign to Broker — super admin only */}
+          {isSuperAdmin && brokerOptions.length > 0 && (
+            <div>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Assigned Broker</Label>
+              <Select
+                value={lead.broker_id ?? ''}
+                onValueChange={async (val) => {
+                  const newBrokerId = val || null;
+                  onLeadChange?.({ ...lead, broker_id: newBrokerId });
+                  if (!isPreviewMode) {
+                    const { error } = await supabase.from('leads').update({ broker_id: newBrokerId } as any).eq('id', lead.id);
+                    if (error) { toast.error('Failed to reassign lead'); return; }
+                  }
+                  const brokerName = brokerOptions.find(b => b.id === val)?.name || 'Unknown';
+                  toast.success(`Lead reassigned to ${brokerName}`);
+                  addNote(`🔄 Lead reassigned to ${brokerName}`, 'note');
+                }}
+              >
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Select broker" /></SelectTrigger>
+                <SelectContent>
+                  {brokerOptions.map(b => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.name}{b.email ? ` (${b.email})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* Loan Details Row */}
           <div className="flex gap-3">
             <div className="flex-1">
