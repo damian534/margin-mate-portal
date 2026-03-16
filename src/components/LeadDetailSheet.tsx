@@ -148,8 +148,10 @@ export function LeadDetailSheet({
   open, onOpenChange, lead, statuses, leadSources = [], referrerName, referrerCompany, sourceContactName,
   contacts: contactsList = [], referrers: referrersList = [], isPreviewMode, onUpdateStatus, onUpdateCommission, onDeleteLead, onLeadChange, onOpenContact, sampleNotes
 }: LeadDetailSheetProps) {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
+  const isSuperAdmin = role === 'super_admin';
   const [notes, setNotes] = useState<Note[]>([]);
+  const [brokerOptions, setBrokerOptions] = useState<{ id: string; name: string; email: string | null }[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newNote, setNewNote] = useState('');
   const [notifyPartner, setNotifyPartner] = useState(!!lead?.referral_partner_id);
