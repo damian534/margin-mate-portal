@@ -31,6 +31,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 interface Lead {
   id: string;
   referral_partner_id: string | null;
+  broker_id: string | null;
   first_name: string;
   last_name: string;
   email: string | null;
