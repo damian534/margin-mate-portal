@@ -31,6 +31,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 interface Lead {
   id: string;
   referral_partner_id: string | null;
+  broker_id: string | null;
   first_name: string;
   last_name: string;
   email: string | null;
@@ -148,8 +149,10 @@ export function LeadDetailSheet({
   open, onOpenChange, lead, statuses, leadSources = [], referrerName, referrerCompany, sourceContactName,
   contacts: contactsList = [], referrers: referrersList = [], isPreviewMode, onUpdateStatus, onUpdateCommission, onDeleteLead, onLeadChange, onOpenContact, sampleNotes
 }: LeadDetailSheetProps) {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
+  const isSuperAdmin = role === 'super_admin';
   const [notes, setNotes] = useState<Note[]>([]);
+  const [brokerOptions, setBrokerOptions] = useState<{ id: string; name: string; email: string | null }[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newNote, setNewNote] = useState('');
   const [notifyPartner, setNotifyPartner] = useState(!!lead?.referral_partner_id);
@@ -210,6 +213,18 @@ export function LeadDetailSheet({
     toast.success('Name updated');
   };
 
+  // Fetch broker options for super admins
+  useEffect(() => {
+    if (!isSuperAdmin || isPreviewMode) return;
+    (async () => {
+      const { data: roles } = await supabase.from('user_roles').select('user_id').in('role', ['broker', 'super_admin']);
+      if (!roles?.length) return;
+      const brokerIds = roles.map(r => r.user_id);
+      const { data: profiles } = await supabase.from('profiles').select('user_id, full_name, email').in('user_id', brokerIds);
+      setBrokerOptions((profiles || []).map(p => ({ id: p.user_id!, name: p.full_name || p.email || 'Unknown', email: p.email })));
+    })();
+  }, [isSuperAdmin, isPreviewMode]);
+
   useEffect(() => {
     if (lead && open) {
       fetchNotes(lead.id);
@@ -218,7 +233,6 @@ export function LeadDetailSheet({
       setEditPhone(lead.phone || '');
       setContactDirty(false);
       setNotifyPartner(!!lead.referral_partner_id);
-      // Fetch referral count for source contact
       if (lead.source_contact_id && !isPreviewMode) {
         supabase.from('leads').select('id', { count: 'exact', head: true })
           .eq('source_contact_id', lead.source_contact_id)
@@ -824,6 +838,36 @@ export function LeadDetailSheet({
               </div>
             </div>
           </div>
+
+          {/* Assign to Broker — super admin only */}
+          {isSuperAdmin && brokerOptions.length > 0 && (
+            <div>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Assigned Broker</Label>
+              <Select
+                value={lead.broker_id ?? ''}
+                onValueChange={async (val) => {
+                  const newBrokerId = val || null;
+                  onLeadChange?.({ ...lead, broker_id: newBrokerId });
+                  if (!isPreviewMode) {
+                    const { error } = await supabase.from('leads').update({ broker_id: newBrokerId } as any).eq('id', lead.id);
+                    if (error) { toast.error('Failed to reassign lead'); return; }
+                  }
+                  const brokerName = brokerOptions.find(b => b.id === val)?.name || 'Unknown';
+                  toast.success(`Lead reassigned to ${brokerName}`);
+                  addNote(`🔄 Lead reassigned to ${brokerName}`, 'note');
+                }}
+              >
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Select broker" /></SelectTrigger>
+                <SelectContent>
+                  {brokerOptions.map(b => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.name}{b.email ? ` (${b.email})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Loan Details Row */}
           <div className="flex gap-3">
