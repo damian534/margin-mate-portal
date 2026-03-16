@@ -213,6 +213,18 @@ export function LeadDetailSheet({
     toast.success('Name updated');
   };
 
+  // Fetch broker options for super admins
+  useEffect(() => {
+    if (!isSuperAdmin || isPreviewMode) return;
+    (async () => {
+      const { data: roles } = await supabase.from('user_roles').select('user_id').in('role', ['broker', 'super_admin']);
+      if (!roles?.length) return;
+      const brokerIds = roles.map(r => r.user_id);
+      const { data: profiles } = await supabase.from('profiles').select('user_id, full_name, email').in('user_id', brokerIds);
+      setBrokerOptions((profiles || []).map(p => ({ id: p.user_id!, name: p.full_name || p.email || 'Unknown', email: p.email })));
+    })();
+  }, [isSuperAdmin, isPreviewMode]);
+
   useEffect(() => {
     if (lead && open) {
       fetchNotes(lead.id);
@@ -221,7 +233,6 @@ export function LeadDetailSheet({
       setEditPhone(lead.phone || '');
       setContactDirty(false);
       setNotifyPartner(!!lead.referral_partner_id);
-      // Fetch referral count for source contact
       if (lead.source_contact_id && !isPreviewMode) {
         supabase.from('leads').select('id', { count: 'exact', head: true })
           .eq('source_contact_id', lead.source_contact_id)
