@@ -101,7 +101,7 @@ export function runSimulator(inputs: SimulatorInputs): SimulatorOutputs {
 
   // --- TIMELINE ---
   const timeline: { month: number; loanRequired: number }[] = [];
-  for (let m = 0; m <= 24; m++) {
+  for (let m = 0; m <= 36; m++) {
     const fhv = adjustedHomeValue * Math.pow(1 + monthlyRate, m);
     const ftp = targetPurchasePrice * Math.pow(1 + monthlyRate, m);
     const fsc = fhv * (sellingCostPercent / 100);

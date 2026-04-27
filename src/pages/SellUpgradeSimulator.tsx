@@ -332,8 +332,9 @@ export default function SellUpgradeSimulator() {
               />
               <div>
                 <Label>Growth Assumption</Label>
-                <div className="flex gap-2 mt-1">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1">
                   {[
+                    { label: 'Decline -3%', value: -3 },
                     { label: 'Conservative 3%', value: 3 },
                     { label: 'Balanced 5%', value: 5 },
                     { label: 'Strong 7%', value: 7 },
@@ -342,13 +343,14 @@ export default function SellUpgradeSimulator() {
                       key={opt.value}
                       variant={growthPreset === opt.value ? 'default' : 'outline'}
                       size="sm"
-                      className="flex-1 text-xs"
+                      className="text-xs"
                       onClick={() => setGrowthPreset(opt.value)}
                     >
                       {opt.label}
                     </Button>
                   ))}
                 </div>
+                <p className="text-[11px] text-muted-foreground mt-2">Use "Decline -3%" to model a falling market.</p>
               </div>
               <div className="pt-1">
                 <p className="text-xs text-muted-foreground">Buying costs (stamp duty, conveyancing, legals) calculated at {buyingCostPercent}%</p>
@@ -502,16 +504,17 @@ export default function SellUpgradeSimulator() {
               value={[monthsToWait]}
               onValueChange={([v]) => setMonthsToWait(v)}
               min={0}
-              max={24}
+              max={36}
               step={1}
               className="py-2"
             />
             <div className="flex justify-between text-xs text-muted-foreground mt-1">
               <span>Now</span>
-              <span>6mo</span>
               <span>12mo</span>
               <span>18mo</span>
               <span>24mo</span>
+              <span>30mo</span>
+              <span>36mo</span>
             </div>
           </CardContent>
         </Card>
