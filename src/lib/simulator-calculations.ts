@@ -8,6 +8,10 @@ export interface SimulatorInputs {
   buyingCostPercent: number;
   savings: number;
   homeValueAdjustment: number;
+  /** Annual interest rate (%) used to estimate extra interest cost of waiting. Defaults to 6 if omitted. */
+  repaymentRatePercent?: number;
+  /** Loan term in years for the cost-of-waiting interest estimate. Defaults to 30. */
+  loanTermYears?: number;
 }
 
 export interface SimulatorOutputs {
@@ -34,6 +38,11 @@ export interface SimulatorOutputs {
 
   // Delta
   extraLoanFromWaiting: number;
+
+  // Cost of Waiting
+  extraPurchasePrice: number;
+  extraInterestOverTerm: number;
+  totalCostOfWaiting: number;
 
   // Timeline data (for chart)
   timeline: { month: number; loanRequired: number }[];
@@ -75,6 +84,21 @@ export function runSimulator(inputs: SimulatorInputs): SimulatorOutputs {
 
   const extraLoanFromWaiting = futureLoanRequired - loanRequiredNow;
 
+  // --- COST OF WAITING ---
+  const extraPurchasePrice = futureTargetPrice - targetPurchasePrice;
+  const ratePct = inputs.repaymentRatePercent ?? 6;
+  const termYears = inputs.loanTermYears ?? 30;
+  const monthlyLoanRate = ratePct / 100 / 12;
+  const totalMonths = termYears * 12;
+  let extraInterestOverTerm = 0;
+  if (extraLoanFromWaiting > 0 && monthlyLoanRate > 0) {
+    const extraMonthlyRepayment =
+      (extraLoanFromWaiting * monthlyLoanRate * Math.pow(1 + monthlyLoanRate, totalMonths)) /
+      (Math.pow(1 + monthlyLoanRate, totalMonths) - 1);
+    extraInterestOverTerm = extraMonthlyRepayment * totalMonths - extraLoanFromWaiting;
+  }
+  const totalCostOfWaiting = extraPurchasePrice + extraInterestOverTerm;
+
   // --- TIMELINE ---
   const timeline: { month: number; loanRequired: number }[] = [];
   for (let m = 0; m <= 24; m++) {
@@ -105,6 +129,9 @@ export function runSimulator(inputs: SimulatorInputs): SimulatorOutputs {
     futureLoanRequired,
     gapLater,
     extraLoanFromWaiting,
+    extraPurchasePrice,
+    extraInterestOverTerm,
+    totalCostOfWaiting,
     timeline,
   };
 }
