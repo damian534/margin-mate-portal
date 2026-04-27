@@ -502,16 +502,17 @@ export default function SellUpgradeSimulator() {
               value={[monthsToWait]}
               onValueChange={([v]) => setMonthsToWait(v)}
               min={0}
-              max={24}
+              max={36}
               step={1}
               className="py-2"
             />
             <div className="flex justify-between text-xs text-muted-foreground mt-1">
               <span>Now</span>
-              <span>6mo</span>
               <span>12mo</span>
               <span>18mo</span>
               <span>24mo</span>
+              <span>30mo</span>
+              <span>36mo</span>
             </div>
           </CardContent>
         </Card>
