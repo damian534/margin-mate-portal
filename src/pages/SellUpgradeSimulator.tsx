@@ -570,6 +570,47 @@ export default function SellUpgradeSimulator() {
               </Card>
             )}
 
+            {/* Cost of Waiting */}
+            {monthsToWait > 0 && (
+              <Card className={outputs.totalCostOfWaiting > 0 ? 'border-destructive/40 bg-destructive/5' : 'border-success/40 bg-success/5'}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Cost of Waiting {monthsToWait} Month{monthsToWait !== 1 ? 's' : ''}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Future Price</p>
+                      <p className="text-lg font-bold mt-1">{fmt(outputs.futureTargetPrice)}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Extra: {outputs.extraPurchasePrice > 0 ? '+' : ''}{fmt(outputs.extraPurchasePrice)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Extra to Borrow</p>
+                      <p className="text-lg font-bold mt-1">
+                        {outputs.extraLoanFromWaiting > 0 ? '+' : ''}{fmt(outputs.extraLoanFromWaiting)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Extra Interest (30yr)</p>
+                      <p className="text-lg font-bold mt-1">{fmt(outputs.extraInterestOverTerm)}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">@ {parseFloat(repaymentRate) || 6}% P&I</p>
+                    </div>
+                  </div>
+                  <Separator className="my-4" />
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold">Total Cost of Waiting</p>
+                    <p className={`text-2xl font-bold ${outputs.totalCostOfWaiting > 0 ? 'text-destructive' : 'text-success'}`}>
+                      {outputs.totalCostOfWaiting > 0 ? '+' : ''}{fmt(outputs.totalCostOfWaiting)}
+                    </p>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-2">
+                    Extra purchase price + extra interest paid over the life of the loan on the additional borrowing.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Comparison Table */}
             <Card>
               <CardHeader className="pb-2">
