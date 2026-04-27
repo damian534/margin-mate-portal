@@ -104,8 +104,10 @@ export default function SellUpgradeSimulator() {
       buyingCostPercent,
       savings: parseFloat(savings) || 0,
       homeValueAdjustment,
+      repaymentRatePercent: parseFloat(repaymentRate) || 6,
+      loanTermYears: 30,
     };
-  }, [currentHomeValue, mortgageOwing, sellingCostPercent, targetPurchasePrice, growthPreset, monthsToWait, savings, homeValueAdjustment]);
+  }, [currentHomeValue, mortgageOwing, sellingCostPercent, targetPurchasePrice, growthPreset, monthsToWait, savings, homeValueAdjustment, repaymentRate]);
 
   const outputs: SimulatorOutputs | null = useMemo(() => {
     if (!inputs) return null;
