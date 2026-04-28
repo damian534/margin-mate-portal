@@ -508,13 +508,24 @@ export default function SellUpgradeSimulator() {
               step={1}
               className="py-2"
             />
-            <div className="flex justify-between text-xs text-muted-foreground mt-1">
-              <span>Now</span>
-              <span>12mo</span>
-              <span>18mo</span>
-              <span>24mo</span>
-              <span>30mo</span>
-              <span>36mo</span>
+            <div className="relative h-4 mt-1 text-xs text-muted-foreground">
+              {[
+                { m: 0, label: 'Now' },
+                { m: 6, label: '6mo' },
+                { m: 12, label: '12mo' },
+                { m: 18, label: '18mo' },
+                { m: 24, label: '24mo' },
+                { m: 30, label: '30mo' },
+                { m: 36, label: '36mo' },
+              ].map(({ m, label }) => (
+                <span
+                  key={m}
+                  className="absolute -translate-x-1/2"
+                  style={{ left: `${(m / 36) * 100}%` }}
+                >
+                  {label}
+                </span>
+              ))}
             </div>
           </CardContent>
         </Card>
