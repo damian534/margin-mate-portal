@@ -87,7 +87,7 @@ export default function SellUpgradeSimulator() {
   const resultsRef = useRef<HTMLDivElement>(null);
   const timelineMaxMonths = 36;
   const timelineTicks = [0, 6, 12, 18, 24, 30, 36];
-  const timelineProgress = (monthsToWait / timelineMaxMonths) * 100;
+  const timelineProgress = Math.min(100, Math.max(0, (monthsToWait / timelineMaxMonths) * 100));
 
   const chvNum = parseFloat(currentHomeValue) || 0;
 
@@ -503,16 +503,25 @@ export default function SellUpgradeSimulator() {
                 {monthsToWait === 0 ? 'Move now' : `Wait: ${monthsToWait} month${monthsToWait !== 1 ? 's' : ''}`}
               </span>
             </div>
-            <div className="relative pt-1 pb-7">
-              <Slider
-                value={[monthsToWait]}
-                onValueChange={([v]) => setMonthsToWait(v)}
+            <div className="relative pt-3 pb-8">
+              <div className="pointer-events-none absolute inset-x-0 top-3 h-2 rounded-full bg-secondary">
+                <div className="h-full rounded-full bg-primary" style={{ width: `${timelineProgress}%` }} />
+              </div>
+              <div
+                className="pointer-events-none absolute top-1 h-6 w-6 -translate-x-1/2 rounded-full border-4 border-primary bg-background shadow-sm"
+                style={{ left: `${timelineProgress}%` }}
+              />
+              <input
+                type="range"
                 min={0}
                 max={timelineMaxMonths}
                 step={1}
-                className="py-2"
+                value={monthsToWait}
+                onChange={(e) => setMonthsToWait(Number(e.target.value))}
+                className="absolute inset-x-0 top-0 h-8 w-full cursor-pointer opacity-0"
+                aria-label="Months to wait"
               />
-              <div className="pointer-events-none absolute inset-x-0 top-1 flex h-6 items-center">
+              <div className="pointer-events-none absolute inset-x-0 top-2 flex h-4 items-center">
                 {timelineTicks.map((m) => (
                   <span
                     key={m}
@@ -522,7 +531,7 @@ export default function SellUpgradeSimulator() {
                 ))}
               </div>
               <span
-                className="pointer-events-none absolute top-8 -translate-x-1/2 whitespace-nowrap text-[11px] font-semibold text-primary"
+                className="pointer-events-none absolute top-10 -translate-x-1/2 whitespace-nowrap text-[11px] font-semibold text-primary"
                 style={{ left: `${timelineProgress}%` }}
               >
                 {monthsToWait === 0 ? 'Now' : `${monthsToWait}mo`}
