@@ -85,6 +85,9 @@ export default function SellUpgradeSimulator() {
 
   const buyingCostPercent = 6; // flat 6% covers stamp duty, conveyancing, legals etc.
   const resultsRef = useRef<HTMLDivElement>(null);
+  const timelineMaxMonths = 36;
+  const timelineTicks = [0, 6, 12, 18, 24, 30, 36];
+  const timelineProgress = (monthsToWait / timelineMaxMonths) * 100;
 
   const chvNum = parseFloat(currentHomeValue) || 0;
 
@@ -500,32 +503,41 @@ export default function SellUpgradeSimulator() {
                 {monthsToWait === 0 ? 'Move now' : `Wait: ${monthsToWait} month${monthsToWait !== 1 ? 's' : ''}`}
               </span>
             </div>
-            <Slider
-              value={[monthsToWait]}
-              onValueChange={([v]) => setMonthsToWait(v)}
-              min={0}
-              max={36}
-              step={1}
-              className="py-2"
-            />
-            <div className="relative h-4 mt-1 text-xs text-muted-foreground">
-              {[
-                { m: 0, label: 'Now' },
-                { m: 6, label: '6mo' },
-                { m: 12, label: '12mo' },
-                { m: 18, label: '18mo' },
-                { m: 24, label: '24mo' },
-                { m: 30, label: '30mo' },
-                { m: 36, label: '36mo' },
-              ].map(({ m, label }) => (
-                <span
-                  key={m}
-                  className="absolute -translate-x-1/2"
-                  style={{ left: `${(m / 36) * 100}%` }}
-                >
-                  {label}
-                </span>
-              ))}
+            <div className="relative pt-1 pb-7">
+              <Slider
+                value={[monthsToWait]}
+                onValueChange={([v]) => setMonthsToWait(v)}
+                min={0}
+                max={timelineMaxMonths}
+                step={1}
+                className="py-2"
+              />
+              <div className="pointer-events-none absolute inset-x-0 top-1 flex h-6 items-center">
+                {timelineTicks.map((m) => (
+                  <span
+                    key={m}
+                    className="absolute h-3 w-px -translate-x-1/2 bg-border"
+                    style={{ left: `${(m / timelineMaxMonths) * 100}%` }}
+                  />
+                ))}
+              </div>
+              <span
+                className="pointer-events-none absolute top-8 -translate-x-1/2 whitespace-nowrap text-[11px] font-semibold text-primary"
+                style={{ left: `${timelineProgress}%` }}
+              >
+                {monthsToWait === 0 ? 'Now' : `${monthsToWait}mo`}
+              </span>
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 text-xs text-muted-foreground">
+                {timelineTicks.map((m) => (
+                  <span
+                    key={m}
+                    className="absolute -translate-x-1/2 whitespace-nowrap first:translate-x-0 last:-translate-x-full"
+                    style={{ left: `${(m / timelineMaxMonths) * 100}%` }}
+                  >
+                    {m === 0 ? 'Now' : `${m}mo`}
+                  </span>
+                ))}
+              </div>
             </div>
           </CardContent>
         </Card>
