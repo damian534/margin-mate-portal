@@ -767,6 +767,10 @@ export default function AdminCRM() {
             />
           </TabsContent>
 
+          <TabsContent value="broker_referrals" className="mt-4">
+            <IncomingReferralsPanel />
+          </TabsContent>
+
 
 
         </Tabs>
