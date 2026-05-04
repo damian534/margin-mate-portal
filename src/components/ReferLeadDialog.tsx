@@ -56,6 +56,43 @@ export function ReferLeadDialog({ leadId, leadName, trigger, onSent }: Props) {
     } as any);
     setSending(false);
     if (error) { toast.error('Failed to send referral'); return; }
+
+    // Notify the receiving broker via email (best-effort)
+    try {
+      const recipient = brokers.find(b => b.id === toBrokerId);
+      const { data: fromProfile } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      const fromName = fromProfile?.full_name || fromProfile?.email || 'A broker';
+      if (recipient?.email) {
+        const html = `
+          <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:560px;margin:0 auto;padding:32px 0;">
+            <h2 style="color:#1a1a1a;margin-bottom:8px;">New lead referral</h2>
+            <p style="color:#555;font-size:15px;line-height:1.6;">
+              ${fromName} has referred a lead to you on Margin Connect:
+            </p>
+            <div style="background:#f5f5f5;border-left:4px solid #16a34a;padding:16px;border-radius:4px;margin:20px 0;">
+              <p style="margin:0;font-size:16px;font-weight:600;color:#1a1a1a;">${leadName}</p>
+              ${message.trim() ? `<p style="margin:12px 0 0;color:#555;font-size:14px;white-space:pre-wrap;">"${message.trim().replace(/</g,'&lt;')}"</p>` : ''}
+            </div>
+            <p style="color:#555;font-size:14px;">Log in to your CRM to accept or decline this referral.</p>
+            <p style="color:#888;font-size:13px;margin-top:24px;">— Margin Finance</p>
+          </div>
+        `;
+        await supabase.functions.invoke('send-email', {
+          body: {
+            to: recipient.email,
+            subject: `🤝 New lead referral: ${leadName}`,
+            html,
+          },
+        });
+      }
+    } catch (e) {
+      console.error('[refer-lead] email notify failed', e);
+    }
+
     toast.success('Referral sent');
     setOpen(false);
     setToBrokerId('');
