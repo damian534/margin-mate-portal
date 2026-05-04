@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { FactFindPanel } from '@/components/factfind/FactFindPanel';
 import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectionPanel';
+import { ReferLeadDialog } from '@/components/ReferLeadDialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
@@ -609,6 +610,15 @@ export function LeadDetailSheet({
               </div>
             </SheetTitle>
           </SheetHeader>
+
+          {!isPreviewMode && lead.broker_id === user?.id && (
+            <div className="mb-3">
+              <ReferLeadDialog
+                leadId={lead.id}
+                leadName={`${lead.first_name} ${lead.last_name}`}
+              />
+            </div>
+          )}
 
           {/* Editable contact details */}
           <div className="grid grid-cols-2 gap-3 text-sm">
