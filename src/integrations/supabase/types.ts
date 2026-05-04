@@ -341,6 +341,42 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_referrals: {
+        Row: {
+          created_at: string
+          from_broker_id: string
+          id: string
+          lead_id: string
+          message: string | null
+          responded_at: string | null
+          status: string
+          to_broker_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          from_broker_id: string
+          id?: string
+          lead_id: string
+          message?: string | null
+          responded_at?: string | null
+          status?: string
+          to_broker_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          from_broker_id?: string
+          id?: string
+          lead_id?: string
+          message?: string | null
+          responded_at?: string | null
+          status?: string
+          to_broker_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lead_sources: {
         Row: {
           created_at: string
@@ -409,6 +445,7 @@ export type Database = {
           last_name: string
           loan_amount: number | null
           loan_purpose: string | null
+          original_broker_id: string | null
           phone: string | null
           referral_partner_id: string | null
           referrer_commission: number | null
@@ -432,6 +469,7 @@ export type Database = {
           last_name: string
           loan_amount?: number | null
           loan_purpose?: string | null
+          original_broker_id?: string | null
           phone?: string | null
           referral_partner_id?: string | null
           referrer_commission?: number | null
@@ -455,6 +493,7 @@ export type Database = {
           last_name?: string
           loan_amount?: number | null
           loan_purpose?: string | null
+          original_broker_id?: string | null
           phone?: string | null
           referral_partner_id?: string | null
           referrer_commission?: number | null
@@ -809,6 +848,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_lead_referral: {
+        Args: { _referral_id: string }
+        Returns: undefined
+      }
+      decline_lead_referral: {
+        Args: { _referral_id: string }
+        Returns: undefined
+      }
       get_director_company_id: { Args: { _user_id: string }; Returns: string }
       get_my_broker_id: { Args: { _user_id: string }; Returns: string }
       has_any_super_admin: { Args: never; Returns: boolean }
@@ -821,6 +868,10 @@ export type Database = {
       }
       is_broker_or_staff: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      user_has_referral_access: {
+        Args: { _lead_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "broker" | "referral_partner" | "super_admin" | "broker_staff"
