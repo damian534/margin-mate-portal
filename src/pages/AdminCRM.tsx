@@ -15,6 +15,7 @@ import { ReferrerProfiles, ReferrerProfileData } from '@/components/ReferrerProf
 import { ReferrerReports } from '@/components/ReferrerReports';
 import { AddLeadDialog } from '@/components/AddLeadDialog';
 import { ContactsManagement, Contact } from '@/components/ContactsManagement';
+import { IncomingReferralsPanel } from '@/components/IncomingReferralsPanel';
 
 
 import { Button } from '@/components/ui/button';
@@ -28,7 +29,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { notifyPartnerStatusChange } from '@/lib/notifications';
-import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign, Contact as ContactIcon, CalendarClock } from 'lucide-react';
+import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign, Contact as ContactIcon, CalendarClock, Share2 } from 'lucide-react';
 import { isPast, isToday, isTomorrow } from 'date-fns';
 
 type TaskDueFilter = 'all_leads' | 'overdue' | 'today' | 'tomorrow' | 'later' | 'no_tasks';
@@ -452,6 +453,7 @@ export default function AdminCRM() {
               { value: 'contacts', label: 'Contacts', icon: ContactIcon },
               { value: 'companies', label: 'Companies', icon: Building2 },
               { value: 'referrers', label: 'Referrers', icon: Users },
+              { value: 'broker_referrals', label: 'Broker Referrals', icon: Share2 },
               { value: 'reports', label: 'Reports', icon: BarChart3 },
             ].map((tab) => (
               <button
