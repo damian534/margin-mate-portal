@@ -1,0 +1,8 @@
+DELETE FROM public.settlements
+WHERE broker_id = '88fa4fe4-2468-4665-8c52-a658582d78cc'
+  AND status = 'settled'
+  AND lower(client_name) IN ('nhim, kt','lakkis, pamela & lamitta','zizic, marko','brown, matt','pantazi, sofie & griffin, greg','guha, ahona','macrae, lachlan','kaur, komalpreet','saleem, nadia','kelly, arianna','chaudhry, nabeel','cook, graeme','patel, mitul','chakravarty, chayan','haseeb, abdul','missowou, abla','nyoman, ni','jamie gatt','anderson nick & ashleigh','joubert ashlea & sascha','yannopoulos, gregory','knight adam & tiffany','carter, aidan','peram, charan','vraca, corey','boyd, jonathan','mamidi, naresh','beards, katherine & chris','layley, jake','chiara da costa & clifford pereira','karen mccormack & brian naughton','jack omogrosso & kimberley brewin','antonio fazzini','dan willis & naomi zabel-willis','moore, jakob & fox-campbell,cammille','jerak, amelia & anita & gironda, joshua','fraraccio natalie','britany bugeja & brendan bonello','aaron pucci','savannah smith','maria conti','david williams','saira jowaheer','maris, christopher & sally','almedina kopic','oleinikov, julia & ryan, angus','bergmans, tiana','sadikovic, amer & enida','haseeb, abdul & suleman, nazish','kent, brandan & lakeisha','benjamin lewellin');
+
+UPDATE public.settlements
+SET loan_amount = 1610000, settlement_date = '2026-04-24', status = 'settled'
+WHERE id = 'b1a7cef8-ef6f-4302-bf72-98fc45a977d8';
