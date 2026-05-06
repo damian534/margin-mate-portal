@@ -114,6 +114,7 @@ export default function AdminCRM() {
   const [leadTasks, setLeadTasks] = useState<LeadTask[]>([]);
   const [openContactId, setOpenContactId] = useState<string | null>(null);
   const [selectedCompanyCRM, setSelectedCompanyCRM] = useState<Company | null>(null);
+  const [docsByLead, setDocsByLead] = useState<Map<string, { requested: number; completed: number; files: { path: string; name: string }[] }>>(new Map());
 
   const defaultSources: LeadSource[] = [
     { id: 's1', name: 'referral_partner', label: 'Referral Partner', display_order: 1 },
@@ -145,6 +146,7 @@ export default function AdminCRM() {
     fetchContacts();
     fetchLeadSources();
     fetchLeadTasks();
+    fetchLeadDocs();
   }, [isPreviewMode]);
 
   const tasksByLead = useMemo(() => {
@@ -303,6 +305,22 @@ export default function AdminCRM() {
   const fetchLeadTasks = async () => {
     const { data } = await supabase.from('tasks').select('id, lead_id, due_date, completed');
     setLeadTasks((data as LeadTask[]) || []);
+  };
+
+  const fetchLeadDocs = async () => {
+    const { data } = await supabase
+      .from('document_requests')
+      .select('lead_id, status, requested_at, file_path, file_name')
+      .not('requested_at', 'is', null);
+    const map = new Map<string, { requested: number; completed: number; files: { path: string; name: string }[] }>();
+    for (const d of (data as any[]) || []) {
+      const entry = map.get(d.lead_id) || { requested: 0, completed: 0, files: [] };
+      entry.requested += 1;
+      if (d.status === 'uploaded' || d.status === 'approved') entry.completed += 1;
+      if (d.file_path) entry.files.push({ path: d.file_path, name: d.file_name || d.file_path.split('/').pop() || 'file' });
+      map.set(d.lead_id, entry);
+    }
+    setDocsByLead(map);
   };
 
   const openLead = (lead: Lead) => {
