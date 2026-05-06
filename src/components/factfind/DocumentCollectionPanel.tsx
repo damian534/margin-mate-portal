@@ -785,15 +785,16 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
             </p>
             <p className="text-muted-foreground">Documents are only visible to the client once you click Request.</p>
           </div>
-          {unrequestedDocs.length > 0 ? (
-            <Button size="sm" className="h-8 text-xs gap-1.5 shrink-0" onClick={requestDocuments} disabled={isRequesting}>
+          <div className="flex items-center gap-2 shrink-0">
+            {outstandingRequestedDocs.length > 0 && (
+              <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={resendDocumentsLink} disabled={isRequesting}>
+                <Send className="w-3.5 h-3.5" /> {isRequesting ? 'Sending…' : 'Resend link'}
+              </Button>
+            )}
+            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={requestDocuments} disabled={isRequesting || unrequestedDocs.length === 0}>
               <Send className="w-3.5 h-3.5" /> {isRequesting ? 'Requesting…' : 'Request'}
             </Button>
-          ) : (
-            <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5 shrink-0" onClick={resendDocumentsLink} disabled={isRequesting || outstandingRequestedDocs.length === 0}>
-              <Send className="w-3.5 h-3.5" /> {isRequesting ? 'Sending…' : 'Resend link'}
-            </Button>
-          )}
+          </div>
         </div>
         {actionsSlot}
       </div>
