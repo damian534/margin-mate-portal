@@ -183,6 +183,11 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   };
 
   const removeApplicant = async (id: string) => {
+    const applicant = applicants.find(a => a.id === id);
+    if (applicant?.display_order === 0) {
+      toast.error('The first applicant comes from the contact card');
+      return;
+    }
     if (!confirm('Remove this applicant and all their document requests?')) return;
     if (!isPreviewMode) {
       const docsToRemove = documents.filter(d => d.applicant_id === id);
@@ -225,7 +230,8 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
 
   const addDocumentRequest = async () => {
     if (!newDocName.trim() || !addingTo) return;
-    const applicantId = addingTo.applicantId;
+    const applicantId = await ensurePersistedApplicantId(addingTo.applicantId);
+    if (isPrimaryFallback(addingTo.applicantId) && !applicantId) return;
     const section = addingTo.section;
     if (isPreviewMode) {
       setDocuments(prev => [...prev, {
@@ -368,10 +374,12 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
             {a.name}
             {a.employment_type && <span className="opacity-70">· {a.employment_type}</span>}
             <span className="opacity-70">({documents.filter(d => d.applicant_id === a.id).length})</span>
-            <Trash2
-              className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-70 hover:!opacity-100"
-              onClick={(e) => { e.stopPropagation(); removeApplicant(a.id); }}
-            />
+            {a.display_order !== 0 && (
+              <Trash2
+                className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-70 hover:!opacity-100"
+                onClick={(e) => { e.stopPropagation(); removeApplicant(a.id); }}
+              />
+            )}
           </button>
         ))}
         {applicants.length >= 2 && (
