@@ -76,6 +76,8 @@ const TEMPLATES: Record<string, { section: string; name: string; description?: s
   ],
 };
 
+const PRIMARY_APPLICANT_FALLBACK_ID = 'contact-card-primary-applicant';
+
 export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplicantName }: DocumentCollectionPanelProps) {
   const [documents, setDocuments] = useState<DocumentRequest[]>([]);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
@@ -89,16 +91,21 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   const [newDocDescription, setNewDocDescription] = useState('');
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  const primaryName = primaryApplicantName?.trim() || 'Primary Applicant';
+  const isPrimaryFallback = (id: string | null) => id === PRIMARY_APPLICANT_FALLBACK_ID;
+
   useEffect(() => {
     fetchAll();
-  }, [leadId]);
+    setSecondApplicantPrompt('unknown');
+  }, [leadId, primaryName]);
 
   const fetchAll = async () => {
     if (isPreviewMode) {
       setApplicants([
-        { id: 'a1', lead_id: leadId, name: primaryApplicantName || 'Primary Applicant', employment_type: 'PAYG', display_order: 0 },
+        { id: PRIMARY_APPLICANT_FALLBACK_ID, lead_id: leadId, name: primaryName, employment_type: 'PAYG', display_order: 0 },
       ]);
       setDocuments([]);
+      setActiveApplicantId(PRIMARY_APPLICANT_FALLBACK_ID);
       return;
     }
     const [{ data: apps }, { data: docs }] = await Promise.all([
@@ -107,11 +114,28 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
     ]);
     let appList = (apps as Applicant[]) || [];
     // Auto-seed Applicant 1 from the contact card if missing
-    if (appList.length === 0 && primaryApplicantName) {
-      const { data: seeded } = await supabase.from('lead_applicants').insert({
-        lead_id: leadId, name: primaryApplicantName, employment_type: 'PAYG', display_order: 0,
+    if (appList.length === 0 && primaryName) {
+      const fallbackApplicant: Applicant = {
+        id: PRIMARY_APPLICANT_FALLBACK_ID,
+        lead_id: leadId,
+        name: primaryName,
+        employment_type: 'PAYG',
+        display_order: 0,
+      };
+      setApplicants([fallbackApplicant]);
+      setActiveApplicantId(PRIMARY_APPLICANT_FALLBACK_ID);
+
+      const { data: seeded, error } = await supabase.from('lead_applicants').insert({
+        lead_id: leadId, name: primaryName, employment_type: 'PAYG', display_order: 0,
       }).select().single();
-      if (seeded) appList = [seeded as Applicant];
+
+      if (seeded) {
+        appList = [seeded as Applicant];
+        setActiveApplicantId((current) => isPrimaryFallback(current) ? (seeded as Applicant).id : current);
+      } else {
+        if (error) console.error('Primary applicant seed failed', error);
+        appList = [fallbackApplicant];
+      }
     }
     setApplicants(appList);
     setDocuments((docs as DocumentRequest[]) || []);
