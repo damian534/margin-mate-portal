@@ -35,6 +35,7 @@ interface Applicant {
 interface DocumentCollectionPanelProps {
   leadId: string;
   isPreviewMode: boolean;
+  primaryApplicantName?: string;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -75,13 +76,14 @@ const TEMPLATES: Record<string, { section: string; name: string; description?: s
   ],
 };
 
-export function DocumentCollectionPanel({ leadId, isPreviewMode }: DocumentCollectionPanelProps) {
+export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplicantName }: DocumentCollectionPanelProps) {
   const [documents, setDocuments] = useState<DocumentRequest[]>([]);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [activeApplicantId, setActiveApplicantId] = useState<string>('all');
   const [showAddApplicant, setShowAddApplicant] = useState(false);
   const [newApplicantName, setNewApplicantName] = useState('');
   const [newApplicantType, setNewApplicantType] = useState<string>('PAYG');
+  const [secondApplicantPrompt, setSecondApplicantPrompt] = useState<'unknown' | 'no' | 'yes'>('unknown');
   const [addingTo, setAddingTo] = useState<{ section: string; applicantId: string | null } | null>(null);
   const [newDocName, setNewDocName] = useState('');
   const [newDocDescription, setNewDocDescription] = useState('');
@@ -94,7 +96,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode }: DocumentColle
   const fetchAll = async () => {
     if (isPreviewMode) {
       setApplicants([
-        { id: 'a1', lead_id: leadId, name: 'Primary Applicant', employment_type: 'PAYG', display_order: 0 },
+        { id: 'a1', lead_id: leadId, name: primaryApplicantName || 'Primary Applicant', employment_type: 'PAYG', display_order: 0 },
       ]);
       setDocuments([]);
       return;
@@ -103,7 +105,15 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode }: DocumentColle
       supabase.from('lead_applicants').select('*').eq('lead_id', leadId).order('display_order'),
       supabase.from('document_requests').select('*').eq('lead_id', leadId).order('created_at'),
     ]);
-    setApplicants((apps as Applicant[]) || []);
+    let appList = (apps as Applicant[]) || [];
+    // Auto-seed Applicant 1 from the contact card if missing
+    if (appList.length === 0 && primaryApplicantName) {
+      const { data: seeded } = await supabase.from('lead_applicants').insert({
+        lead_id: leadId, name: primaryApplicantName, employment_type: 'PAYG', display_order: 0,
+      }).select().single();
+      if (seeded) appList = [seeded as Applicant];
+    }
+    setApplicants(appList);
     setDocuments((docs as DocumentRequest[]) || []);
   };
 
