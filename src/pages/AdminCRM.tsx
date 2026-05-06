@@ -86,6 +86,7 @@ interface Lead {
   lodged_date?: string | null;
   approved_date?: string | null;
   settled_date?: string | null;
+  estimated_settlement_date?: string | null;
 }
 
 

@@ -59,6 +59,7 @@ interface Lead {
   lodged_date?: string | null;
   approved_date?: string | null;
   settled_date?: string | null;
+  estimated_settlement_date?: string | null;
 }
 
 interface Note {
@@ -1080,6 +1081,23 @@ export function LeadDetailSheet({
                   />
                 </div>
               ))}
+            </div>
+            <div className="mt-3">
+              <Label className="text-[11px] text-muted-foreground">Estimated Settlement Date</Label>
+              <Input
+                type="date"
+                value={(lead as any).estimated_settlement_date ?? ''}
+                onChange={async (e) => {
+                  const val = e.target.value || null;
+                  onLeadChange?.({ ...lead, estimated_settlement_date: val } as any);
+                  if (!isPreviewMode) {
+                    await supabase.from('leads').update({ estimated_settlement_date: val } as any).eq('id', lead.id);
+                  }
+                }}
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Shown as "Estimated" in the Settlements dashboard until the deal is actually settled.
+              </p>
             </div>
           </div>
 

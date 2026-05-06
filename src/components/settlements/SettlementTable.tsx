@@ -14,6 +14,7 @@ const STATUS_STYLES: Record<string, string> = {
   docs_returned: 'bg-purple-100 text-purple-800 border-purple-200',
   docs_issued: 'bg-cyan-100 text-cyan-800 border-cyan-200',
   pending_approval: 'bg-amber-100 text-amber-800 border-amber-200',
+  estimated: 'bg-slate-100 text-slate-700 border-slate-200 italic',
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -23,6 +24,7 @@ const STATUS_LABELS: Record<string, string> = {
   docs_returned: 'Docs Returned',
   docs_issued: 'Docs Issued',
   pending_approval: 'Pending Approval',
+  estimated: 'Estimated',
 };
 
 function formatAmount(amount: number) {
@@ -68,7 +70,7 @@ export function SettlementTable({ settlements, onUpdate, onDelete, lenders = [],
           </TableHeader>
           <TableBody>
             {settlements.map(s => (
-              <TableRow key={s.id} className="hover:bg-muted/20">
+              <TableRow key={s.id} className={`hover:bg-muted/20 ${s.status === 'estimated' ? 'opacity-70' : ''}`}>
                 <TableCell className="text-sm">{format(parseISO(s.settlement_date), 'dd MMM yyyy')}</TableCell>
                 <TableCell className="text-sm font-medium">{s.client_name}</TableCell>
                 <TableCell className="text-sm font-mono text-right font-semibold">{formatAmount(Number(s.loan_amount))}</TableCell>
@@ -88,9 +90,11 @@ export function SettlementTable({ settlements, onUpdate, onDelete, lenders = [],
                 <TableCell className="text-sm text-muted-foreground hidden lg:table-cell max-w-[200px] truncate">{s.security_address || '—'}</TableCell>
                 {onUpdate && (
                   <TableCell>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditing(s)}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
+                    {s.status !== 'estimated' && (
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditing(s)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </TableCell>
                 )}
               </TableRow>
