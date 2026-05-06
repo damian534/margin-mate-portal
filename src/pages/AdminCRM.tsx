@@ -16,6 +16,7 @@ import { ReferrerReports } from '@/components/ReferrerReports';
 import { AddLeadDialog } from '@/components/AddLeadDialog';
 import { ContactsManagement, Contact } from '@/components/ContactsManagement';
 import { IncomingReferralsPanel } from '@/components/IncomingReferralsPanel';
+import { WIPDashboard } from '@/components/WIPDashboard';
 
 
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { notifyPartnerStatusChange } from '@/lib/notifications';
 import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign, Contact as ContactIcon, CalendarClock, Share2 } from 'lucide-react';
+import { Briefcase } from 'lucide-react';
 import { isPast, isToday, isTomorrow } from 'date-fns';
 
 type TaskDueFilter = 'all_leads' | 'overdue' | 'today' | 'tomorrow' | 'later' | 'no_tasks';
@@ -78,6 +80,7 @@ interface Lead {
   company_commission_paid: boolean;
   source: string | null;
   source_contact_id: string | null;
+  wip_status?: string | null;
 }
 
 
@@ -449,6 +452,7 @@ export default function AdminCRM() {
           <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
             {[
               { value: 'leads', label: 'Leads', icon: TrendingUp },
+              { value: 'wip', label: 'WIP', icon: Briefcase },
               { value: 'tasks', label: 'Tasks', icon: ListTodo },
               { value: 'contacts', label: 'Contacts', icon: ContactIcon },
               { value: 'companies', label: 'Companies', icon: Building2 },
@@ -723,6 +727,17 @@ export default function AdminCRM() {
             <TasksPanel
               leads={leads.map(l => ({ id: l.id, first_name: l.first_name, last_name: l.last_name }))}
               onOpenLead={(leadId) => { const lead = leads.find(l => l.id === leadId); if (lead) openLead(lead); }}
+            />
+          </TabsContent>
+
+          <TabsContent value="wip" className="mt-4">
+            <WIPDashboard
+              leads={leads}
+              isPreviewMode={isPreviewMode}
+              onOpenLead={(lead) => openLead(lead as Lead)}
+              onLocalUpdate={(leadId, wip_status) => {
+                setLeads(prev => prev.map(l => l.id === leadId ? { ...l, wip_status } : l));
+              }}
             />
           </TabsContent>
 
