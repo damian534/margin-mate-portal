@@ -201,8 +201,9 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       } as any).select().single();
       if (error) { toast.error('Failed: ' + error.message); return; }
       setApplicants(prev => [...prev, data as Applicant]);
-      // auto-load template for this applicant
-      await loadTemplate(newApplicantType, (data as Applicant).id);
+      // auto-load template for this applicant (match by name)
+      const tpl = templates.find(t => t.name === newApplicantType);
+      if (tpl) await loadTemplate(tpl, (data as Applicant).id);
     }
     toast.success('Applicant added');
     setNewApplicantName('');
