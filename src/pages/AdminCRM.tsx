@@ -504,27 +504,49 @@ export default function AdminCRM() {
           <p className="text-muted-foreground">Manage all referral leads in one place</p>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { label: 'Total Leads', value: stats.total, icon: TrendingUp, accent: 'primary' },
-            { label: 'New', value: stats.newLeads, icon: AlertCircle, accent: 'accent' },
-            { label: 'In Progress', value: stats.active, icon: Clock, accent: 'warning' },
-            { label: 'Settled', value: stats.settled, icon: CheckCircle, accent: 'success' },
-          ].map((s) => (
-            <Card key={s.label}>
-              <CardContent className="pt-6 flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-lg bg-${s.accent}/10 flex items-center justify-center`}>
-                  <s.icon className={`w-5 h-5 text-${s.accent}`} />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{s.value}</p>
-                  <p className="text-sm text-muted-foreground">{s.label}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {/* Monthly Pipeline KPIs */}
+        {(() => {
+          const now = new Date();
+          const y = now.getFullYear();
+          const m = now.getMonth();
+          const inMonth = (d?: string | null) => {
+            if (!d) return false;
+            const dt = new Date(d);
+            return dt.getFullYear() === y && dt.getMonth() === m;
+          };
+          const calc = (key: 'lodged_date' | 'approved_date' | 'settled_date') => {
+            const arr = leads.filter(l => inMonth((l as any)[key]));
+            return { count: arr.length, volume: arr.reduce((s, l) => s + (l.loan_amount || 0), 0) };
+          };
+          const items = [
+            { label: 'Lodged', icon: TrendingUp, accent: 'primary', ...calc('lodged_date') },
+            { label: 'Approved', icon: CheckCircle, accent: 'success', ...calc('approved_date') },
+            { label: 'Settled', icon: DollarSign, accent: 'success', ...calc('settled_date') },
+          ];
+          return (
+            <div>
+              <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wider">
+                This month · {now.toLocaleString('en-AU', { month: 'long', year: 'numeric' })}
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {items.map((s) => (
+                  <Card key={s.label}>
+                    <CardContent className="pt-6 flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-lg bg-${s.accent}/10 flex items-center justify-center`}>
+                        <s.icon className={`w-5 h-5 text-${s.accent}`} />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold">{s.count}</p>
+                        <p className="text-sm text-muted-foreground">{s.label}</p>
+                        <p className="text-xs text-muted-foreground">${s.volume.toLocaleString()}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
