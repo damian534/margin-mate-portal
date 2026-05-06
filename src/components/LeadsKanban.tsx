@@ -236,13 +236,32 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                               )}
                               <p className="text-[10px] text-muted-foreground/70">{format(new Date(lead.created_at), 'dd MMM')}</p>
                                 <div onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
-                                  <Select value={lead.status} onValueChange={(v) => onUpdateStatus(lead.id, v)}>
+                                  <Select
+                                    value={lead.wip_status ? `wip:${lead.wip_status}` : `lead:${lead.status}`}
+                                    onValueChange={(v) => {
+                                      if (v.startsWith('wip:')) {
+                                        onUpdateWipStatus?.(lead.id, v.slice(4));
+                                      } else {
+                                        onUpdateStatus(lead.id, v.slice(5));
+                                      }
+                                    }}
+                                  >
                                     <SelectTrigger className="h-7 text-[11px]">
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
+                                      <div className="px-2 py-1 text-[10px] font-semibold uppercase text-muted-foreground">Lead Status</div>
                                       {statuses.map(s => (
-                                        <SelectItem key={s.name} value={s.name} className="text-xs">
+                                        <SelectItem key={`lead-${s.name}`} value={`lead:${s.name}`} className="text-xs">
+                                          <span className="inline-flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
+                                            {s.label}
+                                          </span>
+                                        </SelectItem>
+                                      ))}
+                                      <div className="px-2 py-1 mt-1 text-[10px] font-semibold uppercase text-muted-foreground border-t">Move to WIP</div>
+                                      {WIP_STATUSES.map(s => (
+                                        <SelectItem key={`wip-${s.name}`} value={`wip:${s.name}`} className="text-xs">
                                           <span className="inline-flex items-center gap-2">
                                             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
                                             {s.label}
