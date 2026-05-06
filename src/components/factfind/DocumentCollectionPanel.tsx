@@ -86,7 +86,6 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   const [showAddApplicant, setShowAddApplicant] = useState(false);
   const [newApplicantName, setNewApplicantName] = useState('');
   const [newApplicantType, setNewApplicantType] = useState<string>('PAYG');
-  const [secondApplicantPrompt, setSecondApplicantPrompt] = useState<'unknown' | 'no' | 'yes'>('unknown');
   const [addingTo, setAddingTo] = useState<{ section: string; applicantId: string | null } | null>(null);
   const [newDocName, setNewDocName] = useState('');
   const [newDocDescription, setNewDocDescription] = useState('');
@@ -103,7 +102,6 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
     setDocuments([]);
     setActiveApplicantId(PRIMARY_APPLICANT_FALLBACK_ID);
     fetchAll();
-    setSecondApplicantPrompt('unknown');
   }, [leadId, primaryName]);
 
   const fetchAll = async () => {
@@ -398,32 +396,12 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
             )}
           </button>
         ))}
-        {applicants.length >= 2 && (
+        {applicants.length >= 1 && (
           <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setShowAddApplicant(!showAddApplicant)}>
-            <UserPlus className="w-3 h-3" /> Add Applicant
+            <UserPlus className="w-3 h-3" /> {applicants.length === 1 ? 'Add second applicant' : 'Add applicant'}
           </Button>
         )}
       </div>
-
-      {/* Second applicant prompt — shown when only the auto-seeded primary exists */}
-      {applicants.length === 1 && secondApplicantPrompt === 'unknown' && !showAddApplicant && (
-        <div className="bg-muted/40 rounded-lg p-3 flex items-center justify-between gap-3">
-          <p className="text-sm">Is there a <strong>second applicant</strong> on this loan?</p>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => { setShowAddApplicant(true); setSecondApplicantPrompt('yes'); }}>
-              Yes, add applicant 2
-            </Button>
-            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setSecondApplicantPrompt('no')}>
-              No, sole applicant
-            </Button>
-          </div>
-        </div>
-      )}
-      {applicants.length === 1 && secondApplicantPrompt === 'no' && (
-        <p className="text-[11px] text-muted-foreground italic">Sole applicant.{' '}
-          <button className="underline" onClick={() => { setShowAddApplicant(true); setSecondApplicantPrompt('yes'); }}>Add a second applicant</button>
-        </p>
-      )}
 
       {showAddApplicant && (
         <div className="bg-muted/50 rounded-lg p-3 space-y-2">
@@ -443,7 +421,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
           <p className="text-[11px] text-muted-foreground">A standard checklist for the selected employment type will be added automatically.</p>
           <div className="flex gap-2">
             <Button size="sm" className="h-8 text-xs" onClick={addApplicant} disabled={!newApplicantName.trim()}>Add Applicant</Button>
-            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setShowAddApplicant(false); setNewApplicantName(''); if (secondApplicantPrompt === 'yes') setSecondApplicantPrompt('unknown'); }}>Cancel</Button>
+            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setShowAddApplicant(false); setNewApplicantName(''); }}>Cancel</Button>
           </div>
         </div>
       )}
