@@ -285,8 +285,8 @@ Deno.serve(async (req) => {
       brokerName = brokerProfile?.full_name || "";
     }
 
-    // Build portal URL
-    const portalUrl = `${app_url.replace(/\/$/, "")}/client-portal/${encodeURIComponent(portalToken)}`;
+    // Build portal URL (append ?view=documents for documents-only mode)
+    const portalUrl = `${app_url.replace(/\/$/, "")}/client-portal/${encodeURIComponent(portalToken)}${mode === 'documents' ? '?view=documents' : ''}`;
 
     // Build and send email
     const clientName = cleanText(recipient_name, `${lead.first_name} ${lead.last_name || ""}`.trim());
