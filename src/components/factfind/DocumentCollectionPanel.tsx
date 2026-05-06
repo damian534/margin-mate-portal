@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Plus, Upload, FileText, CheckCircle2, XCircle, Clock, Trash2, Download, UserPlus, Users, Sparkles, Send, Mail, Pencil } from 'lucide-react';
+import { Plus, Upload, FileText, CheckCircle2, XCircle, Clock, Trash2, Download, UserPlus, Users, Sparkles, Send, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
 
@@ -92,8 +92,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   const [newDocName, setNewDocName] = useState('');
   const [newDocDescription, setNewDocDescription] = useState('');
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
-  const [editingDocId, setEditingDocId] = useState<string | null>(null);
-  const [editingDocName, setEditingDocName] = useState('');
+  const [savingDocId, setSavingDocId] = useState<string | null>(null);
 
   const primaryName = primaryApplicantName?.trim() || 'Primary Applicant';
   const primaryEmail = primaryApplicantEmail?.trim() || null;
@@ -368,18 +367,24 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
     if (data?.signedUrl) window.open(data.signedUrl, '_blank');
   };
 
-  const renameDocument = async (docId: string) => {
-    const trimmed = editingDocName.trim();
-    setEditingDocId(null);
-    if (!trimmed) return;
+  const updateDocumentName = (docId: string, value: string) => {
+    setDocuments(prev => prev.map(d => d.id === docId ? { ...d, name: value } : d));
+  };
+
+  const saveDocumentName = async (docId: string) => {
     const current = documents.find(d => d.id === docId);
-    if (!current || current.name === trimmed) return;
-    setDocuments(prev => prev.map(d => d.id === docId ? { ...d, name: trimmed } : d));
+    const trimmed = current?.name.trim() || '';
+    if (!trimmed) {
+      toast.error('Document name is required');
+      return;
+    }
+    updateDocumentName(docId, trimmed);
     if (!isPreviewMode) {
+      setSavingDocId(docId);
       const { error } = await supabase.from('document_requests').update({ name: trimmed }).eq('id', docId);
+      setSavingDocId(null);
       if (error) { toast.error('Rename failed'); fetchAll(); return; }
     }
-    toast.success('Document renamed');
   };
 
   // Filter docs by active applicant tab
