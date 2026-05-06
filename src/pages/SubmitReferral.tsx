@@ -82,6 +82,7 @@ export default function SubmitReferral() {
       loan_amount: form.loan_amount ? parseFloat(form.loan_amount) : null,
       loan_purpose: form.loan_purpose || null,
       source: 'referral_partner',
+      referral_partner_id: user.id,
     }, brokerId);
 
     navigate('/dashboard');

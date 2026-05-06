@@ -14,6 +14,8 @@ interface NewLeadNotification {
     loan_amount?: number | null;
     loan_purpose?: string | null;
     source?: string | null;
+    referral_partner_id?: string | null;
+    source_contact_id?: string | null;
   };
   broker_id: string | null;
 }
@@ -55,14 +57,47 @@ Deno.serve(async (req) => {
     const leadName = `${lead.first_name} ${lead.last_name}`.trim();
     const sourceLabel = lead.source?.replace(/_/g, " ") || "Unknown";
 
+    // Resolve referral attribution (partner profile or referring contact)
+    let referrerLine: string | null = null;
+    if (lead.referral_partner_id) {
+      const { data: partner } = await supabase
+        .from("profiles")
+        .select("full_name, email, company_name, phone")
+        .eq("user_id", lead.referral_partner_id)
+        .maybeSingle();
+      if (partner) {
+        const parts = [partner.full_name || partner.email || "Referral Partner"];
+        if (partner.company_name) parts.push(partner.company_name);
+        const contactBits: string[] = [];
+        if (partner.email) contactBits.push(partner.email);
+        if (partner.phone) contactBits.push(partner.phone);
+        referrerLine = parts.join(" — ") + (contactBits.length ? ` (${contactBits.join(" · ")})` : "");
+      }
+    } else if (lead.source_contact_id) {
+      const { data: contact } = await supabase
+        .from("contacts")
+        .select("first_name, last_name, email, phone, company")
+        .eq("id", lead.source_contact_id)
+        .maybeSingle();
+      if (contact) {
+        const name = `${contact.first_name || ""} ${contact.last_name || ""}`.trim() || "Existing client";
+        const bits: string[] = [];
+        if (contact.email) bits.push(contact.email);
+        if (contact.phone) bits.push(contact.phone);
+        referrerLine = `Referred by ${name}${contact.company ? ` (${contact.company})` : ""}${bits.length ? ` — ${bits.join(" · ")}` : ""}`;
+      }
+    }
+
     const detailRows: string[] = [];
+    if (referrerLine) detailRows.push(`<tr><td style="color:#888;padding:4px 12px 4px 0;">Referred by</td><td style="color:#333;font-weight:600;">${referrerLine}</td></tr>`);
     if (lead.email) detailRows.push(`<tr><td style="color:#888;padding:4px 12px 4px 0;">Email</td><td style="color:#333;">${lead.email}</td></tr>`);
     if (lead.phone) detailRows.push(`<tr><td style="color:#888;padding:4px 12px 4px 0;">Phone</td><td style="color:#333;">${lead.phone}</td></tr>`);
     if (lead.loan_amount) detailRows.push(`<tr><td style="color:#888;padding:4px 12px 4px 0;">Loan Amount</td><td style="color:#333;">$${Number(lead.loan_amount).toLocaleString()}</td></tr>`);
     if (lead.loan_purpose) detailRows.push(`<tr><td style="color:#888;padding:4px 12px 4px 0;">Purpose</td><td style="color:#333;">${lead.loan_purpose}</td></tr>`);
     detailRows.push(`<tr><td style="color:#888;padding:4px 12px 4px 0;">Source</td><td style="color:#333;">${sourceLabel}</td></tr>`);
 
-    const subject = `🆕 New Lead: ${leadName}`;
+    const subjectSuffix = referrerLine ? ` — via ${referrerLine.split(" — ")[0]}` : "";
+    const subject = `🆕 New Lead: ${leadName}${subjectSuffix}`;
     const html = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 0;">
         <h2 style="color: #1a1a1a; margin-bottom: 8px;">Hi ${brokerName},</h2>
