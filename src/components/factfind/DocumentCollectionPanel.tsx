@@ -415,6 +415,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
 
   const requestedCount = documents.filter(d => !!d.requested_at).length;
   const unrequestedDocs = documents.filter(d => !d.requested_at && d.status === 'pending');
+  const outstandingRequestedDocs = documents.filter(d => !!d.requested_at && (d.status === 'pending' || d.status === 'rejected'));
   const pendingCount = visibleDocs.filter(d => d.status === 'pending').length;
   const uploadedCount = visibleDocs.filter(d => d.status === 'uploaded').length;
   const approvedCount = visibleDocs.filter(d => d.status === 'approved').length;
@@ -484,6 +485,61 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
         setDocuments(prev => prev.map(d => unrequestedDocs.some(u => u.id === d.id) ? { ...d, requested_at: new Date().toISOString() } : d));
       }
       toast.success(`Requested ${unrequestedDocs.length} document${unrequestedDocs.length === 1 ? '' : 's'} from client`);
+    } finally {
+      setIsRequesting(false);
+    }
+  };
+
+  const resendDocumentsLink = async () => {
+    if (outstandingRequestedDocs.length === 0) {
+      toast.info('No outstanding documents to resend');
+      return;
+    }
+    setIsRequesting(true);
+    try {
+      if (isPreviewMode) {
+        toast.success('Resent documents link (preview)');
+        return;
+      }
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) { toast.error('Not authenticated'); return; }
+
+      const docsByApplicant = outstandingRequestedDocs.reduce<Record<string, DocumentRequest[]>>((acc, doc) => {
+        const key = doc.applicant_id || PRIMARY_APPLICANT_FALLBACK_ID;
+        acc[key] = [...(acc[key] || []), doc];
+        return acc;
+      }, {});
+
+      let sent = 0;
+      await Promise.all(Object.entries(docsByApplicant).map(async ([applicantId, docs]) => {
+        const applicant = applicants.find(a => a.id === applicantId || (isPrimaryFallback(applicantId) && a.display_order === 0));
+        const recipientEmail = applicant?.email || (applicant?.display_order === 0 ? primaryEmail : null);
+        if (!recipientEmail) return;
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-fact-find`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify({
+            lead_id: leadId,
+            app_url: window.location.origin,
+            mode: 'documents',
+            recipient_email: recipientEmail,
+            recipient_name: applicant?.name,
+            document_names: docs.map(d => d.name),
+          }),
+        }).catch(() => null);
+        if (res && res.ok) sent += 1;
+      }));
+
+      // Log to timeline
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        const content = `📄 Resent documents link (${outstandingRequestedDocs.length} outstanding document${outstandingRequestedDocs.length === 1 ? '' : 's'})`;
+        await supabase.from('notes').insert({ lead_id: leadId, content, author_id: userData?.user?.id ?? null } as any);
+      } catch {}
+
+      if (sent === 0) toast.error('No applicant emails on file to resend to');
+      else toast.success(`Resent documents link to ${sent} applicant${sent === 1 ? '' : 's'}`);
     } finally {
       setIsRequesting(false);
     }
