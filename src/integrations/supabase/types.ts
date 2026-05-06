@@ -549,6 +549,7 @@ export type Database = {
           source_contact_id: string | null
           status: string
           updated_at: string
+          wip_status: string | null
         }
         Insert: {
           broker_id?: string | null
@@ -574,6 +575,7 @@ export type Database = {
           source_contact_id?: string | null
           status?: string
           updated_at?: string
+          wip_status?: string | null
         }
         Update: {
           broker_id?: string | null
@@ -599,6 +601,7 @@ export type Database = {
           source_contact_id?: string | null
           status?: string
           updated_at?: string
+          wip_status?: string | null
         }
         Relationships: []
       }
