@@ -17,6 +17,7 @@ import { AddLeadDialog } from '@/components/AddLeadDialog';
 import { ContactsManagement, Contact } from '@/components/ContactsManagement';
 import { IncomingReferralsPanel } from '@/components/IncomingReferralsPanel';
 import { WIPDashboard } from '@/components/WIPDashboard';
+import JSZip from 'jszip';
 
 
 import { Button } from '@/components/ui/button';
@@ -114,6 +115,7 @@ export default function AdminCRM() {
   const [leadTasks, setLeadTasks] = useState<LeadTask[]>([]);
   const [openContactId, setOpenContactId] = useState<string | null>(null);
   const [selectedCompanyCRM, setSelectedCompanyCRM] = useState<Company | null>(null);
+  const [docsByLead, setDocsByLead] = useState<Map<string, { requested: number; completed: number; files: { path: string; name: string }[] }>>(new Map());
 
   const defaultSources: LeadSource[] = [
     { id: 's1', name: 'referral_partner', label: 'Referral Partner', display_order: 1 },
@@ -145,6 +147,7 @@ export default function AdminCRM() {
     fetchContacts();
     fetchLeadSources();
     fetchLeadTasks();
+    fetchLeadDocs();
   }, [isPreviewMode]);
 
   const tasksByLead = useMemo(() => {
@@ -303,6 +306,48 @@ export default function AdminCRM() {
   const fetchLeadTasks = async () => {
     const { data } = await supabase.from('tasks').select('id, lead_id, due_date, completed');
     setLeadTasks((data as LeadTask[]) || []);
+  };
+
+  const fetchLeadDocs = async () => {
+    const { data } = await supabase
+      .from('document_requests')
+      .select('lead_id, status, requested_at, file_path, file_name')
+      .not('requested_at', 'is', null);
+    const map = new Map<string, { requested: number; completed: number; files: { path: string; name: string }[] }>();
+    for (const d of (data as any[]) || []) {
+      const entry = map.get(d.lead_id) || { requested: 0, completed: 0, files: [] };
+      entry.requested += 1;
+      if (d.status === 'uploaded' || d.status === 'approved') entry.completed += 1;
+      if (d.file_path) entry.files.push({ path: d.file_path, name: d.file_name || d.file_path.split('/').pop() || 'file' });
+      map.set(d.lead_id, entry);
+    }
+    setDocsByLead(map);
+  };
+
+  const downloadLeadDocsZip = async (leadId: string) => {
+    const lead = leads.find(l => l.id === leadId);
+    const entry = docsByLead.get(leadId);
+    if (!entry || entry.files.length === 0) { toast.error('No uploaded documents'); return; }
+    toast.info('Preparing ZIP...');
+    try {
+      const zip = new JSZip();
+      for (const f of entry.files) {
+        const { data, error } = await supabase.storage.from('client-documents').download(f.path);
+        if (error || !data) continue;
+        zip.file(f.name, data);
+      }
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${lead?.first_name || 'lead'}_${lead?.last_name || ''}_documents.zip`.trim();
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Downloaded');
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to build ZIP');
+    }
   };
 
   const openLead = (lead: Lead) => {
@@ -603,6 +648,8 @@ export default function AdminCRM() {
                 onUpdateWipStatus={(leadId, wip_status) => updateWipStatus(leadId, wip_status)}
                 tasksByLead={tasksByLead}
                 taskDueFilter={taskDueFilter}
+                docsByLead={docsByLead}
+                onDownloadDocs={downloadLeadDocsZip}
               />
             ) : filteredLeads.length === 0 ? (
               <Card><CardContent className="p-0"><p className="text-muted-foreground text-center py-12">No leads found</p></CardContent></Card>
@@ -768,6 +815,8 @@ export default function AdminCRM() {
               leadStatuses={statuses}
               isPreviewMode={isPreviewMode}
               onOpenLead={(lead) => openLead(lead as Lead)}
+              docsByLead={docsByLead}
+              onDownloadDocs={downloadLeadDocsZip}
               onLocalUpdate={(leadId, wip_status) => {
                 setLeads(prev => prev.map(l => l.id === leadId ? { ...l, wip_status } : l));
               }}

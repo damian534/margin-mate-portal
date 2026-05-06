@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { FileDown, FileText } from 'lucide-react';
 
 export const WIP_STATUSES = [
   { name: 'onboarding', label: 'Onboarding', color: '#94a3b8' },
@@ -44,9 +45,11 @@ interface WIPDashboardProps {
   onOpenLead: (lead: any) => void;
   onLocalUpdate: (leadId: string, wip_status: string | null) => void;
   onSendBackToLead?: (leadId: string, leadStatus: string) => void;
+  docsByLead?: Map<string, { requested: number; completed: number; files: { path: string; name: string }[] }>;
+  onDownloadDocs?: (leadId: string) => void;
 }
 
-export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead }: WIPDashboardProps) {
+export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead, docsByLead, onDownloadDocs }: WIPDashboardProps) {
   const grouped = useMemo(() => {
     const map = new Map<string, WIPLead[]>();
     WIP_STATUSES.forEach(s => map.set(s.name, []));
@@ -141,6 +144,10 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                     <p className="text-xs text-muted-foreground text-center py-4">Drop leads here</p>
                   ) : (
                     stageLeads.map(lead => (
+                      (() => {
+                      const docs = docsByLead?.get(lead.id);
+                      const docsPct = docs && docs.requested > 0 ? Math.round((docs.completed / docs.requested) * 100) : null;
+                      return (
                       <div
                         key={lead.id}
                         draggable
@@ -155,6 +162,26 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                         {lead.loan_amount ? (
                           <p className="text-xs text-muted-foreground">${lead.loan_amount.toLocaleString()}</p>
                         ) : null}
+                        {docs && docs.requested > 0 && (
+                          <div className="mt-2 space-y-1">
+                            <div className="flex items-center justify-between text-[10px]">
+                              <span className="text-muted-foreground flex items-center gap-1"><FileText className="w-3 h-3" /> Docs {docsPct}%</span>
+                              {docs.files.length > 0 && onDownloadDocs && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); onDownloadDocs(lead.id); }}
+                                  className="text-primary hover:underline inline-flex items-center gap-0.5"
+                                  title="Download all uploaded documents as ZIP"
+                                >
+                                  <FileDown className="w-3 h-3" /> ZIP
+                                </button>
+                              )}
+                            </div>
+                            <div className="h-1 rounded-full bg-muted overflow-hidden">
+                              <div className="h-full bg-primary transition-all" style={{ width: `${docsPct}%` }} />
+                            </div>
+                          </div>
+                        )}
                         <div className="mt-2" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
                           <Select
                             value={`wip:${lead.wip_status || ''}`}
@@ -193,6 +220,8 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                           </Select>
                         </div>
                       </div>
+                      );
+                      })()
                     ))
                   )}
                 </div>
