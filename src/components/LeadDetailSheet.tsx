@@ -571,6 +571,9 @@ export function LeadDetailSheet({
                 {lead.loan_purpose && (
                   <p className="text-sm font-normal text-muted-foreground">{LOAN_PURPOSE_OPTIONS.find(o => o.value === lead.loan_purpose)?.label || lead.loan_purpose}</p>
                 )}
+                <div className="mt-1.5">
+                  <StatusBadge status={lead.status} statuses={statuses} />
+                </div>
                 {lead.source_contact_id && onOpenContact && (
                   <div className="flex items-center gap-2 mt-0.5">
                     <button 
