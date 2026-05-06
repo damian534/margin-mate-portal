@@ -56,6 +56,9 @@ interface Lead {
   source_contact_id: string | null;
   portal_mode?: 'both' | 'fact_find' | 'documents' | null;
   wip_status?: string | null;
+  lodged_date?: string | null;
+  approved_date?: string | null;
+  settled_date?: string | null;
 }
 
 interface Note {
@@ -1050,6 +1053,33 @@ export function LeadDetailSheet({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          {/* Deal Milestone Dates — used for monthly KPIs in WIP */}
+          <div>
+            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Deal Milestones</Label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-1">
+              {([
+                { key: 'lodged_date', label: 'Lodged' },
+                { key: 'approved_date', label: 'Approved' },
+                { key: 'settled_date', label: 'Settled' },
+              ] as const).map(({ key, label }) => (
+                <div key={key}>
+                  <Label className="text-[11px] text-muted-foreground">{label}</Label>
+                  <Input
+                    type="date"
+                    value={(lead as any)[key] ?? ''}
+                    onChange={async (e) => {
+                      const val = e.target.value || null;
+                      onLeadChange?.({ ...lead, [key]: val } as any);
+                      if (!isPreviewMode) {
+                        await supabase.from('leads').update({ [key]: val } as any).eq('id', lead.id);
+                      }
+                    }}
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
