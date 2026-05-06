@@ -174,7 +174,12 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
     if (existing) {
       const savedApplicant = existing as Applicant;
       if (!savedApplicant.email || !savedApplicant.phone) {
-        await supabase.from('lead_applicants').update({ email: primaryEmail, phone: primaryPhone } as any).eq('id', savedApplicant.id);
+        const contactUpdates: Partial<Applicant> = {};
+        if (!savedApplicant.email && primaryEmail) contactUpdates.email = primaryEmail;
+        if (!savedApplicant.phone && primaryPhone) contactUpdates.phone = primaryPhone;
+        if (Object.keys(contactUpdates).length) {
+          await supabase.from('lead_applicants').update(contactUpdates as any).eq('id', savedApplicant.id);
+        }
         savedApplicant.email = savedApplicant.email || primaryEmail;
         savedApplicant.phone = savedApplicant.phone || primaryPhone;
       }
