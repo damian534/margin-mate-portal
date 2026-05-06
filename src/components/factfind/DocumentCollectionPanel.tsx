@@ -413,21 +413,32 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
           .in('id', ids);
         if (error) { toast.error('Failed to mark requested'); return; }
 
-        // Send a documents-only portal email so the client gets the link with the new docs
+        // Send documents-only portal emails to each applicant with newly requested docs.
         const { data: sessionData } = await supabase.auth.getSession();
         const accessToken = sessionData?.session?.access_token;
         if (accessToken) {
-          const docNames = unrequestedDocs.map(d => d.name);
-          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-fact-find`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-            body: JSON.stringify({
-              lead_id: leadId,
-              app_url: window.location.origin,
-              mode: 'documents',
-              document_names: docNames,
-            }),
-          }).catch(() => {});
+          const docsByApplicant = unrequestedDocs.reduce<Record<string, DocumentRequest[]>>((acc, doc) => {
+            const key = doc.applicant_id || PRIMARY_APPLICANT_FALLBACK_ID;
+            acc[key] = [...(acc[key] || []), doc];
+            return acc;
+          }, {});
+          await Promise.all(Object.entries(docsByApplicant).map(async ([applicantId, docs]) => {
+            const applicant = applicants.find(a => a.id === applicantId || (isPrimaryFallback(applicantId) && a.display_order === 0));
+            const recipientEmail = applicant?.email || (applicant?.display_order === 0 ? primaryEmail : null);
+            if (!recipientEmail) return;
+            await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-fact-find`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+              body: JSON.stringify({
+                lead_id: leadId,
+                app_url: window.location.origin,
+                mode: 'documents',
+                recipient_email: recipientEmail,
+                recipient_name: applicant?.name,
+                document_names: docs.map(d => d.name),
+              }),
+            }).catch(() => {});
+          }));
         }
         await fetchAll();
       } else {
