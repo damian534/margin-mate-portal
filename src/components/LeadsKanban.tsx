@@ -6,6 +6,7 @@ import { LeadStatus } from '@/hooks/useLeadStatuses';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChevronDown, ChevronRight, DollarSign, Users, ChevronsDownUp, ChevronsUpDown, ClipboardList } from 'lucide-react';
+import { WIP_STATUSES } from './WIPDashboard';
 
 interface Lead {
   id: string;
@@ -19,6 +20,7 @@ interface Lead {
   source?: string | null;
   referral_partner_id?: string | null;
   source_contact_id?: string | null;
+  wip_status?: string | null;
   created_at: string;
 }
 
@@ -43,11 +45,12 @@ interface LeadsKanbanProps {
   getContactName?: (contactId: string | null) => string | null;
   onOpenLead: (lead: Lead) => void;
   onUpdateStatus: (leadId: string, newStatus: string) => void;
+  onUpdateWipStatus?: (leadId: string, wipStatus: string) => void;
   tasksByLead?: Map<string, LeadTask[]>;
   taskDueFilter?: string;
 }
 
-export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName, getReferrerCompany, getContactName, onOpenLead, onUpdateStatus, tasksByLead, taskDueFilter }: LeadsKanbanProps) {
+export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName, getReferrerCompany, getContactName, onOpenLead, onUpdateStatus, onUpdateWipStatus, tasksByLead, taskDueFilter }: LeadsKanbanProps) {
   const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set());
 
   // Auto-expand columns that have leads when a task filter is applied
