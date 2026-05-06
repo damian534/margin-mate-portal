@@ -216,6 +216,7 @@ export function LeadDetailSheet({
     if (lead && open) {
       fetchNotes(lead.id);
       fetchTasks(lead.id);
+      fetchTaskTemplates();
       setEditEmail(lead.email || '');
       setEditPhone(lead.phone || '');
       setContactDirty(false);
