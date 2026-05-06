@@ -182,7 +182,7 @@ export default function ClientPortal() {
                           <FileText className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
                           <div>
                             <p className="text-sm font-medium">{doc.name}</p>
-                            {doc.description && <p className="text-xs text-muted-foreground">{doc.description}</p>}
+                            {doc.description && <p className="text-xs text-muted-foreground whitespace-pre-wrap break-words">{linkify(doc.description)}</p>}
                           </div>
                         </div>
                         <Badge variant="outline" className={cn("shrink-0 text-[10px] gap-1", statusCfg.color)}>
@@ -305,7 +305,7 @@ export default function ClientPortal() {
                             <FileText className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
                             <div>
                               <p className="text-sm font-medium">{doc.name}</p>
-                              {doc.description && <p className="text-xs text-muted-foreground">{doc.description}</p>}
+                              {doc.description && <p className="text-xs text-muted-foreground whitespace-pre-wrap break-words">{linkify(doc.description)}</p>}
                             </div>
                           </div>
                           <Badge variant="outline" className={cn("shrink-0 text-[10px] gap-1", statusCfg.color)}>
