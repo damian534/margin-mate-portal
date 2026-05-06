@@ -473,10 +473,14 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
               </SelectContent>
             </Select>
           </div>
+          <div className="flex gap-2">
+            <Input type="email" placeholder="Email *" value={newApplicantEmail} onChange={e => setNewApplicantEmail(e.target.value)} className="h-8 text-sm flex-1" />
+            <Input type="tel" placeholder="Mobile *" value={newApplicantPhone} onChange={e => setNewApplicantPhone(e.target.value)} className="h-8 text-sm flex-1" />
+          </div>
           <p className="text-[11px] text-muted-foreground">A standard checklist for the selected employment type will be added automatically.</p>
           <div className="flex gap-2">
-            <Button size="sm" className="h-8 text-xs" onClick={addApplicant} disabled={!newApplicantName.trim()}>Add Applicant</Button>
-            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setShowAddApplicant(false); setNewApplicantName(''); }}>Cancel</Button>
+            <Button size="sm" className="h-8 text-xs" onClick={addApplicant} disabled={!newApplicantName.trim() || !newApplicantEmail.trim() || !newApplicantPhone.trim()}>Add Applicant</Button>
+            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setShowAddApplicant(false); setNewApplicantName(''); setNewApplicantEmail(''); setNewApplicantPhone(''); }}>Cancel</Button>
           </div>
         </div>
       )}
