@@ -573,9 +573,20 @@ export function LeadDetailSheet({
                   <Send className="w-3 h-3" />
                 </Button>
               </div>
-              <Button variant="ghost" size="sm" className="h-6 text-xs text-destructive hover:text-destructive px-2" onClick={() => deleteTask(task.id)}>
-                <Trash2 className="w-3 h-3 mr-1" /> Delete task
-              </Button>
+              <div className="flex items-center justify-between gap-2">
+                <Button
+                  variant={task.completed ? 'outline' : 'default'}
+                  size="sm"
+                  className="h-7 text-xs px-3"
+                  onClick={() => toggleTaskComplete(task)}
+                >
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  {task.completed ? 'Reopen task' : 'Mark complete'}
+                </Button>
+                <Button variant="ghost" size="sm" className="h-6 text-xs text-destructive hover:text-destructive px-2" onClick={() => deleteTask(task.id)}>
+                  <Trash2 className="w-3 h-3 mr-1" /> Delete task
+                </Button>
+              </div>
             </div>
           </div>
         )}
