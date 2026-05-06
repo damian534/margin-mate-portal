@@ -480,8 +480,15 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       {showAddApplicant && (
         <div className="bg-muted/50 rounded-lg p-3 space-y-2">
           <p className="text-xs font-medium">Add applicant {applicants.length + 1}</p>
+          <div className="grid grid-cols-2 gap-2">
+            <Input placeholder="First name *" value={newApplicantFirstName} onChange={e => setNewApplicantFirstName(e.target.value)} className="h-8 text-sm" />
+            <Input placeholder="Surname *" value={newApplicantLastName} onChange={e => setNewApplicantLastName(e.target.value)} className="h-8 text-sm" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Input type="email" placeholder="Email *" value={newApplicantEmail} onChange={e => setNewApplicantEmail(e.target.value)} className="h-8 text-sm" />
+            <Input type="tel" placeholder="Mobile *" value={newApplicantPhone} onChange={e => setNewApplicantPhone(e.target.value)} className="h-8 text-sm" />
+          </div>
           <div className="flex gap-2">
-            <Input placeholder="Applicant name" value={newApplicantName} onChange={e => setNewApplicantName(e.target.value)} className="h-8 text-sm flex-1" />
             <Select value={newApplicantType} onValueChange={setNewApplicantType}>
               <SelectTrigger className="h-8 text-sm w-44"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -492,14 +499,10 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
               </SelectContent>
             </Select>
           </div>
-          <div className="flex gap-2">
-            <Input type="email" placeholder="Email *" value={newApplicantEmail} onChange={e => setNewApplicantEmail(e.target.value)} className="h-8 text-sm flex-1" />
-            <Input type="tel" placeholder="Mobile *" value={newApplicantPhone} onChange={e => setNewApplicantPhone(e.target.value)} className="h-8 text-sm flex-1" />
-          </div>
           <p className="text-[11px] text-muted-foreground">A standard checklist for the selected employment type will be added automatically.</p>
           <div className="flex gap-2">
-            <Button size="sm" className="h-8 text-xs" onClick={addApplicant} disabled={!newApplicantName.trim() || !newApplicantEmail.trim() || !newApplicantPhone.trim()}>Add Applicant</Button>
-            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setShowAddApplicant(false); setNewApplicantName(''); setNewApplicantEmail(''); setNewApplicantPhone(''); }}>Cancel</Button>
+            <Button size="sm" className="h-8 text-xs" onClick={addApplicant} disabled={!newApplicantFirstName.trim() || !newApplicantLastName.trim() || !newApplicantEmail.trim() || !newApplicantPhone.trim()}>Add Applicant</Button>
+            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setShowAddApplicant(false); setNewApplicantFirstName(''); setNewApplicantLastName(''); setNewApplicantEmail(''); setNewApplicantPhone(''); }}>Cancel</Button>
           </div>
         </div>
       )}
