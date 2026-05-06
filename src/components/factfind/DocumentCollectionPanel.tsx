@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Plus, Upload, FileText, CheckCircle2, XCircle, Clock, Trash2, Download, UserPlus, Users, Sparkles, Send, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { z } from 'zod';
 
 interface DocumentRequest {
   id: string;
@@ -39,6 +40,8 @@ interface DocumentCollectionPanelProps {
   leadId: string;
   isPreviewMode: boolean;
   primaryApplicantName?: string;
+  primaryApplicantEmail?: string | null;
+  primaryApplicantPhone?: string | null;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -64,15 +67,22 @@ const FALLBACK_TEMPLATES: Template[] = [
 ];
 
 const PRIMARY_APPLICANT_FALLBACK_ID = 'contact-card-primary-applicant';
+const applicantSchema = z.object({
+  firstName: z.string().trim().min(1, 'First name is required').max(50, 'First name is too long'),
+  lastName: z.string().trim().min(1, 'Surname is required').max(50, 'Surname is too long'),
+  email: z.string().trim().email('Please enter a valid email').max(255, 'Email is too long'),
+  phone: z.string().trim().min(8, 'Mobile is required').max(20, 'Mobile is too long').regex(/^[+\d\s()-]+$/, 'Please enter a valid mobile'),
+});
 
-export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplicantName }: DocumentCollectionPanelProps) {
+export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplicantName, primaryApplicantEmail, primaryApplicantPhone }: DocumentCollectionPanelProps) {
   const [documents, setDocuments] = useState<DocumentRequest[]>([]);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [templates, setTemplates] = useState<Template[]>(FALLBACK_TEMPLATES);
   const [isLoading, setIsLoading] = useState(true);
   const [activeApplicantId, setActiveApplicantId] = useState<string>('all');
   const [showAddApplicant, setShowAddApplicant] = useState(false);
-  const [newApplicantName, setNewApplicantName] = useState('');
+  const [newApplicantFirstName, setNewApplicantFirstName] = useState('');
+  const [newApplicantLastName, setNewApplicantLastName] = useState('');
   const [newApplicantType, setNewApplicantType] = useState<string>('PAYG');
   const [newApplicantEmail, setNewApplicantEmail] = useState('');
   const [newApplicantPhone, setNewApplicantPhone] = useState('');
@@ -83,6 +93,8 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const primaryName = primaryApplicantName?.trim() || 'Primary Applicant';
+  const primaryEmail = primaryApplicantEmail?.trim() || null;
+  const primaryPhone = primaryApplicantPhone?.trim() || null;
   const isPrimaryFallback = (id: string | null) => id === PRIMARY_APPLICANT_FALLBACK_ID;
 
   useEffect(() => {
