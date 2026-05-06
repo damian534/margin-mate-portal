@@ -21,9 +21,8 @@ import {
   Mail, Phone, Send, Trash2, Users, Building2, DollarSign,
   Calendar, Plus, CheckCircle, CheckCircle2, Clock, AlertTriangle,
   MessageSquare, Activity, ChevronDown, ChevronRight, Pencil, X, Save,
-  Search, UserPlus, ExternalLink, Award, FileText, ClipboardList
+  Search, UserPlus, ExternalLink, Award, FileText
 } from 'lucide-react';
-import { FactFindPanel } from '@/components/factfind/FactFindPanel';
 import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectionPanel';
 import { ReferLeadDialog } from '@/components/ReferLeadDialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -173,28 +172,6 @@ export function LeadDetailSheet({
   const [sourceContactReferralCount, setSourceContactReferralCount] = useState<number | null>(null);
   const [contactPickerOpen, setContactPickerOpen] = useState(false);
   const [partnerPickerOpen, setPartnerPickerOpen] = useState(false);
-  const [sendingFactFind, setSendingFactFind] = useState(false);
-
-  const handleSendFactFind = async () => {
-    if (!lead?.email) { toast.error('Lead has no email address'); return; }
-    setSendingFactFind(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('send-fact-find', {
-        body: {
-          lead_id: lead.id,
-          app_url: window.location.origin,
-        },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      toast.success('Fact Find email sent to ' + lead.email);
-      addNote('📋 Fact Find invitation sent via email', 'note');
-    } catch (e: any) {
-      console.error('Send fact find error:', e);
-      toast.error(e?.message || 'Failed to send Fact Find email');
-    }
-    setSendingFactFind(false);
-  };
 
   const startNameEdit = () => {
     setEditFirstName(lead.first_name);
@@ -667,18 +644,6 @@ export function LeadDetailSheet({
                 <Phone className="w-3.5 h-3.5" /> Call
               </Button>
             )}
-            {editEmail && !contactDirty && (
-              <Button
-                variant="default"
-                size="sm"
-                className="gap-1.5 flex-1"
-                disabled={sendingFactFind}
-                onClick={handleSendFactFind}
-              >
-                <ClipboardList className="w-3.5 h-3.5" />
-                {sendingFactFind ? 'Sending...' : 'Send Fact Find'}
-              </Button>
-            )}
           </div>
 
           {/* Read-only info */}
@@ -1108,15 +1073,12 @@ export function LeadDetailSheet({
 
           {/* Tabs: Timeline (Tasks + Activity), Commission */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full grid grid-cols-4">
+            <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="timeline" className="gap-1 text-xs px-1.5">
                 <Activity className="w-3.5 h-3.5" /> Timeline
                 {pendingTasks.length > 0 && (
                   <span className="ml-0.5 bg-primary/10 text-primary text-[10px] px-1 py-0.5 rounded-full">{pendingTasks.length}</span>
                 )}
-              </TabsTrigger>
-              <TabsTrigger value="factfind" className="gap-1 text-xs px-1.5">
-                <ClipboardList className="w-3.5 h-3.5" /> Fact Find
               </TabsTrigger>
               <TabsTrigger value="documents" className="gap-1 text-xs px-1.5">
                 <FileText className="w-3.5 h-3.5" /> Docs
@@ -1246,11 +1208,6 @@ export function LeadDetailSheet({
                   )}
                 </ScrollArea>
               </div>
-            </TabsContent>
-
-            {/* Fact Find Tab */}
-            <TabsContent value="factfind" className="mt-4">
-              <FactFindPanel leadId={lead.id} isPreviewMode={isPreviewMode} />
             </TabsContent>
 
             {/* Documents Tab */}
