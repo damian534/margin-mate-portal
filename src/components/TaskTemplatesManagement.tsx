@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Plus, Trash2, Save, ListChecks } from 'lucide-react';
+import { Plus, Trash2, Save, ListChecks, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface ChecklistItem { text: string }
 interface Template {
@@ -20,6 +20,14 @@ export function TaskTemplatesManagement() {
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = (id: string) =>
+    setExpanded(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
 
   useEffect(() => { fetchTemplates(); }, []);
 
@@ -49,7 +57,7 @@ export function TaskTemplatesManagement() {
     });
     if (error) { toast.error(error.message); return; }
     setNewName('');
-    fetchTemplates();
+    await fetchTemplates();
     toast.success('Template created');
   };
 
@@ -130,7 +138,23 @@ export function TaskTemplatesManagement() {
         <p className="text-sm text-muted-foreground text-center py-6">No templates yet.</p>
       ) : templates.map(tpl => (
         <Card key={tpl.id}>
-          <CardContent className="pt-6 space-y-3">
+          <CardContent className="pt-4 space-y-3">
+            <button
+              type="button"
+              onClick={() => toggleExpanded(tpl.id)}
+              className="w-full flex items-center justify-between gap-2 text-left hover:bg-muted/50 -mx-2 px-2 py-1 rounded"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                {expanded.has(tpl.id) ? <ChevronDown className="w-4 h-4 flex-shrink-0" /> : <ChevronRight className="w-4 h-4 flex-shrink-0" />}
+                <span className="font-medium text-sm truncate">{tpl.name || 'Untitled template'}</span>
+              </div>
+              <span className="text-xs text-muted-foreground flex-shrink-0">
+                {tpl.checklist_items.length} step{tpl.checklist_items.length === 1 ? '' : 's'}
+              </span>
+            </button>
+
+            {expanded.has(tpl.id) && (
+              <>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               <div className="md:col-span-2">
                 <label className="text-xs text-muted-foreground">Template name</label>
@@ -180,6 +204,8 @@ export function TaskTemplatesManagement() {
                 <Save className="w-3.5 h-3.5 mr-1" /> {savingId === tpl.id ? 'Saving…' : 'Save'}
               </Button>
             </div>
+              </>
+            )}
           </CardContent>
         </Card>
       ))}
