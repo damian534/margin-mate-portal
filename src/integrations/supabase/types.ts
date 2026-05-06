@@ -204,6 +204,7 @@ export type Database = {
       }
       document_requests: {
         Row: {
+          applicant_id: string | null
           created_at: string
           description: string | null
           file_name: string | null
@@ -215,11 +216,13 @@ export type Database = {
           rejection_reason: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          section: string | null
           status: string
           updated_at: string
           uploaded_at: string | null
         }
         Insert: {
+          applicant_id?: string | null
           created_at?: string
           description?: string | null
           file_name?: string | null
@@ -231,11 +234,13 @@ export type Database = {
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          section?: string | null
           status?: string
           updated_at?: string
           uploaded_at?: string | null
         }
         Update: {
+          applicant_id?: string | null
           created_at?: string
           description?: string | null
           file_name?: string | null
@@ -247,6 +252,7 @@ export type Database = {
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          section?: string | null
           status?: string
           updated_at?: string
           uploaded_at?: string | null
@@ -338,6 +344,36 @@ export type Database = {
           max_uses?: number | null
           target_role?: string | null
           used_count?: number
+        }
+        Relationships: []
+      }
+      lead_applicants: {
+        Row: {
+          created_at: string
+          display_order: number
+          employment_type: string | null
+          id: string
+          lead_id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          employment_type?: string | null
+          id?: string
+          lead_id: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          employment_type?: string | null
+          id?: string
+          lead_id?: string
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }
