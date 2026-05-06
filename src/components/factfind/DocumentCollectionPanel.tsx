@@ -271,7 +271,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
         description: newDocDescription.trim() || null, status: 'pending',
         file_path: null, file_name: null, file_size: null, uploaded_at: null,
         rejection_reason: null, created_at: new Date().toISOString(),
-        applicant_id: applicantId, section,
+        applicant_id: applicantId, section, requested_at: null,
       }]);
     } else {
       const { error } = await supabase.from('document_requests').insert({
