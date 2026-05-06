@@ -188,28 +188,29 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   };
 
   const addApplicant = async () => {
-    if (!newApplicantName.trim()) return;
-    if (!newApplicantEmail.trim() || !newApplicantPhone.trim()) {
-      toast.error('Email and mobile are required for additional applicants');
+    const parsed = applicantSchema.safeParse({
+      firstName: newApplicantFirstName,
+      lastName: newApplicantLastName,
+      email: newApplicantEmail,
+      phone: newApplicantPhone,
+    });
+    if (!parsed.success) {
+      toast.error(parsed.error.errors[0]?.message || 'Please enter the applicant details');
       return;
     }
-    // Simple email check
-    if (!/^\S+@\S+\.\S+$/.test(newApplicantEmail.trim())) {
-      toast.error('Please enter a valid email');
-      return;
-    }
+    const applicantName = `${parsed.data.firstName} ${parsed.data.lastName}`.trim();
     const order = applicants.length;
     if (!isPreviewMode && applicants.some(app => isPrimaryFallback(app.id))) {
       const primaryApplicantId = await ensurePersistedApplicantId(PRIMARY_APPLICANT_FALLBACK_ID);
       if (!primaryApplicantId) return;
     }
     if (isPreviewMode) {
-      const newApp = { id: `prev-${Date.now()}`, lead_id: leadId, name: newApplicantName.trim(), employment_type: newApplicantType, display_order: order, email: newApplicantEmail.trim(), phone: newApplicantPhone.trim() };
+      const newApp = { id: `prev-${Date.now()}`, lead_id: leadId, name: applicantName, employment_type: newApplicantType, display_order: order, email: parsed.data.email, phone: parsed.data.phone };
       setApplicants(prev => [...prev, newApp]);
     } else {
       const { data, error } = await supabase.from('lead_applicants').insert({
-        lead_id: leadId, name: newApplicantName.trim(), employment_type: newApplicantType, display_order: order,
-        email: newApplicantEmail.trim(), phone: newApplicantPhone.trim(),
+        lead_id: leadId, name: applicantName, employment_type: newApplicantType, display_order: order,
+        email: parsed.data.email, phone: parsed.data.phone,
       } as any).select().single();
       if (error) { toast.error('Failed: ' + error.message); return; }
       setApplicants(prev => [...prev, data as Applicant]);
@@ -218,7 +219,8 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       if (tpl) await loadTemplate(tpl, (data as Applicant).id);
     }
     toast.success('Applicant added');
-    setNewApplicantName('');
+    setNewApplicantFirstName('');
+    setNewApplicantLastName('');
     setNewApplicantEmail('');
     setNewApplicantPhone('');
     setShowAddApplicant(false);
