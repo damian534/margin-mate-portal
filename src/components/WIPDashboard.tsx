@@ -1,3 +1,4 @@
+import { LeadStatus } from '@/hooks/useLeadStatuses';
 import { useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -38,12 +39,14 @@ interface WIPLead {
 
 interface WIPDashboardProps {
   leads: WIPLead[];
+  leadStatuses?: LeadStatus[];
   isPreviewMode: boolean;
   onOpenLead: (lead: any) => void;
   onLocalUpdate: (leadId: string, wip_status: string | null) => void;
+  onSendBackToLead?: (leadId: string, leadStatus: string) => void;
 }
 
-export function WIPDashboard({ leads, isPreviewMode, onOpenLead, onLocalUpdate }: WIPDashboardProps) {
+export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead }: WIPDashboardProps) {
   const grouped = useMemo(() => {
     const map = new Map<string, WIPLead[]>();
     WIP_STATUSES.forEach(s => map.set(s.name, []));
@@ -153,19 +156,39 @@ export function WIPDashboard({ leads, isPreviewMode, onOpenLead, onLocalUpdate }
                           <p className="text-xs text-muted-foreground">${lead.loan_amount.toLocaleString()}</p>
                         ) : null}
                         <div className="mt-2" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
-                          <Select value={lead.wip_status || ''} onValueChange={(v) => update(lead.id, v)}>
+                          <Select
+                            value={`wip:${lead.wip_status || ''}`}
+                            onValueChange={(v) => {
+                              if (v.startsWith('wip:')) update(lead.id, v.slice(4));
+                              else if (v.startsWith('lead:')) onSendBackToLead?.(lead.id, v.slice(5));
+                            }}
+                          >
                             <SelectTrigger className="h-7 text-[11px]">
                               <SelectValue placeholder="Move to..." />
                             </SelectTrigger>
                             <SelectContent>
+                              <div className="px-2 py-1 text-[10px] font-semibold uppercase text-muted-foreground">WIP Stage</div>
                               {WIP_STATUSES.map(s => (
-                                <SelectItem key={s.name} value={s.name} className="text-xs">
+                                <SelectItem key={`wip-${s.name}`} value={`wip:${s.name}`} className="text-xs">
                                   <span className="inline-flex items-center gap-2">
                                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
                                     {s.label}
                                   </span>
                                 </SelectItem>
                               ))}
+                              {leadStatuses.length > 0 && (
+                                <>
+                                  <div className="px-2 py-1 mt-1 text-[10px] font-semibold uppercase text-muted-foreground border-t">Send Back to Lead</div>
+                                  {leadStatuses.map(s => (
+                                    <SelectItem key={`lead-${s.name}`} value={`lead:${s.name}`} className="text-xs">
+                                      <span className="inline-flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
+                                        {s.label}
+                                      </span>
+                                    </SelectItem>
+                                  ))}
+                                </>
+                              )}
                             </SelectContent>
                           </Select>
                         </div>
