@@ -270,6 +270,39 @@ export type Database = {
           },
         ]
       }
+      document_templates: {
+        Row: {
+          broker_id: string
+          created_at: string
+          display_order: number
+          id: string
+          is_default: boolean
+          items: Json
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          broker_id: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_default?: boolean
+          items?: Json
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          broker_id?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_default?: boolean
+          items?: Json
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fact_find_responses: {
         Row: {
           completed: boolean

@@ -4,10 +4,11 @@ import { InviteCodeManagement } from '@/components/InviteCodeManagement';
 import { UserManagement } from '@/components/UserManagement';
 import { StatusSettings } from '@/components/StatusSettings';
 import { CompanyManagement, Company } from '@/components/CompanyManagement';
+import { DocumentTemplatesManagement } from '@/components/DocumentTemplatesManagement';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
-import { KeyRound, UserCog, Settings2 } from 'lucide-react';
+import { KeyRound, UserCog, Settings2, FileText } from 'lucide-react';
 
 export default function AdminSettings() {
   const { isPreviewMode } = useAuth();
@@ -32,6 +33,7 @@ export default function AdminSettings() {
   const sections = [
     { value: 'invites', label: 'Invite Codes', icon: KeyRound },
     { value: 'users', label: 'User Management', icon: UserCog },
+    { value: 'doc-templates', label: 'Document Templates', icon: FileText },
   ];
 
   return (
@@ -68,6 +70,7 @@ export default function AdminSettings() {
         {activeSection === 'users' && (
           <UserManagement companies={companies} onRefreshReferrers={fetchReferrers} />
         )}
+        {activeSection === 'doc-templates' && <DocumentTemplatesManagement />}
       </main>
     </div>
   );

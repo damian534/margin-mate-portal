@@ -50,40 +50,25 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
 
 const SECTION_ORDER = ['Identity', 'Income', 'Bank Statements', 'Tax Returns', 'Additional', 'Other'];
 
-const TEMPLATES: Record<string, { section: string; name: string; description?: string }[]> = {
-  PAYG: [
+type TemplateItem = { section: string; name: string; description?: string };
+type Template = { id: string; name: string; items: TemplateItem[] };
+
+const FALLBACK_TEMPLATES: Template[] = [
+  { id: 'fallback-payg', name: 'PAYG', items: [
     { section: 'Identity', name: 'Passport (current, valid)' },
     { section: 'Identity', name: "Driver's licence (front and back)" },
-    { section: 'Identity', name: 'Medicare card (current)' },
     { section: 'Income', name: 'Most recent payslip' },
     { section: 'Income', name: 'Previous payslip' },
-    { section: 'Income', name: '2025 income statement', description: 'myGov → ATO → Income statements → download as PDF' },
-    { section: 'Bank Statements', name: '3 months — everyday salary account', description: 'Use https://bankstatements.com.au' },
-    { section: 'Bank Statements', name: '3 months — savings account', description: 'Use https://bankstatements.com.au' },
-    { section: 'Additional', name: 'Rental income — lease agreements + last 2 years tax returns' },
-    { section: 'Additional', name: 'Property documents — rates notice or contract of sale' },
-  ],
-  'Sole Trader': [
-    { section: 'Tax Returns', name: 'Most recent year tax return' },
-    { section: 'Tax Returns', name: 'Previous year tax return' },
-    { section: 'Tax Returns', name: 'Most recent ATO NOA (Notice of Assessment)' },
-    { section: 'Tax Returns', name: 'Previous year ATO NOA (Notice of Assessment)' },
-  ],
-  'Company/Trust': [
-    { section: 'Tax Returns', name: 'Most recent year individual tax return' },
-    { section: 'Tax Returns', name: 'Previous year individual tax return' },
-    { section: 'Tax Returns', name: 'Most recent year company tax return' },
-    { section: 'Tax Returns', name: 'Previous year company tax return' },
-    { section: 'Tax Returns', name: 'Most recent ATO NOA (Notice of Assessment)' },
-    { section: 'Tax Returns', name: 'Previous year ATO NOA (Notice of Assessment)' },
-  ],
-};
+    { section: 'Bank Statements', name: '3 months — everyday salary account' },
+  ]},
+];
 
 const PRIMARY_APPLICANT_FALLBACK_ID = 'contact-card-primary-applicant';
 
 export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplicantName }: DocumentCollectionPanelProps) {
   const [documents, setDocuments] = useState<DocumentRequest[]>([]);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
+  const [templates, setTemplates] = useState<Template[]>(FALLBACK_TEMPLATES);
   const [isLoading, setIsLoading] = useState(true);
   const [activeApplicantId, setActiveApplicantId] = useState<string>('all');
   const [showAddApplicant, setShowAddApplicant] = useState(false);
@@ -108,7 +93,19 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
     setDocuments([]);
     setActiveApplicantId(PRIMARY_APPLICANT_FALLBACK_ID);
     fetchAll();
+    fetchTemplates();
   }, [leadId, primaryName]);
+
+  const fetchTemplates = async () => {
+    if (isPreviewMode) return;
+    const { data } = await (supabase as any)
+      .from('document_templates')
+      .select('id, name, items')
+      .order('display_order');
+    if (data && data.length) {
+      setTemplates(data.map((t: any) => ({ id: t.id, name: t.name, items: (t.items as TemplateItem[]) || [] })));
+    }
+  };
 
   const fetchAll = async () => {
     if (isPreviewMode) {
@@ -204,8 +201,9 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       } as any).select().single();
       if (error) { toast.error('Failed: ' + error.message); return; }
       setApplicants(prev => [...prev, data as Applicant]);
-      // auto-load template for this applicant
-      await loadTemplate(newApplicantType, (data as Applicant).id);
+      // auto-load template for this applicant (match by name)
+      const tpl = templates.find(t => t.name === newApplicantType);
+      if (tpl) await loadTemplate(tpl, (data as Applicant).id);
     }
     toast.success('Applicant added');
     setNewApplicantName('');
@@ -235,9 +233,9 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
     toast.success('Applicant removed');
   };
 
-  const loadTemplate = async (templateName: string, applicantId: string | null) => {
-    const tpl = TEMPLATES[templateName];
-    if (!tpl) return;
+  const loadTemplate = async (template: Template, applicantId: string | null) => {
+    const tpl = template.items;
+    if (!tpl || tpl.length === 0) { toast.error('This template has no documents'); return; }
     const persistedApplicantId = await ensurePersistedApplicantId(applicantId);
     if (isPrimaryFallback(applicantId) && !persistedApplicantId) return;
     if (isPreviewMode) {
@@ -257,7 +255,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       if (error) { toast.error('Template failed: ' + error.message); return; }
       fetchAll();
     }
-    toast.success(`${templateName} checklist added`);
+    toast.success(`${template.name} checklist added`);
   };
 
   const addDocumentRequest = async () => {
@@ -384,14 +382,20 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
           .in('id', ids);
         if (error) { toast.error('Failed to mark requested'); return; }
 
-        // Send the portal email so the client gets the link with the new docs
+        // Send a documents-only portal email so the client gets the link with the new docs
         const { data: sessionData } = await supabase.auth.getSession();
         const accessToken = sessionData?.session?.access_token;
         if (accessToken) {
+          const docNames = unrequestedDocs.map(d => d.name);
           await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-fact-find`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-            body: JSON.stringify({ lead_id: leadId, app_url: window.location.origin }),
+            body: JSON.stringify({
+              lead_id: leadId,
+              app_url: window.location.origin,
+              mode: 'documents',
+              document_names: docNames,
+            }),
           }).catch(() => {});
         }
         await fetchAll();
@@ -493,11 +497,14 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
             ? ` for ${applicants.find(a => a.id === activeApplicantId)?.name || 'applicant'}:`
             : ' (unassigned):'}
         </span>
-        {Object.keys(TEMPLATES).map(t => (
-          <Button key={t} variant="outline" size="sm" className="h-7 text-xs" onClick={() => loadTemplate(t, targetApplicantId)}>
-            + {t}
+        {templates.map(t => (
+          <Button key={t.id} variant="outline" size="sm" className="h-7 text-xs" onClick={() => loadTemplate(t, targetApplicantId)}>
+            + {t.name}
           </Button>
         ))}
+        {templates.length === 0 && (
+          <span className="text-xs text-muted-foreground italic">No templates yet — add some in Settings → Document Templates.</span>
+        )}
       </div>
 
       {/* Request documents action */}
