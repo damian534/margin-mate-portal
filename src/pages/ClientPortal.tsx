@@ -1,10 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
-import { MortgageFactFindWizard } from '@/components/mortgage-factfind/MortgageFactFindWizard';
+import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import {
@@ -57,8 +55,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
 
 export default function ClientPortal() {
   const { token } = useParams<{ token: string }>();
-  const [searchParams] = useSearchParams();
-  const documentsOnly = searchParams.get('view') === 'documents';
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [leadName, setLeadName] = useState('');
@@ -68,8 +64,6 @@ export default function ClientPortal() {
   const [leadFirstName, setLeadFirstName] = useState('');
   const [leadLastName, setLeadLastName] = useState('');
   const [documents, setDocuments] = useState<DocumentRequest[]>([]);
-  const [activeTab, setActiveTab] = useState('factfind');
-  const [factFindComplete, setFactFindComplete] = useState(false);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   useEffect(() => {
@@ -150,11 +144,7 @@ export default function ClientPortal() {
 
   if (!leadId) return null;
 
-  // If there are documents, show tabs. Otherwise show wizard full screen.
-  const hasDocuments = documents.length > 0;
-
-  if (documentsOnly) {
-    return (
+  return (
       <div className="min-h-screen bg-background font-[Poppins,sans-serif]">
         <Sonner />
         <div className="max-w-2xl mx-auto p-4 py-8 space-y-6">
@@ -238,129 +228,4 @@ export default function ClientPortal() {
         </div>
       </div>
     );
-  }
-
-  if (!hasDocuments && !factFindComplete) {
-    return (
-      <>
-        <Sonner />
-        <MortgageFactFindWizard
-          leadId={leadId}
-          token={token}
-          onComplete={() => setFactFindComplete(true)}
-          prefill={{ email: leadEmail, phone: leadPhone, firstName: leadFirstName, lastName: leadLastName }}
-        />
-      </>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-background font-[Poppins,sans-serif]">
-      <Sonner />
-      <div className="max-w-2xl mx-auto p-4 py-8 space-y-6">
-        <div className="text-center space-y-2">
-          <h1 className="text-2xl font-semibold">Welcome, {leadName}</h1>
-          <p className="text-sm text-muted-foreground">Complete your fact find and upload documents below.</p>
-        </div>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full grid grid-cols-2">
-            <TabsTrigger value="factfind" className="gap-1.5 text-xs">
-              <FileText className="w-3.5 h-3.5" /> Fact Find
-            </TabsTrigger>
-            <TabsTrigger value="documents" className="gap-1.5 text-xs">
-              <Upload className="w-3.5 h-3.5" /> Documents
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="factfind" className="mt-4">
-            <MortgageFactFindWizard
-              leadId={leadId}
-              token={token}
-              onComplete={() => {
-                setFactFindComplete(true);
-                if (hasDocuments) setActiveTab('documents');
-              }}
-              prefill={{ email: leadEmail, phone: leadPhone, firstName: leadFirstName, lastName: leadLastName }}
-            />
-          </TabsContent>
-
-          <TabsContent value="documents" className="mt-4 space-y-4">
-            {documents.length === 0 ? (
-              <Card>
-                <CardContent className="py-8 text-center">
-                  <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-muted-foreground">No documents have been requested yet.</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-3">
-                {documents.map(doc => {
-                  const statusCfg = STATUS_CONFIG[doc.status] || STATUS_CONFIG.pending;
-                  return (
-                    <Card key={doc.id}>
-                      <CardContent className="p-4 space-y-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-start gap-2">
-                            <FileText className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-                            <div>
-                              <p className="text-sm font-medium">{doc.name}</p>
-                              {doc.description && <p className="text-xs text-muted-foreground whitespace-pre-wrap break-words">{linkify(doc.description)}</p>}
-                            </div>
-                          </div>
-                          <Badge variant="outline" className={cn("shrink-0 text-[10px] gap-1", statusCfg.color)}>
-                            {statusCfg.icon} {statusCfg.label}
-                          </Badge>
-                        </div>
-
-                        {doc.file_name && (
-                          <p className="text-xs text-muted-foreground bg-muted/50 rounded p-2 flex items-center gap-1.5">
-                            <FileText className="w-3 h-3" /> {doc.file_name}
-                          </p>
-                        )}
-
-                        {doc.rejection_reason && (
-                          <p className="text-xs text-destructive bg-destructive/10 rounded p-2">
-                            Please resubmit: {doc.rejection_reason}
-                          </p>
-                        )}
-
-                        {(doc.status === 'pending' || doc.status === 'rejected') && (
-                          <>
-                            <input
-                              type="file"
-                              className="hidden"
-                              ref={(el) => { fileInputRefs.current[doc.id] = el; }}
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handleFileUpload(doc.id, file);
-                                e.target.value = '';
-                              }}
-                            />
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="w-full gap-1.5 rounded-full"
-                              onClick={() => fileInputRefs.current[doc.id]?.click()}
-                            >
-                              <Upload className="w-3.5 h-3.5" />
-                              {doc.status === 'rejected' ? 'Upload Again' : 'Upload File'}
-                            </Button>
-                          </>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
-
-        <p className="text-xs text-center text-muted-foreground pt-4">
-          Your information is securely transmitted and stored. If you have any questions, please contact your broker.
-        </p>
-      </div>
-    </div>
-  );
 }
