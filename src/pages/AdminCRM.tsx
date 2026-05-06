@@ -354,6 +354,14 @@ export default function AdminCRM() {
     }
   };
 
+  const updateWipStatus = async (leadId: string, wip_status: string | null) => {
+    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, wip_status } : l));
+    if (isPreviewMode) { toast.success('WIP status updated (preview)'); return; }
+    const { error } = await supabase.from('leads').update({ wip_status } as any).eq('id', leadId);
+    if (error) toast.error('Failed to update WIP status');
+    else toast.success('WIP status updated');
+  };
+
 
 
   const updateCommission = async (leadId: string, fields: Record<string, any>) => {
@@ -569,6 +577,7 @@ export default function AdminCRM() {
                 }}
                 onOpenLead={openLead}
                 onUpdateStatus={updateStatus}
+                onUpdateWipStatus={(leadId, wip_status) => updateWipStatus(leadId, wip_status)}
                 tasksByLead={tasksByLead}
                 taskDueFilter={taskDueFilter}
               />
@@ -733,10 +742,15 @@ export default function AdminCRM() {
           <TabsContent value="wip" className="mt-4">
             <WIPDashboard
               leads={leads}
+              leadStatuses={statuses}
               isPreviewMode={isPreviewMode}
               onOpenLead={(lead) => openLead(lead as Lead)}
               onLocalUpdate={(leadId, wip_status) => {
                 setLeads(prev => prev.map(l => l.id === leadId ? { ...l, wip_status } : l));
+              }}
+              onSendBackToLead={(leadId, leadStatus) => {
+                updateStatus(leadId, leadStatus);
+                updateWipStatus(leadId, null);
               }}
             />
           </TabsContent>
