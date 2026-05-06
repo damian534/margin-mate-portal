@@ -36,6 +36,9 @@ interface WIPLead {
   loan_amount: number | null;
   wip_status?: string | null;
   status: string;
+  lodged_date?: string | null;
+  approved_date?: string | null;
+  settled_date?: string | null;
 }
 
 interface WIPDashboardProps {
@@ -77,6 +80,31 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
     .filter(l => l.wip_status && l.wip_status !== 'settled')
     .reduce((s, l) => s + (l.loan_amount || 0), 0);
 
+  const monthly = useMemo(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    const inThisMonth = (d?: string | null) => {
+      if (!d) return false;
+      const dt = new Date(d);
+      return dt.getFullYear() === y && dt.getMonth() === m;
+    };
+    const acc = (key: 'lodged_date' | 'approved_date' | 'settled_date') => {
+      const arr = leads.filter(l => inThisMonth(l[key]));
+      return {
+        count: arr.length,
+        volume: arr.reduce((s, l) => s + (l.loan_amount || 0), 0),
+      };
+    };
+    return {
+      lodged: acc('lodged_date'),
+      approved: acc('approved_date'),
+      settled: acc('settled_date'),
+    };
+  }, [leads]);
+
+  const monthLabel = new Date().toLocaleString('en-AU', { month: 'long', year: 'numeric' });
+
   const update = async (leadId: string, wip_status: string) => {
     onLocalUpdate(leadId, wip_status);
     if (isPreviewMode) {
@@ -93,25 +121,31 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-xs text-muted-foreground">Active in Pipeline</p>
-            <p className="text-2xl font-bold">{totalActive}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-xs text-muted-foreground">Pipeline Volume</p>
-            <p className="text-2xl font-bold">${totalVolume.toLocaleString()}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-xs text-muted-foreground">Settled (this view)</p>
-            <p className="text-2xl font-bold">{(grouped.get('settled') || []).length}</p>
-          </CardContent>
-        </Card>
+      <div>
+        <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wider">This month · {monthLabel}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Card className="border-l-4" style={{ borderLeftColor: '#8b5cf6' }}>
+            <CardContent className="pt-6">
+              <p className="text-sm text-muted-foreground">Lodged</p>
+              <p className="text-3xl font-bold mt-1">{monthly.lodged.count}</p>
+              <p className="text-xs text-muted-foreground mt-1">${monthly.lodged.volume.toLocaleString()}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-l-4" style={{ borderLeftColor: '#10b981' }}>
+            <CardContent className="pt-6">
+              <p className="text-sm text-muted-foreground">Approved</p>
+              <p className="text-3xl font-bold mt-1">{monthly.approved.count}</p>
+              <p className="text-xs text-muted-foreground mt-1">${monthly.approved.volume.toLocaleString()}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-l-4" style={{ borderLeftColor: '#22c55e' }}>
+            <CardContent className="pt-6">
+              <p className="text-sm text-muted-foreground">Settled</p>
+              <p className="text-3xl font-bold mt-1">{monthly.settled.count}</p>
+              <p className="text-xs text-muted-foreground mt-1">${monthly.settled.volume.toLocaleString()}</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <div className="overflow-x-auto pb-4">
