@@ -138,7 +138,28 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       }
     }
     setApplicants(appList);
+    if (appList.length > 0) {
+      setActiveApplicantId(current => appList.some(app => app.id === current) ? current : appList[0].id);
+    }
     setDocuments((docs as DocumentRequest[]) || []);
+  };
+
+  const ensurePersistedApplicantId = async (applicantId: string | null) => {
+    if (!isPrimaryFallback(applicantId) || isPreviewMode) return applicantId;
+
+    const { data, error } = await supabase.from('lead_applicants').insert({
+      lead_id: leadId, name: primaryName, employment_type: 'PAYG', display_order: 0,
+    }).select().single();
+
+    if (error || !data) {
+      toast.error('Could not save the contact card applicant');
+      return null;
+    }
+
+    const savedApplicant = data as Applicant;
+    setApplicants(prev => prev.map(app => isPrimaryFallback(app.id) ? savedApplicant : app));
+    setActiveApplicantId(current => isPrimaryFallback(current) ? savedApplicant.id : current);
+    return savedApplicant.id;
   };
 
   const addApplicant = async () => {
@@ -180,18 +201,20 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   const loadTemplate = async (templateName: string, applicantId: string | null) => {
     const tpl = TEMPLATES[templateName];
     if (!tpl) return;
+    const persistedApplicantId = await ensurePersistedApplicantId(applicantId);
+    if (isPrimaryFallback(applicantId) && !persistedApplicantId) return;
     if (isPreviewMode) {
       const items = tpl.map((t, i) => ({
         id: `prev-${Date.now()}-${i}`, lead_id: leadId, name: t.name, description: t.description || null,
         status: 'pending', file_path: null, file_name: null, file_size: null, uploaded_at: null,
         rejection_reason: null, created_at: new Date().toISOString(),
-        applicant_id: applicantId, section: t.section,
+        applicant_id: persistedApplicantId, section: t.section,
       }));
       setDocuments(prev => [...prev, ...items]);
     } else {
       const rows = tpl.map(t => ({
         lead_id: leadId, name: t.name, description: t.description || null,
-        applicant_id: applicantId, section: t.section,
+        applicant_id: persistedApplicantId, section: t.section,
       }));
       const { error } = await supabase.from('document_requests').insert(rows);
       if (error) { toast.error('Template failed: ' + error.message); return; }
