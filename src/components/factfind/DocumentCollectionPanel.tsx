@@ -361,6 +361,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   }
   const finalSections = activeApplicantId !== 'all' ? SECTION_ORDER : orderedSections;
 
+  const requestedCount = visibleDocs.filter(d => !!d.requested_at).length;
   const unrequestedDocs = visibleDocs.filter(d => !d.requested_at && d.status === 'pending');
   const pendingCount = visibleDocs.filter(d => d.status === 'pending').length;
   const uploadedCount = visibleDocs.filter(d => d.status === 'uploaded').length;
@@ -413,7 +414,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       {/* Summary */}
       <div className="flex gap-3 text-sm">
         <div className="flex-1 bg-muted/50 rounded-lg p-2.5 text-center">
-          <p className="text-lg font-semibold">{visibleDocs.length}</p>
+          <p className="text-lg font-semibold">{requestedCount}</p>
           <p className="text-xs text-muted-foreground">Requested</p>
         </div>
         <div className="flex-1 bg-amber-50 rounded-lg p-2.5 text-center border border-amber-100">
@@ -489,6 +490,23 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
         </div>
       )}
 
+      {/* Request documents action */}
+      <div className="flex items-center justify-between gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
+        <div className="text-xs">
+          <p className="font-medium">
+            {unrequestedDocs.length > 0
+              ? `${unrequestedDocs.length} document${unrequestedDocs.length === 1 ? '' : 's'} ready to request`
+              : documents.length === 0
+                ? 'Add a checklist, then request documents from the client'
+                : 'All visible documents have been requested from the client'}
+          </p>
+          <p className="text-muted-foreground">Documents are only visible to the client once you click Request.</p>
+        </div>
+        <Button size="sm" className="h-8 text-xs gap-1.5 shrink-0" onClick={requestDocuments} disabled={isRequesting || unrequestedDocs.length === 0}>
+          <Send className="w-3.5 h-3.5" /> {isRequesting ? 'Requesting…' : 'Request'}
+        </Button>
+      </div>
+
       {/* Template quick-add — always visible */}
       <div className="flex items-center gap-2 flex-wrap bg-muted/30 rounded-lg p-2.5">
         <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -505,21 +523,6 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
         {templates.length === 0 && (
           <span className="text-xs text-muted-foreground italic">No templates yet — add some in Settings → Document Templates.</span>
         )}
-      </div>
-
-      {/* Request documents action */}
-      <div className="flex items-center justify-between gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
-        <div className="text-xs">
-          <p className="font-medium">
-            {unrequestedDocs.length > 0
-              ? `${unrequestedDocs.length} document${unrequestedDocs.length === 1 ? '' : 's'} ready to request`
-              : 'All documents have been requested from the client'}
-          </p>
-          <p className="text-muted-foreground">Documents are only visible to the client once you click Request.</p>
-        </div>
-        <Button size="sm" className="h-8 text-xs gap-1.5" onClick={requestDocuments} disabled={isRequesting || unrequestedDocs.length === 0}>
-          <Send className="w-3.5 h-3.5" /> {isRequesting ? 'Requesting…' : 'Request from client'}
-        </Button>
       </div>
 
       {!isLoading && applicants.length === 0 && documents.length === 0 && (
