@@ -76,6 +76,7 @@ interface Task {
   completed: boolean;
   completed_at: string | null;
   created_at: string;
+  checklist_items?: { text: string; done: boolean }[];
 }
 
 interface LeadSource {
