@@ -214,13 +214,24 @@ export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openCon
               </TableHeader>
               <TableBody>
                 {filtered.map(c => (
-                  <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedContact(c); setSheetOpen(true); }}>
-                    <TableCell className="font-medium">{c.first_name} {c.last_name}</TableCell>
-                    <TableCell>{c.email || '—'}</TableCell>
-                    <TableCell>{formatPhone(c.phone)}</TableCell>
-                    <TableCell>{c.company || '—'}</TableCell>
-                    <TableCell><span className="text-xs px-2 py-0.5 rounded-full bg-muted">{typeLabel(c.type)}</span></TableCell>
-                    <TableCell className="text-muted-foreground">{format(new Date(c.created_at), 'dd MMM yyyy')}</TableCell>
+                  <TableRow key={c.id} className="cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => { setSelectedContact(c); setSheetOpen(true); }}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center shrink-0">
+                          {c.first_name[0]}{c.last_name?.[0] || ''}
+                        </div>
+                        <span>{c.first_name} {c.last_name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{c.email || '—'}</TableCell>
+                    <TableCell className="text-muted-foreground tabular-nums">{formatPhone(c.phone)}</TableCell>
+                    <TableCell className="text-muted-foreground">{c.company || '—'}</TableCell>
+                    <TableCell>
+                      <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                        c.type === 'client' ? 'bg-primary/10 text-primary' : 'bg-success/10 text-success'
+                      }`}>{typeLabel(c.type)}</span>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{format(new Date(c.created_at), 'dd MMM yyyy')}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -231,13 +242,48 @@ export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openCon
 
       {/* Contact detail sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto p-0">
           {selectedContact && (
             <>
-              <SheetHeader>
-                <SheetTitle>{selectedContact.first_name} {selectedContact.last_name}</SheetTitle>
-              </SheetHeader>
-              <div className="mt-6 space-y-4">
+              {/* Hero header */}
+              <div className="bg-muted/30 p-6 border-b">
+                <SheetHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 text-primary text-base font-semibold flex items-center justify-center shrink-0">
+                      {selectedContact.first_name[0]}{selectedContact.last_name?.[0] || ''}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <SheetTitle className="text-xl">{selectedContact.first_name} {selectedContact.last_name}</SheetTitle>
+                      <div className="mt-1 flex items-center gap-2 flex-wrap">
+                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                          selectedContact.type === 'client' ? 'bg-primary/10 text-primary' : 'bg-success/10 text-success'
+                        }`}>{typeLabel(selectedContact.type)}</span>
+                        {selectedContact.company && (
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Building2 className="w-3 h-3" /> {selectedContact.company}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </SheetHeader>
+                {/* Quick actions */}
+                {(selectedContact.email || selectedContact.phone) && (
+                  <div className="flex gap-2 mt-4">
+                    {selectedContact.email && (
+                      <Button variant="outline" size="sm" className="flex-1 gap-1.5" onClick={() => window.location.href = `mailto:${selectedContact.email}`}>
+                        <Mail className="w-3.5 h-3.5" /> Email
+                      </Button>
+                    )}
+                    {selectedContact.phone && (
+                      <Button variant="outline" size="sm" className="flex-1 gap-1.5" onClick={() => window.location.href = `tel:${selectedContact.phone}`}>
+                        <Phone className="w-3.5 h-3.5" /> Call
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div><Label className="text-xs">First Name</Label><Input value={selectedContact.first_name} onChange={e => handleUpdate('first_name', e.target.value)} /></div>
                   <div><Label className="text-xs">Last Name</Label><Input value={selectedContact.last_name} onChange={e => handleUpdate('last_name', e.target.value)} /></div>

@@ -25,6 +25,8 @@ import {
 } from 'lucide-react';
 import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectionPanel';
 import { ReferLeadDialog } from '@/components/ReferLeadDialog';
+import { FinancialSnapshot } from '@/components/lead/FinancialSnapshot';
+import { StatusBadge } from '@/components/StatusBadge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
@@ -569,6 +571,9 @@ export function LeadDetailSheet({
                 {lead.loan_purpose && (
                   <p className="text-sm font-normal text-muted-foreground">{LOAN_PURPOSE_OPTIONS.find(o => o.value === lead.loan_purpose)?.label || lead.loan_purpose}</p>
                 )}
+                <div className="mt-1.5">
+                  <StatusBadge status={lead.status} statuses={statuses} />
+                </div>
                 {lead.source_contact_id && onOpenContact && (
                   <div className="flex items-center gap-2 mt-0.5">
                     <button 
@@ -664,6 +669,17 @@ export function LeadDetailSheet({
                 <span className="text-muted-foreground">Source: {leadSources.find(s => s.name === lead.source)?.label || lead.source}</span>
               </div>
             )}
+          </div>
+
+          {/* Financial snapshot */}
+          <div className="mt-4">
+            <FinancialSnapshot
+              leadId={lead.id}
+              loanAmount={lead.loan_amount}
+              referrerCommission={lead.referrer_commission}
+              isPreviewMode={isPreviewMode}
+              onSendFactFind={() => setActiveTab('documents')}
+            />
           </div>
 
           {/* Referral Partner — editable */}
