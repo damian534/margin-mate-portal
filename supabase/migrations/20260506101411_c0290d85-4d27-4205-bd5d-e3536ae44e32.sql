@@ -1,0 +1,1 @@
+ALTER TABLE public.client_portal_tokens ADD COLUMN IF NOT EXISTS portal_mode text NOT NULL DEFAULT 'documents' CHECK (portal_mode IN ('both', 'fact_find', 'documents'));
