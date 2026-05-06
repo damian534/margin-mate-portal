@@ -1,0 +1,1 @@
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS portal_mode text NOT NULL DEFAULT 'both' CHECK (portal_mode IN ('both', 'fact_find', 'documents'));
