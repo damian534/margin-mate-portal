@@ -451,6 +451,8 @@ export function LeadDetailSheet({
     const isExpanded = expandedTaskId === task.id;
     const isEditing = editingTask?.id === task.id;
     const taskNotes = getTaskNotes(task.id);
+    const checklist = task.checklist_items || [];
+    const checklistDone = checklist.filter(c => c.done).length;
 
     return (
       <div key={task.id} className={`rounded-lg border transition-all ${isOverdue ? 'border-destructive/30 bg-destructive/5' : task.completed ? 'opacity-60' : 'bg-background'}`}>
@@ -512,6 +514,11 @@ export function LeadDetailSheet({
                     <MessageSquare className="w-3 h-3" /> {taskNotes.length}
                   </span>
                 )}
+                {checklist.length > 0 && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                    <CheckCircle className="w-3 h-3" /> {checklistDone}/{checklist.length}
+                  </span>
+                )}
                 {isExpanded ? <ChevronDown className="w-3 h-3 text-muted-foreground" /> : <ChevronRight className="w-3 h-3 text-muted-foreground" />}
               </div>
             </div>
@@ -535,6 +542,20 @@ export function LeadDetailSheet({
         {isExpanded && (
           <div className="px-3 pb-3 pt-0 border-t mx-2.5 mt-0">
             <div className="pt-2 space-y-2">
+              {checklist.length > 0 && (
+                <div className="space-y-1">
+                  {checklist.map((item, idx) => (
+                    <label key={idx} className="flex items-start gap-2 text-xs cursor-pointer">
+                      <Checkbox
+                        checked={item.done}
+                        onCheckedChange={() => toggleChecklistItem(task.id, idx)}
+                        className="mt-0.5"
+                      />
+                      <span className={item.done ? 'line-through text-muted-foreground' : ''}>{item.text}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
               {taskNotes.length > 0 && (
                 <div className="space-y-1.5">
                   {taskNotes.map(n => (
