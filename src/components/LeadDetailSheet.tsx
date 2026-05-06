@@ -681,6 +681,12 @@ export function LeadDetailSheet({
               referrerCommission={lead.referrer_commission}
               isPreviewMode={isPreviewMode}
               onSendFactFind={() => setActiveTab('documents')}
+              prefill={{
+                email: lead.email || undefined,
+                phone: lead.phone || undefined,
+                firstName: lead.first_name,
+                lastName: lead.last_name,
+              }}
             />
           </div>
 
