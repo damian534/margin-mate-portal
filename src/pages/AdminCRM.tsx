@@ -648,6 +648,8 @@ export default function AdminCRM() {
                 onUpdateWipStatus={(leadId, wip_status) => updateWipStatus(leadId, wip_status)}
                 tasksByLead={tasksByLead}
                 taskDueFilter={taskDueFilter}
+                docsByLead={docsByLead}
+                onDownloadDocs={downloadLeadDocsZip}
               />
             ) : filteredLeads.length === 0 ? (
               <Card><CardContent className="p-0"><p className="text-muted-foreground text-center py-12">No leads found</p></CardContent></Card>
@@ -813,6 +815,8 @@ export default function AdminCRM() {
               leadStatuses={statuses}
               isPreviewMode={isPreviewMode}
               onOpenLead={(lead) => openLead(lead as Lead)}
+              docsByLead={docsByLead}
+              onDownloadDocs={downloadLeadDocsZip}
               onLocalUpdate={(leadId, wip_status) => {
                 setLeads(prev => prev.map(l => l.id === leadId ? { ...l, wip_status } : l));
               }}
