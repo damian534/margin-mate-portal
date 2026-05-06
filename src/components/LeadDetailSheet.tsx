@@ -1212,7 +1212,11 @@ export function LeadDetailSheet({
 
             {/* Documents Tab */}
             <TabsContent value="documents" className="mt-4">
-              <DocumentCollectionPanel leadId={lead.id} isPreviewMode={isPreviewMode} />
+              <DocumentCollectionPanel
+                leadId={lead.id}
+                isPreviewMode={isPreviewMode}
+                primaryApplicantName={`${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim() || 'Primary Applicant'}
+              />
             </TabsContent>
 
             {/* Commission Tab */}
