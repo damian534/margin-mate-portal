@@ -76,9 +76,12 @@ const TEMPLATES: Record<string, { section: string; name: string; description?: s
   ],
 };
 
+const PRIMARY_APPLICANT_FALLBACK_ID = 'contact-card-primary-applicant';
+
 export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplicantName }: DocumentCollectionPanelProps) {
   const [documents, setDocuments] = useState<DocumentRequest[]>([]);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeApplicantId, setActiveApplicantId] = useState<string>('all');
   const [showAddApplicant, setShowAddApplicant] = useState(false);
   const [newApplicantName, setNewApplicantName] = useState('');
@@ -89,16 +92,28 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   const [newDocDescription, setNewDocDescription] = useState('');
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  const primaryName = primaryApplicantName?.trim() || 'Primary Applicant';
+  const isPrimaryFallback = (id: string | null) => id === PRIMARY_APPLICANT_FALLBACK_ID;
+
   useEffect(() => {
+    setIsLoading(true);
+    setApplicants([
+      { id: PRIMARY_APPLICANT_FALLBACK_ID, lead_id: leadId, name: primaryName, employment_type: 'PAYG', display_order: 0 },
+    ]);
+    setDocuments([]);
+    setActiveApplicantId(PRIMARY_APPLICANT_FALLBACK_ID);
     fetchAll();
-  }, [leadId]);
+    setSecondApplicantPrompt('unknown');
+  }, [leadId, primaryName]);
 
   const fetchAll = async () => {
     if (isPreviewMode) {
       setApplicants([
-        { id: 'a1', lead_id: leadId, name: primaryApplicantName || 'Primary Applicant', employment_type: 'PAYG', display_order: 0 },
+        { id: PRIMARY_APPLICANT_FALLBACK_ID, lead_id: leadId, name: primaryName, employment_type: 'PAYG', display_order: 0 },
       ]);
       setDocuments([]);
+      setActiveApplicantId(PRIMARY_APPLICANT_FALLBACK_ID);
+      setIsLoading(false);
       return;
     }
     const [{ data: apps }, { data: docs }] = await Promise.all([
@@ -106,20 +121,66 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       supabase.from('document_requests').select('*').eq('lead_id', leadId).order('created_at'),
     ]);
     let appList = (apps as Applicant[]) || [];
-    // Auto-seed Applicant 1 from the contact card if missing
-    if (appList.length === 0 && primaryApplicantName) {
-      const { data: seeded } = await supabase.from('lead_applicants').insert({
-        lead_id: leadId, name: primaryApplicantName, employment_type: 'PAYG', display_order: 0,
-      }).select().single();
-      if (seeded) appList = [seeded as Applicant];
+    // Applicant 1 always comes from the contact card, even before it is saved to lead_applicants.
+    const hasPrimaryApplicant = appList.some(app => app.display_order === 0);
+    if (!hasPrimaryApplicant && primaryName) {
+      const fallbackApplicant: Applicant = {
+        id: PRIMARY_APPLICANT_FALLBACK_ID,
+        lead_id: leadId,
+        name: primaryName,
+        employment_type: 'PAYG',
+        display_order: 0,
+      };
+      appList = [fallbackApplicant, ...appList];
     }
     setApplicants(appList);
+    if (appList.length > 0) {
+      setActiveApplicantId(current => appList.some(app => app.id === current) ? current : appList[0].id);
+    }
     setDocuments((docs as DocumentRequest[]) || []);
+    setIsLoading(false);
+  };
+
+  const ensurePersistedApplicantId = async (applicantId: string | null) => {
+    if (!isPrimaryFallback(applicantId) || isPreviewMode) return applicantId;
+
+    const { data: existing } = await supabase
+      .from('lead_applicants')
+      .select('*')
+      .eq('lead_id', leadId)
+      .order('display_order')
+      .limit(1)
+      .maybeSingle();
+
+    if (existing) {
+      const savedApplicant = existing as Applicant;
+      setApplicants(prev => prev.map(app => isPrimaryFallback(app.id) ? savedApplicant : app));
+      setActiveApplicantId(current => isPrimaryFallback(current) ? savedApplicant.id : current);
+      return savedApplicant.id;
+    }
+
+    const { data, error } = await supabase.from('lead_applicants').insert({
+      lead_id: leadId, name: primaryName, employment_type: 'PAYG', display_order: 0,
+    }).select().single();
+
+    if (error || !data) {
+      toast.error('Could not save the contact card applicant');
+      return null;
+    }
+
+    const savedApplicant = data as Applicant;
+    setApplicants(prev => prev.map(app => isPrimaryFallback(app.id) ? savedApplicant : app));
+    setActiveApplicantId(current => isPrimaryFallback(current) ? savedApplicant.id : current);
+    return savedApplicant.id;
   };
 
   const addApplicant = async () => {
     if (!newApplicantName.trim()) return;
     const order = applicants.length;
+    if (!isPreviewMode && applicants.some(app => isPrimaryFallback(app.id))) {
+      const primaryApplicantId = await ensurePersistedApplicantId(PRIMARY_APPLICANT_FALLBACK_ID);
+      if (!primaryApplicantId) return;
+    }
     if (isPreviewMode) {
       const newApp = { id: `prev-${Date.now()}`, lead_id: leadId, name: newApplicantName.trim(), employment_type: newApplicantType, display_order: order };
       setApplicants(prev => [...prev, newApp]);
@@ -138,6 +199,11 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   };
 
   const removeApplicant = async (id: string) => {
+    const applicant = applicants.find(a => a.id === id);
+    if (applicant?.display_order === 0) {
+      toast.error('The first applicant comes from the contact card');
+      return;
+    }
     if (!confirm('Remove this applicant and all their document requests?')) return;
     if (!isPreviewMode) {
       const docsToRemove = documents.filter(d => d.applicant_id === id);
@@ -156,18 +222,20 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   const loadTemplate = async (templateName: string, applicantId: string | null) => {
     const tpl = TEMPLATES[templateName];
     if (!tpl) return;
+    const persistedApplicantId = await ensurePersistedApplicantId(applicantId);
+    if (isPrimaryFallback(applicantId) && !persistedApplicantId) return;
     if (isPreviewMode) {
       const items = tpl.map((t, i) => ({
         id: `prev-${Date.now()}-${i}`, lead_id: leadId, name: t.name, description: t.description || null,
         status: 'pending', file_path: null, file_name: null, file_size: null, uploaded_at: null,
         rejection_reason: null, created_at: new Date().toISOString(),
-        applicant_id: applicantId, section: t.section,
+        applicant_id: persistedApplicantId, section: t.section,
       }));
       setDocuments(prev => [...prev, ...items]);
     } else {
       const rows = tpl.map(t => ({
         lead_id: leadId, name: t.name, description: t.description || null,
-        applicant_id: applicantId, section: t.section,
+        applicant_id: persistedApplicantId, section: t.section,
       }));
       const { error } = await supabase.from('document_requests').insert(rows);
       if (error) { toast.error('Template failed: ' + error.message); return; }
@@ -178,7 +246,8 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
 
   const addDocumentRequest = async () => {
     if (!newDocName.trim() || !addingTo) return;
-    const applicantId = addingTo.applicantId;
+    const applicantId = await ensurePersistedApplicantId(addingTo.applicantId);
+    if (isPrimaryFallback(addingTo.applicantId) && !applicantId) return;
     const section = addingTo.section;
     if (isPreviewMode) {
       setDocuments(prev => [...prev, {
@@ -321,10 +390,12 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
             {a.name}
             {a.employment_type && <span className="opacity-70">· {a.employment_type}</span>}
             <span className="opacity-70">({documents.filter(d => d.applicant_id === a.id).length})</span>
-            <Trash2
-              className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-70 hover:!opacity-100"
-              onClick={(e) => { e.stopPropagation(); removeApplicant(a.id); }}
-            />
+            {a.display_order !== 0 && (
+              <Trash2
+                className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-70 hover:!opacity-100"
+                onClick={(e) => { e.stopPropagation(); removeApplicant(a.id); }}
+              />
+            )}
           </button>
         ))}
         {applicants.length >= 2 && (
@@ -392,7 +463,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
         ))}
       </div>
 
-      {applicants.length === 0 && documents.length === 0 && (
+      {!isLoading && applicants.length === 0 && documents.length === 0 && (
         <div className="text-center py-6 border border-dashed rounded-lg">
           <Users className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground mb-3">Add an applicant, or pick a checklist above to get started</p>
