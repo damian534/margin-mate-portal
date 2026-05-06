@@ -528,6 +528,7 @@ export type Database = {
           loan_purpose: string | null
           original_broker_id: string | null
           phone: string | null
+          portal_mode: string
           referral_partner_id: string | null
           referrer_commission: number | null
           referrer_commission_paid: boolean | null
@@ -552,6 +553,7 @@ export type Database = {
           loan_purpose?: string | null
           original_broker_id?: string | null
           phone?: string | null
+          portal_mode?: string
           referral_partner_id?: string | null
           referrer_commission?: number | null
           referrer_commission_paid?: boolean | null
@@ -576,6 +578,7 @@ export type Database = {
           loan_purpose?: string | null
           original_broker_id?: string | null
           phone?: string | null
+          portal_mode?: string
           referral_partner_id?: string | null
           referrer_commission?: number | null
           referrer_commission_paid?: boolean | null

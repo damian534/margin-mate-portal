@@ -29,6 +29,7 @@ import { FinancialSnapshot } from '@/components/lead/FinancialSnapshot';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 
 interface Lead {
   id: string;
@@ -52,6 +53,7 @@ interface Lead {
   company_commission_paid: boolean;
   source: string | null;
   source_contact_id: string | null;
+  portal_mode?: 'both' | 'fact_find' | 'documents' | null;
 }
 
 interface Note {
@@ -682,6 +684,34 @@ export function LeadDetailSheet({
             />
           </div>
 
+          {/* Client portal scope */}
+          <div className="mt-3 rounded-lg border border-border bg-muted/20 px-3 py-2 flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wider text-foreground">Client Portal</p>
+              <p className="text-[11px] text-muted-foreground">Choose what the client receives and sees.</p>
+            </div>
+            <Select
+              value={lead.portal_mode || 'both'}
+              onValueChange={async (v) => {
+                const next = v as 'both' | 'fact_find' | 'documents';
+                onLeadChange?.({ ...lead, portal_mode: next });
+                if (!isPreviewMode) {
+                  const { error } = await supabase.from('leads').update({ portal_mode: next } as any).eq('id', lead.id);
+                  if (error) { toast.error('Could not update portal scope'); return; }
+                }
+                if (next === 'fact_find' && activeTab === 'documents') setActiveTab('timeline');
+                toast.success('Portal scope updated');
+              }}
+            >
+              <SelectTrigger className="h-8 text-xs w-[180px] shrink-0"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="both">Fact Find + Documents</SelectItem>
+                <SelectItem value="fact_find">Fact Find only</SelectItem>
+                <SelectItem value="documents">Documents only</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Referral Partner — editable */}
           <div className="mt-3 rounded-lg border border-border bg-muted/20 overflow-hidden">
             <div className="px-3 py-2 bg-muted/40 border-b border-border flex items-center justify-between">
@@ -1089,16 +1119,18 @@ export function LeadDetailSheet({
 
           {/* Tabs: Timeline (Tasks + Activity), Commission */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full grid grid-cols-3">
+            <TabsList className={cn("w-full grid", (lead.portal_mode || 'both') === 'fact_find' ? 'grid-cols-2' : 'grid-cols-3')}>
               <TabsTrigger value="timeline" className="gap-1 text-xs px-1.5">
                 <Activity className="w-3.5 h-3.5" /> Timeline
                 {pendingTasks.length > 0 && (
                   <span className="ml-0.5 bg-primary/10 text-primary text-[10px] px-1 py-0.5 rounded-full">{pendingTasks.length}</span>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="documents" className="gap-1 text-xs px-1.5">
-                <FileText className="w-3.5 h-3.5" /> Docs
-              </TabsTrigger>
+              {(lead.portal_mode || 'both') !== 'fact_find' && (
+                <TabsTrigger value="documents" className="gap-1 text-xs px-1.5">
+                  <FileText className="w-3.5 h-3.5" /> Docs
+                </TabsTrigger>
+              )}
               <TabsTrigger value="commission" className="gap-1 text-xs px-1.5">
                 <DollarSign className="w-3.5 h-3.5" /> Commission
               </TabsTrigger>
