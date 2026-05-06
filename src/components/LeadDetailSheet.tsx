@@ -273,6 +273,52 @@ export function LeadDetailSheet({
     setTasks(((data as any[]) || []).map(t => ({ ...t, checklist_items: Array.isArray(t.checklist_items) ? t.checklist_items : [] })) as Task[]);
   };
 
+  const fetchTaskTemplates = async () => {
+    if (isPreviewMode) { setTaskTemplates([]); return; }
+    const { data } = await (supabase as any)
+      .from('task_templates')
+      .select('id, name, task_title, due_in_days, checklist_items')
+      .order('display_order');
+    setTaskTemplates(((data as any[]) || []).map(t => ({ ...t, checklist_items: Array.isArray(t.checklist_items) ? t.checklist_items : [] })));
+  };
+
+  const applyTaskTemplate = async (templateId: string) => {
+    if (!lead || !user) return;
+    const tpl = taskTemplates.find(t => t.id === templateId);
+    if (!tpl) return;
+    const dueDate = tpl.due_in_days != null
+      ? new Date(Date.now() + tpl.due_in_days * 86400000).toISOString()
+      : null;
+    const checklist = tpl.checklist_items.map(it => ({ text: it.text, done: false }));
+    if (isPreviewMode) {
+      const fakeTask: Task = {
+        id: `preview-${Date.now()}`, lead_id: lead.id, title: tpl.task_title,
+        description: null, due_date: dueDate, completed: false, completed_at: null,
+        created_at: new Date().toISOString(), checklist_items: checklist,
+      };
+      setTasks(prev => [fakeTask, ...prev]);
+      toast.success('Template applied (preview)');
+      return;
+    }
+    const { error } = await (supabase as any).from('tasks').insert({
+      lead_id: lead.id, title: tpl.task_title,
+      due_date: dueDate, created_by: user.id,
+      checklist_items: checklist,
+    });
+    if (error) { toast.error('Failed to apply template'); return; }
+    toast.success('Template applied');
+    fetchTasks(lead.id);
+  };
+
+  const toggleChecklistItem = async (taskId: string, idx: number) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    const items = (task.checklist_items || []).map((it, i) => i === idx ? { ...it, done: !it.done } : it);
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, checklist_items: items } : t));
+    if (isPreviewMode) return;
+    await (supabase as any).from('tasks').update({ checklist_items: items }).eq('id', taskId);
+  };
+
   const addNote = async (content: string, type: 'note' | 'email' | 'call' = 'note', taskId?: string) => {
     if (!content.trim() || !lead || !user) return;
     const noteContent = type === 'email'
