@@ -671,6 +671,17 @@ export function LeadDetailSheet({
             )}
           </div>
 
+          {/* Financial snapshot */}
+          <div className="mt-4">
+            <FinancialSnapshot
+              leadId={lead.id}
+              loanAmount={lead.loan_amount}
+              referrerCommission={lead.referrer_commission}
+              isPreviewMode={isPreviewMode}
+              onSendFactFind={() => setActiveTab('documents')}
+            />
+          </div>
+
           {/* Referral Partner — editable */}
           <div className="mt-3 rounded-lg border border-border bg-muted/20 overflow-hidden">
             <div className="px-3 py-2 bg-muted/40 border-b border-border flex items-center justify-between">
