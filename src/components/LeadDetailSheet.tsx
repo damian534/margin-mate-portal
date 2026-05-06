@@ -52,6 +52,7 @@ interface Lead {
   company_commission_paid: boolean;
   source: string | null;
   source_contact_id: string | null;
+  portal_mode?: 'both' | 'fact_find' | 'documents' | null;
 }
 
 interface Note {
