@@ -13,6 +13,7 @@ import { CompanyManagement, Company } from '@/components/CompanyManagement';
 import { CompanyCRM } from '@/components/company/CompanyCRM';
 import { ReferrerProfiles, ReferrerProfileData } from '@/components/ReferrerProfile';
 import { ReferrerReports } from '@/components/ReferrerReports';
+import { PipelineKpiCard } from '@/components/PipelineKpiCard';
 import { AddLeadDialog } from '@/components/AddLeadDialog';
 import { ContactsManagement, Contact } from '@/components/ContactsManagement';
 import { IncomingReferralsPanel } from '@/components/IncomingReferralsPanel';
