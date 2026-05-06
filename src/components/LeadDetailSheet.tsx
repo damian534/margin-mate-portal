@@ -30,6 +30,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
+import { WIP_STATUSES } from './WIPDashboard';
 
 interface Lead {
   id: string;
@@ -54,6 +55,7 @@ interface Lead {
   source: string | null;
   source_contact_id: string | null;
   portal_mode?: 'both' | 'fact_find' | 'documents' | null;
+  wip_status?: string | null;
 }
 
 interface Note {
@@ -120,6 +122,7 @@ interface LeadDetailSheetProps {
   referrers?: ReferrerOption[];
   isPreviewMode: boolean;
   onUpdateStatus: (leadId: string, status: string) => void;
+  onUpdateWipStatus?: (leadId: string, wipStatus: string | null) => void;
   onUpdateCommission: (leadId: string, fields: Record<string, any>) => void;
   onDeleteLead: (leadId: string) => void;
   onLeadChange: (lead: Lead) => void;
@@ -151,7 +154,7 @@ function formatDatetimeLocal(d: Date) {
 
 export function LeadDetailSheet({
   open, onOpenChange, lead, statuses, leadSources = [], referrerName, referrerCompany, sourceContactName,
-  contacts: contactsList = [], referrers: referrersList = [], isPreviewMode, onUpdateStatus, onUpdateCommission, onDeleteLead, onLeadChange, onOpenContact, sampleNotes
+  contacts: contactsList = [], referrers: referrersList = [], isPreviewMode, onUpdateStatus, onUpdateWipStatus, onUpdateCommission, onDeleteLead, onLeadChange, onOpenContact, sampleNotes
 }: LeadDetailSheetProps) {
   const { user, role } = useAuth();
   const isSuperAdmin = role === 'super_admin';
@@ -832,10 +835,38 @@ export function LeadDetailSheet({
           <div className="flex gap-3">
             <div className="flex-1">
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">Status</Label>
-              <Select value={lead.status} onValueChange={(v) => onUpdateStatus(lead.id, v)}>
+              <Select
+                value={lead.wip_status ? `wip:${lead.wip_status}` : `lead:${lead.status}`}
+                onValueChange={(v) => {
+                  if (v.startsWith('wip:')) {
+                    onUpdateWipStatus?.(lead.id, v.slice(4));
+                  } else {
+                    const next = v.slice(5);
+                    onUpdateStatus(lead.id, next);
+                    if (lead.wip_status) onUpdateWipStatus?.(lead.id, null);
+                  }
+                }}
+              >
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {statuses.map(s => <SelectItem key={s.name} value={s.name}>{s.label}</SelectItem>)}
+                  <div className="px-2 py-1 text-[10px] font-semibold uppercase text-muted-foreground">Lead Status</div>
+                  {statuses.map(s => (
+                    <SelectItem key={`lead-${s.name}`} value={`lead:${s.name}`}>
+                      <span className="inline-flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
+                        {s.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                  <div className="px-2 py-1 mt-1 text-[10px] font-semibold uppercase text-muted-foreground border-t">WIP Stage</div>
+                  {WIP_STATUSES.map(s => (
+                    <SelectItem key={`wip-${s.name}`} value={`wip:${s.name}`}>
+                      <span className="inline-flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
+                        {s.label}
+                      </span>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
