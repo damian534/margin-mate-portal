@@ -245,7 +245,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
         id: `prev-${Date.now()}-${i}`, lead_id: leadId, name: t.name, description: t.description || null,
         status: 'pending', file_path: null, file_name: null, file_size: null, uploaded_at: null,
         rejection_reason: null, created_at: new Date().toISOString(),
-        applicant_id: persistedApplicantId, section: t.section,
+        applicant_id: persistedApplicantId, section: t.section, requested_at: null,
       }));
       setDocuments(prev => [...prev, ...items]);
     } else {
