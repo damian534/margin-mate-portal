@@ -162,6 +162,7 @@ export function LeadDetailSheet({
   const [notes, setNotes] = useState<Note[]>([]);
   const [brokerOptions, setBrokerOptions] = useState<{ id: string; name: string; email: string | null }[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [taskTemplates, setTaskTemplates] = useState<{ id: string; name: string; task_title: string; due_in_days: number | null; checklist_items: { text: string }[] }[]>([]);
   const [newNote, setNewNote] = useState('');
   const [notifyPartner, setNotifyPartner] = useState(!!lead?.referral_partner_id);
   const [showTaskForm, setShowTaskForm] = useState(false);
