@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LeadStatus } from '@/hooks/useLeadStatuses';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -231,6 +232,23 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                                 </div>
                               )}
                               <p className="text-[10px] text-muted-foreground/70">{format(new Date(lead.created_at), 'dd MMM')}</p>
+                                <div onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+                                  <Select value={lead.status} onValueChange={(v) => onUpdateStatus(lead.id, v)}>
+                                    <SelectTrigger className="h-7 text-[11px]">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {statuses.map(s => (
+                                        <SelectItem key={s.name} value={s.name} className="text-xs">
+                                          <span className="inline-flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
+                                            {s.label}
+                                          </span>
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
                             </CardContent>
                           </Card>
                         );
