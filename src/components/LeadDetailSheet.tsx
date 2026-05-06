@@ -1240,6 +1240,22 @@ export function LeadDetailSheet({
                   </Button>
                 </div>
 
+                {taskTemplates.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Apply template:</span>
+                    <Select onValueChange={(v) => applyTaskTemplate(v)}>
+                      <SelectTrigger className="h-7 text-xs w-auto min-w-[180px]">
+                        <SelectValue placeholder="Choose template..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {taskTemplates.map(tpl => (
+                          <SelectItem key={tpl.id} value={tpl.id} className="text-xs">{tpl.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 {/* New task form */}
                 {showTaskForm && (
                   <div className="bg-muted/50 rounded-lg p-3 space-y-3">
