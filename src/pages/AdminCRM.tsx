@@ -17,6 +17,7 @@ import { AddLeadDialog } from '@/components/AddLeadDialog';
 import { ContactsManagement, Contact } from '@/components/ContactsManagement';
 import { IncomingReferralsPanel } from '@/components/IncomingReferralsPanel';
 import { WIPDashboard } from '@/components/WIPDashboard';
+import JSZip from 'jszip';
 
 
 import { Button } from '@/components/ui/button';
@@ -321,6 +322,32 @@ export default function AdminCRM() {
       map.set(d.lead_id, entry);
     }
     setDocsByLead(map);
+  };
+
+  const downloadLeadDocsZip = async (leadId: string) => {
+    const lead = leads.find(l => l.id === leadId);
+    const entry = docsByLead.get(leadId);
+    if (!entry || entry.files.length === 0) { toast.error('No uploaded documents'); return; }
+    toast.info('Preparing ZIP...');
+    try {
+      const zip = new JSZip();
+      for (const f of entry.files) {
+        const { data, error } = await supabase.storage.from('client-documents').download(f.path);
+        if (error || !data) continue;
+        zip.file(f.name, data);
+      }
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${lead?.first_name || 'lead'}_${lead?.last_name || ''}_documents.zip`.trim();
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Downloaded');
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to build ZIP');
+    }
   };
 
   const openLead = (lead: Lead) => {
