@@ -1216,6 +1216,8 @@ export function LeadDetailSheet({
                 leadId={lead.id}
                 isPreviewMode={isPreviewMode}
                 primaryApplicantName={`${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim() || 'Primary Applicant'}
+                primaryApplicantEmail={lead.email}
+                primaryApplicantPhone={lead.phone}
               />
             </TabsContent>
 

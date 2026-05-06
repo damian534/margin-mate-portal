@@ -15,7 +15,13 @@ interface SendFactFindRequest {
   mode?: 'factfind' | 'documents';
   /** When mode='documents', list of document names to include in the email body. */
   document_names?: string[];
+  /** Optional override used when requesting docs from a second applicant. */
+  recipient_email?: string;
+  recipient_name?: string;
 }
+
+const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 255;
+const cleanText = (value: unknown, fallback = '') => String(value || fallback).replace(/[<>]/g, '').trim().slice(0, 120);
 
 function buildEmailHtml(clientName: string, portalUrl: string, brokerName: string): string {
   return `<!DOCTYPE html>
@@ -202,7 +208,7 @@ Deno.serve(async (req) => {
     }
     const userId = claimsData.claims.sub as string;
 
-    const { lead_id, app_url, mode = 'factfind', document_names = [] } = (await req.json()) as SendFactFindRequest;
+    const { lead_id, app_url, mode = 'factfind', document_names = [], recipient_email, recipient_name } = (await req.json()) as SendFactFindRequest;
 
     if (!lead_id || !app_url) {
       return new Response(
@@ -225,9 +231,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!lead.email) {
+    const recipientEmail = recipient_email?.trim() || lead.email;
+    if (!recipientEmail || !isValidEmail(recipientEmail)) {
       return new Response(
-        JSON.stringify({ error: "Lead does not have an email address" }),
+        JSON.stringify({ error: "Recipient does not have a valid email address" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -282,9 +289,9 @@ Deno.serve(async (req) => {
     const portalUrl = `${app_url.replace(/\/$/, "")}/client-portal?token=${encodeURIComponent(portalToken)}`;
 
     // Build and send email
-    const clientName = `${lead.first_name} ${lead.last_name || ""}`.trim();
+    const clientName = cleanText(recipient_name, `${lead.first_name} ${lead.last_name || ""}`.trim());
     const html = mode === 'documents'
-      ? buildDocumentsEmailHtml(clientName, portalUrl, brokerName, document_names)
+      ? buildDocumentsEmailHtml(clientName, portalUrl, brokerName, document_names.map(name => cleanText(name, 'Requested document')))
       : buildEmailHtml(clientName, portalUrl, brokerName);
     const subject = mode === 'documents'
       ? `${clientName} — Documents requested by Margin Finance`
@@ -298,7 +305,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         from: "Margin Finance <notifications@margin.com.au>",
-        to: [lead.email],
+        to: [recipientEmail],
         subject,
         html,
       }),
@@ -314,7 +321,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Fact find email sent to ${lead.email} for lead ${lead_id}`);
+    console.log(`Fact find email sent to ${recipientEmail} for lead ${lead_id}`);
 
     return new Response(
       JSON.stringify({ success: true, email_id: emailData.id, portal_url: portalUrl }),

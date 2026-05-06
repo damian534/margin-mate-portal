@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Plus, Upload, FileText, CheckCircle2, XCircle, Clock, Trash2, Download, UserPlus, Users, Sparkles, Send, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { z } from 'zod';
 
 interface DocumentRequest {
   id: string;
@@ -39,6 +40,8 @@ interface DocumentCollectionPanelProps {
   leadId: string;
   isPreviewMode: boolean;
   primaryApplicantName?: string;
+  primaryApplicantEmail?: string | null;
+  primaryApplicantPhone?: string | null;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -64,15 +67,22 @@ const FALLBACK_TEMPLATES: Template[] = [
 ];
 
 const PRIMARY_APPLICANT_FALLBACK_ID = 'contact-card-primary-applicant';
+const applicantSchema = z.object({
+  firstName: z.string().trim().min(1, 'First name is required').max(50, 'First name is too long'),
+  lastName: z.string().trim().min(1, 'Surname is required').max(50, 'Surname is too long'),
+  email: z.string().trim().email('Please enter a valid email').max(255, 'Email is too long'),
+  phone: z.string().trim().min(8, 'Mobile is required').max(20, 'Mobile is too long').regex(/^[+\d\s()-]+$/, 'Please enter a valid mobile'),
+});
 
-export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplicantName }: DocumentCollectionPanelProps) {
+export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplicantName, primaryApplicantEmail, primaryApplicantPhone }: DocumentCollectionPanelProps) {
   const [documents, setDocuments] = useState<DocumentRequest[]>([]);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [templates, setTemplates] = useState<Template[]>(FALLBACK_TEMPLATES);
   const [isLoading, setIsLoading] = useState(true);
   const [activeApplicantId, setActiveApplicantId] = useState<string>('all');
   const [showAddApplicant, setShowAddApplicant] = useState(false);
-  const [newApplicantName, setNewApplicantName] = useState('');
+  const [newApplicantFirstName, setNewApplicantFirstName] = useState('');
+  const [newApplicantLastName, setNewApplicantLastName] = useState('');
   const [newApplicantType, setNewApplicantType] = useState<string>('PAYG');
   const [newApplicantEmail, setNewApplicantEmail] = useState('');
   const [newApplicantPhone, setNewApplicantPhone] = useState('');
@@ -83,18 +93,20 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const primaryName = primaryApplicantName?.trim() || 'Primary Applicant';
+  const primaryEmail = primaryApplicantEmail?.trim() || null;
+  const primaryPhone = primaryApplicantPhone?.trim() || null;
   const isPrimaryFallback = (id: string | null) => id === PRIMARY_APPLICANT_FALLBACK_ID;
 
   useEffect(() => {
     setIsLoading(true);
     setApplicants([
-      { id: PRIMARY_APPLICANT_FALLBACK_ID, lead_id: leadId, name: primaryName, employment_type: 'PAYG', display_order: 0 },
+      { id: PRIMARY_APPLICANT_FALLBACK_ID, lead_id: leadId, name: primaryName, employment_type: 'PAYG', display_order: 0, email: primaryEmail, phone: primaryPhone },
     ]);
     setDocuments([]);
     setActiveApplicantId(PRIMARY_APPLICANT_FALLBACK_ID);
     fetchAll();
     fetchTemplates();
-  }, [leadId, primaryName]);
+  }, [leadId, primaryName, primaryEmail, primaryPhone]);
 
   const fetchTemplates = async () => {
     if (isPreviewMode) return;
@@ -110,7 +122,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   const fetchAll = async () => {
     if (isPreviewMode) {
       setApplicants([
-        { id: PRIMARY_APPLICANT_FALLBACK_ID, lead_id: leadId, name: primaryName, employment_type: 'PAYG', display_order: 0 },
+        { id: PRIMARY_APPLICANT_FALLBACK_ID, lead_id: leadId, name: primaryName, employment_type: 'PAYG', display_order: 0, email: primaryEmail, phone: primaryPhone },
       ]);
       setDocuments([]);
       setActiveApplicantId(PRIMARY_APPLICANT_FALLBACK_ID);
@@ -121,7 +133,11 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       supabase.from('lead_applicants').select('*').eq('lead_id', leadId).order('display_order'),
       supabase.from('document_requests').select('*').eq('lead_id', leadId).order('created_at'),
     ]);
-    let appList = (apps as Applicant[]) || [];
+    let appList = ((apps as Applicant[]) || []).map(app => app.display_order === 0 ? {
+      ...app,
+      email: app.email || primaryEmail,
+      phone: app.phone || primaryPhone,
+    } : app);
     // Applicant 1 always comes from the contact card, even before it is saved to lead_applicants.
     const hasPrimaryApplicant = appList.some(app => app.display_order === 0);
     if (!hasPrimaryApplicant && primaryName) {
@@ -131,6 +147,8 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
         name: primaryName,
         employment_type: 'PAYG',
         display_order: 0,
+        email: primaryEmail,
+        phone: primaryPhone,
       };
       appList = [fallbackApplicant, ...appList];
     }
@@ -155,13 +173,23 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
 
     if (existing) {
       const savedApplicant = existing as Applicant;
+      if (!savedApplicant.email || !savedApplicant.phone) {
+        const contactUpdates: Partial<Applicant> = {};
+        if (!savedApplicant.email && primaryEmail) contactUpdates.email = primaryEmail;
+        if (!savedApplicant.phone && primaryPhone) contactUpdates.phone = primaryPhone;
+        if (Object.keys(contactUpdates).length) {
+          await supabase.from('lead_applicants').update(contactUpdates as any).eq('id', savedApplicant.id);
+        }
+        savedApplicant.email = savedApplicant.email || primaryEmail;
+        savedApplicant.phone = savedApplicant.phone || primaryPhone;
+      }
       setApplicants(prev => prev.map(app => isPrimaryFallback(app.id) ? savedApplicant : app));
       setActiveApplicantId(current => isPrimaryFallback(current) ? savedApplicant.id : current);
       return savedApplicant.id;
     }
 
     const { data, error } = await supabase.from('lead_applicants').insert({
-      lead_id: leadId, name: primaryName, employment_type: 'PAYG', display_order: 0,
+      lead_id: leadId, name: primaryName, employment_type: 'PAYG', display_order: 0, email: primaryEmail, phone: primaryPhone,
     }).select().single();
 
     if (error || !data) {
@@ -176,28 +204,29 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   };
 
   const addApplicant = async () => {
-    if (!newApplicantName.trim()) return;
-    if (!newApplicantEmail.trim() || !newApplicantPhone.trim()) {
-      toast.error('Email and mobile are required for additional applicants');
+    const parsed = applicantSchema.safeParse({
+      firstName: newApplicantFirstName,
+      lastName: newApplicantLastName,
+      email: newApplicantEmail,
+      phone: newApplicantPhone,
+    });
+    if (!parsed.success) {
+      toast.error(parsed.error.errors[0]?.message || 'Please enter the applicant details');
       return;
     }
-    // Simple email check
-    if (!/^\S+@\S+\.\S+$/.test(newApplicantEmail.trim())) {
-      toast.error('Please enter a valid email');
-      return;
-    }
+    const applicantName = `${parsed.data.firstName} ${parsed.data.lastName}`.trim();
     const order = applicants.length;
     if (!isPreviewMode && applicants.some(app => isPrimaryFallback(app.id))) {
       const primaryApplicantId = await ensurePersistedApplicantId(PRIMARY_APPLICANT_FALLBACK_ID);
       if (!primaryApplicantId) return;
     }
     if (isPreviewMode) {
-      const newApp = { id: `prev-${Date.now()}`, lead_id: leadId, name: newApplicantName.trim(), employment_type: newApplicantType, display_order: order, email: newApplicantEmail.trim(), phone: newApplicantPhone.trim() };
+      const newApp = { id: `prev-${Date.now()}`, lead_id: leadId, name: applicantName, employment_type: newApplicantType, display_order: order, email: parsed.data.email, phone: parsed.data.phone };
       setApplicants(prev => [...prev, newApp]);
     } else {
       const { data, error } = await supabase.from('lead_applicants').insert({
-        lead_id: leadId, name: newApplicantName.trim(), employment_type: newApplicantType, display_order: order,
-        email: newApplicantEmail.trim(), phone: newApplicantPhone.trim(),
+        lead_id: leadId, name: applicantName, employment_type: newApplicantType, display_order: order,
+        email: parsed.data.email, phone: parsed.data.phone,
       } as any).select().single();
       if (error) { toast.error('Failed: ' + error.message); return; }
       setApplicants(prev => [...prev, data as Applicant]);
@@ -206,7 +235,8 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       if (tpl) await loadTemplate(tpl, (data as Applicant).id);
     }
     toast.success('Applicant added');
-    setNewApplicantName('');
+    setNewApplicantFirstName('');
+    setNewApplicantLastName('');
     setNewApplicantEmail('');
     setNewApplicantPhone('');
     setShowAddApplicant(false);
@@ -383,21 +413,32 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
           .in('id', ids);
         if (error) { toast.error('Failed to mark requested'); return; }
 
-        // Send a documents-only portal email so the client gets the link with the new docs
+        // Send documents-only portal emails to each applicant with newly requested docs.
         const { data: sessionData } = await supabase.auth.getSession();
         const accessToken = sessionData?.session?.access_token;
         if (accessToken) {
-          const docNames = unrequestedDocs.map(d => d.name);
-          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-fact-find`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-            body: JSON.stringify({
-              lead_id: leadId,
-              app_url: window.location.origin,
-              mode: 'documents',
-              document_names: docNames,
-            }),
-          }).catch(() => {});
+          const docsByApplicant = unrequestedDocs.reduce<Record<string, DocumentRequest[]>>((acc, doc) => {
+            const key = doc.applicant_id || PRIMARY_APPLICANT_FALLBACK_ID;
+            acc[key] = [...(acc[key] || []), doc];
+            return acc;
+          }, {});
+          await Promise.all(Object.entries(docsByApplicant).map(async ([applicantId, docs]) => {
+            const applicant = applicants.find(a => a.id === applicantId || (isPrimaryFallback(applicantId) && a.display_order === 0));
+            const recipientEmail = applicant?.email || (applicant?.display_order === 0 ? primaryEmail : null);
+            if (!recipientEmail) return;
+            await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-fact-find`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+              body: JSON.stringify({
+                lead_id: leadId,
+                app_url: window.location.origin,
+                mode: 'documents',
+                recipient_email: recipientEmail,
+                recipient_name: applicant?.name,
+                document_names: docs.map(d => d.name),
+              }),
+            }).catch(() => {});
+          }));
         }
         await fetchAll();
       } else {
@@ -466,8 +507,15 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       {showAddApplicant && (
         <div className="bg-muted/50 rounded-lg p-3 space-y-2">
           <p className="text-xs font-medium">Add applicant {applicants.length + 1}</p>
+          <div className="grid grid-cols-2 gap-2">
+            <Input placeholder="First name *" value={newApplicantFirstName} onChange={e => setNewApplicantFirstName(e.target.value)} className="h-8 text-sm" />
+            <Input placeholder="Surname *" value={newApplicantLastName} onChange={e => setNewApplicantLastName(e.target.value)} className="h-8 text-sm" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Input type="email" placeholder="Email *" value={newApplicantEmail} onChange={e => setNewApplicantEmail(e.target.value)} className="h-8 text-sm" />
+            <Input type="tel" placeholder="Mobile *" value={newApplicantPhone} onChange={e => setNewApplicantPhone(e.target.value)} className="h-8 text-sm" />
+          </div>
           <div className="flex gap-2">
-            <Input placeholder="Applicant name" value={newApplicantName} onChange={e => setNewApplicantName(e.target.value)} className="h-8 text-sm flex-1" />
             <Select value={newApplicantType} onValueChange={setNewApplicantType}>
               <SelectTrigger className="h-8 text-sm w-44"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -478,14 +526,10 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
               </SelectContent>
             </Select>
           </div>
-          <div className="flex gap-2">
-            <Input type="email" placeholder="Email *" value={newApplicantEmail} onChange={e => setNewApplicantEmail(e.target.value)} className="h-8 text-sm flex-1" />
-            <Input type="tel" placeholder="Mobile *" value={newApplicantPhone} onChange={e => setNewApplicantPhone(e.target.value)} className="h-8 text-sm flex-1" />
-          </div>
           <p className="text-[11px] text-muted-foreground">A standard checklist for the selected employment type will be added automatically.</p>
           <div className="flex gap-2">
-            <Button size="sm" className="h-8 text-xs" onClick={addApplicant} disabled={!newApplicantName.trim() || !newApplicantEmail.trim() || !newApplicantPhone.trim()}>Add Applicant</Button>
-            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setShowAddApplicant(false); setNewApplicantName(''); setNewApplicantEmail(''); setNewApplicantPhone(''); }}>Cancel</Button>
+            <Button size="sm" className="h-8 text-xs" onClick={addApplicant} disabled={!newApplicantFirstName.trim() || !newApplicantLastName.trim() || !newApplicantEmail.trim() || !newApplicantPhone.trim()}>Add Applicant</Button>
+            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setShowAddApplicant(false); setNewApplicantFirstName(''); setNewApplicantLastName(''); setNewApplicantEmail(''); setNewApplicantPhone(''); }}>Cancel</Button>
           </div>
         </div>
       )}
