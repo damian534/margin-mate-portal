@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -151,6 +152,23 @@ export function WIPDashboard({ leads, isPreviewMode, onOpenLead, onLocalUpdate }
                         {lead.loan_amount ? (
                           <p className="text-xs text-muted-foreground">${lead.loan_amount.toLocaleString()}</p>
                         ) : null}
+                        <div className="mt-2" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+                          <Select value={lead.wip_status || ''} onValueChange={(v) => update(lead.id, v)}>
+                            <SelectTrigger className="h-7 text-[11px]">
+                              <SelectValue placeholder="Move to..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {WIP_STATUSES.map(s => (
+                                <SelectItem key={s.name} value={s.name} className="text-xs">
+                                  <span className="inline-flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
+                                    {s.label}
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     ))
                   )}
