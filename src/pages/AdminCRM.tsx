@@ -161,7 +161,8 @@ export default function AdminCRM() {
   }, [leadTasks]);
 
   useEffect(() => {
-    let result = leads;
+    // Leads in WIP belong to the WIP dashboard, not the Leads board
+    let result = leads.filter(l => !l.wip_status);
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(l =>
