@@ -327,10 +327,32 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
             />
           </button>
         ))}
-        <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setShowAddApplicant(!showAddApplicant)}>
-          <UserPlus className="w-3 h-3" /> Add Applicant
-        </Button>
+        {applicants.length >= 2 && (
+          <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setShowAddApplicant(!showAddApplicant)}>
+            <UserPlus className="w-3 h-3" /> Add Applicant
+          </Button>
+        )}
       </div>
+
+      {/* Second applicant prompt — shown when only the auto-seeded primary exists */}
+      {applicants.length === 1 && secondApplicantPrompt === 'unknown' && !showAddApplicant && (
+        <div className="bg-muted/40 rounded-lg p-3 flex items-center justify-between gap-3">
+          <p className="text-sm">Is there a <strong>second applicant</strong> on this loan?</p>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => { setShowAddApplicant(true); setSecondApplicantPrompt('yes'); }}>
+              Yes, add applicant 2
+            </Button>
+            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setSecondApplicantPrompt('no')}>
+              No, sole applicant
+            </Button>
+          </div>
+        </div>
+      )}
+      {applicants.length === 1 && secondApplicantPrompt === 'no' && (
+        <p className="text-[11px] text-muted-foreground italic">Sole applicant.{' '}
+          <button className="underline" onClick={() => { setShowAddApplicant(true); setSecondApplicantPrompt('yes'); }}>Add a second applicant</button>
+        </p>
+      )}
 
       {showAddApplicant && (
         <div className="bg-muted/50 rounded-lg p-3 space-y-2">
