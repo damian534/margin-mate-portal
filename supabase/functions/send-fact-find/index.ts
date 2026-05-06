@@ -315,6 +315,12 @@ Deno.serve(async (req) => {
 
     if (!emailRes.ok) {
       console.error("Resend error:", emailData);
+      try {
+        await supabaseAdmin
+          .from("client_portal_tokens")
+          .update({ last_send_error: JSON.stringify(emailData).slice(0, 500) })
+          .eq("token", portalToken);
+      } catch (_) { /* ignore */ }
       return new Response(
         JSON.stringify({ error: "Failed to send email", details: emailData }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -322,6 +328,25 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Fact find email sent to ${recipientEmail} for lead ${lead_id}`);
+
+    // Record send tracking on the portal token
+    try {
+      const { data: tokenRow } = await supabaseAdmin
+        .from("client_portal_tokens")
+        .select("send_count")
+        .eq("token", portalToken)
+        .maybeSingle();
+      const nextCount = ((tokenRow as any)?.send_count ?? 0) + 1;
+      await supabaseAdmin
+        .from("client_portal_tokens")
+        .update({
+          last_sent_at: new Date().toISOString(),
+          last_send_mode: mode,
+          last_send_error: null,
+          send_count: nextCount,
+        })
+        .eq("token", portalToken);
+    } catch (e) { console.error("Failed to record send tracking:", e); }
 
     return new Response(
       JSON.stringify({ success: true, email_id: emailData.id, portal_url: portalUrl }),
