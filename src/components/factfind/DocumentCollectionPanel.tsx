@@ -435,6 +435,23 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
           .in('id', ids);
         if (error) { toast.error('Failed to mark requested'); return; }
 
+        // Log activity in timeline
+        try {
+          const { data: userData } = await supabase.auth.getUser();
+          const docsByApplicantForNote = unrequestedDocs.reduce<Record<string, DocumentRequest[]>>((acc, doc) => {
+            const key = doc.applicant_id || PRIMARY_APPLICANT_FALLBACK_ID;
+            acc[key] = [...(acc[key] || []), doc];
+            return acc;
+          }, {});
+          const lines = Object.entries(docsByApplicantForNote).map(([applicantId, docs]) => {
+            const applicant = applicants.find(a => a.id === applicantId || (isPrimaryFallback(applicantId) && a.display_order === 0));
+            const name = applicant?.name || 'Primary Applicant';
+            return `${name}:\n${docs.map(d => `• ${d.name}`).join('\n')}`;
+          }).join('\n\n');
+          const content = `📄 Requested ${unrequestedDocs.length} document${unrequestedDocs.length === 1 ? '' : 's'}\n\n${lines}`;
+          await supabase.from('notes').insert({ lead_id: leadId, content, author_id: userData?.user?.id ?? null } as any);
+        } catch {}
+
         // Send documents-only portal emails to each applicant with newly requested docs.
         const { data: sessionData } = await supabase.auth.getSession();
         const accessToken = sessionData?.session?.access_token;
