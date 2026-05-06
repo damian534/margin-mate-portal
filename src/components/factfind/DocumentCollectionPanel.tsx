@@ -100,7 +100,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   useEffect(() => {
     setIsLoading(true);
     setApplicants([
-      { id: PRIMARY_APPLICANT_FALLBACK_ID, lead_id: leadId, name: primaryName, employment_type: 'PAYG', display_order: 0 },
+      { id: PRIMARY_APPLICANT_FALLBACK_ID, lead_id: leadId, name: primaryName, employment_type: 'PAYG', display_order: 0, email: primaryEmail, phone: primaryPhone },
     ]);
     setDocuments([]);
     setActiveApplicantId(PRIMARY_APPLICANT_FALLBACK_ID);
@@ -133,7 +133,11 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       supabase.from('lead_applicants').select('*').eq('lead_id', leadId).order('display_order'),
       supabase.from('document_requests').select('*').eq('lead_id', leadId).order('created_at'),
     ]);
-    let appList = (apps as Applicant[]) || [];
+    let appList = ((apps as Applicant[]) || []).map(app => app.display_order === 0 ? {
+      ...app,
+      email: app.email || primaryEmail,
+      phone: app.phone || primaryPhone,
+    } : app);
     // Applicant 1 always comes from the contact card, even before it is saved to lead_applicants.
     const hasPrimaryApplicant = appList.some(app => app.display_order === 0);
     if (!hasPrimaryApplicant && primaryName) {
@@ -169,6 +173,11 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
 
     if (existing) {
       const savedApplicant = existing as Applicant;
+      if (!savedApplicant.email || !savedApplicant.phone) {
+        await supabase.from('lead_applicants').update({ email: primaryEmail, phone: primaryPhone } as any).eq('id', savedApplicant.id);
+        savedApplicant.email = savedApplicant.email || primaryEmail;
+        savedApplicant.phone = savedApplicant.phone || primaryPhone;
+      }
       setApplicants(prev => prev.map(app => isPrimaryFallback(app.id) ? savedApplicant : app));
       setActiveApplicantId(current => isPrimaryFallback(current) ? savedApplicant.id : current);
       return savedApplicant.id;
