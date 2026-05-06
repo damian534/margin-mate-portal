@@ -93,8 +93,12 @@ export type Database = {
           expires_at: string | null
           id: string
           is_active: boolean
+          last_send_error: string | null
+          last_send_mode: string | null
+          last_sent_at: string | null
           lead_id: string
           portal_mode: string
+          send_count: number
           token: string
         }
         Insert: {
@@ -103,8 +107,12 @@ export type Database = {
           expires_at?: string | null
           id?: string
           is_active?: boolean
+          last_send_error?: string | null
+          last_send_mode?: string | null
+          last_sent_at?: string | null
           lead_id: string
           portal_mode?: string
+          send_count?: number
           token?: string
         }
         Update: {
@@ -113,8 +121,12 @@ export type Database = {
           expires_at?: string | null
           id?: string
           is_active?: boolean
+          last_send_error?: string | null
+          last_send_mode?: string | null
+          last_sent_at?: string | null
           lead_id?: string
           portal_mode?: string
+          send_count?: number
           token?: string
         }
         Relationships: [
