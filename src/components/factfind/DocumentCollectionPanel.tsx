@@ -130,20 +130,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
         employment_type: 'PAYG',
         display_order: 0,
       };
-      setApplicants([fallbackApplicant]);
-      setActiveApplicantId(PRIMARY_APPLICANT_FALLBACK_ID);
-
-      const { data: seeded, error } = await supabase.from('lead_applicants').insert({
-        lead_id: leadId, name: primaryName, employment_type: 'PAYG', display_order: 0,
-      }).select().single();
-
-      if (seeded) {
-        appList = [seeded as Applicant];
-        setActiveApplicantId((current) => isPrimaryFallback(current) ? (seeded as Applicant).id : current);
-      } else {
-        if (error) console.error('Primary applicant seed failed', error);
-        appList = [fallbackApplicant];
-      }
+      appList = [fallbackApplicant];
     }
     setApplicants(appList);
     if (appList.length > 0) {
@@ -155,6 +142,21 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
 
   const ensurePersistedApplicantId = async (applicantId: string | null) => {
     if (!isPrimaryFallback(applicantId) || isPreviewMode) return applicantId;
+
+    const { data: existing } = await supabase
+      .from('lead_applicants')
+      .select('*')
+      .eq('lead_id', leadId)
+      .order('display_order')
+      .limit(1)
+      .maybeSingle();
+
+    if (existing) {
+      const savedApplicant = existing as Applicant;
+      setApplicants(prev => prev.map(app => isPrimaryFallback(app.id) ? savedApplicant : app));
+      setActiveApplicantId(current => isPrimaryFallback(current) ? savedApplicant.id : current);
+      return savedApplicant.id;
+    }
 
     const { data, error } = await supabase.from('lead_applicants').insert({
       lead_id: leadId, name: primaryName, employment_type: 'PAYG', display_order: 0,
