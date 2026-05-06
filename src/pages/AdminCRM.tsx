@@ -822,6 +822,7 @@ export default function AdminCRM() {
         referrers={referrers}
         isPreviewMode={isPreviewMode}
         onUpdateStatus={updateStatus}
+        onUpdateWipStatus={updateWipStatus}
         onUpdateCommission={updateCommission}
         onDeleteLead={deleteLead}
         onLeadChange={(updated) => {
