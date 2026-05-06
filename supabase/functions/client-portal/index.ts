@@ -70,6 +70,7 @@ serve(async (req) => {
         .from("document_requests")
         .select("id, name, description, status, file_name, rejection_reason")
         .eq("lead_id", tokenData.lead_id)
+        .not("requested_at", "is", null)
         .order("created_at", { ascending: true });
 
       return new Response(JSON.stringify({

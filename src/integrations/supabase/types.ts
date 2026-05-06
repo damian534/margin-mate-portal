@@ -214,6 +214,7 @@ export type Database = {
           lead_id: string
           name: string
           rejection_reason: string | null
+          requested_at: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           section: string | null
@@ -232,6 +233,7 @@ export type Database = {
           lead_id: string
           name: string
           rejection_reason?: string | null
+          requested_at?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           section?: string | null
@@ -250,6 +252,7 @@ export type Database = {
           lead_id?: string
           name?: string
           rejection_reason?: string | null
+          requested_at?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           section?: string | null
@@ -351,28 +354,34 @@ export type Database = {
         Row: {
           created_at: string
           display_order: number
+          email: string | null
           employment_type: string | null
           id: string
           lead_id: string
           name: string
+          phone: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           display_order?: number
+          email?: string | null
           employment_type?: string | null
           id?: string
           lead_id: string
           name: string
+          phone?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           display_order?: number
+          email?: string | null
           employment_type?: string | null
           id?: string
           lead_id?: string
           name?: string
+          phone?: string | null
           updated_at?: string
         }
         Relationships: []
