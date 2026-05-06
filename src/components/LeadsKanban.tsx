@@ -186,22 +186,29 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                             draggable
                             onDragStart={(e) => handleDragStart(e, lead.id)}
                             onClick={() => onOpenLead(lead)}
-                            className="cursor-pointer hover:shadow-md transition-shadow border-l-4"
+                            className="cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all border-l-4 border border-border/60"
                             style={{ borderLeftColor: status.color }}
                           >
-                            <CardContent className="p-3 space-y-1.5">
-                              <div className="flex items-center justify-between">
-                                <p className="font-medium text-sm">{lead.first_name} {lead.last_name}</p>
+                            <CardContent className="p-3 space-y-2">
+                              <div className="flex items-start gap-2">
+                                <div className="w-7 h-7 rounded-full bg-primary/10 text-primary text-[11px] font-semibold flex items-center justify-center shrink-0">
+                                  {lead.first_name[0]}{lead.last_name?.[0] || ''}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold text-sm leading-tight truncate">{lead.first_name} {lead.last_name}</p>
+                                  {lead.loan_purpose && (
+                                    <p className="text-[11px] text-muted-foreground truncate">{lead.loan_purpose}</p>
+                                  )}
+                                </div>
                                 {hasTask && (
-                                  <ClipboardList className="w-3.5 h-3.5 text-primary shrink-0" />
+                                  <ClipboardList className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
                                 )}
                               </div>
-                              {lead.loan_purpose && (
-                                <p className="text-xs text-muted-foreground">{lead.loan_purpose}</p>
-                              )}
-                              {lead.loan_amount && (
-                                <p className="text-xs font-medium">${lead.loan_amount.toLocaleString()}</p>
-                              )}
+                              {lead.loan_amount ? (
+                                <p className="text-base font-semibold tabular-nums leading-none">
+                                  ${lead.loan_amount.toLocaleString()}
+                                </p>
+                              ) : null}
                               {lead.source && (
                                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground inline-block">
                                   {leadSources.find(s => s.name === lead.source)?.label || lead.source}
@@ -209,7 +216,7 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                               )}
                               {/* Attribution: referral partner or client referral */}
                               {lead.referral_partner_id && getReferrerName?.(lead.referral_partner_id) && (
-                                <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                <div className="text-[10px] text-muted-foreground flex items-center gap-1 pt-1 border-t border-border/40">
                                   <Users className="w-3 h-3 shrink-0" />
                                   <span className="truncate">
                                     {getReferrerName(lead.referral_partner_id)}
@@ -220,12 +227,12 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                                 </div>
                               )}
                               {lead.source_contact_id && getContactName?.(lead.source_contact_id) && !lead.referral_partner_id && (
-                                <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                <div className="text-[10px] text-muted-foreground flex items-center gap-1 pt-1 border-t border-border/40">
                                   <Users className="w-3 h-3 shrink-0" />
                                   <span className="truncate">Referred by {getContactName(lead.source_contact_id)}</span>
                                 </div>
                               )}
-                              <p className="text-xs text-muted-foreground">{format(new Date(lead.created_at), 'dd MMM')}</p>
+                              <p className="text-[10px] text-muted-foreground/70">{format(new Date(lead.created_at), 'dd MMM')}</p>
                             </CardContent>
                           </Card>
                         );
