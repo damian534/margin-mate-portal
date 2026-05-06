@@ -355,11 +355,34 @@ export default function AdminCRM() {
   };
 
   const updateWipStatus = async (leadId: string, wip_status: string | null) => {
+    const lead = leads.find(l => l.id === leadId);
+    const oldWip = lead?.wip_status || null;
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, wip_status } : l));
     if (isPreviewMode) { toast.success('WIP status updated (preview)'); return; }
     const { error } = await supabase.from('leads').update({ wip_status } as any).eq('id', leadId);
     if (error) toast.error('Failed to update WIP status');
     else toast.success('WIP status updated');
+
+    // Auto-create settlement when WIP moves to "settled"
+    if (wip_status === 'settled' && oldWip !== 'settled' && lead && user) {
+      const srcContact = lead.source_contact_id ? contacts.find(ct => ct.id === lead.source_contact_id) : null;
+      const contactName = srcContact ? `${srcContact.first_name} ${srcContact.last_name}`.trim() : null;
+      const { error: settError } = await supabase.from('settlements').insert({
+        broker_id: effectiveBrokerId || user.id,
+        client_name: `${lead.first_name} ${lead.last_name}`.trim(),
+        settlement_date: new Date().toISOString().split('T')[0],
+        loan_amount: lead.loan_amount || 0,
+        lead_source: lead.source || null,
+        status: 'settled',
+        contact_name: contactName || null,
+      } as any);
+      if (settError) {
+        console.error('Failed to auto-create settlement:', settError);
+        toast.error('WIP updated but failed to create settlement record');
+      } else {
+        toast.success('Settlement record created automatically');
+      }
+    }
   };
 
 
