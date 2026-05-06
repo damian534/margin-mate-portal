@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { LeadStatus } from '@/hooks/useLeadStatuses';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ChevronDown, ChevronRight, DollarSign, Users, ChevronsDownUp, ChevronsUpDown, ClipboardList } from 'lucide-react';
+import { ChevronDown, ChevronRight, DollarSign, Users, ChevronsDownUp, ChevronsUpDown, ClipboardList, FileDown, FileText } from 'lucide-react';
 import { WIP_STATUSES } from './WIPDashboard';
 
 interface Lead {
@@ -48,9 +48,11 @@ interface LeadsKanbanProps {
   onUpdateWipStatus?: (leadId: string, wipStatus: string) => void;
   tasksByLead?: Map<string, LeadTask[]>;
   taskDueFilter?: string;
+  docsByLead?: Map<string, { requested: number; completed: number; files: { path: string; name: string }[] }>;
+  onDownloadDocs?: (leadId: string) => void;
 }
 
-export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName, getReferrerCompany, getContactName, onOpenLead, onUpdateStatus, onUpdateWipStatus, tasksByLead, taskDueFilter }: LeadsKanbanProps) {
+export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName, getReferrerCompany, getContactName, onOpenLead, onUpdateStatus, onUpdateWipStatus, tasksByLead, taskDueFilter, docsByLead, onDownloadDocs }: LeadsKanbanProps) {
   const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set());
 
   // Auto-expand columns that have leads when a task filter is applied
@@ -183,6 +185,8 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                     <div className="p-2 space-y-2">
                       {columnLeads.map(lead => {
                         const hasTask = getLeadHasActiveTasks(lead.id);
+                        const docs = docsByLead?.get(lead.id);
+                        const docsPct = docs && docs.requested > 0 ? Math.round((docs.completed / docs.requested) * 100) : null;
                         return (
                           <Card
                             key={lead.id}
@@ -235,6 +239,26 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                                 </div>
                               )}
                               <p className="text-[10px] text-muted-foreground/70">{format(new Date(lead.created_at), 'dd MMM')}</p>
+                              {docs && docs.requested > 0 && (
+                                <div className="pt-1 border-t border-border/40 space-y-1">
+                                  <div className="flex items-center justify-between text-[10px]">
+                                    <span className="text-muted-foreground flex items-center gap-1"><FileText className="w-3 h-3" /> Docs {docsPct}%</span>
+                                    {docs.files.length > 0 && onDownloadDocs && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); onDownloadDocs(lead.id); }}
+                                        className="text-primary hover:underline inline-flex items-center gap-0.5"
+                                        title="Download all uploaded documents as ZIP"
+                                      >
+                                        <FileDown className="w-3 h-3" /> ZIP
+                                      </button>
+                                    )}
+                                  </div>
+                                  <div className="h-1 rounded-full bg-muted overflow-hidden">
+                                    <div className="h-full bg-primary transition-all" style={{ width: `${docsPct}%` }} />
+                                  </div>
+                                </div>
+                              )}
                                 <div onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
                                   <Select
                                     value={lead.wip_status ? `wip:${lead.wip_status}` : `lead:${lead.status}`}
