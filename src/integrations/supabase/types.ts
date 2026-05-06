@@ -829,8 +829,45 @@ export type Database = {
         }
         Relationships: []
       }
+      task_templates: {
+        Row: {
+          broker_id: string
+          checklist_items: Json
+          created_at: string
+          display_order: number
+          due_in_days: number | null
+          id: string
+          name: string
+          task_title: string
+          updated_at: string
+        }
+        Insert: {
+          broker_id: string
+          checklist_items?: Json
+          created_at?: string
+          display_order?: number
+          due_in_days?: number | null
+          id?: string
+          name: string
+          task_title: string
+          updated_at?: string
+        }
+        Update: {
+          broker_id?: string
+          checklist_items?: Json
+          created_at?: string
+          display_order?: number
+          due_in_days?: number | null
+          id?: string
+          name?: string
+          task_title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
+          checklist_items: Json
           completed: boolean
           completed_at: string | null
           created_at: string
@@ -843,6 +880,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          checklist_items?: Json
           completed?: boolean
           completed_at?: string | null
           created_at?: string
@@ -855,6 +893,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          checklist_items?: Json
           completed?: boolean
           completed_at?: string | null
           created_at?: string
