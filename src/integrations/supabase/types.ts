@@ -526,6 +526,7 @@ export type Database = {
       }
       leads: {
         Row: {
+          approved_date: string | null
           broker_id: string | null
           company_commission: number | null
           company_commission_paid: boolean | null
@@ -538,6 +539,7 @@ export type Database = {
           last_name: string
           loan_amount: number | null
           loan_purpose: string | null
+          lodged_date: string | null
           original_broker_id: string | null
           phone: string | null
           portal_mode: string
@@ -545,6 +547,7 @@ export type Database = {
           referrer_commission: number | null
           referrer_commission_paid: boolean | null
           referrer_commission_type: string | null
+          settled_date: string | null
           source: string | null
           source_contact_id: string | null
           status: string
@@ -552,6 +555,7 @@ export type Database = {
           wip_status: string | null
         }
         Insert: {
+          approved_date?: string | null
           broker_id?: string | null
           company_commission?: number | null
           company_commission_paid?: boolean | null
@@ -564,6 +568,7 @@ export type Database = {
           last_name: string
           loan_amount?: number | null
           loan_purpose?: string | null
+          lodged_date?: string | null
           original_broker_id?: string | null
           phone?: string | null
           portal_mode?: string
@@ -571,6 +576,7 @@ export type Database = {
           referrer_commission?: number | null
           referrer_commission_paid?: boolean | null
           referrer_commission_type?: string | null
+          settled_date?: string | null
           source?: string | null
           source_contact_id?: string | null
           status?: string
@@ -578,6 +584,7 @@ export type Database = {
           wip_status?: string | null
         }
         Update: {
+          approved_date?: string | null
           broker_id?: string | null
           company_commission?: number | null
           company_commission_paid?: boolean | null
@@ -590,6 +597,7 @@ export type Database = {
           last_name?: string
           loan_amount?: number | null
           loan_purpose?: string | null
+          lodged_date?: string | null
           original_broker_id?: string | null
           phone?: string | null
           portal_mode?: string
@@ -597,6 +605,7 @@ export type Database = {
           referrer_commission?: number | null
           referrer_commission_paid?: boolean | null
           referrer_commission_type?: string | null
+          settled_date?: string | null
           source?: string | null
           source_contact_id?: string | null
           status?: string
