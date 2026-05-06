@@ -121,32 +121,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
 
   return (
     <div className="space-y-4">
-      <div>
-        <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wider">This month · {monthLabel}</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card className="border-l-4" style={{ borderLeftColor: '#8b5cf6' }}>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">Lodged</p>
-              <p className="text-3xl font-bold mt-1">{monthly.lodged.count}</p>
-              <p className="text-xs text-muted-foreground mt-1">${monthly.lodged.volume.toLocaleString()}</p>
-            </CardContent>
-          </Card>
-          <Card className="border-l-4" style={{ borderLeftColor: '#10b981' }}>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">Approved</p>
-              <p className="text-3xl font-bold mt-1">{monthly.approved.count}</p>
-              <p className="text-xs text-muted-foreground mt-1">${monthly.approved.volume.toLocaleString()}</p>
-            </CardContent>
-          </Card>
-          <Card className="border-l-4" style={{ borderLeftColor: '#22c55e' }}>
-            <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground">Settled</p>
-              <p className="text-3xl font-bold mt-1">{monthly.settled.count}</p>
-              <p className="text-xs text-muted-foreground mt-1">${monthly.settled.volume.toLocaleString()}</p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      {/* Monthly KPIs are shown at the top of the CRM page */}
 
       <div className="overflow-x-auto pb-4">
         <div className="flex gap-3 min-w-max">
