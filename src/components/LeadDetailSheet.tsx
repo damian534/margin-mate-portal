@@ -56,6 +56,9 @@ interface Lead {
   source_contact_id: string | null;
   portal_mode?: 'both' | 'fact_find' | 'documents' | null;
   wip_status?: string | null;
+  lodged_date?: string | null;
+  approved_date?: string | null;
+  settled_date?: string | null;
 }
 
 interface Note {
