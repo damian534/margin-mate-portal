@@ -91,6 +91,8 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   const [newDocName, setNewDocName] = useState('');
   const [newDocDescription, setNewDocDescription] = useState('');
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [editingDocId, setEditingDocId] = useState<string | null>(null);
+  const [editingDocName, setEditingDocName] = useState('');
 
   const primaryName = primaryApplicantName?.trim() || 'Primary Applicant';
   const primaryEmail = primaryApplicantEmail?.trim() || null;
@@ -365,6 +367,20 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
     if (data?.signedUrl) window.open(data.signedUrl, '_blank');
   };
 
+  const renameDocument = async (docId: string) => {
+    const trimmed = editingDocName.trim();
+    setEditingDocId(null);
+    if (!trimmed) return;
+    const current = documents.find(d => d.id === docId);
+    if (!current || current.name === trimmed) return;
+    setDocuments(prev => prev.map(d => d.id === docId ? { ...d, name: trimmed } : d));
+    if (!isPreviewMode) {
+      const { error } = await supabase.from('document_requests').update({ name: trimmed }).eq('id', docId);
+      if (error) { toast.error('Rename failed'); fetchAll(); return; }
+    }
+    toast.success('Document renamed');
+  };
+
   // Filter docs by active applicant tab
   const visibleDocs = activeApplicantId === 'all'
     ? documents
@@ -619,7 +635,27 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
                           <div className="flex items-start gap-2 flex-1 min-w-0">
                             <FileText className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
                             <div className="min-w-0">
-                              <p className="text-sm font-medium">{doc.name}</p>
+                              {editingDocId === doc.id ? (
+                                <Input
+                                  autoFocus
+                                  value={editingDocName}
+                                  onChange={e => setEditingDocName(e.target.value)}
+                                  onBlur={() => renameDocument(doc.id)}
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter') { e.currentTarget.blur(); }
+                                    if (e.key === 'Escape') { setEditingDocId(null); }
+                                  }}
+                                  className="h-7 text-sm"
+                                />
+                              ) : (
+                                <p
+                                  className="text-sm font-medium cursor-text hover:bg-muted/50 rounded px-1 -mx-1"
+                                  title="Click to rename"
+                                  onClick={() => { setEditingDocId(doc.id); setEditingDocName(doc.name); }}
+                                >
+                                  {doc.name}
+                                </p>
+                              )}
                               {doc.description && <p className="text-xs text-muted-foreground">{doc.description}</p>}
                               {activeApplicantId === 'all' && applicant && (
                                 <p className="text-[10px] text-muted-foreground mt-0.5">For: {applicant.name}</p>
