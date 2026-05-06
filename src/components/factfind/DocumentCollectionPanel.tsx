@@ -106,7 +106,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
     setActiveApplicantId(PRIMARY_APPLICANT_FALLBACK_ID);
     fetchAll();
     fetchTemplates();
-  }, [leadId, primaryName]);
+  }, [leadId, primaryName, primaryEmail, primaryPhone]);
 
   const fetchTemplates = async () => {
     if (isPreviewMode) return;
@@ -122,7 +122,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   const fetchAll = async () => {
     if (isPreviewMode) {
       setApplicants([
-        { id: PRIMARY_APPLICANT_FALLBACK_ID, lead_id: leadId, name: primaryName, employment_type: 'PAYG', display_order: 0 },
+        { id: PRIMARY_APPLICANT_FALLBACK_ID, lead_id: leadId, name: primaryName, employment_type: 'PAYG', display_order: 0, email: primaryEmail, phone: primaryPhone },
       ]);
       setDocuments([]);
       setActiveApplicantId(PRIMARY_APPLICANT_FALLBACK_ID);
@@ -143,6 +143,8 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
         name: primaryName,
         employment_type: 'PAYG',
         display_order: 0,
+        email: primaryEmail,
+        phone: primaryPhone,
       };
       appList = [fallbackApplicant, ...appList];
     }
@@ -173,7 +175,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
     }
 
     const { data, error } = await supabase.from('lead_applicants').insert({
-      lead_id: leadId, name: primaryName, employment_type: 'PAYG', display_order: 0,
+      lead_id: leadId, name: primaryName, employment_type: 'PAYG', display_order: 0, email: primaryEmail, phone: primaryPhone,
     }).select().single();
 
     if (error || !data) {
