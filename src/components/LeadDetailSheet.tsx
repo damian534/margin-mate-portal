@@ -683,6 +683,34 @@ export function LeadDetailSheet({
             />
           </div>
 
+          {/* Client portal scope */}
+          <div className="mt-3 rounded-lg border border-border bg-muted/20 px-3 py-2 flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wider text-foreground">Client Portal</p>
+              <p className="text-[11px] text-muted-foreground">Choose what the client receives and sees.</p>
+            </div>
+            <Select
+              value={lead.portal_mode || 'both'}
+              onValueChange={async (v) => {
+                const next = v as 'both' | 'fact_find' | 'documents';
+                onLeadChange?.({ ...lead, portal_mode: next });
+                if (!isPreviewMode) {
+                  const { error } = await supabase.from('leads').update({ portal_mode: next } as any).eq('id', lead.id);
+                  if (error) { toast.error('Could not update portal scope'); return; }
+                }
+                if (next === 'fact_find' && activeTab === 'documents') setActiveTab('timeline');
+                toast.success('Portal scope updated');
+              }}
+            >
+              <SelectTrigger className="h-8 text-xs w-[180px] shrink-0"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="both">Fact Find + Documents</SelectItem>
+                <SelectItem value="fact_find">Fact Find only</SelectItem>
+                <SelectItem value="documents">Documents only</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Referral Partner — editable */}
           <div className="mt-3 rounded-lg border border-border bg-muted/20 overflow-hidden">
             <div className="px-3 py-2 bg-muted/40 border-b border-border flex items-center justify-between">
