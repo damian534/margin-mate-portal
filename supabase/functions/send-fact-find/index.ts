@@ -11,6 +11,10 @@ interface SendFactFindRequest {
   token?: string;
   /** The base URL of the app (e.g. https://margin-mate-portal.lovable.app) */
   app_url: string;
+  /** 'factfind' (default) sends the full fact-find welcome. 'documents' sends a documents-only request. */
+  mode?: 'factfind' | 'documents';
+  /** When mode='documents', list of document names to include in the email body. */
+  document_names?: string[];
 }
 
 function buildEmailHtml(clientName: string, portalUrl: string, brokerName: string): string {
@@ -111,6 +115,63 @@ function buildEmailHtml(clientName: string, portalUrl: string, brokerName: strin
 </html>`;
 }
 
+function buildDocumentsEmailHtml(clientName: string, portalUrl: string, brokerName: string, documentNames: string[]): string {
+  const docList = documentNames.length
+    ? documentNames.map(n => `<li>${n.replace(/</g, '&lt;')}</li>`).join('')
+    : '<li>Your broker will list the required documents inside the portal.</li>';
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { margin:0; padding:0; background:#f5f5f5; font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
+    .container { max-width:600px; margin:0 auto; background:#ffffff; }
+    .header { padding:32px 40px 24px; text-align:center; border-bottom:3px solid #e63946; }
+    .header h1 { margin:0; font-size:24px; font-weight:700; color:#1a1a1a; }
+    .body-content { padding:32px 40px; }
+    .greeting { font-size:18px; font-weight:600; color:#1a1a1a; margin:0 0 16px; }
+    .body-text { font-size:15px; line-height:1.6; color:#4a4a4a; margin:0 0 16px; }
+    .cta-container { text-align:center; margin:32px 0; }
+    .cta-btn { display:inline-block; background:#e63946; color:#fff !important; padding:14px 40px; border-radius:8px; text-decoration:none; font-size:16px; font-weight:600; }
+    .doc-section { background:#fafafa; border-radius:8px; padding:20px 24px; margin:24px 0; border:1px solid #eee; }
+    .doc-section h3 { margin:0 0 12px; font-size:15px; font-weight:600; color:#1a1a1a; }
+    .doc-list { margin:0; padding:0 0 0 20px; }
+    .doc-list li { font-size:14px; line-height:1.8; color:#4a4a4a; }
+    .footer { padding:24px 40px; text-align:center; border-top:1px solid #eee; }
+    .footer p { font-size:12px; color:#999; margin:4px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1><span style="color:#e63946;">M</span>argin <span style="color:#e63946;">Connect</span></h1>
+    </div>
+    <div class="body-content">
+      <p class="greeting">Hi ${clientName},</p>
+      <p class="body-text">
+        ${brokerName ? `${brokerName} has requested some documents from you to progress your application.` : 'Your broker has requested some documents from you to progress your application.'}
+      </p>
+      <p class="body-text">Please use the secure link below to upload the requested documents.</p>
+      <div class="cta-container">
+        <a href="${portalUrl}" class="cta-btn">Upload My Documents</a>
+      </div>
+      <div class="doc-section">
+        <h3>📄 Documents requested:</h3>
+        <ul class="doc-list">${docList}</ul>
+      </div>
+      <p class="body-text">If you have any questions, please reply to this email or contact your broker${brokerName ? `, ${brokerName}` : ''} directly.</p>
+      <p class="body-text">This link is unique to you — please do not share it.</p>
+    </div>
+    <div class="footer">
+      <p>Margin Finance — Making every connection count</p>
+      <p>This is an automated message. Please contact your broker directly for assistance.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -141,7 +202,7 @@ Deno.serve(async (req) => {
     }
     const userId = claimsData.claims.sub as string;
 
-    const { lead_id, app_url } = (await req.json()) as SendFactFindRequest;
+    const { lead_id, app_url, mode = 'factfind', document_names = [] } = (await req.json()) as SendFactFindRequest;
 
     if (!lead_id || !app_url) {
       return new Response(
@@ -222,7 +283,12 @@ Deno.serve(async (req) => {
 
     // Build and send email
     const clientName = `${lead.first_name} ${lead.last_name || ""}`.trim();
-    const html = buildEmailHtml(clientName, portalUrl, brokerName);
+    const html = mode === 'documents'
+      ? buildDocumentsEmailHtml(clientName, portalUrl, brokerName, document_names)
+      : buildEmailHtml(clientName, portalUrl, brokerName);
+    const subject = mode === 'documents'
+      ? `${clientName} — Documents requested by Margin Finance`
+      : `${clientName} — Your Margin Finance Fact Find is ready`;
 
     const emailRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -233,7 +299,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: "Margin Finance <notifications@margin.com.au>",
         to: [lead.email],
-        subject: `${clientName} — Your Margin Finance Fact Find is ready`,
+        subject,
         html,
       }),
     });
