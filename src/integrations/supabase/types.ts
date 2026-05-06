@@ -534,6 +534,7 @@ export type Database = {
           created_at: string
           custom_fields: Json | null
           email: string | null
+          estimated_settlement_date: string | null
           first_name: string
           id: string
           last_name: string
@@ -563,6 +564,7 @@ export type Database = {
           created_at?: string
           custom_fields?: Json | null
           email?: string | null
+          estimated_settlement_date?: string | null
           first_name: string
           id?: string
           last_name: string
@@ -592,6 +594,7 @@ export type Database = {
           created_at?: string
           custom_fields?: Json | null
           email?: string | null
+          estimated_settlement_date?: string | null
           first_name?: string
           id?: string
           last_name?: string
