@@ -13,6 +13,7 @@ import { CompanyManagement, Company } from '@/components/CompanyManagement';
 import { CompanyCRM } from '@/components/company/CompanyCRM';
 import { ReferrerProfiles, ReferrerProfileData } from '@/components/ReferrerProfile';
 import { ReferrerReports } from '@/components/ReferrerReports';
+import { PipelineKpiCard } from '@/components/PipelineKpiCard';
 import { AddLeadDialog } from '@/components/AddLeadDialog';
 import { ContactsManagement, Contact } from '@/components/ContactsManagement';
 import { IncomingReferralsPanel } from '@/components/IncomingReferralsPanel';
@@ -519,10 +520,15 @@ export default function AdminCRM() {
             return { count: arr.length, volume: arr.reduce((s, l) => s + (l.loan_amount || 0), 0) };
           };
           const items = [
-            { label: 'Lodged', icon: TrendingUp, accent: 'primary', ...calc('lodged_date') },
-            { label: 'Approved', icon: CheckCircle, accent: 'success', ...calc('approved_date') },
-            { label: 'Settled', icon: DollarSign, accent: 'success', ...calc('settled_date') },
+            { key: 'lodged', label: 'Lodged', icon: TrendingUp, accent: 'primary', ...calc('lodged_date') },
+            { key: 'approved', label: 'Approved', icon: CheckCircle, accent: 'success', ...calc('approved_date') },
+            { key: 'settled', label: 'Settled', icon: DollarSign, accent: 'success', ...calc('settled_date') },
           ];
+          const targetKey = (k: string) => `pipeline_target_${k}_${effectiveBrokerId || 'me'}`;
+          const getTarget = (k: string) => {
+            const v = typeof window !== 'undefined' ? window.localStorage.getItem(targetKey(k)) : null;
+            return v ? parseInt(v, 10) || 0 : 0;
+          };
           return (
             <div>
               <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wider">
@@ -530,18 +536,16 @@ export default function AdminCRM() {
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {items.map((s) => (
-                  <Card key={s.label}>
-                    <CardContent className="pt-6 flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-lg bg-${s.accent}/10 flex items-center justify-center`}>
-                        <s.icon className={`w-5 h-5 text-${s.accent}`} />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold">{s.count}</p>
-                        <p className="text-sm text-muted-foreground">{s.label}</p>
-                        <p className="text-xs text-muted-foreground">${s.volume.toLocaleString()}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <PipelineKpiCard
+                    key={s.key}
+                    label={s.label}
+                    Icon={s.icon}
+                    accent={s.accent}
+                    volume={s.volume}
+                    count={s.count}
+                    initialTarget={getTarget(s.key)}
+                    onTargetChange={(v) => window.localStorage.setItem(targetKey(s.key), String(v))}
+                  />
                 ))}
               </div>
             </div>
