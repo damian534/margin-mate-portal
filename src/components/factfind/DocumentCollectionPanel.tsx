@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Plus, Upload, FileText, CheckCircle2, XCircle, Clock, Trash2, Download, UserPlus, Users, Sparkles, Send, Mail } from 'lucide-react';
+import { Plus, Upload, FileText, CheckCircle2, XCircle, Clock, Trash2, Download, UserPlus, Users, Sparkles, Send, Mail, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
 
@@ -550,23 +550,6 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
         </div>
       )}
 
-      {/* Request documents action */}
-      <div className="flex items-center justify-between gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
-        <div className="text-xs">
-          <p className="font-medium">
-            {unrequestedDocs.length > 0
-              ? `${unrequestedDocs.length} document${unrequestedDocs.length === 1 ? '' : 's'} ready to request`
-              : documents.length === 0
-                ? 'Add a checklist, then request documents from the client'
-                : 'All documents have been requested from the client'}
-          </p>
-          <p className="text-muted-foreground">Documents are only visible to the client once you click Request.</p>
-        </div>
-        <Button size="sm" className="h-8 text-xs gap-1.5 shrink-0" onClick={requestDocuments} disabled={isRequesting || unrequestedDocs.length === 0}>
-          <Send className="w-3.5 h-3.5" /> {isRequesting ? 'Requesting…' : 'Request'}
-        </Button>
-      </div>
-
       {/* Template quick-add — always visible */}
       <div className="flex items-center gap-2 flex-wrap bg-muted/30 rounded-lg p-2.5">
         <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -634,7 +617,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-start gap-2 flex-1 min-w-0">
                             <FileText className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               {editingDocId === doc.id ? (
                                 <Input
                                   autoFocus
@@ -648,13 +631,26 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
                                   className="h-7 text-sm"
                                 />
                               ) : (
-                                <p
-                                  className="text-sm font-medium cursor-text hover:bg-muted/50 rounded px-1 -mx-1"
-                                  title="Click to rename"
-                                  onClick={() => { setEditingDocId(doc.id); setEditingDocName(doc.name); }}
-                                >
-                                  {doc.name}
-                                </p>
+                                <div className="flex items-center gap-1.5 min-w-0 group/name">
+                                  <button
+                                    type="button"
+                                    className="text-left text-sm font-medium truncate cursor-text hover:bg-muted/50 rounded px-1 -mx-1 flex-1 min-w-0"
+                                    title="Click to rename"
+                                    onClick={() => { setEditingDocId(doc.id); setEditingDocName(doc.name); }}
+                                  >
+                                    {doc.name}
+                                  </button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 shrink-0 opacity-70 group-hover/name:opacity-100"
+                                    title="Rename document"
+                                    onClick={() => { setEditingDocId(doc.id); setEditingDocName(doc.name); }}
+                                  >
+                                    <Pencil className="w-3 h-3" />
+                                  </Button>
+                                </div>
                               )}
                               {doc.description && <p className="text-xs text-muted-foreground">{doc.description}</p>}
                               {activeApplicantId === 'all' && applicant && (
