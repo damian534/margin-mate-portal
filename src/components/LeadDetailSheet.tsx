@@ -268,7 +268,7 @@ export function LeadDetailSheet({
       return;
     }
     const { data } = await supabase.from('tasks').select('*').eq('lead_id', leadId).order('due_date', { ascending: true, nullsFirst: false });
-    setTasks((data as Task[]) || []);
+    setTasks(((data as any[]) || []).map(t => ({ ...t, checklist_items: Array.isArray(t.checklist_items) ? t.checklist_items : [] })) as Task[]);
   };
 
   const addNote = async (content: string, type: 'note' | 'email' | 'call' = 'note', taskId?: string) => {
