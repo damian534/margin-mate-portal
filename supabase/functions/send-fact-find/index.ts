@@ -286,7 +286,7 @@ Deno.serve(async (req) => {
     }
 
     // Build portal URL
-    const portalUrl = `${app_url.replace(/\/$/, "")}/client-portal?token=${encodeURIComponent(portalToken)}`;
+    const portalUrl = `${app_url.replace(/\/$/, "")}/client-portal/${encodeURIComponent(portalToken)}`;
 
     // Build and send email
     const clientName = cleanText(recipient_name, `${lead.first_name} ${lead.last_name || ""}`.trim());
