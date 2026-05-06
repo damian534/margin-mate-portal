@@ -18,6 +18,15 @@ interface NotifyRequest {
   status_label?: string;
 }
 
+function escapeHtml(unsafe: string): string {
+  return String(unsafe ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -52,8 +61,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    const partnerName = profile.full_name || "Partner";
-    const leadName = `${lead.first_name} ${lead.last_name}`;
+    const partnerName = escapeHtml(profile.full_name || "Partner");
+    const leadName = escapeHtml(`${lead.first_name} ${lead.last_name}`);
+    const safeNote = escapeHtml(body.note_content || "");
+    const safeStatusLabel = escapeHtml(body.status_label || "");
     let subject: string;
     let html: string;
 
@@ -66,13 +77,13 @@ Deno.serve(async (req) => {
             There's a new update on your referral <strong>${leadName}</strong>:
           </p>
           <div style="background: #f5f5f5; border-left: 4px solid #2563eb; padding: 16px; border-radius: 4px; margin: 20px 0;">
-            <p style="margin: 0; color: #333; font-size: 14px; white-space: pre-wrap;">${body.note_content}</p>
+            <p style="margin: 0; color: #333; font-size: 14px; white-space: pre-wrap;">${safeNote}</p>
           </div>
           <p style="color: #888; font-size: 13px;">— Margin Finance</p>
         </div>
       `;
     } else {
-      subject = `Referral status update: ${leadName} → ${body.status_label}`;
+      subject = `Referral status update: ${leadName} → ${safeStatusLabel}`;
       html = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 0;">
           <h2 style="color: #1a1a1a; margin-bottom: 8px;">Hi ${partnerName},</h2>
@@ -81,7 +92,7 @@ Deno.serve(async (req) => {
           </p>
           <div style="text-align: center; margin: 24px 0;">
             <span style="display: inline-block; padding: 8px 20px; background: #2563eb; color: #fff; border-radius: 20px; font-size: 15px; font-weight: 600;">
-              ${body.status_label}
+              ${safeStatusLabel}
             </span>
           </div>
           <p style="color: #888; font-size: 13px;">— Margin Finance</p>
