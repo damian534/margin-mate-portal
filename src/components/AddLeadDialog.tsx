@@ -56,6 +56,7 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
   const [loanPurpose, setLoanPurpose] = useState('');
   const [selectedReferrerId, setSelectedReferrerId] = useState('');
   const [selectedContactId, setSelectedContactId] = useState('');
+  const [portalMode, setPortalMode] = useState<'both' | 'fact_find' | 'documents'>('both');
   const [referrerOpen, setReferrerOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -80,6 +81,7 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
     setLoanPurpose('');
     setSelectedReferrerId('');
     setSelectedContactId('');
+    setPortalMode('both');
     setShowNewContact(false);
     setNewContactFirst('');
     setNewContactLast('');
@@ -158,6 +160,7 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
       source_contact_id: sourceContactId,
       status: 'new',
       broker_id: effectiveBrokerId,
+      portal_mode: portalMode,
     };
 
     if (isPreviewMode) {
@@ -176,15 +179,16 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
     // Notify broker of new lead
     notifyNewLead(leadData, effectiveBrokerId || null);
 
-    // Auto-send fact find email if lead has an email
-    if (newLead?.email) {
+    // Auto-send portal email if lead has an email and the broker chose to share something now.
+    // 'documents' mode skips auto-send — the broker will request docs from the Docs panel which triggers its own email.
+    if (newLead?.email && portalMode !== 'documents') {
       supabase.functions.invoke('send-fact-find', {
-        body: { lead_id: newLead.id, app_url: window.location.origin },
+        body: { lead_id: newLead.id, app_url: window.location.origin, mode: 'factfind' },
       }).then(({ data, error: fnErr }) => {
         if (fnErr || data?.error) {
-          console.error('Auto-send fact find failed:', fnErr || data?.error);
+          console.error('Auto-send portal email failed:', fnErr || data?.error);
         } else {
-          toast.success('Fact Find email sent to ' + newLead.email);
+          toast.success('Portal email sent to ' + newLead.email);
         }
       });
     }
