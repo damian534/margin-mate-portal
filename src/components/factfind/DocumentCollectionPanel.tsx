@@ -81,6 +81,7 @@ const PRIMARY_APPLICANT_FALLBACK_ID = 'contact-card-primary-applicant';
 export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplicantName }: DocumentCollectionPanelProps) {
   const [documents, setDocuments] = useState<DocumentRequest[]>([]);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeApplicantId, setActiveApplicantId] = useState<string>('all');
   const [showAddApplicant, setShowAddApplicant] = useState(false);
   const [newApplicantName, setNewApplicantName] = useState('');
@@ -95,6 +96,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   const isPrimaryFallback = (id: string | null) => id === PRIMARY_APPLICANT_FALLBACK_ID;
 
   useEffect(() => {
+    setIsLoading(true);
     fetchAll();
     setSecondApplicantPrompt('unknown');
   }, [leadId, primaryName]);
@@ -106,6 +108,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       ]);
       setDocuments([]);
       setActiveApplicantId(PRIMARY_APPLICANT_FALLBACK_ID);
+      setIsLoading(false);
       return;
     }
     const [{ data: apps }, { data: docs }] = await Promise.all([
@@ -142,6 +145,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       setActiveApplicantId(current => appList.some(app => app.id === current) ? current : appList[0].id);
     }
     setDocuments((docs as DocumentRequest[]) || []);
+    setIsLoading(false);
   };
 
   const ensurePersistedApplicantId = async (applicantId: string | null) => {
@@ -447,7 +451,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
         ))}
       </div>
 
-      {applicants.length === 0 && documents.length === 0 && (
+      {!isLoading && applicants.length === 0 && documents.length === 0 && (
         <div className="text-center py-6 border border-dashed rounded-lg">
           <Users className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground mb-3">Add an applicant, or pick a checklist above to get started</p>
