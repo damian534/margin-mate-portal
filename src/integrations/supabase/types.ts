@@ -94,6 +94,7 @@ export type Database = {
           id: string
           is_active: boolean
           lead_id: string
+          portal_mode: string
           token: string
         }
         Insert: {
@@ -103,6 +104,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           lead_id: string
+          portal_mode?: string
           token?: string
         }
         Update: {
@@ -112,6 +114,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           lead_id?: string
+          portal_mode?: string
           token?: string
         }
         Relationships: [
