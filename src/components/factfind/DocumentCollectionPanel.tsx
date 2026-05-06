@@ -97,6 +97,11 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
 
   useEffect(() => {
     setIsLoading(true);
+    setApplicants([
+      { id: PRIMARY_APPLICANT_FALLBACK_ID, lead_id: leadId, name: primaryName, employment_type: 'PAYG', display_order: 0 },
+    ]);
+    setDocuments([]);
+    setActiveApplicantId(PRIMARY_APPLICANT_FALLBACK_ID);
     fetchAll();
     setSecondApplicantPrompt('unknown');
   }, [leadId, primaryName]);
