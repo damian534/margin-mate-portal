@@ -55,8 +55,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
 
 export default function ClientPortal() {
   const { token } = useParams<{ token: string }>();
-  const [searchParams] = useSearchParams();
-  const documentsOnly = searchParams.get('view') === 'documents';
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [leadName, setLeadName] = useState('');
@@ -66,8 +64,6 @@ export default function ClientPortal() {
   const [leadFirstName, setLeadFirstName] = useState('');
   const [leadLastName, setLeadLastName] = useState('');
   const [documents, setDocuments] = useState<DocumentRequest[]>([]);
-  const [activeTab, setActiveTab] = useState('factfind');
-  const [factFindComplete, setFactFindComplete] = useState(false);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   useEffect(() => {
@@ -148,11 +144,7 @@ export default function ClientPortal() {
 
   if (!leadId) return null;
 
-  // If there are documents, show tabs. Otherwise show wizard full screen.
-  const hasDocuments = documents.length > 0;
-
-  if (documentsOnly) {
-    return (
+  return (
       <div className="min-h-screen bg-background font-[Poppins,sans-serif]">
         <Sonner />
         <div className="max-w-2xl mx-auto p-4 py-8 space-y-6">
