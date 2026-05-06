@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Plus, Upload, FileText, CheckCircle2, XCircle, Clock, Trash2, Download, UserPlus, Users, Sparkles } from 'lucide-react';
+import { Plus, Upload, FileText, CheckCircle2, XCircle, Clock, Trash2, Download, UserPlus, Users, Sparkles, Send, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DocumentRequest {
@@ -22,6 +22,7 @@ interface DocumentRequest {
   created_at: string;
   applicant_id: string | null;
   section: string | null;
+  requested_at: string | null;
 }
 
 interface Applicant {
@@ -30,6 +31,8 @@ interface Applicant {
   name: string;
   employment_type: string | null;
   display_order: number;
+  email?: string | null;
+  phone?: string | null;
 }
 
 interface DocumentCollectionPanelProps {
@@ -86,6 +89,9 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   const [showAddApplicant, setShowAddApplicant] = useState(false);
   const [newApplicantName, setNewApplicantName] = useState('');
   const [newApplicantType, setNewApplicantType] = useState<string>('PAYG');
+  const [newApplicantEmail, setNewApplicantEmail] = useState('');
+  const [newApplicantPhone, setNewApplicantPhone] = useState('');
+  const [isRequesting, setIsRequesting] = useState(false);
   const [addingTo, setAddingTo] = useState<{ section: string; applicantId: string | null } | null>(null);
   const [newDocName, setNewDocName] = useState('');
   const [newDocDescription, setNewDocDescription] = useState('');
@@ -174,18 +180,28 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
 
   const addApplicant = async () => {
     if (!newApplicantName.trim()) return;
+    if (!newApplicantEmail.trim() || !newApplicantPhone.trim()) {
+      toast.error('Email and mobile are required for additional applicants');
+      return;
+    }
+    // Simple email check
+    if (!/^\S+@\S+\.\S+$/.test(newApplicantEmail.trim())) {
+      toast.error('Please enter a valid email');
+      return;
+    }
     const order = applicants.length;
     if (!isPreviewMode && applicants.some(app => isPrimaryFallback(app.id))) {
       const primaryApplicantId = await ensurePersistedApplicantId(PRIMARY_APPLICANT_FALLBACK_ID);
       if (!primaryApplicantId) return;
     }
     if (isPreviewMode) {
-      const newApp = { id: `prev-${Date.now()}`, lead_id: leadId, name: newApplicantName.trim(), employment_type: newApplicantType, display_order: order };
+      const newApp = { id: `prev-${Date.now()}`, lead_id: leadId, name: newApplicantName.trim(), employment_type: newApplicantType, display_order: order, email: newApplicantEmail.trim(), phone: newApplicantPhone.trim() };
       setApplicants(prev => [...prev, newApp]);
     } else {
       const { data, error } = await supabase.from('lead_applicants').insert({
         lead_id: leadId, name: newApplicantName.trim(), employment_type: newApplicantType, display_order: order,
-      }).select().single();
+        email: newApplicantEmail.trim(), phone: newApplicantPhone.trim(),
+      } as any).select().single();
       if (error) { toast.error('Failed: ' + error.message); return; }
       setApplicants(prev => [...prev, data as Applicant]);
       // auto-load template for this applicant
@@ -193,6 +209,8 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
     }
     toast.success('Applicant added');
     setNewApplicantName('');
+    setNewApplicantEmail('');
+    setNewApplicantPhone('');
     setShowAddApplicant(false);
   };
 
@@ -345,9 +363,46 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   }
   const finalSections = activeApplicantId !== 'all' ? SECTION_ORDER : orderedSections;
 
+  const unrequestedDocs = visibleDocs.filter(d => !d.requested_at && d.status === 'pending');
   const pendingCount = visibleDocs.filter(d => d.status === 'pending').length;
   const uploadedCount = visibleDocs.filter(d => d.status === 'uploaded').length;
   const approvedCount = visibleDocs.filter(d => d.status === 'approved').length;
+
+  const requestDocuments = async () => {
+    if (unrequestedDocs.length === 0) {
+      toast.info('No new documents to request');
+      return;
+    }
+    setIsRequesting(true);
+    try {
+      if (!isPreviewMode) {
+        const ids = unrequestedDocs.map(d => d.id);
+        const nowIso = new Date().toISOString();
+        const { error } = await supabase
+          .from('document_requests')
+          .update({ requested_at: nowIso } as any)
+          .in('id', ids);
+        if (error) { toast.error('Failed to mark requested'); return; }
+
+        // Send the portal email so the client gets the link with the new docs
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData?.session?.access_token;
+        if (accessToken) {
+          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-fact-find`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+            body: JSON.stringify({ lead_id: leadId, app_url: window.location.origin }),
+          }).catch(() => {});
+        }
+        await fetchAll();
+      } else {
+        setDocuments(prev => prev.map(d => unrequestedDocs.some(u => u.id === d.id) ? { ...d, requested_at: new Date().toISOString() } : d));
+      }
+      toast.success(`Requested ${unrequestedDocs.length} document${unrequestedDocs.length === 1 ? '' : 's'} from client`);
+    } finally {
+      setIsRequesting(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -439,6 +494,21 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
             + {t}
           </Button>
         ))}
+      </div>
+
+      {/* Request documents action */}
+      <div className="flex items-center justify-between gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
+        <div className="text-xs">
+          <p className="font-medium">
+            {unrequestedDocs.length > 0
+              ? `${unrequestedDocs.length} document${unrequestedDocs.length === 1 ? '' : 's'} ready to request`
+              : 'All documents have been requested from the client'}
+          </p>
+          <p className="text-muted-foreground">Documents are only visible to the client once you click Request.</p>
+        </div>
+        <Button size="sm" className="h-8 text-xs gap-1.5" onClick={requestDocuments} disabled={isRequesting || unrequestedDocs.length === 0}>
+          <Send className="w-3.5 h-3.5" /> {isRequesting ? 'Requesting…' : 'Request from client'}
+        </Button>
       </div>
 
       {!isLoading && applicants.length === 0 && documents.length === 0 && (
