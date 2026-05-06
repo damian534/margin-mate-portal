@@ -121,8 +121,9 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       supabase.from('document_requests').select('*').eq('lead_id', leadId).order('created_at'),
     ]);
     let appList = (apps as Applicant[]) || [];
-    // Auto-seed Applicant 1 from the contact card if missing
-    if (appList.length === 0 && primaryName) {
+    // Applicant 1 always comes from the contact card, even before it is saved to lead_applicants.
+    const hasPrimaryApplicant = appList.some(app => app.display_order === 0);
+    if (!hasPrimaryApplicant && primaryName) {
       const fallbackApplicant: Applicant = {
         id: PRIMARY_APPLICANT_FALLBACK_ID,
         lead_id: leadId,
@@ -130,7 +131,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
         employment_type: 'PAYG',
         display_order: 0,
       };
-      appList = [fallbackApplicant];
+      appList = [fallbackApplicant, ...appList];
     }
     setApplicants(appList);
     if (appList.length > 0) {
@@ -176,6 +177,10 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   const addApplicant = async () => {
     if (!newApplicantName.trim()) return;
     const order = applicants.length;
+    if (!isPreviewMode && applicants.some(app => isPrimaryFallback(app.id))) {
+      const primaryApplicantId = await ensurePersistedApplicantId(PRIMARY_APPLICANT_FALLBACK_ID);
+      if (!primaryApplicantId) return;
+    }
     if (isPreviewMode) {
       const newApp = { id: `prev-${Date.now()}`, lead_id: leadId, name: newApplicantName.trim(), employment_type: newApplicantType, display_order: order };
       setApplicants(prev => [...prev, newApp]);
