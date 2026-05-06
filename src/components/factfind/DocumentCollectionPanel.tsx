@@ -42,6 +42,7 @@ interface DocumentCollectionPanelProps {
   primaryApplicantName?: string;
   primaryApplicantEmail?: string | null;
   primaryApplicantPhone?: string | null;
+  actionsSlot?: React.ReactNode;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -74,7 +75,7 @@ const applicantSchema = z.object({
   phone: z.string().trim().min(8, 'Mobile is required').max(20, 'Mobile is too long').regex(/^[+\d\s()-]+$/, 'Please enter a valid mobile'),
 });
 
-export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplicantName, primaryApplicantEmail, primaryApplicantPhone }: DocumentCollectionPanelProps) {
+export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplicantName, primaryApplicantEmail, primaryApplicantPhone, actionsSlot }: DocumentCollectionPanelProps) {
   const [documents, setDocuments] = useState<DocumentRequest[]>([]);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [templates, setTemplates] = useState<Template[]>(FALLBACK_TEMPLATES);
@@ -717,6 +718,25 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
             </div>
           );
         })}
+      </div>
+
+      <div className="space-y-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-xs">
+            <p className="font-medium">
+              {unrequestedDocs.length > 0
+                ? `${unrequestedDocs.length} document${unrequestedDocs.length === 1 ? '' : 's'} ready to request`
+                : documents.length === 0
+                  ? 'Add a checklist, then request documents from the client'
+                  : 'All documents have been requested from the client'}
+            </p>
+            <p className="text-muted-foreground">Documents are only visible to the client once you click Request.</p>
+          </div>
+          <Button size="sm" className="h-8 text-xs gap-1.5 shrink-0" onClick={requestDocuments} disabled={isRequesting || unrequestedDocs.length === 0}>
+            <Send className="w-3.5 h-3.5" /> {isRequesting ? 'Requesting…' : 'Request'}
+          </Button>
+        </div>
+        {actionsSlot}
       </div>
     </div>
   );
