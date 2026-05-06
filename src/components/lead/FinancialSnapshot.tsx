@@ -63,23 +63,11 @@ export function FinancialSnapshot({ leadId, loanAmount, referrerCommission, isPr
   return (
     <div className="space-y-3">
       {/* KPI strip */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 gap-2">
         <KpiTile
           icon={<Coins className="w-3.5 h-3.5" />}
           label="Loan amount"
           value={loanAmount ? fmtCurrency(loanAmount) : '—'}
-        />
-        <KpiTile
-          icon={<Wallet className="w-3.5 h-3.5" />}
-          label="Pipeline value"
-          value={pipelineValue > 0 ? fmtCurrency(pipelineValue) : '—'}
-          tone="primary"
-        />
-        <KpiTile
-          icon={agg?.hasData && agg.netPosition >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-          label="Net position"
-          value={agg?.hasData ? fmtCurrency(agg.netPosition, { compact: true }) : '—'}
-          tone={agg?.hasData ? (agg.netPosition >= 0 ? 'success' : 'destructive') : 'muted'}
         />
       </div>
 
