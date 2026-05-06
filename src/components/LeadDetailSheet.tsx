@@ -1189,10 +1189,11 @@ export function LeadDetailSheet({
                         const isEmail = note.content.startsWith('📧');
                         const isCall = note.content.startsWith('📞');
                         const isTaskNote = note.content.startsWith('📋');
+                        const isDocReq = note.content.startsWith('📄');
                         return (
                           <div key={note.id} className="relative pb-3">
                             <div className={`absolute -left-[14px] top-1.5 w-3 h-3 rounded-full border-2 border-background ${
-                              isEmail ? 'bg-blue-500' : isCall ? 'bg-green-500' : isTaskNote ? 'bg-amber-500' : 'bg-muted-foreground/40'
+                              isEmail ? 'bg-blue-500' : isCall ? 'bg-green-500' : isTaskNote ? 'bg-amber-500' : isDocReq ? 'bg-purple-500' : 'bg-muted-foreground/40'
                             }`} />
                             <div className="bg-muted/50 rounded-lg p-2.5">
                               <p className="text-sm whitespace-pre-wrap">{note.content}</p>
