@@ -39,6 +39,8 @@ export async function notifyNewLead(
     loan_amount?: number | null;
     loan_purpose?: string | null;
     source?: string | null;
+    referral_partner_id?: string | null;
+    source_contact_id?: string | null;
   },
   brokerId: string | null
 ) {
