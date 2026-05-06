@@ -82,6 +82,9 @@ interface Lead {
   source: string | null;
   source_contact_id: string | null;
   wip_status?: string | null;
+  lodged_date?: string | null;
+  approved_date?: string | null;
+  settled_date?: string | null;
 }
 
 
