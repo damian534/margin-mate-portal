@@ -361,8 +361,8 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   }
   const finalSections = activeApplicantId !== 'all' ? SECTION_ORDER : orderedSections;
 
-  const requestedCount = visibleDocs.filter(d => !!d.requested_at).length;
-  const unrequestedDocs = visibleDocs.filter(d => !d.requested_at && d.status === 'pending');
+  const requestedCount = documents.filter(d => !!d.requested_at).length;
+  const unrequestedDocs = documents.filter(d => !d.requested_at && d.status === 'pending');
   const pendingCount = visibleDocs.filter(d => d.status === 'pending').length;
   const uploadedCount = visibleDocs.filter(d => d.status === 'uploaded').length;
   const approvedCount = visibleDocs.filter(d => d.status === 'approved').length;
@@ -498,7 +498,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
               ? `${unrequestedDocs.length} document${unrequestedDocs.length === 1 ? '' : 's'} ready to request`
               : documents.length === 0
                 ? 'Add a checklist, then request documents from the client'
-                : 'All visible documents have been requested from the client'}
+                : 'All documents have been requested from the client'}
           </p>
           <p className="text-muted-foreground">Documents are only visible to the client once you click Request.</p>
         </div>
