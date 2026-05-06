@@ -512,7 +512,7 @@ export function LeadDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-xl overflow-y-auto p-0">
+      <SheetContent className="w-full sm:max-w-3xl overflow-y-auto p-0">
         {/* Contact Header Card */}
         <div className="bg-muted/30 p-6 pb-4 border-b">
           <SheetHeader className="mb-4">
