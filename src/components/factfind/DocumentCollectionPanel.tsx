@@ -575,6 +575,11 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
                           <Badge variant="outline" className={cn("shrink-0 text-[10px] gap-1", cfg.color)}>
                             {cfg.icon} {cfg.label}
                           </Badge>
+                          {!doc.requested_at && doc.status === 'pending' && (
+                            <Badge variant="outline" className="shrink-0 text-[10px] gap-1 bg-muted text-muted-foreground border-muted">
+                              Not requested
+                            </Badge>
+                          )}
                         </div>
 
                         {doc.file_name && (
