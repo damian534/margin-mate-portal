@@ -12,6 +12,33 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// Render text with URLs (and bare domains like bankstatements.com.au) as clickable links
+function linkify(text: string): React.ReactNode {
+  const regex = /((?:https?:\/\/|www\.)[^\s]+|\b[a-z0-9-]+(?:\.[a-z0-9-]+)+\.(?:com\.au|com|au|net|org|io|co)(?:\/[^\s]*)?)/gi;
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
+    const raw = match[0];
+    const href = raw.startsWith('http') ? raw : `https://${raw}`;
+    parts.push(
+      <a
+        key={match.index}
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary underline underline-offset-2 hover:opacity-80"
+      >
+        {raw}
+      </a>
+    );
+    lastIndex = match.index + raw.length;
+  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+  return parts;
+}
+
 interface DocumentRequest {
   id: string;
   name: string;
