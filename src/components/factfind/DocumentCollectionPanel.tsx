@@ -344,22 +344,25 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode }: DocumentColle
         </div>
       )}
 
-      {/* Template quick-add for the active applicant */}
-      {activeApplicantId !== 'all' && activeApplicantId !== 'unassigned' && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-muted-foreground flex items-center gap-1"><Sparkles className="w-3 h-3" /> Add checklist:</span>
-          {Object.keys(TEMPLATES).map(t => (
-            <Button key={t} variant="outline" size="sm" className="h-7 text-xs" onClick={() => loadTemplate(t, targetApplicantId)}>
-              + {t}
-            </Button>
-          ))}
-        </div>
-      )}
+      {/* Template quick-add — always visible */}
+      <div className="flex items-center gap-2 flex-wrap bg-muted/30 rounded-lg p-2.5">
+        <span className="text-xs text-muted-foreground flex items-center gap-1">
+          <Sparkles className="w-3 h-3" /> Add checklist
+          {activeApplicantId !== 'all' && activeApplicantId !== 'unassigned'
+            ? ` for ${applicants.find(a => a.id === activeApplicantId)?.name || 'applicant'}:`
+            : ' (unassigned):'}
+        </span>
+        {Object.keys(TEMPLATES).map(t => (
+          <Button key={t} variant="outline" size="sm" className="h-7 text-xs" onClick={() => loadTemplate(t, targetApplicantId)}>
+            + {t}
+          </Button>
+        ))}
+      </div>
 
       {applicants.length === 0 && documents.length === 0 && (
-        <div className="text-center py-8 border border-dashed rounded-lg">
+        <div className="text-center py-6 border border-dashed rounded-lg">
           <Users className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
-          <p className="text-sm text-muted-foreground mb-3">Add an applicant to start collecting documents</p>
+          <p className="text-sm text-muted-foreground mb-3">Add an applicant, or pick a checklist above to get started</p>
           <Button size="sm" onClick={() => setShowAddApplicant(true)}><UserPlus className="w-3 h-3 mr-1" /> Add First Applicant</Button>
         </div>
       )}
