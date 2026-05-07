@@ -179,20 +179,6 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
     // Notify broker of new lead
     notifyNewLead(leadData, effectiveBrokerId || null);
 
-    // Auto-send portal email if lead has an email and the broker chose to share something now.
-    // 'documents' mode skips auto-send — the broker will request docs from the Docs panel which triggers its own email.
-    if (newLead?.email && portalMode !== 'documents') {
-      supabase.functions.invoke('send-fact-find', {
-        body: { lead_id: newLead.id, app_url: window.location.origin, mode: 'factfind' },
-      }).then(({ data, error: fnErr }) => {
-        if (fnErr || data?.error) {
-          console.error('Auto-send portal email failed:', fnErr || data?.error);
-        } else {
-          toast.success('Portal email sent to ' + newLead.email);
-        }
-      });
-    }
-
     setSaving(false);
     resetForm();
     setOpen(false);
@@ -220,26 +206,6 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
                 ))}
               </SelectContent>
             </Select>
-          </div>
-
-          {/* Client portal scope */}
-          <div className="space-y-1.5">
-            <Label>What to send the client</Label>
-            <Select value={portalMode} onValueChange={(v) => setPortalMode(v as 'both' | 'fact_find' | 'documents')}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="both">Fact Find + Documents</SelectItem>
-                <SelectItem value="fact_find">Fact Find only</SelectItem>
-                <SelectItem value="documents">Documents only</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-[11px] text-muted-foreground">
-              {portalMode === 'documents'
-                ? "No portal email is sent now. Request docs from the lead card to send a documents-only link."
-                : portalMode === 'fact_find'
-                ? "Sends a Fact Find welcome email. The lead card will hide the documents panel."
-                : "Sends the full Fact Find welcome email. The lead card shows both Fact Find and Documents."}
-            </p>
           </div>
 
           {/* Referrer picker (for referral_partner source) */}
