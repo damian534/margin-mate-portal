@@ -238,12 +238,12 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: stage.color }} />
                     <h3 className="text-sm font-semibold">{stage.label}</h3>
-                    <span className="text-xs text-muted-foreground">({stageLeads.length})</span>
                     {stageTotal > 0 && (
-                      <span className="ml-auto text-sm font-semibold tabular-nums text-foreground">
+                      <span className="text-sm font-semibold tabular-nums text-foreground">
                         ${stageTotal.toLocaleString()}
                       </span>
                     )}
+                    <span className="text-xs text-muted-foreground">({stageLeads.length})</span>
                   </div>
                   {stageLeads.length === 0 ? (
                     <div className="border border-dashed rounded-lg p-4 text-center text-xs text-muted-foreground">
