@@ -22,7 +22,7 @@ import {
   Mail, Phone, Send, Trash2, Users, Building2, DollarSign,
   Calendar, Plus, CheckCircle, CheckCircle2, Clock, AlertTriangle,
   MessageSquare, Activity, ChevronDown, ChevronRight, Pencil, X, Save,
-  Search, UserPlus, ExternalLink, Award, FileText
+  Search, UserPlus, ExternalLink, Award, FileText, Copy
 } from 'lucide-react';
 import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectionPanel';
 import { ReferLeadDialog } from '@/components/ReferLeadDialog';
@@ -136,6 +136,7 @@ interface LeadDetailSheetProps {
   onUpdateWipStatus?: (leadId: string, wipStatus: string | null) => void;
   onUpdateCommission: (leadId: string, fields: Record<string, any>) => void;
   onDeleteLead: (leadId: string) => void;
+  onDuplicateLead?: (leadId: string) => void;
   onLeadChange: (lead: Lead) => void;
   onOpenContact?: (contactId: string) => void;
   sampleNotes?: Note[];
@@ -166,7 +167,7 @@ function formatDatetimeLocal(d: Date) {
 
 export function LeadDetailSheet({
   open, onOpenChange, lead, statuses, leadSources = [], referrerName, referrerCompany, sourceContactName,
-  contacts: contactsList = [], referrers: referrersList = [], isPreviewMode, onUpdateStatus, onUpdateWipStatus, onUpdateCommission, onDeleteLead, onLeadChange, onOpenContact, sampleNotes, onLeadSourcesChanged
+  contacts: contactsList = [], referrers: referrersList = [], isPreviewMode, onUpdateStatus, onUpdateWipStatus, onUpdateCommission, onDeleteLead, onDuplicateLead, onLeadChange, onOpenContact, sampleNotes, onLeadSourcesChanged
 }: LeadDetailSheetProps) {
   const { user, role } = useAuth();
   const isSuperAdmin = role === 'super_admin';
@@ -1659,9 +1660,20 @@ export function LeadDetailSheet({
           <Separator />
 
           {/* Delete */}
-          <AlertDialog>
+          <div className="flex gap-2">
+            {onDuplicateLead && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 gap-2"
+                onClick={() => onDuplicateLead(lead.id)}
+              >
+                <Copy className="w-4 h-4" /> Duplicate Lead
+              </Button>
+            )}
+            <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm" className="w-full gap-2">
+              <Button variant="destructive" size="sm" className="flex-1 gap-2">
                 <Trash2 className="w-4 h-4" /> Delete Lead
               </Button>
             </AlertDialogTrigger>
@@ -1679,7 +1691,8 @@ export function LeadDetailSheet({
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
-          </AlertDialog>
+            </AlertDialog>
+          </div>
         </div>
       </SheetContent>
     </Sheet>
