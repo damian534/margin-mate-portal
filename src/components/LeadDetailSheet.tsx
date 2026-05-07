@@ -188,6 +188,36 @@ export function LeadDetailSheet({
   const [sourceContactReferralCount, setSourceContactReferralCount] = useState<number | null>(null);
   const [contactPickerOpen, setContactPickerOpen] = useState(false);
   const [partnerPickerOpen, setPartnerPickerOpen] = useState(false);
+  const [addingSource, setAddingSource] = useState(false);
+  const [newSourceLabel, setNewSourceLabel] = useState('');
+
+  const handleAddSource = async () => {
+    const label = newSourceLabel.trim();
+    if (!label) return;
+    const name = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+    if (!name) { toast.error('Invalid source name'); return; }
+    if (leadSources.some(s => s.name === name)) {
+      toast.error('A source with that name already exists');
+      return;
+    }
+    if (isPreviewMode) {
+      toast.success('Source added (preview)');
+      setAddingSource(false);
+      setNewSourceLabel('');
+      return;
+    }
+    const nextOrder = (leadSources.reduce((m, s: any) => Math.max(m, s.display_order || 0), 0) || 0) + 1;
+    const { error } = await supabase.from('lead_sources').insert({ name, label, display_order: nextOrder } as any);
+    if (error) { toast.error('Failed to add source'); return; }
+    toast.success('Source added');
+    setAddingSource(false);
+    setNewSourceLabel('');
+    onLeadSourcesChanged?.();
+    if (lead) {
+      onLeadChange?.({ ...lead, source: name });
+      await supabase.from('leads').update({ source: name } as any).eq('id', lead.id);
+    }
+  };
 
   const startNameEdit = () => {
     setEditFirstName(lead.first_name);
