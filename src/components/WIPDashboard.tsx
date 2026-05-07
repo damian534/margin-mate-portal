@@ -241,7 +241,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                   <div className="flex-1 min-w-0">
                                     {hasOpportunity ? (
                                       <>
-                                        <p className="font-semibold text-sm leading-tight break-words text-primary" title={displayTitle}>{displayTitle}</p>
+                                        <p className="font-semibold text-sm leading-tight break-words text-foreground" title={displayTitle}>{displayTitle}</p>
                                         <p className="text-xs text-muted-foreground leading-tight truncate">{fullName}</p>
                                       </>
                                     ) : (
