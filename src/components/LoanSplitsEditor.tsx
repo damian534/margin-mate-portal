@@ -40,11 +40,12 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange }: Props
     }
     const [{ data: s }, { data: l }] = await Promise.all([
       supabase.from('loan_splits').select('*').eq('lead_id', leadId).order('display_order'),
-      supabase.from('lenders').select('name').order('display_order'),
+      supabase.from('lenders').select('name, broker_id, is_accredited').eq('is_accredited', true).order('name'),
     ]);
     const list = (s as LoanSplit[]) || [];
     setSplits(list);
-    setLenders(((l as { name: string }[]) || []).map(x => x.name));
+    const names = Array.from(new Set(((l as { name: string }[]) || []).map(x => x.name)));
+    setLenders(names);
     onTotalChange?.(list.reduce((sum, x) => sum + (x.amount || 0), 0));
     setLoading(false);
   };

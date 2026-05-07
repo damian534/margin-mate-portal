@@ -94,7 +94,7 @@ export function LendersManagement() {
   const [lenders, setLenders] = useState<Lender[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [filterAccredited, setFilterAccredited] = useState<'all' | 'accredited' | 'not'>('all');
+  const [filterAccredited, setFilterAccredited] = useState<'all' | 'accredited'>('accredited');
   const [selected, setSelected] = useState<Lender | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [newName, setNewName] = useState('');
@@ -103,7 +103,9 @@ export function LendersManagement() {
 
   const fetchLenders = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('lenders').select('*').order('name');
+    const query = supabase.from('lenders').select('*').order('name');
+    if (effectiveBrokerId) query.eq('broker_id', effectiveBrokerId);
+    const { data, error } = await query;
     if (error) toast.error('Failed to load lenders');
     setLenders((data as Lender[]) || []);
     setLoading(false);
@@ -112,7 +114,6 @@ export function LendersManagement() {
   const filtered = useMemo(() => {
     return lenders.filter(l => {
       if (filterAccredited === 'accredited' && !l.is_accredited) return false;
-      if (filterAccredited === 'not' && l.is_accredited) return false;
       if (search && !l.name.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
@@ -180,7 +181,7 @@ export function LendersManagement() {
         </div>
         <div className="flex gap-1 rounded-lg border border-border p-1 bg-card">
           {[
-            { v: 'all', l: 'All' }, { v: 'accredited', l: 'Accredited' }, { v: 'not', l: 'Not Accredited' },
+            { v: 'accredited', l: 'Accredited' }, { v: 'all', l: 'All' },
           ].map(opt => (
             <button key={opt.v} onClick={() => setFilterAccredited(opt.v as any)}
               className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
