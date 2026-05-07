@@ -464,6 +464,40 @@ export default function AdminCRM() {
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...fields } : l));
   };
 
+  const duplicateLead = async (leadId: string) => {
+    const original = leads.find(l => l.id === leadId);
+    if (!original) return;
+    if (isPreviewMode) {
+      const copy = { ...original, id: crypto.randomUUID(), opportunity_name: `${original.opportunity_name || 'Loan'} (Copy)`, created_at: new Date().toISOString() } as Lead;
+      setLeads(prev => [copy, ...prev]);
+      toast.success('Lead duplicated (preview)');
+      setSelectedLead(copy);
+      return;
+    }
+    const { id, created_at, updated_at, ...rest } = original as any;
+    const payload = {
+      ...rest,
+      opportunity_name: original.opportunity_name ? `${original.opportunity_name} (Copy)` : 'Copy',
+      status: 'new',
+      wip_status: null,
+      lodged_date: null,
+      approved_date: null,
+      settled_date: null,
+      referrer_commission_paid: false,
+      company_commission_paid: false,
+    };
+    const { data, error } = await supabase.from('leads').insert(payload).select().single();
+    if (error) { toast.error('Failed to duplicate'); console.error(error); return; }
+    // Copy loan splits
+    const { data: splits } = await supabase.from('loan_splits').select('amount, security_address, lender, application_id, display_order').eq('lead_id', leadId);
+    if (splits && splits.length) {
+      await supabase.from('loan_splits').insert(splits.map(s => ({ ...s, lead_id: (data as any).id })));
+    }
+    toast.success('Lead duplicated');
+    await fetchLeads();
+    setSelectedLead(data as Lead);
+  };
+
   const deleteLead = async (leadId: string) => {
     if (isPreviewMode) {
       toast.success('Lead deleted (preview)');
