@@ -644,30 +644,78 @@ export type Database = {
       }
       lenders: {
         Row: {
+          app_pack_esign: string | null
+          bdm_email: string | null
+          bdm_name: string | null
+          bdm_phone: string | null
+          broker_code: string | null
           broker_id: string
           created_at: string
+          deals_in_progress: string | null
+          discharge_email: string | null
           display_order: number
+          fastrefi_eligibility: string | null
           id: string
+          is_accredited: boolean
           is_active: boolean
+          login_id: string | null
+          login_password: string | null
+          mortgage_docs_esign: string | null
           name: string
+          notes: string | null
+          progress_payments: string | null
+          settlement_conditions: string | null
+          supporting_docs_email: string | null
           updated_at: string
         }
         Insert: {
+          app_pack_esign?: string | null
+          bdm_email?: string | null
+          bdm_name?: string | null
+          bdm_phone?: string | null
+          broker_code?: string | null
           broker_id: string
           created_at?: string
+          deals_in_progress?: string | null
+          discharge_email?: string | null
           display_order?: number
+          fastrefi_eligibility?: string | null
           id?: string
+          is_accredited?: boolean
           is_active?: boolean
+          login_id?: string | null
+          login_password?: string | null
+          mortgage_docs_esign?: string | null
           name: string
+          notes?: string | null
+          progress_payments?: string | null
+          settlement_conditions?: string | null
+          supporting_docs_email?: string | null
           updated_at?: string
         }
         Update: {
+          app_pack_esign?: string | null
+          bdm_email?: string | null
+          bdm_name?: string | null
+          bdm_phone?: string | null
+          broker_code?: string | null
           broker_id?: string
           created_at?: string
+          deals_in_progress?: string | null
+          discharge_email?: string | null
           display_order?: number
+          fastrefi_eligibility?: string | null
           id?: string
+          is_accredited?: boolean
           is_active?: boolean
+          login_id?: string | null
+          login_password?: string | null
+          mortgage_docs_esign?: string | null
           name?: string
+          notes?: string | null
+          progress_payments?: string | null
+          settlement_conditions?: string | null
+          supporting_docs_email?: string | null
           updated_at?: string
         }
         Relationships: []
