@@ -3,6 +3,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format, isPast, isToday } from 'date-fns';
 import { Calendar, User, AlertTriangle } from 'lucide-react';
+import { AssigneeBadge } from '@/components/AssigneePicker';
 
 interface Task {
   id: string;
@@ -14,6 +15,7 @@ interface Task {
   completed_at: string | null;
   created_at: string;
   lead_name?: string;
+  assigned_to?: string | null;
 }
 
 interface TasksKanbanProps {
@@ -94,6 +96,7 @@ export function TasksKanban({ tasks, onToggleComplete, onOpenLead }: TasksKanban
                             <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{task.description}</p>
                           )}
                         </div>
+                        <AssigneeBadge userId={task.assigned_to ?? null} />
                       </div>
                       <div className="flex items-center gap-2 flex-wrap pl-6">
                         <span className="flex items-center gap-1 text-xs text-muted-foreground">
