@@ -162,7 +162,7 @@ function formatDatetimeLocal(d: Date) {
 
 export function LeadDetailSheet({
   open, onOpenChange, lead, statuses, leadSources = [], referrerName, referrerCompany, sourceContactName,
-  contacts: contactsList = [], referrers: referrersList = [], isPreviewMode, onUpdateStatus, onUpdateWipStatus, onUpdateCommission, onDeleteLead, onLeadChange, onOpenContact, sampleNotes
+  contacts: contactsList = [], referrers: referrersList = [], isPreviewMode, onUpdateStatus, onUpdateWipStatus, onUpdateCommission, onDeleteLead, onLeadChange, onOpenContact, sampleNotes, onLeadSourcesChanged
 }: LeadDetailSheetProps) {
   const { user, role } = useAuth();
   const isSuperAdmin = role === 'super_admin';
