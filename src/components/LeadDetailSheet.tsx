@@ -743,6 +743,25 @@ export function LeadDetailSheet({
             </SheetTitle>
           </SheetHeader>
 
+          {/* Co-applicant (under client) */}
+          <div className="mb-3">
+            <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">Co-applicant</Label>
+            <CoApplicantPicker
+              contacts={contactsList}
+              value={lead.co_applicant_contact_id ?? null}
+              excludeIds={lead.source_contact_id ? [lead.source_contact_id] : []}
+              isPreviewMode={isPreviewMode}
+              onOpenContact={onOpenContact}
+              hideHeader
+              onChange={async (newId) => {
+                onLeadChange?.({ ...lead, co_applicant_contact_id: newId });
+                if (!isPreviewMode) {
+                  await supabase.from('leads').update({ co_applicant_contact_id: newId } as any).eq('id', lead.id);
+                }
+              }}
+            />
+          </div>
+
           {!isPreviewMode && lead.broker_id === user?.id && (
             <div className="mb-3">
               <ReferLeadDialog
@@ -1089,25 +1108,6 @@ export function LeadDetailSheet({
             <p className="text-[10px] text-muted-foreground mt-1">
               Allocate this file to a specific assistant or team member.
             </p>
-          </div>
-
-          {/* Co-applicant */}
-          <div>
-            <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">Co-applicant</Label>
-            <CoApplicantPicker
-              contacts={contactsList}
-              value={lead.co_applicant_contact_id ?? null}
-              excludeIds={lead.source_contact_id ? [lead.source_contact_id] : []}
-              isPreviewMode={isPreviewMode}
-              onOpenContact={onOpenContact}
-              hideHeader
-              onChange={async (newId) => {
-                onLeadChange?.({ ...lead, co_applicant_contact_id: newId });
-                if (!isPreviewMode) {
-                  await supabase.from('leads').update({ co_applicant_contact_id: newId } as any).eq('id', lead.id);
-                }
-              }}
-            />
           </div>
 
           {/* Loan Details Row */}
