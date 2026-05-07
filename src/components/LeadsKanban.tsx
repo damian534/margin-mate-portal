@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { LeadStatus } from '@/hooks/useLeadStatuses';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ChevronDown, ChevronRight, DollarSign, Users, ChevronsDownUp, ChevronsUpDown, ClipboardList, FileDown, FileText } from 'lucide-react';
+import { ChevronDown, ChevronRight, DollarSign, Users, ChevronsDownUp, ChevronsUpDown, ClipboardList, FileDown, FileText, MoreVertical, Maximize2, Minimize2 } from 'lucide-react';
 import { AssigneeBadge } from '@/components/AssigneePicker';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
 interface Lead {
   id: string;
@@ -55,6 +56,7 @@ interface LeadsKanbanProps {
 
 export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName, getReferrerCompany, getContactName, onOpenLead, onUpdateStatus, onUpdateWipStatus, tasksByLead, taskDueFilter, docsByLead, onDownloadDocs }: LeadsKanbanProps) {
   const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set());
+  const [compact, setCompact] = useState(false);
 
   // Auto-expand columns that have leads when a task filter is applied
   useEffect(() => {
@@ -131,6 +133,14 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
             <><ChevronsDownUp className="w-3.5 h-3.5" /> Collapse All</>
           )}
         </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs gap-1.5 text-muted-foreground ml-1"
+          onClick={() => setCompact(c => !c)}
+        >
+          {compact ? (<><Maximize2 className="w-3.5 h-3.5" /> Normal</>) : (<><Minimize2 className="w-3.5 h-3.5" /> Compact</>)}
+        </Button>
       </div>
 
       <div className="flex gap-3 pb-4 overflow-x-auto" style={{ minHeight: '60vh', minWidth: 0 }}>
@@ -142,7 +152,7 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
           return (
             <div
               key={status.name}
-              className={`flex-shrink-0 flex flex-col transition-all ${isCollapsed ? 'w-12' : 'w-64'}`}
+              className={`flex-shrink-0 flex flex-col transition-all ${isCollapsed ? 'w-10' : compact ? 'w-44' : 'w-64'}`}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, status.name)}
             >
@@ -196,7 +206,7 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                             onClick={() => onOpenLead(lead)}
                             className="cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors border bg-card"
                           >
-                            <CardContent className="p-3 space-y-2">
+                            <CardContent className={compact ? "p-2 space-y-1" : "p-3 space-y-2"}>
                               <div className="flex items-start gap-2">
                                 <div className="w-7 h-7 rounded-full bg-primary/10 text-primary text-[11px] font-semibold flex items-center justify-center shrink-0">
                                   {lead.first_name[0]}{lead.last_name?.[0] || ''}
@@ -216,6 +226,29 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                                   <ClipboardList className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
                                 )}
                                 <AssigneeBadge userId={lead.assigned_to ?? null} />
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 -mr-1" title="Move to status">
+                                      <MoreVertical className="w-3.5 h-3.5" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="max-h-[60vh] overflow-y-auto bg-popover z-50">
+                                    <DropdownMenuLabel className="text-xs">Move to status</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {statuses.map(s => (
+                                      <DropdownMenuItem
+                                        key={s.name}
+                                        disabled={s.name === status.name}
+                                        onClick={(e) => { e.stopPropagation(); onUpdateStatus(lead.id, s.name); }}
+                                        className="text-xs"
+                                      >
+                                        <span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: s.color }} />
+                                        {s.label}
+                                        {s.name === status.name && <span className="ml-auto text-muted-foreground">(current)</span>}
+                                      </DropdownMenuItem>
+                                    ))}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
                               {lead.loan_amount ? (
                                 <p className="text-base font-semibold tabular-nums leading-none">
