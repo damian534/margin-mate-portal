@@ -179,20 +179,6 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
     // Notify broker of new lead
     notifyNewLead(leadData, effectiveBrokerId || null);
 
-    // Auto-send portal email if lead has an email and the broker chose to share something now.
-    // 'documents' mode skips auto-send — the broker will request docs from the Docs panel which triggers its own email.
-    if (newLead?.email && portalMode !== 'documents') {
-      supabase.functions.invoke('send-fact-find', {
-        body: { lead_id: newLead.id, app_url: window.location.origin, mode: 'factfind' },
-      }).then(({ data, error: fnErr }) => {
-        if (fnErr || data?.error) {
-          console.error('Auto-send portal email failed:', fnErr || data?.error);
-        } else {
-          toast.success('Portal email sent to ' + newLead.email);
-        }
-      });
-    }
-
     setSaving(false);
     resetForm();
     setOpen(false);
