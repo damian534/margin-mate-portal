@@ -654,28 +654,28 @@ export function LeadDetailSheet({
                 <Input
                   value={lead.opportunity_name ?? ''}
                   placeholder="+ Add opportunity name (e.g. Investment Loan #2)"
-                  className="h-7 text-sm font-semibold border-0 px-0 mb-1 focus-visible:ring-0 placeholder:text-muted-foreground/60 placeholder:font-normal text-primary"
+                  className="h-9 text-xl font-bold border-0 px-0 mb-1 focus-visible:ring-0 placeholder:text-muted-foreground/60 placeholder:font-normal text-foreground shadow-none"
                   onChange={(e) => onLeadChange?.({ ...lead, opportunity_name: e.target.value })}
                   onBlur={async (e) => {
                     const v = e.target.value.trim() || null;
                     await supabase.from('leads').update({ opportunity_name: v } as any).eq('id', lead.id);
                   }}
                 />
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 text-sm font-normal text-muted-foreground">
                   {editingName ? (
                     <div className="flex items-center gap-2">
                       <Input
                         value={editFirstName}
                         onChange={e => setEditFirstName(e.target.value)}
                         placeholder="First name"
-                        className="h-7 text-base font-semibold w-28"
+                        className="h-7 text-sm w-28"
                         autoFocus
                       />
                       <Input
                         value={editLastName}
                         onChange={e => setEditLastName(e.target.value)}
                         placeholder="Last name"
-                        className="h-7 text-base font-semibold w-28"
+                        className="h-7 text-sm w-28"
                       />
                       <Button size="sm" variant="ghost" className="h-7 px-2" onClick={saveNameEdit}>
                         <CheckCircle2 className="w-4 h-4 text-primary" />
@@ -709,6 +709,23 @@ export function LeadDetailSheet({
                 {lead.loan_purpose && (
                   <p className="text-sm font-normal text-muted-foreground">{LOAN_PURPOSE_OPTIONS.find(o => o.value === lead.loan_purpose)?.label || lead.loan_purpose}</p>
                 )}
+                {/* Co-applicant — sits directly under client name */}
+                <div className="mt-2 font-normal text-sm">
+                  <CoApplicantPicker
+                    contacts={contactsList}
+                    value={lead.co_applicant_contact_id ?? null}
+                    excludeIds={lead.source_contact_id ? [lead.source_contact_id] : []}
+                    isPreviewMode={isPreviewMode}
+                    onOpenContact={onOpenContact}
+                    hideHeader
+                    onChange={async (newId) => {
+                      onLeadChange?.({ ...lead, co_applicant_contact_id: newId });
+                      if (!isPreviewMode) {
+                        await supabase.from('leads').update({ co_applicant_contact_id: newId } as any).eq('id', lead.id);
+                      }
+                    }}
+                  />
+                </div>
                 <div className="mt-1.5">
                   {lead.wip_status ? (() => {
                     const w = WIP_STATUSES.find(s => s.name === lead.wip_status);
@@ -742,25 +759,6 @@ export function LeadDetailSheet({
               </div>
             </SheetTitle>
           </SheetHeader>
-
-          {/* Co-applicant (under client) */}
-          <div className="mb-3">
-            <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">Co-applicant</Label>
-            <CoApplicantPicker
-              contacts={contactsList}
-              value={lead.co_applicant_contact_id ?? null}
-              excludeIds={lead.source_contact_id ? [lead.source_contact_id] : []}
-              isPreviewMode={isPreviewMode}
-              onOpenContact={onOpenContact}
-              hideHeader
-              onChange={async (newId) => {
-                onLeadChange?.({ ...lead, co_applicant_contact_id: newId });
-                if (!isPreviewMode) {
-                  await supabase.from('leads').update({ co_applicant_contact_id: newId } as any).eq('id', lead.id);
-                }
-              }}
-            />
-          </div>
 
           {!isPreviewMode && lead.broker_id === user?.id && (
             <div className="mb-3">
