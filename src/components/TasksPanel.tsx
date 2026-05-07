@@ -127,6 +127,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
         const { data: newLead, error: leadError } = await supabase.from('leads').insert({
           first_name: firstName,
           last_name: lastName,
+          opportunity_name: `${firstName} ${lastName}`.trim(),
           broker_id: user!.id,
           status: 'new',
           assigned_to: newAssignee,
