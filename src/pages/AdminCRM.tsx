@@ -868,6 +868,7 @@ export default function AdminCRM() {
                 isPreviewMode={isPreviewMode}
                 onLeadAdded={() => { if (!isPreviewMode) fetchLeads(); }}
                 onContactCreated={() => { if (!isPreviewMode) fetchContacts(); }}
+                defaultWipStatus="onboarding"
               />
             </div>
             <WIPDashboard
