@@ -554,6 +554,7 @@ export type Database = {
           loan_amount: number | null
           loan_purpose: string | null
           lodged_date: string | null
+          opportunity_name: string | null
           original_broker_id: string | null
           phone: string | null
           portal_mode: string
@@ -586,6 +587,7 @@ export type Database = {
           loan_amount?: number | null
           loan_purpose?: string | null
           lodged_date?: string | null
+          opportunity_name?: string | null
           original_broker_id?: string | null
           phone?: string | null
           portal_mode?: string
@@ -618,6 +620,7 @@ export type Database = {
           loan_amount?: number | null
           loan_purpose?: string | null
           lodged_date?: string | null
+          opportunity_name?: string | null
           original_broker_id?: string | null
           phone?: string | null
           portal_mode?: string
