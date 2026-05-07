@@ -83,7 +83,7 @@ function htmlResponse(message: string, redirectTo: string | null) {
     `<!doctype html><html><head><title>Google Calendar</title>${script}</head>
 <body style="font-family:system-ui;padding:40px;text-align:center;">
 <h2>${message}</h2>
-${redirectTo ? '<p>You can close this tab if it doesn\\'t redirect.</p>' : ''}
+${redirectTo ? "<p>You can close this tab if it does not redirect.</p>" : ""}
 </body></html>`,
     { status: 200, headers: { "Content-Type": "text/html" } },
   );
