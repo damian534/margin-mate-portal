@@ -3,6 +3,7 @@ import { LeadDetailSheet } from '@/components/LeadDetailSheet';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useLeadStatuses } from '@/hooks/useLeadStatuses';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import { SAMPLE_LEADS_WITH_REFERRERS, SAMPLE_NOTES, SAMPLE_COMPANIES, SAMPLE_REFERRERS } from '@/lib/sample-data';
 import { AppHeader } from '@/components/AppHeader';
 import { StatusBadge } from '@/components/StatusBadge';
