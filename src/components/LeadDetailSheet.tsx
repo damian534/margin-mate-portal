@@ -1078,6 +1078,25 @@ export function LeadDetailSheet({
             </p>
           </div>
 
+          {/* Co-applicant */}
+          <div>
+            <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">Co-applicant</Label>
+            <CoApplicantPicker
+              contacts={contactsList}
+              value={lead.co_applicant_contact_id ?? null}
+              excludeIds={lead.source_contact_id ? [lead.source_contact_id] : []}
+              isPreviewMode={isPreviewMode}
+              onOpenContact={onOpenContact}
+              hideHeader
+              onChange={async (newId) => {
+                onLeadChange?.({ ...lead, co_applicant_contact_id: newId });
+                if (!isPreviewMode) {
+                  await supabase.from('leads').update({ co_applicant_contact_id: newId } as any).eq('id', lead.id);
+                }
+              }}
+            />
+          </div>
+
           {/* Loan Details Row */}
           <div className="flex gap-3">
             <div className="flex-1">
@@ -1121,25 +1140,6 @@ export function LeadDetailSheet({
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          {/* Co-applicant */}
-          <div>
-            <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">Co-applicant</Label>
-            <CoApplicantPicker
-              contacts={contactsList}
-              value={lead.co_applicant_contact_id ?? null}
-              excludeIds={lead.source_contact_id ? [lead.source_contact_id] : []}
-              isPreviewMode={isPreviewMode}
-              onOpenContact={onOpenContact}
-              hideHeader
-              onChange={async (newId) => {
-                onLeadChange?.({ ...lead, co_applicant_contact_id: newId });
-                if (!isPreviewMode) {
-                  await supabase.from('leads').update({ co_applicant_contact_id: newId } as any).eq('id', lead.id);
-                }
-              }}
-            />
           </div>
 
           {/* Deal Milestone Dates — used for monthly KPIs in WIP */}
