@@ -33,6 +33,7 @@ export type WIPStatusName = typeof WIP_STATUSES[number]['name'];
 interface WIPLead {
   id: string;
   first_name: string;
+  opportunity_name?: string | null;
   last_name: string;
   loan_amount: number | null;
   wip_status?: string | null;
