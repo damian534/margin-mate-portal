@@ -697,43 +697,6 @@ export function LeadDetailSheet({
             />
           </div>
 
-          {/* Inline edit (fallback when no linked contact) */}
-          {!lead.source_contact_id && (
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Mail className="w-3 h-3" /> Email
-                </Label>
-                <Input
-                  type="email"
-                  placeholder="Add email"
-                  value={editEmail}
-                  onChange={(e) => { setEditEmail(e.target.value); setContactDirty(true); }}
-                  className="h-8 text-sm"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Phone className="w-3 h-3" /> Phone
-                </Label>
-                <Input
-                  type="tel"
-                  placeholder="Add phone"
-                  value={editPhone}
-                  onChange={(e) => { setEditPhone(e.target.value); setContactDirty(true); }}
-                  className="h-8 text-sm"
-                />
-              </div>
-            </div>
-          )}
-          {contactDirty && (
-            <div className="flex justify-end mt-2">
-              <Button size="sm" className="gap-1.5" onClick={saveContactDetails}>
-                <Save className="w-3.5 h-3.5" /> Save Contact
-              </Button>
-            </div>
-          )}
-
           {/* Read-only info */}
           <div className="grid grid-cols-2 gap-3 text-sm mt-2">
             {lead.loan_amount && (
