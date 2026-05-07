@@ -7,10 +7,11 @@ import { CompanyManagement, Company } from '@/components/CompanyManagement';
 import { DocumentTemplatesManagement } from '@/components/DocumentTemplatesManagement';
 import { TaskTemplatesManagement } from '@/components/TaskTemplatesManagement';
 import { LeadSourcesManagement } from '@/components/LeadSourcesManagement';
+import { LendersManagement } from '@/components/LendersManagement';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
-import { KeyRound, UserCog, Settings2, FileText, ListChecks, Tag } from 'lucide-react';
+import { KeyRound, UserCog, Settings2, FileText, ListChecks, Tag, Building2 } from 'lucide-react';
 
 export default function AdminSettings() {
   const { isPreviewMode } = useAuth();
@@ -38,6 +39,7 @@ export default function AdminSettings() {
     { value: 'doc-templates', label: 'Document Templates', icon: FileText },
     { value: 'task-templates', label: 'Task Templates', icon: ListChecks },
     { value: 'lead-sources', label: 'Lead Sources', icon: Tag },
+    { value: 'lenders', label: 'Lenders', icon: Building2 },
   ];
 
   return (
@@ -77,6 +79,7 @@ export default function AdminSettings() {
         {activeSection === 'doc-templates' && <DocumentTemplatesManagement />}
         {activeSection === 'task-templates' && <TaskTemplatesManagement />}
         {activeSection === 'lead-sources' && <LeadSourcesManagement />}
+        {activeSection === 'lenders' && <LendersManagement />}
       </main>
     </div>
   );
