@@ -860,6 +860,16 @@ export default function AdminCRM() {
           </TabsContent>
 
           <TabsContent value="wip" className="mt-4">
+            <div className="flex justify-end mb-3">
+              <AddLeadDialog
+                leadSources={leadSources}
+                referrers={referrers}
+                contacts={contacts}
+                isPreviewMode={isPreviewMode}
+                onLeadAdded={() => { if (!isPreviewMode) fetchLeads(); }}
+                onContactCreated={() => { if (!isPreviewMode) fetchContacts(); }}
+              />
+            </div>
             <WIPDashboard
               leads={leads}
               leadStatuses={statuses}
