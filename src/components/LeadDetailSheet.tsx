@@ -29,6 +29,7 @@ import { ReferLeadDialog } from '@/components/ReferLeadDialog';
 import { FinancialSnapshot } from '@/components/lead/FinancialSnapshot';
 import { StatusBadge } from '@/components/StatusBadge';
 import { CoApplicantPicker } from '@/components/CoApplicantPicker';
+import { LoanSplitsEditor } from '@/components/LoanSplitsEditor';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
@@ -1100,25 +1101,20 @@ export function LeadDetailSheet({
           {/* Loan Details Row */}
           <div className="flex gap-3">
             <div className="flex-1">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Loan Amount</Label>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Loan Amount (Total)</Label>
               <div className="relative mt-1">
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   type="text"
                   inputMode="numeric"
-                  className="pl-8"
-                  placeholder="Enter amount"
+                  className="pl-8 bg-muted/30"
+                  placeholder="Auto-summed from splits"
+                  readOnly
                   value={lead.loan_amount ? lead.loan_amount.toLocaleString() : ''}
-                  onChange={async (e) => {
-                    const raw = e.target.value.replace(/[^0-9]/g, '');
-                    const val = raw ? parseInt(raw, 10) : null;
-                    onLeadChange?.({ ...lead, loan_amount: val });
-                    if (!isPreviewMode) {
-                      await supabase.from('leads').update({ loan_amount: val } as any).eq('id', lead.id);
-                    }
-                  }}
+                  onChange={() => { /* auto-summed from splits */ }}
                 />
               </div>
+              <p className="text-[10px] text-muted-foreground mt-1">Sum of all loan splits below.</p>
             </div>
             <div className="flex-1">
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">Loan Purpose</Label>
@@ -1141,6 +1137,21 @@ export function LeadDetailSheet({
               </Select>
             </div>
           </div>
+
+          {/* Loan Splits */}
+          <LoanSplitsEditor
+            leadId={lead.id}
+            isPreviewMode={isPreviewMode}
+            onTotalChange={async (total) => {
+              const val = total > 0 ? total : null;
+              if (val !== lead.loan_amount) {
+                onLeadChange?.({ ...lead, loan_amount: val });
+                if (!isPreviewMode) {
+                  await supabase.from('leads').update({ loan_amount: val } as any).eq('id', lead.id);
+                }
+              }
+            }}
+          />
 
           {/* Deal Milestone Dates — used for monthly KPIs in WIP */}
           <div>

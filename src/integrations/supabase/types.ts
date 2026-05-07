@@ -642,6 +642,72 @@ export type Database = {
           },
         ]
       }
+      lenders: {
+        Row: {
+          broker_id: string
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          broker_id: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          broker_id?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      loan_splits: {
+        Row: {
+          amount: number | null
+          application_id: string | null
+          created_at: string
+          display_order: number
+          id: string
+          lead_id: string
+          lender: string | null
+          security_address: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          application_id?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          lead_id: string
+          lender?: string | null
+          security_address?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          application_id?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          lead_id?: string
+          lender?: string | null
+          security_address?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notes: {
         Row: {
           author_id: string | null
