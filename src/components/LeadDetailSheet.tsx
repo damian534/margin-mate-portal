@@ -135,6 +135,7 @@ interface LeadDetailSheetProps {
   onLeadChange: (lead: Lead) => void;
   onOpenContact?: (contactId: string) => void;
   sampleNotes?: Note[];
+  onLeadSourcesChanged?: () => void;
 }
 
 const FOLLOW_UP_OPTIONS = [
