@@ -787,20 +787,6 @@ export function LeadDetailSheet({
             </div>
           )}
 
-          {/* Quick contact actions */}
-          <div className="flex gap-2 mt-2 flex-wrap">
-            {editEmail && !contactDirty && (
-              <Button variant="outline" size="sm" className="gap-1.5 flex-1" onClick={handleEmailClick}>
-                <Mail className="w-3.5 h-3.5" /> Email
-              </Button>
-            )}
-            {editPhone && !contactDirty && (
-              <Button variant="outline" size="sm" className="gap-1.5 flex-1" onClick={handlePhoneClick}>
-                <Phone className="w-3.5 h-3.5" /> Call
-              </Button>
-            )}
-          </div>
-
           {/* Read-only info */}
           <div className="grid grid-cols-2 gap-3 text-sm mt-2">
             {lead.loan_amount && (
