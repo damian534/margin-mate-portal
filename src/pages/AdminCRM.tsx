@@ -36,6 +36,8 @@ import { format } from 'date-fns';
 import { notifyPartnerStatusChange } from '@/lib/notifications';
 import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign, Contact as ContactIcon, CalendarClock, Share2 } from 'lucide-react';
 import { Briefcase } from 'lucide-react';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { CalendarView } from '@/components/CalendarView';
 import { isPast, isToday, isTomorrow } from 'date-fns';
 
 type TaskDueFilter = 'all_leads' | 'overdue' | 'today' | 'tomorrow' | 'later' | 'no_tasks';
@@ -619,6 +621,7 @@ export default function AdminCRM() {
               { value: 'companies', label: 'Companies', icon: Building2 },
               { value: 'referrers', label: 'Referrers', icon: Users },
               { value: 'broker_referrals', label: 'Broker Referrals', icon: Share2 },
+              { value: 'calendar', label: 'Calendar', icon: CalendarIcon },
               { value: 'reports', label: 'Reports', icon: BarChart3 },
             ].map((tab) => (
               <button
@@ -974,6 +977,10 @@ export default function AdminCRM() {
 
           <TabsContent value="broker_referrals" className="mt-4">
             <IncomingReferralsPanel />
+          </TabsContent>
+
+          <TabsContent value="calendar" className="mt-4">
+            <CalendarView />
           </TabsContent>
 
 
