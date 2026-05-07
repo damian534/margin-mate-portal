@@ -1,6 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTeamMembers, getInitials } from '@/hooks/useTeamMembers';
-import { UserCircle2 } from 'lucide-react';
+import { UserCircle2, Users } from 'lucide-react';
 
 interface AssigneePickerProps {
   value: string | null;
@@ -68,9 +68,49 @@ export function AssigneeBadge({ userId, className }: AssigneeBadgeProps) {
   return (
     <div
       className={`w-5 h-5 rounded-full bg-primary/10 text-primary text-[9px] font-semibold flex items-center justify-center ${className || ''}`}
-      title={`Assigned to ${m.name}`}
+      title={`Assistant: ${m.name}`}
     >
       {getInitials(m.name)}
     </div>
+  );
+}
+
+interface AssigneeFilterProps {
+  value: string; // 'all' | 'unassigned' | user_id
+  onChange: (v: string) => void;
+  className?: string;
+}
+
+/** Dropdown filter to narrow lead/WIP lists by assigned team member. */
+export function AssigneeFilter({ value, onChange, className }: AssigneeFilterProps) {
+  const { members } = useTeamMembers();
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className={className || 'w-full sm:w-52'}>
+        <Users className="w-4 h-4 mr-2" />
+        <SelectValue placeholder="All assistants" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All Assistants</SelectItem>
+        <SelectItem value="unassigned">
+          <span className="inline-flex items-center gap-2 text-muted-foreground">
+            <UserCircle2 className="w-3.5 h-3.5" /> Unassigned
+          </span>
+        </SelectItem>
+        {members.map(m => (
+          <SelectItem key={m.user_id} value={m.user_id}>
+            <span className="inline-flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold flex items-center justify-center">
+                {getInitials(m.name)}
+              </span>
+              {m.name}
+              <span className="text-[10px] text-muted-foreground">
+                {m.role === 'broker_staff' ? 'Assistant' : m.role === 'super_admin' ? 'Admin' : 'Broker'}
+              </span>
+            </span>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
