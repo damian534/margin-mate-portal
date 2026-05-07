@@ -6,10 +6,11 @@ import { StatusSettings } from '@/components/StatusSettings';
 import { CompanyManagement, Company } from '@/components/CompanyManagement';
 import { DocumentTemplatesManagement } from '@/components/DocumentTemplatesManagement';
 import { TaskTemplatesManagement } from '@/components/TaskTemplatesManagement';
+import { LeadSourcesManagement } from '@/components/LeadSourcesManagement';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
-import { KeyRound, UserCog, Settings2, FileText, ListChecks } from 'lucide-react';
+import { KeyRound, UserCog, Settings2, FileText, ListChecks, Tag } from 'lucide-react';
 
 export default function AdminSettings() {
   const { isPreviewMode } = useAuth();
@@ -36,6 +37,7 @@ export default function AdminSettings() {
     { value: 'users', label: 'User Management', icon: UserCog },
     { value: 'doc-templates', label: 'Document Templates', icon: FileText },
     { value: 'task-templates', label: 'Task Templates', icon: ListChecks },
+    { value: 'lead-sources', label: 'Lead Sources', icon: Tag },
   ];
 
   return (
@@ -74,6 +76,7 @@ export default function AdminSettings() {
         )}
         {activeSection === 'doc-templates' && <DocumentTemplatesManagement />}
         {activeSection === 'task-templates' && <TaskTemplatesManagement />}
+        {activeSection === 'lead-sources' && <LeadSourcesManagement />}
       </main>
     </div>
   );
