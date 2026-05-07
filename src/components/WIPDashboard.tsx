@@ -4,8 +4,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { FileDown, FileText } from 'lucide-react';
+import { FileDown, FileText, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import { AssigneeBadge, AssigneeFilter } from '@/components/AssigneePicker';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export const WIP_STATUSES = [
   { name: 'onboarding', label: 'Onboarding', color: '#94a3b8' },
@@ -57,6 +59,18 @@ interface WIPDashboardProps {
 
 export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead, docsByLead, onDownloadDocs }: WIPDashboardProps) {
   const [assigneeFilter, setAssigneeFilter] = useState('all');
+  const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set());
+
+  const toggleCollapse = (name: string) => {
+    setCollapsedColumns(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name); else next.add(name);
+      return next;
+    });
+  };
+  const collapseAll = () => setCollapsedColumns(new Set(WIP_STATUSES.map(s => s.name)));
+  const expandAll = () => setCollapsedColumns(new Set());
+  const allCollapsed = collapsedColumns.size === WIP_STATUSES.length;
 
   const visibleLeads = useMemo(() => {
     if (assigneeFilter === 'all') return leads;
@@ -133,19 +147,32 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
   return (
     <div className="space-y-4">
       {/* Monthly KPIs are shown at the top of the CRM page */}
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs gap-1.5 text-muted-foreground"
+          onClick={allCollapsed ? expandAll : collapseAll}
+        >
+          {allCollapsed ? (
+            <><ChevronsUpDown className="w-3.5 h-3.5" /> Expand All</>
+          ) : (
+            <><ChevronsDownUp className="w-3.5 h-3.5" /> Collapse All</>
+          )}
+        </Button>
         <AssigneeFilter value={assigneeFilter} onChange={setAssigneeFilter} className="w-full sm:w-56" />
       </div>
 
-      <div className="overflow-x-auto pb-4">
-        <div className="flex gap-3 min-w-max">
+      <div className="min-w-0 overflow-hidden">
+        <div className="flex gap-3 pb-4 overflow-x-auto" style={{ minHeight: '60vh', minWidth: 0 }}>
           {WIP_STATUSES.map(stage => {
             const stageLeads = grouped.get(stage.name) || [];
             const t = totals.get(stage.name)!;
+            const isCollapsed = collapsedColumns.has(stage.name);
             return (
               <div
                 key={stage.name}
-                className="w-64 shrink-0 rounded-lg border bg-muted/30"
+                className={`flex-shrink-0 flex flex-col transition-all ${isCollapsed ? 'w-12' : 'w-64'}`}
                 onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
                 onDrop={(e) => {
                   e.preventDefault();
@@ -153,67 +180,112 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                   if (leadId) update(leadId, stage.name);
                 }}
               >
-                <div className="p-3 border-b" style={{ borderTopColor: stage.color, borderTopWidth: 3 }}>
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-sm font-semibold leading-tight">{stage.label}</h3>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-background border">{t.count}</span>
+                {isCollapsed ? (
+                  <div
+                    className="flex flex-col items-center gap-2 cursor-pointer py-2 px-1 rounded-lg bg-muted/50 h-full"
+                    onClick={() => toggleCollapse(stage.name)}
+                  >
+                    <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: stage.color }} />
+                    <span className="text-xs font-semibold [writing-mode:vertical-lr] rotate-180">{stage.label}</span>
+                    <span className="text-[10px] text-muted-foreground font-medium">{t.count}</span>
+                    {t.volume > 0 && (
+                      <span className="text-[10px] text-muted-foreground font-medium [writing-mode:vertical-lr] rotate-180">
+                        ${(t.volume / 1000).toFixed(0)}k
+                      </span>
+                    )}
                   </div>
-                  {t.volume > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">${t.volume.toLocaleString()}</p>
-                  )}
-                </div>
-                <div className="p-2 space-y-2 min-h-[100px]">
-                  {stageLeads.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-4">Drop leads here</p>
-                  ) : (
-                    stageLeads.map(lead => (
-                      (() => {
-                      const docs = docsByLead?.get(lead.id);
-                      const docsPct = docs && docs.requested > 0 ? Math.round((docs.completed / docs.requested) * 100) : null;
-                      return (
-                      <div
-                        key={lead.id}
-                        draggable
-                        onDragStart={(e) => {
-                          e.dataTransfer.setData('leadId', lead.id);
-                          e.dataTransfer.effectAllowed = 'move';
-                        }}
-                        onClick={() => onOpenLead(lead)}
-                        className="rounded-md border bg-card p-2 cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm font-medium flex-1 break-words" title={lead.opportunity_name?.trim() || `${lead.first_name} ${lead.last_name}`}>{lead.opportunity_name?.trim() || `${lead.first_name} ${lead.last_name}`}</p>
-                          <AssigneeBadge userId={lead.assigned_to ?? null} />
+                ) : (
+                  <div className="flex flex-col rounded-lg border bg-muted/30 h-full">
+                    <div
+                      className="p-3 border-b cursor-pointer group"
+                      style={{ borderTopColor: stage.color, borderTopWidth: 3 }}
+                      onClick={() => toggleCollapse(stage.name)}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+                          <h3 className="text-sm font-semibold leading-tight truncate">{stage.label}</h3>
                         </div>
-                        {lead.loan_amount ? (
-                          <p className="text-xs text-muted-foreground">${lead.loan_amount.toLocaleString()}</p>
-                        ) : null}
-                        {docs && docs.requested > 0 && (
-                          <div className="mt-2 space-y-1">
-                            <div className="flex items-center justify-between text-[10px]">
-                              <span className="text-muted-foreground flex items-center gap-1"><FileText className="w-3 h-3" /> Docs {docsPct}%</span>
-                              {docs.files.length > 0 && onDownloadDocs && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => { e.stopPropagation(); onDownloadDocs(lead.id); }}
-                                  className="text-primary hover:underline inline-flex items-center gap-0.5"
-                                  title="Download all uploaded documents as ZIP"
-                                >
-                                  <FileDown className="w-3 h-3" /> ZIP
-                                </button>
-                              )}
-                            </div>
-                            <div className="h-1 rounded-full bg-muted overflow-hidden">
-                              <div className="h-full bg-primary transition-all" style={{ width: `${docsPct}%` }} />
-                            </div>
-                          </div>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-background border shrink-0">{t.count}</span>
+                      </div>
+                      {t.volume > 0 && (
+                        <p className="text-xs text-muted-foreground mt-1">${t.volume.toLocaleString()}</p>
+                      )}
+                    </div>
+
+                    <ScrollArea className="flex-1">
+                      <div className="p-2 space-y-2">
+                        {stageLeads.map(lead => {
+                          const docs = docsByLead?.get(lead.id);
+                          const docsPct = docs && docs.requested > 0 ? Math.round((docs.completed / docs.requested) * 100) : null;
+                          const displayTitle = lead.opportunity_name?.trim() || `${lead.first_name} ${lead.last_name}`;
+                          const fullName = `${lead.first_name} ${lead.last_name}`;
+                          const hasOpportunity = !!lead.opportunity_name?.trim();
+                          return (
+                            <Card
+                              key={lead.id}
+                              draggable
+                              onDragStart={(e) => {
+                                e.dataTransfer.setData('leadId', lead.id);
+                                e.dataTransfer.effectAllowed = 'move';
+                              }}
+                              onClick={() => onOpenLead(lead)}
+                              className="cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors border bg-card"
+                            >
+                              <CardContent className="p-3 space-y-2">
+                                <div className="flex items-start gap-2">
+                                  <div className="w-7 h-7 rounded-full bg-primary/10 text-primary text-[11px] font-semibold flex items-center justify-center shrink-0">
+                                    {lead.first_name?.[0] || ''}{lead.last_name?.[0] || ''}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    {hasOpportunity ? (
+                                      <>
+                                        <p className="font-semibold text-sm leading-tight break-words text-primary" title={displayTitle}>{displayTitle}</p>
+                                        <p className="text-xs text-muted-foreground leading-tight truncate">{fullName}</p>
+                                      </>
+                                    ) : (
+                                      <p className="font-semibold text-sm leading-tight break-words" title={fullName}>{fullName}</p>
+                                    )}
+                                  </div>
+                                  <AssigneeBadge userId={lead.assigned_to ?? null} />
+                                </div>
+                                {lead.loan_amount ? (
+                                  <p className="text-base font-semibold tabular-nums leading-none">
+                                    ${lead.loan_amount.toLocaleString()}
+                                  </p>
+                                ) : null}
+                                {docs && docs.requested > 0 && (
+                                  <div className="pt-1 border-t border-border/40 space-y-1">
+                                    <div className="flex items-center justify-between text-[10px]">
+                                      <span className="text-muted-foreground flex items-center gap-1"><FileText className="w-3 h-3" /> Docs {docsPct}%</span>
+                                      {docs.files.length > 0 && onDownloadDocs && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => { e.stopPropagation(); onDownloadDocs(lead.id); }}
+                                          className="text-primary hover:underline inline-flex items-center gap-0.5"
+                                          title="Download all uploaded documents as ZIP"
+                                        >
+                                          <FileDown className="w-3 h-3" /> ZIP
+                                        </button>
+                                      )}
+                                    </div>
+                                    <div className="h-1 rounded-full bg-muted overflow-hidden">
+                                      <div className="h-full bg-primary transition-all" style={{ width: `${docsPct}%` }} />
+                                    </div>
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                        {stageLeads.length === 0 && (
+                          <p className="text-xs text-muted-foreground text-center py-4">Drop leads here</p>
                         )}
                       </div>
-                      );
-                      })()
-                    ))
-                  )}
-                </div>
+                    </ScrollArea>
+                  </div>
+                )}
               </div>
             );
           })}
