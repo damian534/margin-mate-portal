@@ -4,12 +4,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { FileDown, FileText, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search, X, MoreVertical, Maximize2, Minimize2 } from 'lucide-react';
+import { FileDown, FileText, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search, X, MoreVertical, Maximize2, Minimize2, List, Columns } from 'lucide-react';
 import { AssigneeBadge, AssigneeFilter } from '@/components/AssigneePicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export const WIP_STATUSES = [
   { name: 'onboarding', label: 'Onboarding', color: '#94a3b8' },
@@ -64,6 +65,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
   const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
   const [compact, setCompact] = useState(false);
+  const [view, setView] = useState<'kanban' | 'list'>('kanban');
 
   const toggleCollapse = (name: string) => {
     setCollapsedColumns(prev => {
@@ -181,11 +183,20 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
           )}
         </div>
         <div className="flex justify-end gap-2 sm:ml-auto">
+        <div className="flex items-center border rounded-md">
+          <Button variant={view === 'list' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-2" onClick={() => setView('list')} title="List view">
+            <List className="w-4 h-4" />
+          </Button>
+          <Button variant={view === 'kanban' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-2" onClick={() => setView('kanban')} title="Board view">
+            <Columns className="w-4 h-4" />
+          </Button>
+        </div>
         <Button
           variant="ghost"
           size="sm"
           className="h-7 text-xs gap-1.5 text-muted-foreground"
           onClick={allCollapsed ? expandAll : collapseAll}
+          disabled={view === 'list'}
         >
           {allCollapsed ? (
             <><ChevronsUpDown className="w-3.5 h-3.5" /> Expand All</>
