@@ -1014,6 +1014,25 @@ export function LeadDetailSheet({
             </div>
           )}
 
+          {/* Assigned to — any team member can pick up the file */}
+          <div>
+            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Assigned To</Label>
+            <AssigneePicker
+              value={(lead as any).assigned_to ?? null}
+              onChange={async (userId) => {
+                onLeadChange?.({ ...lead, assigned_to: userId } as any);
+                if (!isPreviewMode) {
+                  const { error } = await supabase.from('leads').update({ assigned_to: userId } as any).eq('id', lead.id);
+                  if (error) { toast.error('Failed to update assignee'); return; }
+                }
+                toast.success(userId ? 'Assignee updated' : 'Assignee cleared');
+              }}
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Allocate this file to a specific team member (broker or assistant).
+            </p>
+          </div>
+
           {/* Loan Details Row */}
           <div className="flex gap-3">
             <div className="flex-1">
