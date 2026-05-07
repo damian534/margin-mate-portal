@@ -28,6 +28,7 @@ import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectio
 import { ReferLeadDialog } from '@/components/ReferLeadDialog';
 import { FinancialSnapshot } from '@/components/lead/FinancialSnapshot';
 import { StatusBadge } from '@/components/StatusBadge';
+import { CoApplicantPicker } from '@/components/CoApplicantPicker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
@@ -55,6 +56,7 @@ interface Lead {
   company_commission_paid: boolean;
   source: string | null;
   source_contact_id: string | null;
+  co_applicant_contact_id?: string | null;
   portal_mode?: 'both' | 'fact_find' | 'documents' | null;
   wip_status?: string | null;
   lodged_date?: string | null;
