@@ -38,6 +38,7 @@ interface ContactsManagementProps {
   isPreviewMode: boolean;
   openContactId?: string | null;
   onContactOpened?: () => void;
+  onOpenLead?: (leadId: string) => void;
 }
 
 const CONTACT_TYPES = [
@@ -45,7 +46,7 @@ const CONTACT_TYPES = [
   { value: 'referrer', label: 'Referrer' },
 ];
 
-export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openContactId, onContactOpened }: ContactsManagementProps) {
+export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openContactId, onContactOpened, onOpenLead }: ContactsManagementProps) {
   const { effectiveBrokerId } = useAuth();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
