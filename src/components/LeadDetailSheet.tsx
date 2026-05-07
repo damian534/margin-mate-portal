@@ -20,9 +20,9 @@ import { format, isPast, isToday } from 'date-fns';
 import { notifyPartnerNote } from '@/lib/notifications';
 import {
   Mail, Phone, Send, Trash2, Users, Building2, DollarSign,
-  Calendar, Plus, CheckCircle, CheckCircle2, Clock, AlertTriangle,
+  Calendar, Plus, CheckCircle, Clock, AlertTriangle,
   MessageSquare, Activity, ChevronDown, ChevronRight, Pencil, X, Save,
-  Search, UserPlus, ExternalLink, Award, FileText, Copy
+  Search, ExternalLink, FileText, Copy
 } from 'lucide-react';
 import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectionPanel';
 import { ReferLeadDialog } from '@/components/ReferLeadDialog';
@@ -184,14 +184,7 @@ export function LeadDetailSheet({
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<{ id: string; title: string; dueDate: string } | null>(null);
   const [taskNoteText, setTaskNoteText] = useState('');
-  const [editEmail, setEditEmail] = useState('');
-  const [editPhone, setEditPhone] = useState('');
-  const [contactDirty, setContactDirty] = useState(false);
-  const [editingName, setEditingName] = useState(false);
-  const [editFirstName, setEditFirstName] = useState('');
-  const [editLastName, setEditLastName] = useState('');
   const [sourceContactReferralCount, setSourceContactReferralCount] = useState<number | null>(null);
-  const [contactPickerOpen, setContactPickerOpen] = useState(false);
   const [partnerPickerOpen, setPartnerPickerOpen] = useState(false);
   const [addingSource, setAddingSource] = useState(false);
   const [newSourceLabel, setNewSourceLabel] = useState('');
@@ -224,24 +217,6 @@ export function LeadDetailSheet({
     }
   };
 
-  const startNameEdit = () => {
-    setEditFirstName(lead.first_name);
-    setEditLastName(lead.last_name);
-    setEditingName(true);
-  };
-
-  const saveNameEdit = async () => {
-    const first = editFirstName.trim();
-    const last = editLastName.trim();
-    if (!first) { toast.error('First name is required'); return; }
-    onLeadChange?.({ ...lead, first_name: first, last_name: last });
-    if (!isPreviewMode) {
-      await supabase.from('leads').update({ first_name: first, last_name: last } as any).eq('id', lead.id);
-    }
-    setEditingName(false);
-    toast.success('Name updated');
-  };
-
   // Fetch broker options for super admins
   useEffect(() => {
     if (!isSuperAdmin || isPreviewMode) return;
@@ -259,9 +234,6 @@ export function LeadDetailSheet({
       fetchNotes(lead.id);
       fetchTasks(lead.id);
       fetchTaskTemplates();
-      setEditEmail(lead.email || '');
-      setEditPhone(lead.phone || '');
-      setContactDirty(false);
       setNotifyPartner(!!lead.referral_partner_id);
       if (lead.source_contact_id && !isPreviewMode) {
         supabase.from('leads').select('id', { count: 'exact', head: true })
@@ -272,27 +244,6 @@ export function LeadDetailSheet({
       }
     }
   }, [lead?.id, open]);
-
-  const saveContactDetails = async () => {
-    if (!lead) return;
-    const updates: any = {};
-    if (editEmail !== (lead.email || '')) updates.email = editEmail || null;
-    if (editPhone !== (lead.phone || '')) updates.phone = editPhone || null;
-    if (Object.keys(updates).length === 0) return;
-
-    if (!isPreviewMode) {
-      // Update lead
-      const { error } = await supabase.from('leads').update(updates as any).eq('id', lead.id);
-      if (error) { toast.error('Failed to save contact details'); return; }
-      // Also update linked contact if exists
-      if (lead.source_contact_id) {
-        await supabase.from('contacts').update(updates as any).eq('id', lead.source_contact_id);
-      }
-    }
-    onLeadChange?.({ ...lead, ...updates });
-    setContactDirty(false);
-    toast.success('Contact details saved');
-  };
 
   const fetchNotes = async (leadId: string) => {
     if (isPreviewMode) {
@@ -636,6 +587,15 @@ export function LeadDetailSheet({
     );
   };
 
+  const primaryApplicantContact = lead.source_contact_id
+    ? contactsList.find(c => c.id === lead.source_contact_id)
+    : contactsList.find(c => {
+      const sameEmail = lead.email && c.email?.toLowerCase() === lead.email.toLowerCase();
+      const samePhone = lead.phone && c.phone === lead.phone;
+      const sameName = c.first_name.toLowerCase() === lead.first_name.toLowerCase() && c.last_name.toLowerCase() === lead.last_name.toLowerCase();
+      return sameEmail || samePhone || sameName;
+    });
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-3xl overflow-y-auto p-0">
@@ -696,43 +656,29 @@ export function LeadDetailSheet({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <div className="rounded-lg border border-border bg-muted/20 p-3">
               <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
-                  {lead.first_name[0]}{lead.last_name?.[0] || ''}
-                </div>
                 <div className="flex-1 min-w-0 space-y-0.5">
                   <p className="text-sm font-medium truncate">{lead.first_name} {lead.last_name}</p>
-                  <div className="flex flex-col gap-0.5">
-                    {editEmail && (
-                      <a href={`mailto:${editEmail}`} className="text-xs text-primary hover:underline flex items-center gap-1 truncate">
-                        <Mail className="w-3 h-3 shrink-0" /> {editEmail}
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                    {(primaryApplicantContact?.email || lead.email) && (
+                      <a href={`mailto:${primaryApplicantContact?.email || lead.email}`} className="text-xs text-primary hover:underline flex items-center gap-1 truncate">
+                        <Mail className="w-3 h-3 shrink-0" /> {primaryApplicantContact?.email || lead.email}
                       </a>
                     )}
-                    {editPhone && (
-                      <a href={`tel:${editPhone}`} className="text-xs text-primary hover:underline flex items-center gap-1 truncate">
-                        <Phone className="w-3 h-3 shrink-0" /> {editPhone}
+                    {(primaryApplicantContact?.phone || lead.phone) && (
+                      <a href={`tel:${primaryApplicantContact?.phone || lead.phone}`} className="text-xs text-primary hover:underline flex items-center gap-1 truncate">
+                        <Phone className="w-3 h-3 shrink-0" /> {primaryApplicantContact?.phone || lead.phone}
                       </a>
                     )}
                   </div>
                 </div>
               </div>
               <div className="flex gap-2 mt-3 pt-2 border-t border-border">
-                {lead.source_contact_id && onOpenContact && (
-                  <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-8" onClick={() => onOpenContact(lead.source_contact_id!)}>
+                {primaryApplicantContact && onOpenContact && (
+                  <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-8" onClick={() => onOpenContact(primaryApplicantContact.id)}>
                     <ExternalLink className="w-3 h-3" /> Open
                   </Button>
                 )}
-                <Button variant="ghost" size="sm" className="gap-1.5 text-xs h-8" onClick={startNameEdit}>
-                  <Pencil className="w-3 h-3" /> Edit name
-                </Button>
               </div>
-              {editingName && (
-                <div className="flex items-center gap-2 mt-2">
-                  <Input value={editFirstName} onChange={e => setEditFirstName(e.target.value)} placeholder="First" className="h-7 text-xs" />
-                  <Input value={editLastName} onChange={e => setEditLastName(e.target.value)} placeholder="Last" className="h-7 text-xs" />
-                  <Button size="sm" variant="ghost" className="h-7 px-2" onClick={saveNameEdit}><CheckCircle2 className="w-4 h-4 text-primary" /></Button>
-                  <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setEditingName(false)}><X className="w-4 h-4" /></Button>
-                </div>
-              )}
             </div>
             <CoApplicantPicker
               contacts={contactsList}
@@ -749,43 +695,6 @@ export function LeadDetailSheet({
               }}
             />
           </div>
-
-          {/* Inline edit (fallback when no linked contact) */}
-          {!lead.source_contact_id && (
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Mail className="w-3 h-3" /> Email
-                </Label>
-                <Input
-                  type="email"
-                  placeholder="Add email"
-                  value={editEmail}
-                  onChange={(e) => { setEditEmail(e.target.value); setContactDirty(true); }}
-                  className="h-8 text-sm"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Phone className="w-3 h-3" /> Phone
-                </Label>
-                <Input
-                  type="tel"
-                  placeholder="Add phone"
-                  value={editPhone}
-                  onChange={(e) => { setEditPhone(e.target.value); setContactDirty(true); }}
-                  className="h-8 text-sm"
-                />
-              </div>
-            </div>
-          )}
-          {contactDirty && (
-            <div className="flex justify-end mt-2">
-              <Button size="sm" className="gap-1.5" onClick={saveContactDetails}>
-                <Save className="w-3.5 h-3.5" /> Save Contact
-              </Button>
-            </div>
-          )}
 
           {/* Read-only info */}
           <div className="grid grid-cols-2 gap-3 text-sm mt-2">
@@ -1214,163 +1123,7 @@ export function LeadDetailSheet({
                 </div>
               )}
             </div>
-            <div className="flex-1">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Contact Card</Label>
-              {lead.source_contact_id && onOpenContact ? (
-                <div className="flex items-center gap-1 mt-1">
-                  <Button variant="outline" size="sm" className="flex-1 gap-1.5" onClick={() => onOpenContact(lead.source_contact_id!)}>
-                    <Users className="w-3.5 h-3.5" /> View Contact
-                  </Button>
-                  <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-muted-foreground hover:text-destructive" title="Unlink contact"
-                    onClick={async () => {
-                      onLeadChange?.({ ...lead, source_contact_id: null });
-                      if (!isPreviewMode) {
-                        await supabase.from('leads').update({ source_contact_id: null } as any).eq('id', lead.id);
-                      }
-                      setSourceContactReferralCount(null);
-                      toast.success('Contact unlinked');
-                    }}
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="mt-1 h-10 flex items-center">
-                  <span className="text-sm text-muted-foreground">No linked contact</span>
-                </div>
-              )}
-            </div>
           </div>
-
-          {/* Referred From — rich contact card */}
-          {(lead.source === 'client_referral' || lead.source === 'existing_client') && (
-            <div className="rounded-xl border border-border bg-muted/20 overflow-hidden">
-              <div className="px-4 py-2.5 bg-muted/40 border-b border-border flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Award className="w-4 h-4 text-primary" />
-                  <span className="text-xs font-semibold uppercase tracking-wider text-foreground">Referred From</span>
-                </div>
-                {lead.source_contact_id && sourceContactReferralCount !== null && sourceContactReferralCount > 0 && (
-                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold">
-                    {sourceContactReferralCount} referral{sourceContactReferralCount !== 1 ? 's' : ''} total
-                  </span>
-                )}
-              </div>
-              {lead.source_contact_id ? (() => {
-                const linkedContact = contactsList.find(c => c.id === lead.source_contact_id);
-                return linkedContact ? (
-                  <div className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
-                        {linkedContact.first_name[0]}{linkedContact.last_name?.[0] || ''}
-                      </div>
-                      <div className="flex-1 min-w-0 space-y-1.5">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-sm text-foreground">{linkedContact.first_name} {linkedContact.last_name}</span>
-                          {linkedContact.type && (
-                            <span className="text-[10px] uppercase tracking-wider bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-medium">
-                              {linkedContact.type}
-                            </span>
-                          )}
-                        </div>
-                        {linkedContact.company && (
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Building2 className="w-3 h-3 shrink-0" /> {linkedContact.company}
-                          </p>
-                        )}
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
-                          {linkedContact.email && (
-                            <a href={`mailto:${linkedContact.email}`} className="text-xs text-primary hover:underline flex items-center gap-1">
-                              <Mail className="w-3 h-3" /> {linkedContact.email}
-                            </a>
-                          )}
-                          {linkedContact.phone && (
-                            <a href={`tel:${linkedContact.phone}`} className="text-xs text-primary hover:underline flex items-center gap-1">
-                              <Phone className="w-3 h-3" /> {linkedContact.phone}
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 mt-3 pt-3 border-t border-border">
-                      {onOpenContact && (
-                        <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-8" onClick={() => onOpenContact(lead.source_contact_id!)}>
-                          <ExternalLink className="w-3 h-3" /> Open Contact
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="sm" className="gap-1.5 text-xs h-8 text-muted-foreground hover:text-destructive"
-                        onClick={async () => {
-                          onLeadChange?.({ ...lead, source_contact_id: null });
-                          if (!isPreviewMode) {
-                            await supabase.from('leads').update({ source_contact_id: null } as any).eq('id', lead.id);
-                          }
-                          setSourceContactReferralCount(null);
-                          toast.success('Contact unlinked');
-                        }}
-                      >
-                        <X className="w-3 h-3" /> Unlink
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-4 text-center">
-                    <p className="text-sm text-muted-foreground">Contact not found</p>
-                  </div>
-                );
-              })() : (
-                <div className="p-4">
-                  <Popover open={contactPickerOpen} onOpenChange={setContactPickerOpen}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start gap-2 text-muted-foreground font-normal h-10">
-                        <Search className="w-4 h-4 shrink-0" />
-                        <span>Search for referring client...</span>
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[320px] p-0 bg-background border border-border shadow-lg z-[100]" align="start">
-                      <Command>
-                        <CommandInput placeholder="Type a name to search..." />
-                        <CommandList>
-                          <CommandEmpty>No contacts found.</CommandEmpty>
-                          <CommandGroup>
-                            {contactsList.map(c => (
-                              <CommandItem
-                                key={c.id}
-                                value={`${c.first_name} ${c.last_name} ${c.email || ''} ${c.company || ''}`}
-                                onSelect={async () => {
-                                  setContactPickerOpen(false);
-                                  onLeadChange?.({ ...lead, source_contact_id: c.id });
-                                  if (!isPreviewMode) {
-                                    await supabase.from('leads').update({ source_contact_id: c.id } as any).eq('id', lead.id);
-                                    const { count } = await supabase.from('leads').select('id', { count: 'exact', head: true }).eq('source_contact_id', c.id);
-                                    setSourceContactReferralCount(count ?? 0);
-                                  }
-                                  toast.success(`Linked to ${c.first_name} ${c.last_name}`);
-                                }}
-                                className="flex items-center gap-3 px-3 py-2.5 cursor-pointer"
-                              >
-                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
-                                  {c.first_name[0]}{c.last_name?.[0] || ''}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium truncate">{c.first_name} {c.last_name}</p>
-                                  <p className="text-xs text-muted-foreground truncate">
-                                    {c.company || c.email || c.phone || 'No details'}
-                                  </p>
-                                </div>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  <p className="text-xs text-muted-foreground mt-2 text-center">
-                    Search by name, email, or company
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
 
           <Separator />
 
