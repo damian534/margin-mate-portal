@@ -22,6 +22,8 @@ function generatePassword(length = 14) {
   return [...required, ...rest].sort(() => Math.random() - 0.5).join('');
 }
 
+const normalizeInviteCode = (code: string) => code.trim().toUpperCase();
+
 export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -50,19 +52,14 @@ export default function Register() {
   }, [searchParams]);
 
   const validateCode = async (code: string) => {
-    if (!code.trim()) { setCodeValid(null); setInviteTargetRole(null); return; }
-    const { data } = await supabase
-      .from('invite_codes')
-      .select('id, is_active, max_uses, used_count, expires_at, target_role')
-      .eq('code', code.trim())
-      .eq('is_active', true)
-      .maybeSingle();
-    
-    if (!data) { setCodeValid(false); setInviteTargetRole(null); return; }
-    if (data.max_uses && data.used_count >= data.max_uses) { setCodeValid(false); return; }
-    if (data.expires_at && new Date(data.expires_at) < new Date()) { setCodeValid(false); return; }
+    const normalizedCode = normalizeInviteCode(code);
+    if (!normalizedCode) { setCodeValid(null); setInviteTargetRole(null); return; }
+    const { data, error } = await (supabase.rpc as any)('validate_invite_code', { _code: normalizedCode });
+    const result = Array.isArray(data) ? data[0] : data;
+
+    if (error || !result?.is_valid) { setCodeValid(false); setInviteTargetRole(null); return; }
     setCodeValid(true);
-    setInviteTargetRole(data.target_role || null);
+    setInviteTargetRole(result.target_role || null);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -89,7 +86,7 @@ export default function Register() {
         data: {
           full_name: fullName,
           company_name: companyName,
-          invite_code: registerAs === 'partner' ? inviteCode.trim() : '',
+          invite_code: registerAs === 'partner' ? normalizeInviteCode(inviteCode) : '',
         },
       },
     });
