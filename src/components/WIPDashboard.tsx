@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { FileDown, FileText } from 'lucide-react';
+import { AssigneeBadge } from '@/components/AssigneePicker';
 
 export const WIP_STATUSES = [
   { name: 'onboarding', label: 'Onboarding', color: '#94a3b8' },
@@ -39,6 +40,7 @@ interface WIPLead {
   lodged_date?: string | null;
   approved_date?: string | null;
   settled_date?: string | null;
+  assigned_to?: string | null;
 }
 
 interface WIPDashboardProps {
@@ -167,7 +169,10 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                         onClick={() => onOpenLead(lead)}
                         className="rounded-md border bg-card p-2 cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors"
                       >
-                        <p className="text-sm font-medium truncate">{lead.first_name} {lead.last_name}</p>
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-medium truncate flex-1">{lead.first_name} {lead.last_name}</p>
+                          <AssigneeBadge userId={lead.assigned_to ?? null} />
+                        </div>
                         {lead.loan_amount ? (
                           <p className="text-xs text-muted-foreground">${lead.loan_amount.toLocaleString()}</p>
                         ) : null}

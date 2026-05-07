@@ -527,6 +527,7 @@ export type Database = {
       leads: {
         Row: {
           approved_date: string | null
+          assigned_to: string | null
           broker_id: string | null
           company_commission: number | null
           company_commission_paid: boolean | null
@@ -557,6 +558,7 @@ export type Database = {
         }
         Insert: {
           approved_date?: string | null
+          assigned_to?: string | null
           broker_id?: string | null
           company_commission?: number | null
           company_commission_paid?: boolean | null
@@ -587,6 +589,7 @@ export type Database = {
         }
         Update: {
           approved_date?: string | null
+          assigned_to?: string | null
           broker_id?: string | null
           company_commission?: number | null
           company_commission_paid?: boolean | null
@@ -879,6 +882,7 @@ export type Database = {
       }
       tasks: {
         Row: {
+          assigned_to: string | null
           checklist_items: Json
           completed: boolean
           completed_at: string | null
@@ -892,6 +896,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_to?: string | null
           checklist_items?: Json
           completed?: boolean
           completed_at?: string | null
@@ -905,6 +910,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_to?: string | null
           checklist_items?: Json
           completed?: boolean
           completed_at?: string | null
