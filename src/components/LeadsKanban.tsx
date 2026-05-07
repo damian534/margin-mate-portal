@@ -203,7 +203,7 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   {lead.opportunity_name && (
-                                    <p className="font-semibold text-sm leading-tight truncate text-primary">{lead.opportunity_name}</p>
+                                    <p className="font-semibold text-sm leading-tight truncate text-foreground">{lead.opportunity_name}</p>
                                   )}
                                   <p className={`${lead.opportunity_name ? 'text-xs text-muted-foreground' : 'font-semibold text-sm'} leading-tight truncate`}>
                                     {lead.first_name} {lead.last_name}
