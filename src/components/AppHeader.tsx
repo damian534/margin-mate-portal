@@ -59,8 +59,7 @@ export function AppHeader() {
                       <Landmark className="w-4 h-4 mr-2" />
                       Settlements
                     </Button>
-                    {role !== 'broker_staff' && (
-                      <Button
+                    <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => {
@@ -71,7 +70,6 @@ export function AppHeader() {
                         <Settings2 className="w-4 h-4 mr-2" />
                         Settings
                       </Button>
-                    )}
                   </>
                 )}
                 {!isPreviewMode && (
