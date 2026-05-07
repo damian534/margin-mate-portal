@@ -152,6 +152,7 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
     const leadData = {
       first_name: firstName.trim(),
       last_name: lastName.trim(),
+      opportunity_name: `${firstName.trim()} ${lastName.trim()}`.trim() || null,
       email: email.trim() || null,
       phone: phone.trim() || null,
       loan_amount: loanAmount ? parseFloat(loanAmount) : null,
