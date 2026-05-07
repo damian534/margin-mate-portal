@@ -769,33 +769,68 @@ export function LeadDetailSheet({
             </div>
           )}
 
-          {/* Editable contact details */}
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                <Mail className="w-3 h-3" /> Email
-              </Label>
-              <Input
-                type="email"
-                placeholder="Add email"
-                value={editEmail}
-                onChange={(e) => { setEditEmail(e.target.value); setContactDirty(true); }}
-                className="h-8 text-sm"
-              />
+          {/* Primary client card — styled like co-applicant card */}
+          {(lead.source_contact_id || editEmail || editPhone) && (
+            <div className="rounded-lg border border-border bg-muted/20 p-3 mb-2">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+                  {lead.first_name[0]}{lead.last_name?.[0] || ''}
+                </div>
+                <div className="flex-1 min-w-0 space-y-0.5">
+                  <p className="text-sm font-medium truncate">{lead.first_name} {lead.last_name}</p>
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                    {editEmail && (
+                      <a href={`mailto:${editEmail}`} className="text-xs text-primary hover:underline flex items-center gap-1 truncate">
+                        <Mail className="w-3 h-3 shrink-0" /> {editEmail}
+                      </a>
+                    )}
+                    {editPhone && (
+                      <a href={`tel:${editPhone}`} className="text-xs text-primary hover:underline flex items-center gap-1 truncate">
+                        <Phone className="w-3 h-3 shrink-0" /> {editPhone}
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {lead.source_contact_id && onOpenContact && (
+                <div className="flex gap-2 mt-3 pt-2 border-t border-border">
+                  <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-8" onClick={() => onOpenContact(lead.source_contact_id!)}>
+                    <ExternalLink className="w-3 h-3" /> Open contact
+                  </Button>
+                </div>
+              )}
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                <Phone className="w-3 h-3" /> Phone
-              </Label>
-              <Input
-                type="tel"
-                placeholder="Add phone"
-                value={editPhone}
-                onChange={(e) => { setEditPhone(e.target.value); setContactDirty(true); }}
-                className="h-8 text-sm"
-              />
+          )}
+
+          {/* Inline edit (fallback when no linked contact) */}
+          {!lead.source_contact_id && (
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Mail className="w-3 h-3" /> Email
+                </Label>
+                <Input
+                  type="email"
+                  placeholder="Add email"
+                  value={editEmail}
+                  onChange={(e) => { setEditEmail(e.target.value); setContactDirty(true); }}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Phone className="w-3 h-3" /> Phone
+                </Label>
+                <Input
+                  type="tel"
+                  placeholder="Add phone"
+                  value={editPhone}
+                  onChange={(e) => { setEditPhone(e.target.value); setContactDirty(true); }}
+                  className="h-8 text-sm"
+                />
+              </div>
             </div>
-          </div>
+          )}
           {contactDirty && (
             <div className="flex justify-end mt-2">
               <Button size="sm" className="gap-1.5" onClick={saveContactDetails}>
