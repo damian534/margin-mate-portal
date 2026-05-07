@@ -182,7 +182,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                         className="rounded-md border bg-card p-2 cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors"
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm font-medium truncate flex-1">{lead.first_name} {lead.last_name}</p>
+                          <p className="text-sm font-medium truncate flex-1">{lead.opportunity_name?.trim() || `${lead.first_name} ${lead.last_name}`}</p>
                           <AssigneeBadge userId={lead.assigned_to ?? null} />
                         </div>
                         {lead.loan_amount ? (
