@@ -216,6 +216,97 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
         </div>
       </div>
 
+      {view === 'list' ? (
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Opportunity</TableHead>
+                  <TableHead>Stage</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Assignee</TableHead>
+                  <TableHead className="w-[60px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visibleLeads.filter(l => l.wip_status).length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-12">No deals in WIP</TableCell>
+                  </TableRow>
+                ) : (
+                  visibleLeads
+                    .filter(l => l.wip_status)
+                    .sort((a, b) => {
+                      const ai = WIP_STATUSES.findIndex(s => s.name === a.wip_status);
+                      const bi = WIP_STATUSES.findIndex(s => s.name === b.wip_status);
+                      return ai - bi;
+                    })
+                    .map(lead => {
+                      const stage = WIP_STATUSES.find(s => s.name === lead.wip_status);
+                      return (
+                        <TableRow key={lead.id} className="cursor-pointer hover:bg-muted/50" onClick={() => onOpenLead(lead)}>
+                          <TableCell className="font-medium">{lead.first_name} {lead.last_name}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{lead.opportunity_name || '—'}</TableCell>
+                          <TableCell>
+                            <span className="inline-flex items-center gap-2 text-xs">
+                              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: stage?.color }} />
+                              {stage?.label || lead.wip_status}
+                            </span>
+                          </TableCell>
+                          <TableCell className="tabular-nums">{lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '—'}</TableCell>
+                          <TableCell><AssigneeBadge userId={lead.assigned_to ?? null} /></TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" title="Move to stage">
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="max-h-[60vh] overflow-y-auto bg-popover z-50">
+                                <DropdownMenuLabel className="text-xs">Move to stage</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {WIP_STATUSES.map(s => (
+                                  <DropdownMenuItem
+                                    key={s.name}
+                                    disabled={s.name === lead.wip_status}
+                                    onClick={() => update(lead.id, s.name)}
+                                    className="text-xs"
+                                  >
+                                    <span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: s.color }} />
+                                    {s.label}
+                                    {s.name === lead.wip_status && <span className="ml-auto text-muted-foreground">(current)</span>}
+                                  </DropdownMenuItem>
+                                ))}
+                                {onSendBackToLead && leadStatuses.length > 0 && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuLabel className="text-xs">Send back to Leads</DropdownMenuLabel>
+                                    {leadStatuses.map(ls => (
+                                      <DropdownMenuItem
+                                        key={ls.name}
+                                        onClick={() => onSendBackToLead(lead.id, ls.name)}
+                                        className="text-xs"
+                                      >
+                                        <span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: ls.color }} />
+                                        {ls.label}
+                                      </DropdownMenuItem>
+                                    ))}
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      ) : (
       <div className="min-w-0 overflow-hidden">
         <div className="flex gap-3 pb-4 overflow-x-auto" style={{ minHeight: '60vh', minWidth: 0 }}>
           {WIP_STATUSES.map(stage => {
@@ -383,6 +474,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
           })}
         </div>
       </div>
+      )}
     </div>
   );
 }
