@@ -1014,22 +1014,22 @@ export function LeadDetailSheet({
             </div>
           )}
 
-          {/* Assigned to — any team member can pick up the file */}
+          {/* Assistant — any team member can pick up the file */}
           <div>
-            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Assigned To</Label>
+            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Assistant</Label>
             <AssigneePicker
               value={(lead as any).assigned_to ?? null}
               onChange={async (userId) => {
                 onLeadChange?.({ ...lead, assigned_to: userId } as any);
                 if (!isPreviewMode) {
                   const { error } = await supabase.from('leads').update({ assigned_to: userId } as any).eq('id', lead.id);
-                  if (error) { toast.error('Failed to update assignee'); return; }
+                  if (error) { toast.error('Failed to update assistant'); return; }
                 }
-                toast.success(userId ? 'Assignee updated' : 'Assignee cleared');
+                toast.success(userId ? 'Assistant updated' : 'Assistant cleared');
               }}
             />
             <p className="text-[10px] text-muted-foreground mt-1">
-              Allocate this file to a specific team member (broker or assistant).
+              Allocate this file to a specific assistant or team member.
             </p>
           </div>
 
