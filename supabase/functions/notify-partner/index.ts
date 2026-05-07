@@ -46,10 +46,12 @@ Deno.serve(async (req) => {
     // Use service role to bypass RLS
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    // referral_partner_id may be either profiles.user_id (signed-up partner)
+    // or profiles.id (placeholder partner created manually). Match both.
     const { data: profile } = await supabase
       .from("profiles")
       .select("email, full_name")
-      .eq("user_id", lead.referral_partner_id)
+      .or(`user_id.eq.${lead.referral_partner_id},id.eq.${lead.referral_partner_id}`)
       .maybeSingle();
 
     console.log("Partner profile lookup:", { partnerId: lead.referral_partner_id, profile });
