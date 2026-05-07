@@ -650,6 +650,16 @@ export function LeadDetailSheet({
                 {lead.first_name[0]}{lead.last_name?.[0] || ''}
               </div>
               <div className="flex-1 min-w-0">
+                <Input
+                  value={lead.opportunity_name ?? ''}
+                  placeholder="+ Add opportunity name (e.g. Investment Loan #2)"
+                  className="h-7 text-sm font-semibold border-0 px-0 mb-1 focus-visible:ring-0 placeholder:text-muted-foreground/60 placeholder:font-normal text-primary"
+                  onChange={(e) => onLeadChange?.({ ...lead, opportunity_name: e.target.value })}
+                  onBlur={async (e) => {
+                    const v = e.target.value.trim() || null;
+                    await supabase.from('leads').update({ opportunity_name: v } as any).eq('id', lead.id);
+                  }}
+                />
                 <div className="flex items-center gap-2">
                   {editingName ? (
                     <div className="flex items-center gap-2">
