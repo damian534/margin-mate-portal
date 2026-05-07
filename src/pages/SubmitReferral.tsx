@@ -58,6 +58,7 @@ export default function SubmitReferral() {
       broker_id: brokerId,
       first_name: form.first_name.trim(),
       last_name: form.last_name.trim(),
+      opportunity_name: `${form.first_name.trim()} ${form.last_name.trim()}`.trim() || null,
       email: form.email.trim() || null,
       phone: form.phone.trim() || null,
       loan_amount: form.loan_amount ? parseFloat(form.loan_amount) : null,
