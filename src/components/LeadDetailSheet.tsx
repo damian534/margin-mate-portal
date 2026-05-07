@@ -22,7 +22,7 @@ import {
   Mail, Phone, Send, Trash2, Users, Building2, DollarSign,
   Calendar, Plus, CheckCircle, Clock, AlertTriangle,
   MessageSquare, Activity, ChevronDown, ChevronRight, Pencil, X, Save,
-  Search, UserPlus, ExternalLink, Award, FileText, Copy
+  Search, ExternalLink, FileText, Copy
 } from 'lucide-react';
 import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectionPanel';
 import { ReferLeadDialog } from '@/components/ReferLeadDialog';
@@ -185,7 +185,6 @@ export function LeadDetailSheet({
   const [editingTask, setEditingTask] = useState<{ id: string; title: string; dueDate: string } | null>(null);
   const [taskNoteText, setTaskNoteText] = useState('');
   const [sourceContactReferralCount, setSourceContactReferralCount] = useState<number | null>(null);
-  const [contactPickerOpen, setContactPickerOpen] = useState(false);
   const [partnerPickerOpen, setPartnerPickerOpen] = useState(false);
   const [addingSource, setAddingSource] = useState(false);
   const [newSourceLabel, setNewSourceLabel] = useState('');
