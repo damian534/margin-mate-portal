@@ -722,6 +722,12 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
                           )}
                         </div>
 
+                        {doc.requested_at && (
+                          <p className="text-[10px] text-muted-foreground">
+                            Requested {new Date(doc.requested_at).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' })}
+                          </p>
+                        )}
+
                         {doc.file_name && (
                           <div className="flex items-center gap-2 bg-muted/50 rounded p-2">
                             <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
