@@ -41,6 +41,7 @@ interface Lead {
   broker_id: string | null;
   first_name: string;
   last_name: string;
+  opportunity_name?: string | null;
   email: string | null;
   phone: string | null;
   loan_amount: number | null;
