@@ -90,9 +90,6 @@ export function CoApplicantPicker({
       {linked ? (
         <div className="rounded-lg border border-border bg-muted/20 p-3">
           <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
-              {linked.first_name[0]}{linked.last_name?.[0] || ''}
-            </div>
             <div className="flex-1 min-w-0 space-y-0.5">
               <p className="text-sm font-medium truncate">{linked.first_name} {linked.last_name}</p>
               <div className="flex flex-wrap gap-x-3 gap-y-0.5">
