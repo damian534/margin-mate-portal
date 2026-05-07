@@ -20,7 +20,7 @@ import { format, isPast, isToday } from 'date-fns';
 import { notifyPartnerNote } from '@/lib/notifications';
 import {
   Mail, Phone, Send, Trash2, Users, Building2, DollarSign,
-  Calendar, Plus, CheckCircle, CheckCircle2, Clock, AlertTriangle,
+  Calendar, Plus, CheckCircle, Clock, AlertTriangle,
   MessageSquare, Activity, ChevronDown, ChevronRight, Pencil, X, Save,
   Search, UserPlus, ExternalLink, Award, FileText, Copy
 } from 'lucide-react';
@@ -184,12 +184,6 @@ export function LeadDetailSheet({
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<{ id: string; title: string; dueDate: string } | null>(null);
   const [taskNoteText, setTaskNoteText] = useState('');
-  const [editEmail, setEditEmail] = useState('');
-  const [editPhone, setEditPhone] = useState('');
-  const [contactDirty, setContactDirty] = useState(false);
-  const [editingName, setEditingName] = useState(false);
-  const [editFirstName, setEditFirstName] = useState('');
-  const [editLastName, setEditLastName] = useState('');
   const [sourceContactReferralCount, setSourceContactReferralCount] = useState<number | null>(null);
   const [contactPickerOpen, setContactPickerOpen] = useState(false);
   const [partnerPickerOpen, setPartnerPickerOpen] = useState(false);
