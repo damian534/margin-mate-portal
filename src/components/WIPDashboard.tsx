@@ -1,4 +1,5 @@
 import { LeadStatus } from '@/hooks/useLeadStatuses';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import { useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -61,11 +62,11 @@ interface WIPDashboardProps {
 }
 
 export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead, docsByLead, onDownloadDocs }: WIPDashboardProps) {
-  const [assigneeFilter, setAssigneeFilter] = useState('all');
+  const [assigneeFilter, setAssigneeFilter] = usePersistedState<string>('crm.wip.assigneeFilter', 'all');
   const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
-  const [compact, setCompact] = useState(false);
-  const [view, setView] = useState<'kanban' | 'list'>('kanban');
+  const [compact, setCompact] = usePersistedState<boolean>('crm.wip.compact', false);
+  const [view, setView] = usePersistedState<'kanban' | 'list'>('crm.wip.view', 'kanban');
 
   const toggleCollapse = (name: string) => {
     setCollapsedColumns(prev => {
