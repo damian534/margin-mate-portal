@@ -608,6 +608,7 @@ export default function AdminCRM() {
                   {statuses.map(s => <SelectItem key={s.name} value={s.name}>{s.label}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <AssigneeFilter value={assigneeFilter} onChange={setAssigneeFilter} />
               {/* View toggle */}
               <div className="flex items-center border rounded-md">
                 <Button variant={leadsView === 'table' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-2" onClick={() => setLeadsView('table')}>
