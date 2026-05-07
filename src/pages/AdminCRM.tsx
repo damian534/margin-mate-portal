@@ -18,6 +18,7 @@ import { AddLeadDialog } from '@/components/AddLeadDialog';
 import { ContactsManagement, Contact } from '@/components/ContactsManagement';
 import { IncomingReferralsPanel } from '@/components/IncomingReferralsPanel';
 import { WIPDashboard } from '@/components/WIPDashboard';
+import { AssigneeFilter } from '@/components/AssigneePicker';
 import JSZip from 'jszip';
 
 
@@ -108,6 +109,7 @@ export default function AdminCRM() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [assigneeFilter, setAssigneeFilter] = useState('all');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [leadsView, setLeadsView] = useState<'table' | 'kanban'>('kanban');
@@ -181,11 +183,18 @@ export default function AdminCRM() {
     if (statusFilter !== 'all') {
       result = result.filter(l => l.status === statusFilter);
     }
+    if (assigneeFilter !== 'all') {
+      if (assigneeFilter === 'unassigned') {
+        result = result.filter(l => !(l as any).assigned_to);
+      } else {
+        result = result.filter(l => (l as any).assigned_to === assigneeFilter);
+      }
+    }
     if (taskDueFilter !== 'all_leads') {
       result = result.filter(l => getLeadTaskDueCategory(l.id, tasksByLead) === taskDueFilter);
     }
     setFilteredLeads(result);
-  }, [leads, search, statusFilter, taskDueFilter, referrers, tasksByLead]);
+  }, [leads, search, statusFilter, assigneeFilter, taskDueFilter, referrers, tasksByLead]);
 
   const fetchLeads = async () => {
     const { data } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
@@ -599,6 +608,7 @@ export default function AdminCRM() {
                   {statuses.map(s => <SelectItem key={s.name} value={s.name}>{s.label}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <AssigneeFilter value={assigneeFilter} onChange={setAssigneeFilter} />
               {/* View toggle */}
               <div className="flex items-center border rounded-md">
                 <Button variant={leadsView === 'table' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-2" onClick={() => setLeadsView('table')}>

@@ -1,11 +1,11 @@
 import { LeadStatus } from '@/hooks/useLeadStatuses';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { FileDown, FileText } from 'lucide-react';
-import { AssigneeBadge } from '@/components/AssigneePicker';
+import { AssigneeBadge, AssigneeFilter } from '@/components/AssigneePicker';
 
 export const WIP_STATUSES = [
   { name: 'onboarding', label: 'Onboarding', color: '#94a3b8' },
@@ -55,15 +55,23 @@ interface WIPDashboardProps {
 }
 
 export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead, docsByLead, onDownloadDocs }: WIPDashboardProps) {
+  const [assigneeFilter, setAssigneeFilter] = useState('all');
+
+  const visibleLeads = useMemo(() => {
+    if (assigneeFilter === 'all') return leads;
+    if (assigneeFilter === 'unassigned') return leads.filter(l => !l.assigned_to);
+    return leads.filter(l => l.assigned_to === assigneeFilter);
+  }, [leads, assigneeFilter]);
+
   const grouped = useMemo(() => {
     const map = new Map<string, WIPLead[]>();
     WIP_STATUSES.forEach(s => map.set(s.name, []));
-    for (const l of leads) {
+    for (const l of visibleLeads) {
       const key = l.wip_status || '';
       if (map.has(key)) map.get(key)!.push(l);
     }
     return map;
-  }, [leads]);
+  }, [visibleLeads]);
 
   const totals = useMemo(() => {
     const t = new Map<string, { count: number; volume: number }>();
@@ -124,6 +132,9 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
   return (
     <div className="space-y-4">
       {/* Monthly KPIs are shown at the top of the CRM page */}
+      <div className="flex justify-end">
+        <AssigneeFilter value={assigneeFilter} onChange={setAssigneeFilter} className="w-full sm:w-56" />
+      </div>
 
       <div className="overflow-x-auto pb-4">
         <div className="flex gap-3 min-w-max">
