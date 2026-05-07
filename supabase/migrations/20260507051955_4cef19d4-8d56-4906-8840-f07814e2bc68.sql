@@ -1,0 +1,1 @@
+UPDATE public.leads SET opportunity_name = TRIM(CONCAT(first_name, ' ', last_name)) WHERE opportunity_name IS NULL OR opportunity_name = '';
