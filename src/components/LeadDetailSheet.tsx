@@ -1172,6 +1172,7 @@ export function LeadDetailSheet({
               <Select
                 value={lead.source ?? ''}
                 onValueChange={async (val) => {
+                  if (val === '__add_new__') { setAddingSource(true); return; }
                   const source = val || null;
                   onLeadChange?.({ ...lead, source });
                   if (!isPreviewMode) {
@@ -1184,8 +1185,23 @@ export function LeadDetailSheet({
                   {leadSources.map(s => (
                     <SelectItem key={s.name} value={s.name}>{s.label}</SelectItem>
                   ))}
+                  <SelectItem value="__add_new__" className="text-primary font-medium">+ Add new source…</SelectItem>
                 </SelectContent>
               </Select>
+              {addingSource && (
+                <div className="mt-2 flex gap-1.5">
+                  <Input
+                    autoFocus
+                    value={newSourceLabel}
+                    onChange={(e) => setNewSourceLabel(e.target.value)}
+                    placeholder="New source name"
+                    className="h-8 text-sm"
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleAddSource(); if (e.key === 'Escape') { setAddingSource(false); setNewSourceLabel(''); } }}
+                  />
+                  <Button size="sm" className="h-8" onClick={handleAddSource}>Add</Button>
+                  <Button size="sm" variant="ghost" className="h-8" onClick={() => { setAddingSource(false); setNewSourceLabel(''); }}>Cancel</Button>
+                </div>
+              )}
             </div>
             <div className="flex-1">
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">Contact Card</Label>
