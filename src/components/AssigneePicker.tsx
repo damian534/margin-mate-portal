@@ -36,7 +36,7 @@ export function AssigneePicker({ value, onChange, className, placeholder = 'Unas
               </span>
               {m.name}
               <span className="text-[10px] text-muted-foreground">
-                {m.role === 'broker_staff' ? 'Staff' : m.role === 'super_admin' ? 'Admin' : 'Broker'}
+                {m.role === 'broker_staff' ? 'Assistant' : m.role === 'super_admin' ? 'Admin' : 'Broker'}
               </span>
             </span>
           </SelectItem>
