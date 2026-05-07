@@ -664,7 +664,19 @@ export function LeadDetailSheet({
                   <p className="text-sm font-normal text-muted-foreground">{LOAN_PURPOSE_OPTIONS.find(o => o.value === lead.loan_purpose)?.label || lead.loan_purpose}</p>
                 )}
                 <div className="mt-1.5">
-                  <StatusBadge status={lead.status} statuses={statuses} />
+                  {lead.wip_status ? (() => {
+                    const w = WIP_STATUSES.find(s => s.name === lead.wip_status);
+                    return (
+                      <span
+                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white"
+                        style={{ backgroundColor: w?.color || '#64748b' }}
+                      >
+                        {w?.label || lead.wip_status}
+                      </span>
+                    );
+                  })() : (
+                    <StatusBadge status={lead.status} statuses={statuses} />
+                  )}
                 </div>
                 {lead.source_contact_id && onOpenContact && (
                   <div className="flex items-center gap-2 mt-0.5">
