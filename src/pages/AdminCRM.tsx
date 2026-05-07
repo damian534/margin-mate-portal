@@ -1000,6 +1000,7 @@ export default function AdminCRM() {
         onUpdateWipStatus={updateWipStatus}
         onUpdateCommission={updateCommission}
         onDeleteLead={deleteLead}
+        onDuplicateLead={duplicateLead}
         onLeadChange={(updated) => {
           setSelectedLead(updated);
           setLeads(prev => prev.map(l => l.id === updated.id ? { ...l, ...updated } : l));
