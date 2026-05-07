@@ -362,6 +362,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
                           )}
                         </div>
                       </div>
+                      <AssigneeBadge userId={task.assigned_to ?? null} />
                     </CardContent>
                   </Card>
                 );
