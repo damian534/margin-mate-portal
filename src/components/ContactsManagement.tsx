@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Plus, Search, Mail, Phone, Building2, User } from 'lucide-react';
 import { CoApplicantPicker } from '@/components/CoApplicantPicker';
+import { ContactLeadsList } from '@/components/ContactLeadsList';
 
 export interface Contact {
   id: string;
