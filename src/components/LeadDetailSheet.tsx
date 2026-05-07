@@ -1123,7 +1123,6 @@ export function LeadDetailSheet({
                 </div>
               )}
             </div>
-            </div>
           </div>
 
           <Separator />
