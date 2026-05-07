@@ -256,8 +256,8 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                           <TableHeader>
                             <TableRow>
                               <TableHead>Client</TableHead>
-                              <TableHead>Amount</TableHead>
                               <TableHead>Opportunity</TableHead>
+                              <TableHead>Amount</TableHead>
                               <TableHead>Assignee</TableHead>
                               <TableHead className="w-[60px]"></TableHead>
                             </TableRow>
@@ -275,10 +275,8 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                 onClick={() => onOpenLead(lead)}
                               >
                                 <TableCell className="font-medium">{lead.first_name} {lead.last_name}</TableCell>
-                                <TableCell className="font-bold text-base tabular-nums text-foreground">
-                                  {lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '—'}
-                                </TableCell>
                                 <TableCell className="text-sm text-muted-foreground">{lead.opportunity_name || '—'}</TableCell>
+                                <TableCell className="tabular-nums">{lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '—'}</TableCell>
                                 <TableCell><AssigneeBadge userId={lead.assigned_to ?? null} /></TableCell>
                                 <TableCell onClick={(e) => e.stopPropagation()}>
                                   <DropdownMenu>
