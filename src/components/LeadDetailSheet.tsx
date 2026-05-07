@@ -642,89 +642,20 @@ export function LeadDetailSheet({
         {/* Contact Header Card */}
         <div className="bg-muted/30 p-6 pb-4 border-b">
           <SheetHeader className="mb-4">
-            <SheetTitle className="text-xl flex items-center gap-2">
-              <div 
-                className={`w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm ${lead.source_contact_id && onOpenContact ? 'cursor-pointer hover:bg-primary/20 transition-colors' : ''}`}
-                onClick={() => lead.source_contact_id && onOpenContact?.(lead.source_contact_id)}
-                title={lead.source_contact_id ? 'View contact card' : undefined}
-              >
-                {lead.first_name[0]}{lead.last_name?.[0] || ''}
-              </div>
-              <div className="flex-1 min-w-0">
+            <SheetTitle asChild>
+              <div className="min-w-0">
                 <Input
                   value={lead.opportunity_name ?? ''}
-                  placeholder="+ Add opportunity name (e.g. Investment Loan #2)"
-                  className="h-9 text-xl font-bold border-0 px-0 mb-1 focus-visible:ring-0 placeholder:text-muted-foreground/60 placeholder:font-normal text-foreground shadow-none"
+                  placeholder={`e.g. ${lead.last_name || 'Surname'}, ${lead.first_name || 'Name'} - ${LOAN_PURPOSE_OPTIONS.find(o => o.value === lead.loan_purpose)?.label || 'Opportunity'}`}
+                  className="h-10 text-xl font-bold border-0 px-0 mb-2 focus-visible:ring-0 placeholder:text-muted-foreground/60 placeholder:font-normal text-foreground shadow-none"
                   onChange={(e) => onLeadChange?.({ ...lead, opportunity_name: e.target.value })}
                   onBlur={async (e) => {
                     const v = e.target.value.trim() || null;
                     await supabase.from('leads').update({ opportunity_name: v } as any).eq('id', lead.id);
                   }}
                 />
-                <div className="flex items-center gap-2 text-sm font-normal text-muted-foreground">
-                  {editingName ? (
-                    <div className="flex items-center gap-2">
-                      <Input
-                        value={editFirstName}
-                        onChange={e => setEditFirstName(e.target.value)}
-                        placeholder="First name"
-                        className="h-7 text-sm w-28"
-                        autoFocus
-                      />
-                      <Input
-                        value={editLastName}
-                        onChange={e => setEditLastName(e.target.value)}
-                        placeholder="Last name"
-                        className="h-7 text-sm w-28"
-                      />
-                      <Button size="sm" variant="ghost" className="h-7 px-2" onClick={saveNameEdit}>
-                        <CheckCircle2 className="w-4 h-4 text-primary" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setEditingName(false)}>
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <span 
-                      className={`cursor-pointer hover:text-primary transition-colors`}
-                      onClick={() => {
-                        if (lead.source_contact_id && onOpenContact) {
-                          onOpenContact(lead.source_contact_id);
-                        } else {
-                          startNameEdit();
-                        }
-                      }}
-                      onDoubleClick={startNameEdit}
-                      title="Double-click to edit name"
-                    >
-                      {lead.first_name} {lead.last_name}
-                    </span>
-                  )}
-                  {!editingName && (
-                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0 opacity-50 hover:opacity-100" onClick={startNameEdit}>
-                      <Pencil className="w-3 h-3" />
-                    </Button>
-                  )}
-                </div>
-                {/* Co-applicant — sits directly under client name */}
-                <div className="mt-2 font-normal text-sm">
-                  <CoApplicantPicker
-                    contacts={contactsList}
-                    value={lead.co_applicant_contact_id ?? null}
-                    excludeIds={lead.source_contact_id ? [lead.source_contact_id] : []}
-                    isPreviewMode={isPreviewMode}
-                    onOpenContact={onOpenContact}
-                    hideHeader
-                    onChange={async (newId) => {
-                      onLeadChange?.({ ...lead, co_applicant_contact_id: newId });
-                      if (!isPreviewMode) {
-                        await supabase.from('leads').update({ co_applicant_contact_id: newId } as any).eq('id', lead.id);
-                      }
-                    }}
-                  />
-                </div>
                 {lead.loan_purpose && (
-                  <p className="text-sm font-normal text-muted-foreground mt-2">{LOAN_PURPOSE_OPTIONS.find(o => o.value === lead.loan_purpose)?.label || lead.loan_purpose}</p>
+                  <p className="text-sm font-normal text-muted-foreground">{LOAN_PURPOSE_OPTIONS.find(o => o.value === lead.loan_purpose)?.label || lead.loan_purpose}</p>
                 )}
                 <div className="mt-1.5">
                   {lead.wip_status ? (() => {
@@ -741,19 +672,11 @@ export function LeadDetailSheet({
                     <StatusBadge status={lead.status} statuses={statuses} />
                   )}
                 </div>
-                {lead.source_contact_id && onOpenContact && (
+                {lead.source_contact_id && sourceContactReferralCount !== null && sourceContactReferralCount > 0 && (
                   <div className="flex items-center gap-2 mt-0.5">
-                    <button 
-                      onClick={() => onOpenContact(lead.source_contact_id!)}
-                      className="text-xs text-primary hover:underline flex items-center gap-1"
-                    >
-                      <Users className="w-3 h-3" /> View contact card
-                    </button>
-                    {sourceContactReferralCount !== null && sourceContactReferralCount > 0 && (
                       <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">
                         {sourceContactReferralCount} referral{sourceContactReferralCount !== 1 ? 's' : ''}
                       </span>
-                    )}
                   </div>
                 )}
               </div>
@@ -769,16 +692,16 @@ export function LeadDetailSheet({
             </div>
           )}
 
-          {/* Primary client card — styled like co-applicant card */}
-          {(lead.source_contact_id || editEmail || editPhone) && (
-            <div className="rounded-lg border border-border bg-muted/20 p-3 mb-2">
+          {/* Applicants — primary + co-applicant side-by-side */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <div className="rounded-lg border border-border bg-muted/20 p-3">
               <div className="flex items-start gap-3">
                 <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
                   {lead.first_name[0]}{lead.last_name?.[0] || ''}
                 </div>
                 <div className="flex-1 min-w-0 space-y-0.5">
                   <p className="text-sm font-medium truncate">{lead.first_name} {lead.last_name}</p>
-                  <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                  <div className="flex flex-col gap-0.5">
                     {editEmail && (
                       <a href={`mailto:${editEmail}`} className="text-xs text-primary hover:underline flex items-center gap-1 truncate">
                         <Mail className="w-3 h-3 shrink-0" /> {editEmail}
@@ -792,15 +715,40 @@ export function LeadDetailSheet({
                   </div>
                 </div>
               </div>
-              {lead.source_contact_id && onOpenContact && (
-                <div className="flex gap-2 mt-3 pt-2 border-t border-border">
+              <div className="flex gap-2 mt-3 pt-2 border-t border-border">
+                {lead.source_contact_id && onOpenContact && (
                   <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-8" onClick={() => onOpenContact(lead.source_contact_id!)}>
-                    <ExternalLink className="w-3 h-3" /> Open contact
+                    <ExternalLink className="w-3 h-3" /> Open
                   </Button>
+                )}
+                <Button variant="ghost" size="sm" className="gap-1.5 text-xs h-8" onClick={startNameEdit}>
+                  <Pencil className="w-3 h-3" /> Edit name
+                </Button>
+              </div>
+              {editingName && (
+                <div className="flex items-center gap-2 mt-2">
+                  <Input value={editFirstName} onChange={e => setEditFirstName(e.target.value)} placeholder="First" className="h-7 text-xs" />
+                  <Input value={editLastName} onChange={e => setEditLastName(e.target.value)} placeholder="Last" className="h-7 text-xs" />
+                  <Button size="sm" variant="ghost" className="h-7 px-2" onClick={saveNameEdit}><CheckCircle2 className="w-4 h-4 text-primary" /></Button>
+                  <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setEditingName(false)}><X className="w-4 h-4" /></Button>
                 </div>
               )}
             </div>
-          )}
+            <CoApplicantPicker
+              contacts={contactsList}
+              value={lead.co_applicant_contact_id ?? null}
+              excludeIds={lead.source_contact_id ? [lead.source_contact_id] : []}
+              isPreviewMode={isPreviewMode}
+              onOpenContact={onOpenContact}
+              hideHeader
+              onChange={async (newId) => {
+                onLeadChange?.({ ...lead, co_applicant_contact_id: newId });
+                if (!isPreviewMode) {
+                  await supabase.from('leads').update({ co_applicant_contact_id: newId } as any).eq('id', lead.id);
+                }
+              }}
+            />
+          </div>
 
           {/* Inline edit (fallback when no linked contact) */}
           {!lead.source_contact_id && (
