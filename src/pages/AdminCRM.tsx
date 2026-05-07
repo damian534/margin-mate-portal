@@ -968,6 +968,7 @@ export default function AdminCRM() {
           setTimeout(() => setOpenContactId(contactId), 300);
         }}
         sampleNotes={isPreviewMode && selectedLead ? (SAMPLE_NOTES[selectedLead.id] || []) as any : undefined}
+        onLeadSourcesChanged={fetchLeadSources}
       />
     </div>
   );
