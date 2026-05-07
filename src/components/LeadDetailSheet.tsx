@@ -657,43 +657,29 @@ export function LeadDetailSheet({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <div className="rounded-lg border border-border bg-muted/20 p-3">
               <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
-                  {lead.first_name[0]}{lead.last_name?.[0] || ''}
-                </div>
                 <div className="flex-1 min-w-0 space-y-0.5">
                   <p className="text-sm font-medium truncate">{lead.first_name} {lead.last_name}</p>
-                  <div className="flex flex-col gap-0.5">
-                    {editEmail && (
-                      <a href={`mailto:${editEmail}`} className="text-xs text-primary hover:underline flex items-center gap-1 truncate">
-                        <Mail className="w-3 h-3 shrink-0" /> {editEmail}
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                    {(primaryApplicantContact?.email || lead.email) && (
+                      <a href={`mailto:${primaryApplicantContact?.email || lead.email}`} className="text-xs text-primary hover:underline flex items-center gap-1 truncate">
+                        <Mail className="w-3 h-3 shrink-0" /> {primaryApplicantContact?.email || lead.email}
                       </a>
                     )}
-                    {editPhone && (
-                      <a href={`tel:${editPhone}`} className="text-xs text-primary hover:underline flex items-center gap-1 truncate">
-                        <Phone className="w-3 h-3 shrink-0" /> {editPhone}
+                    {(primaryApplicantContact?.phone || lead.phone) && (
+                      <a href={`tel:${primaryApplicantContact?.phone || lead.phone}`} className="text-xs text-primary hover:underline flex items-center gap-1 truncate">
+                        <Phone className="w-3 h-3 shrink-0" /> {primaryApplicantContact?.phone || lead.phone}
                       </a>
                     )}
                   </div>
                 </div>
               </div>
               <div className="flex gap-2 mt-3 pt-2 border-t border-border">
-                {lead.source_contact_id && onOpenContact && (
-                  <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-8" onClick={() => onOpenContact(lead.source_contact_id!)}>
+                {primaryApplicantContact && onOpenContact && (
+                  <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-8" onClick={() => onOpenContact(primaryApplicantContact.id)}>
                     <ExternalLink className="w-3 h-3" /> Open
                   </Button>
                 )}
-                <Button variant="ghost" size="sm" className="gap-1.5 text-xs h-8" onClick={startNameEdit}>
-                  <Pencil className="w-3 h-3" /> Edit name
-                </Button>
               </div>
-              {editingName && (
-                <div className="flex items-center gap-2 mt-2">
-                  <Input value={editFirstName} onChange={e => setEditFirstName(e.target.value)} placeholder="First" className="h-7 text-xs" />
-                  <Input value={editLastName} onChange={e => setEditLastName(e.target.value)} placeholder="Last" className="h-7 text-xs" />
-                  <Button size="sm" variant="ghost" className="h-7 px-2" onClick={saveNameEdit}><CheckCircle2 className="w-4 h-4 text-primary" /></Button>
-                  <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setEditingName(false)}><X className="w-4 h-4" /></Button>
-                </div>
-              )}
             </div>
             <CoApplicantPicker
               contacts={contactsList}
