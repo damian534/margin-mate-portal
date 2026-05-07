@@ -588,6 +588,15 @@ export function LeadDetailSheet({
     );
   };
 
+  const primaryApplicantContact = lead.source_contact_id
+    ? contactsList.find(c => c.id === lead.source_contact_id)
+    : contactsList.find(c => {
+      const sameEmail = lead.email && c.email?.toLowerCase() === lead.email.toLowerCase();
+      const samePhone = lead.phone && c.phone === lead.phone;
+      const sameName = c.first_name.toLowerCase() === lead.first_name.toLowerCase() && c.last_name.toLowerCase() === lead.last_name.toLowerCase();
+      return sameEmail || samePhone || sameName;
+    });
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-3xl overflow-y-auto p-0">
