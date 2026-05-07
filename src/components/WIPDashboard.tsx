@@ -4,9 +4,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { FileDown, FileText, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
+import { FileDown, FileText, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search, X } from 'lucide-react';
 import { AssigneeBadge, AssigneeFilter } from '@/components/AssigneePicker';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export const WIP_STATUSES = [
@@ -60,6 +61,7 @@ interface WIPDashboardProps {
 export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead, docsByLead, onDownloadDocs }: WIPDashboardProps) {
   const [assigneeFilter, setAssigneeFilter] = useState('all');
   const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState('');
 
   const toggleCollapse = (name: string) => {
     setCollapsedColumns(prev => {
@@ -73,10 +75,19 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
   const allCollapsed = collapsedColumns.size === WIP_STATUSES.length;
 
   const visibleLeads = useMemo(() => {
-    if (assigneeFilter === 'all') return leads;
-    if (assigneeFilter === 'unassigned') return leads.filter(l => !l.assigned_to);
-    return leads.filter(l => l.assigned_to === assigneeFilter);
-  }, [leads, assigneeFilter]);
+    let result = leads;
+    if (assigneeFilter === 'unassigned') result = result.filter(l => !l.assigned_to);
+    else if (assigneeFilter !== 'all') result = result.filter(l => l.assigned_to === assigneeFilter);
+    const q = search.trim().toLowerCase();
+    if (q) {
+      result = result.filter(l =>
+        `${l.first_name} ${l.last_name}`.toLowerCase().includes(q) ||
+        (l.opportunity_name || '').toLowerCase().includes(q) ||
+        String(l.loan_amount || '').includes(q)
+      );
+    }
+    return result;
+  }, [leads, assigneeFilter, search]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, WIPLead[]>();
@@ -147,7 +158,27 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
   return (
     <div className="space-y-4">
       {/* Monthly KPIs are shown at the top of the CRM page */}
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search WIP by name, opportunity, or amount..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 pr-9"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Clear search"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+        <div className="flex justify-end gap-2 sm:ml-auto">
         <Button
           variant="ghost"
           size="sm"
@@ -161,6 +192,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
           )}
         </Button>
         <AssigneeFilter value={assigneeFilter} onChange={setAssigneeFilter} className="w-full sm:w-56" />
+        </div>
       </div>
 
       <div className="min-w-0 overflow-hidden">
