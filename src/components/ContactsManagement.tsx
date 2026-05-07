@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Plus, Search, Mail, Phone, Building2, User } from 'lucide-react';
 import { CoApplicantPicker } from '@/components/CoApplicantPicker';
+import { ContactLeadsList } from '@/components/ContactLeadsList';
 
 export interface Contact {
   id: string;
@@ -37,6 +38,7 @@ interface ContactsManagementProps {
   isPreviewMode: boolean;
   openContactId?: string | null;
   onContactOpened?: () => void;
+  onOpenLead?: (leadId: string) => void;
 }
 
 const CONTACT_TYPES = [
@@ -44,7 +46,7 @@ const CONTACT_TYPES = [
   { value: 'referrer', label: 'Referrer' },
 ];
 
-export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openContactId, onContactOpened }: ContactsManagementProps) {
+export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openContactId, onContactOpened, onOpenLead }: ContactsManagementProps) {
   const { effectiveBrokerId } = useAuth();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -318,6 +320,18 @@ export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openCon
                     if (c) { setSelectedContact(c); }
                   }}
                 />
+                <Separator />
+                <div>
+                  <Label className="text-xs mb-2 block">Loans / Opportunities</Label>
+                  <ContactLeadsList
+                    contactId={selectedContact.id}
+                    isPreviewMode={isPreviewMode}
+                    onOpenLead={(leadId) => {
+                      setSheetOpen(false);
+                      onOpenLead?.(leadId);
+                    }}
+                  />
+                </div>
                 <Separator />
                 <Button variant="destructive" size="sm" onClick={handleDelete}>Delete Contact</Button>
               </div>
