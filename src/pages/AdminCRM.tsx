@@ -418,9 +418,17 @@ export default function AdminCRM() {
   const updateWipStatus = async (leadId: string, wip_status: string | null) => {
     const lead = leads.find(l => l.id === leadId);
     const oldWip = lead?.wip_status || null;
-    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, wip_status } : l));
+    // Keep lead.status in sync: if file is now actively in WIP, it shouldn't show as Parked/Lost.
+    const shouldClearStaleStatus =
+      wip_status && wip_status !== 'settled' && lead && ['parked', 'lost'].includes(lead.status);
+    const nextStatus = shouldClearStaleStatus ? 'in_progress' : lead?.status;
+    setLeads(prev => prev.map(l => l.id === leadId
+      ? { ...l, wip_status, status: shouldClearStaleStatus ? 'in_progress' : l.status }
+      : l));
     if (isPreviewMode) { toast.success('WIP status updated (preview)'); return; }
-    const { error } = await supabase.from('leads').update({ wip_status } as any).eq('id', leadId);
+    const updatePayload: any = { wip_status };
+    if (shouldClearStaleStatus) updatePayload.status = 'in_progress';
+    const { error } = await supabase.from('leads').update(updatePayload).eq('id', leadId);
     if (error) toast.error('Failed to update WIP status');
     else toast.success('WIP status updated');
 
