@@ -706,9 +706,6 @@ export function LeadDetailSheet({
                     </Button>
                   )}
                 </div>
-                {lead.loan_purpose && (
-                  <p className="text-sm font-normal text-muted-foreground">{LOAN_PURPOSE_OPTIONS.find(o => o.value === lead.loan_purpose)?.label || lead.loan_purpose}</p>
-                )}
                 {/* Co-applicant — sits directly under client name */}
                 <div className="mt-2 font-normal text-sm">
                   <CoApplicantPicker
@@ -726,6 +723,9 @@ export function LeadDetailSheet({
                     }}
                   />
                 </div>
+                {lead.loan_purpose && (
+                  <p className="text-sm font-normal text-muted-foreground mt-2">{LOAN_PURPOSE_OPTIONS.find(o => o.value === lead.loan_purpose)?.label || lead.loan_purpose}</p>
+                )}
                 <div className="mt-1.5">
                   {lead.wip_status ? (() => {
                     const w = WIP_STATUSES.find(s => s.name === lead.wip_status);
