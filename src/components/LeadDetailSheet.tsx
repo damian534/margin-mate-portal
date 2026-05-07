@@ -136,6 +136,7 @@ interface LeadDetailSheetProps {
   onUpdateWipStatus?: (leadId: string, wipStatus: string | null) => void;
   onUpdateCommission: (leadId: string, fields: Record<string, any>) => void;
   onDeleteLead: (leadId: string) => void;
+  onDuplicateLead?: (leadId: string) => void;
   onLeadChange: (lead: Lead) => void;
   onOpenContact?: (contactId: string) => void;
   sampleNotes?: Note[];
@@ -166,7 +167,7 @@ function formatDatetimeLocal(d: Date) {
 
 export function LeadDetailSheet({
   open, onOpenChange, lead, statuses, leadSources = [], referrerName, referrerCompany, sourceContactName,
-  contacts: contactsList = [], referrers: referrersList = [], isPreviewMode, onUpdateStatus, onUpdateWipStatus, onUpdateCommission, onDeleteLead, onLeadChange, onOpenContact, sampleNotes, onLeadSourcesChanged
+  contacts: contactsList = [], referrers: referrersList = [], isPreviewMode, onUpdateStatus, onUpdateWipStatus, onUpdateCommission, onDeleteLead, onDuplicateLead, onLeadChange, onOpenContact, sampleNotes, onLeadSourcesChanged
 }: LeadDetailSheetProps) {
   const { user, role } = useAuth();
   const isSuperAdmin = role === 'super_admin';
