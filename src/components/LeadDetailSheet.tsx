@@ -218,24 +218,6 @@ export function LeadDetailSheet({
     }
   };
 
-  const startNameEdit = () => {
-    setEditFirstName(lead.first_name);
-    setEditLastName(lead.last_name);
-    setEditingName(true);
-  };
-
-  const saveNameEdit = async () => {
-    const first = editFirstName.trim();
-    const last = editLastName.trim();
-    if (!first) { toast.error('First name is required'); return; }
-    onLeadChange?.({ ...lead, first_name: first, last_name: last });
-    if (!isPreviewMode) {
-      await supabase.from('leads').update({ first_name: first, last_name: last } as any).eq('id', lead.id);
-    }
-    setEditingName(false);
-    toast.success('Name updated');
-  };
-
   // Fetch broker options for super admins
   useEffect(() => {
     if (!isSuperAdmin || isPreviewMode) return;
@@ -253,9 +235,6 @@ export function LeadDetailSheet({
       fetchNotes(lead.id);
       fetchTasks(lead.id);
       fetchTaskTemplates();
-      setEditEmail(lead.email || '');
-      setEditPhone(lead.phone || '');
-      setContactDirty(false);
       setNotifyPartner(!!lead.referral_partner_id);
       if (lead.source_contact_id && !isPreviewMode) {
         supabase.from('leads').select('id', { count: 'exact', head: true })
@@ -266,27 +245,6 @@ export function LeadDetailSheet({
       }
     }
   }, [lead?.id, open]);
-
-  const saveContactDetails = async () => {
-    if (!lead) return;
-    const updates: any = {};
-    if (editEmail !== (lead.email || '')) updates.email = editEmail || null;
-    if (editPhone !== (lead.phone || '')) updates.phone = editPhone || null;
-    if (Object.keys(updates).length === 0) return;
-
-    if (!isPreviewMode) {
-      // Update lead
-      const { error } = await supabase.from('leads').update(updates as any).eq('id', lead.id);
-      if (error) { toast.error('Failed to save contact details'); return; }
-      // Also update linked contact if exists
-      if (lead.source_contact_id) {
-        await supabase.from('contacts').update(updates as any).eq('id', lead.source_contact_id);
-      }
-    }
-    onLeadChange?.({ ...lead, ...updates });
-    setContactDirty(false);
-    toast.success('Contact details saved');
-  };
 
   const fetchNotes = async (leadId: string) => {
     if (isPreviewMode) {
