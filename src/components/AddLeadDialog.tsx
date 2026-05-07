@@ -33,6 +33,7 @@ interface ContactOption {
   first_name: string;
   last_name: string;
   email: string | null;
+  phone?: string | null;
 }
 
 interface AddLeadDialogProps {
@@ -57,6 +58,8 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
   const [loanPurpose, setLoanPurpose] = useState('');
   const [selectedReferrerId, setSelectedReferrerId] = useState('');
   const [selectedContactId, setSelectedContactId] = useState('');
+  const [selectedClientId, setSelectedClientId] = useState('');
+  const [clientPickerOpen, setClientPickerOpen] = useState(false);
   const [portalMode, setPortalMode] = useState<'both' | 'fact_find' | 'documents'>('both');
   const [referrerOpen, setReferrerOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
@@ -82,6 +85,7 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
     setLoanPurpose('');
     setSelectedReferrerId('');
     setSelectedContactId('');
+    setSelectedClientId('');
     setPortalMode('both');
     setShowNewContact(false);
     setNewContactFirst('');
@@ -130,9 +134,9 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
       }
     }
 
-    // Auto-create a contact for the lead client if not linking to an existing source contact
-    let createdContactId: string | null = null;
-    if (!isPreviewMode) {
+    // Auto-create a contact for the lead client UNLESS one was selected from existing clients
+    let createdContactId: string | null = selectedClientId || null;
+    if (!isPreviewMode && !selectedClientId) {
       const { data: contactData, error: contactErr } = await supabase.from('contacts').insert({
         first_name: firstName.trim(),
         last_name: lastName.trim(),
@@ -198,6 +202,67 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
           <DialogTitle>Add New Lead</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 mt-2">
+          {/* Existing Client picker */}
+          <div className="space-y-1.5">
+            <Label>Existing Client (optional)</Label>
+            <Popover open={clientPickerOpen} onOpenChange={setClientPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                  {selectedClientId
+                    ? (() => { const c = contacts.find(c => c.id === selectedClientId); return c ? `${c.first_name} ${c.last_name}` : 'Selected'; })()
+                    : 'Select an existing client to auto-fill...'}
+                  <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search clients by name or email..." />
+                  <CommandList>
+                    <CommandEmpty>No client found.</CommandEmpty>
+                    {selectedClientId && (
+                      <CommandGroup>
+                        <CommandItem onSelect={() => {
+                          setSelectedClientId('');
+                          setFirstName(''); setLastName(''); setEmail(''); setPhone('');
+                          setClientPickerOpen(false);
+                        }}>
+                          Clear selection
+                        </CommandItem>
+                      </CommandGroup>
+                    )}
+                    <CommandGroup>
+                      {contacts.map(c => (
+                        <CommandItem
+                          key={c.id}
+                          value={`${c.first_name} ${c.last_name} ${c.email || ''}`}
+                          onSelect={() => {
+                            setSelectedClientId(c.id);
+                            setFirstName(c.first_name);
+                            setLastName(c.last_name);
+                            setEmail(c.email || '');
+                            setPhone((c as any).phone || '');
+                            setClientPickerOpen(false);
+                          }}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", selectedClientId === c.id ? "opacity-100" : "opacity-0")} />
+                          <div>
+                            <p className="text-sm font-medium">{c.first_name} {c.last_name}</p>
+                            {c.email && <p className="text-xs text-muted-foreground">{c.email}</p>}
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            {selectedClientId && (
+              <p className="text-xs text-muted-foreground">Client details auto-filled below. New contact won't be created.</p>
+            )}
+          </div>
+
+          <Separator />
+
           {/* Lead Source */}
           <div className="space-y-1.5">
             <Label>Lead Source</Label>
