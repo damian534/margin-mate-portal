@@ -889,7 +889,14 @@ export default function AdminCRM() {
           </TabsContent>
 
           <TabsContent value="contacts" className="mt-4">
-            <ContactsManagement contacts={contacts} onRefresh={fetchContacts} isPreviewMode={isPreviewMode} openContactId={openContactId} onContactOpened={() => setOpenContactId(null)} />
+            <ContactsManagement
+              contacts={contacts}
+              onRefresh={fetchContacts}
+              isPreviewMode={isPreviewMode}
+              openContactId={openContactId}
+              onContactOpened={() => setOpenContactId(null)}
+              onOpenLead={(leadId) => { const lead = leads.find(l => l.id === leadId); if (lead) openLead(lead); }}
+            />
           </TabsContent>
 
           <TabsContent value="companies" className="mt-4">
