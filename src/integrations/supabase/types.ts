@@ -177,6 +177,7 @@ export type Database = {
       }
       contacts: {
         Row: {
+          co_applicant_contact_id: string | null
           company: string | null
           created_at: string
           created_by: string | null
@@ -190,6 +191,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          co_applicant_contact_id?: string | null
           company?: string | null
           created_at?: string
           created_by?: string | null
@@ -203,6 +205,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          co_applicant_contact_id?: string | null
           company?: string | null
           created_at?: string
           created_by?: string | null
@@ -215,7 +218,15 @@ export type Database = {
           type?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contacts_co_applicant_contact_id_fkey"
+            columns: ["co_applicant_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       document_requests: {
         Row: {
@@ -529,6 +540,7 @@ export type Database = {
           approved_date: string | null
           assigned_to: string | null
           broker_id: string | null
+          co_applicant_contact_id: string | null
           company_commission: number | null
           company_commission_paid: boolean | null
           company_commission_type: string | null
@@ -560,6 +572,7 @@ export type Database = {
           approved_date?: string | null
           assigned_to?: string | null
           broker_id?: string | null
+          co_applicant_contact_id?: string | null
           company_commission?: number | null
           company_commission_paid?: boolean | null
           company_commission_type?: string | null
@@ -591,6 +604,7 @@ export type Database = {
           approved_date?: string | null
           assigned_to?: string | null
           broker_id?: string | null
+          co_applicant_contact_id?: string | null
           company_commission?: number | null
           company_commission_paid?: boolean | null
           company_commission_type?: string | null
@@ -618,7 +632,15 @@ export type Database = {
           updated_at?: string
           wip_status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "leads_co_applicant_contact_id_fkey"
+            columns: ["co_applicant_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notes: {
         Row: {

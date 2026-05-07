@@ -14,6 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Plus, Search, Mail, Phone, Building2, User } from 'lucide-react';
+import { CoApplicantPicker } from '@/components/CoApplicantPicker';
 
 export interface Contact {
   id: string;
@@ -27,6 +28,7 @@ export interface Contact {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  co_applicant_contact_id?: string | null;
 }
 
 interface ContactsManagementProps {
@@ -304,6 +306,18 @@ export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openCon
                   <Label className="text-xs">Notes</Label>
                   <Textarea value={selectedContact.notes || ''} onChange={e => handleUpdate('notes', e.target.value || null)} rows={3} />
                 </div>
+                <Separator />
+                <CoApplicantPicker
+                  contacts={contacts}
+                  value={selectedContact.co_applicant_contact_id ?? null}
+                  excludeIds={[selectedContact.id]}
+                  isPreviewMode={isPreviewMode}
+                  onChange={(newId) => handleUpdate('co_applicant_contact_id', newId)}
+                  onOpenContact={(id) => {
+                    const c = contacts.find(x => x.id === id);
+                    if (c) { setSelectedContact(c); }
+                  }}
+                />
                 <Separator />
                 <Button variant="destructive" size="sm" onClick={handleDelete}>Delete Contact</Button>
               </div>

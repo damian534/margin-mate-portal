@@ -28,6 +28,7 @@ import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectio
 import { ReferLeadDialog } from '@/components/ReferLeadDialog';
 import { FinancialSnapshot } from '@/components/lead/FinancialSnapshot';
 import { StatusBadge } from '@/components/StatusBadge';
+import { CoApplicantPicker } from '@/components/CoApplicantPicker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
@@ -55,6 +56,7 @@ interface Lead {
   company_commission_paid: boolean;
   source: string | null;
   source_contact_id: string | null;
+  co_applicant_contact_id?: string | null;
   portal_mode?: 'both' | 'fact_find' | 'documents' | null;
   wip_status?: string | null;
   lodged_date?: string | null;
@@ -1119,6 +1121,25 @@ export function LeadDetailSheet({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Co-applicant */}
+          <div>
+            <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">Co-applicant</Label>
+            <CoApplicantPicker
+              contacts={contactsList}
+              value={lead.co_applicant_contact_id ?? null}
+              excludeIds={lead.source_contact_id ? [lead.source_contact_id] : []}
+              isPreviewMode={isPreviewMode}
+              onOpenContact={onOpenContact}
+              hideHeader
+              onChange={async (newId) => {
+                onLeadChange?.({ ...lead, co_applicant_contact_id: newId });
+                if (!isPreviewMode) {
+                  await supabase.from('leads').update({ co_applicant_contact_id: newId } as any).eq('id', lead.id);
+                }
+              }}
+            />
           </div>
 
           {/* Deal Milestone Dates — used for monthly KPIs in WIP */}
