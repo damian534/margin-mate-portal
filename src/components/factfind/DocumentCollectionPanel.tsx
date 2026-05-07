@@ -531,6 +531,13 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
         if (res && res.ok) sent += 1;
       }));
 
+      // Update requested_at timestamp on all resent documents
+      try {
+        const ids = outstandingRequestedDocs.map(d => d.id);
+        await supabase.from('document_requests').update({ requested_at: new Date().toISOString() } as any).in('id', ids);
+        await fetchAll();
+      } catch {}
+
       // Log to timeline
       try {
         const { data: userData } = await supabase.auth.getUser();
