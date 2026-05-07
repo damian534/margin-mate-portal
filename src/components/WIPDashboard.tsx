@@ -4,11 +4,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { FileDown, FileText, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search, X } from 'lucide-react';
+import { FileDown, FileText, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search, X, MoreVertical, Maximize2, Minimize2 } from 'lucide-react';
 import { AssigneeBadge, AssigneeFilter } from '@/components/AssigneePicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
 export const WIP_STATUSES = [
   { name: 'onboarding', label: 'Onboarding', color: '#94a3b8' },
@@ -62,6 +63,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
   const [assigneeFilter, setAssigneeFilter] = useState('all');
   const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
+  const [compact, setCompact] = useState(false);
 
   const toggleCollapse = (name: string) => {
     setCollapsedColumns(prev => {
@@ -191,6 +193,14 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
             <><ChevronsDownUp className="w-3.5 h-3.5" /> Collapse All</>
           )}
         </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs gap-1.5 text-muted-foreground"
+          onClick={() => setCompact(c => !c)}
+        >
+          {compact ? (<><Maximize2 className="w-3.5 h-3.5" /> Normal</>) : (<><Minimize2 className="w-3.5 h-3.5" /> Compact</>)}
+        </Button>
         <AssigneeFilter value={assigneeFilter} onChange={setAssigneeFilter} className="w-full sm:w-56" />
         </div>
       </div>
@@ -204,7 +214,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
             return (
               <div
                 key={stage.name}
-                className={`flex-shrink-0 flex flex-col transition-all ${isCollapsed ? 'w-12' : 'w-64'}`}
+                className={`flex-shrink-0 flex flex-col transition-all ${isCollapsed ? 'w-10' : compact ? 'w-44' : 'w-64'}`}
                 onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
                 onDrop={(e) => {
                   e.preventDefault();
@@ -265,7 +275,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                               onClick={() => onOpenLead(lead)}
                               className="cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors border bg-card"
                             >
-                              <CardContent className="p-3 space-y-2">
+                              <CardContent className={compact ? "p-2 space-y-1" : "p-3 space-y-2"}>
                                 <div className="flex items-start gap-2">
                                   <div className="w-7 h-7 rounded-full bg-primary/10 text-primary text-[11px] font-semibold flex items-center justify-center shrink-0">
                                     {lead.first_name?.[0] || ''}{lead.last_name?.[0] || ''}
@@ -281,6 +291,45 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                     )}
                                   </div>
                                   <AssigneeBadge userId={lead.assigned_to ?? null} />
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                      <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 -mr-1" title="Move to stage">
+                                        <MoreVertical className="w-3.5 h-3.5" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="max-h-[60vh] overflow-y-auto bg-popover z-50">
+                                      <DropdownMenuLabel className="text-xs">Move to stage</DropdownMenuLabel>
+                                      <DropdownMenuSeparator />
+                                      {WIP_STATUSES.map(s => (
+                                        <DropdownMenuItem
+                                          key={s.name}
+                                          disabled={s.name === stage.name}
+                                          onClick={(e) => { e.stopPropagation(); update(lead.id, s.name); }}
+                                          className="text-xs"
+                                        >
+                                          <span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: s.color }} />
+                                          {s.label}
+                                          {s.name === stage.name && <span className="ml-auto text-muted-foreground">(current)</span>}
+                                        </DropdownMenuItem>
+                                      ))}
+                                      {onSendBackToLead && leadStatuses.length > 0 && (
+                                        <>
+                                          <DropdownMenuSeparator />
+                                          <DropdownMenuLabel className="text-xs">Send back to Leads</DropdownMenuLabel>
+                                          {leadStatuses.map(ls => (
+                                            <DropdownMenuItem
+                                              key={ls.name}
+                                              onClick={(e) => { e.stopPropagation(); onSendBackToLead(lead.id, ls.name); }}
+                                              className="text-xs"
+                                            >
+                                              <span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: ls.color }} />
+                                              {ls.label}
+                                            </DropdownMenuItem>
+                                          ))}
+                                        </>
+                                      )}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </div>
                                 {lead.loan_amount ? (
                                   <p className="text-base font-semibold tabular-nums leading-none">
