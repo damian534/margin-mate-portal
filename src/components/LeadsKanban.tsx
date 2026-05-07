@@ -5,6 +5,7 @@ import { LeadStatus } from '@/hooks/useLeadStatuses';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChevronDown, ChevronRight, DollarSign, Users, ChevronsDownUp, ChevronsUpDown, ClipboardList, FileDown, FileText } from 'lucide-react';
+import { AssigneeBadge } from '@/components/AssigneePicker';
 
 interface Lead {
   id: string;
@@ -20,6 +21,7 @@ interface Lead {
   source_contact_id?: string | null;
   wip_status?: string | null;
   created_at: string;
+  assigned_to?: string | null;
 }
 
 interface LeadSource {
@@ -207,6 +209,7 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                                 {hasTask && (
                                   <ClipboardList className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
                                 )}
+                                <AssigneeBadge userId={lead.assigned_to ?? null} />
                               </div>
                               {lead.loan_amount ? (
                                 <p className="text-base font-semibold tabular-nums leading-none">
