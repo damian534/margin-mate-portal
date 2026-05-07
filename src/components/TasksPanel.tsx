@@ -15,6 +15,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { toast } from 'sonner';
 import { format, isPast, isToday, isTomorrow } from 'date-fns';
 import { Plus, Calendar, User, AlertTriangle, List, Columns, ChevronsUpDown, Check, UserPlus } from 'lucide-react';
+import { AssigneePicker, AssigneeBadge } from '@/components/AssigneePicker';
 
 type DueFilter = 'all' | 'overdue' | 'today' | 'tomorrow' | 'later' | 'no_date';
 
@@ -28,6 +29,7 @@ interface Task {
   completed_at: string | null;
   created_at: string;
   lead_name?: string;
+  assigned_to?: string | null;
 }
 
 interface TasksPanelProps {
@@ -66,6 +68,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
   const [newDesc, setNewDesc] = useState('');
   const [newLeadId, setNewLeadId] = useState('');
   const [newDueDate, setNewDueDate] = useState('');
+  const [newAssignee, setNewAssignee] = useState<string | null>(null);
   const [leadSearchOpen, setLeadSearchOpen] = useState(false);
   const [customClientName, setCustomClientName] = useState('');
   const [useCustomClient, setUseCustomClient] = useState(false);
@@ -126,6 +129,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
           last_name: lastName,
           broker_id: user!.id,
           status: 'new',
+          assigned_to: newAssignee,
         } as any).select('id').single();
         if (leadError || !newLead) { toast.error('Failed to create client'); return; }
         leadId = newLead.id;
@@ -148,6 +152,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
         completed_at: null,
         created_at: new Date().toISOString(),
         lead_name: leadName,
+        assigned_to: newAssignee,
       };
       setTasks(prev => [fakeTask, ...prev]);
       toast.success('Task created (preview)');
@@ -158,6 +163,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
         description: newDesc.trim() || null,
         due_date: newDueDate ? new Date(newDueDate).toISOString() : null,
         created_by: user!.id,
+        assigned_to: newAssignee,
       });
       if (error) { toast.error('Failed to create task'); return; }
       toast.success('Task created');
@@ -165,6 +171,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
     }
     setNewTitle(''); setNewDesc(''); setNewLeadId(''); setNewDueDate('');
     setCustomClientName(''); setUseCustomClient(false);
+    setNewAssignee(null);
     setDialogOpen(false);
   };
 
@@ -280,6 +287,10 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
                 <div><Label>Task Title *</Label><Input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="e.g. Call back after 5pm" /></div>
                 <div><Label>Description</Label><Textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Optional details..." rows={2} /></div>
                 <div><Label>Due Date</Label><Input type="datetime-local" value={newDueDate} onChange={e => setNewDueDate(e.target.value)} /></div>
+                <div>
+                  <Label>Assign To</Label>
+                  <AssigneePicker value={newAssignee} onChange={setNewAssignee} />
+                </div>
                 <Button onClick={createTask} disabled={!newTitle.trim() || (!newLeadId && !useCustomClient) || (useCustomClient && !customClientName.trim())} className="w-full">Create Task</Button>
               </div>
             </DialogContent>
