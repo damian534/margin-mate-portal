@@ -42,9 +42,10 @@ interface AddLeadDialogProps {
   isPreviewMode: boolean;
   onLeadAdded: () => void;
   onContactCreated?: () => void;
+  defaultWipStatus?: string | null;
 }
 
-export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode, onLeadAdded, onContactCreated }: AddLeadDialogProps) {
+export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode, onLeadAdded, onContactCreated, defaultWipStatus }: AddLeadDialogProps) {
   const { effectiveBrokerId } = useAuth();
   const [open, setOpen] = useState(false);
   const [source, setSource] = useState('direct_call');
@@ -158,9 +159,10 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
       source,
       referral_partner_id: needsReferrer ? (selectedReferrerId || null) : null,
       source_contact_id: sourceContactId,
-      status: 'new',
+      status: defaultWipStatus ? 'in_progress' : 'new',
       broker_id: effectiveBrokerId,
       portal_mode: portalMode,
+      wip_status: defaultWipStatus || null,
     };
 
     if (isPreviewMode) {
