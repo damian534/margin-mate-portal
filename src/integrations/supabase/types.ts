@@ -1028,6 +1028,13 @@ export type Database = {
         Args: { _lead_id: string; _user_id: string }
         Returns: boolean
       }
+      validate_invite_code: {
+        Args: { _code: string }
+        Returns: {
+          is_valid: boolean
+          target_role: string
+        }[]
+      }
     }
     Enums: {
       app_role: "broker" | "referral_partner" | "super_admin" | "broker_staff"
