@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Plus, Send, Eye, Mail, Users, Trash2 } from 'lucide-react';
+import { Plus, Send, Mail, Users, Trash2 } from 'lucide-react';
 
 export const AUDIENCE_TAGS = [
   { value: 'investor', label: 'Investor' },
@@ -59,7 +59,7 @@ export function EDMPlatform({ isPreviewMode }: { isPreviewMode: boolean }) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-heading font-semibold">Email Campaigns</h2>
-          <p className="text-xs text-muted-foreground">Send broadcasts to tagged audiences (Investors, Home Owners).</p>
+          <p className="text-xs text-muted-foreground">Broadcasts go to all your contacts and referral partners (excluding anyone opted out).</p>
         </div>
         <Button size="sm" onClick={() => { setEditing(null); setComposerOpen(true); }}>
           <Plus className="w-4 h-4 mr-2" /> New Campaign
@@ -71,7 +71,7 @@ export function EDMPlatform({ isPreviewMode }: { isPreviewMode: boolean }) {
       ) : campaigns.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">
           <Mail className="w-10 h-10 mx-auto mb-3 opacity-40" />
-          No campaigns yet. Tag your contacts as Investor or Home Owner, then create your first broadcast.
+          No campaigns yet. Create your first broadcast to email your contacts and partners.
         </CardContent></Card>
       ) : (
         <Card><CardContent className="p-0">
@@ -90,10 +90,12 @@ export function EDMPlatform({ isPreviewMode }: { isPreviewMode: boolean }) {
                 <TableRow key={c.id} className="cursor-pointer hover:bg-primary/5" onClick={() => { setEditing(c); setComposerOpen(true); }}>
                   <TableCell className="font-medium">{c.name}</TableCell>
                   <TableCell className="text-xs">
-                    {(c.audience_tags || []).map(t => (
-                      <Badge key={t} variant="secondary" className="mr-1">{AUDIENCE_TAGS.find(a => a.value === t)?.label || t}</Badge>
-                    ))}
-                    {(!c.audience_tags || c.audience_tags.length === 0) && <span className="text-muted-foreground">All</span>}
+                    <span className="text-muted-foreground">
+                      {(c.audience_sources || []).includes('contacts') && (c.audience_sources || []).includes('partners')
+                        ? 'Contacts + Partners'
+                        : (c.audience_sources || []).includes('contacts') ? 'Contacts'
+                        : (c.audience_sources || []).includes('partners') ? 'Partners' : '—'}
+                    </span>
                   </TableCell>
                   <TableCell>
                     <Badge variant={c.status === 'sent' ? 'default' : c.status === 'failed' ? 'destructive' : 'outline'}>{c.status}</Badge>
@@ -134,7 +136,7 @@ function CampaignComposer({ open, onOpenChange, campaign, brokerId, isPreviewMod
   const [fromName, setFromName] = useState('Margin Connect');
   const [fromEmail, setFromEmail] = useState('onboarding@resend.dev');
   const [sources, setSources] = useState<string[]>(['contacts', 'partners']);
-  const [tags, setTags] = useState<string[]>([]);
+  const tags: string[] = [];
   const [audienceCount, setAudienceCount] = useState<number | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -149,15 +151,12 @@ function CampaignComposer({ open, onOpenChange, campaign, brokerId, isPreviewMod
       setFromName(campaign?.from_name || 'Margin Connect');
       setFromEmail(campaign?.from_email || 'onboarding@resend.dev');
       setSources(campaign?.audience_sources || ['contacts', 'partners']);
-      setTags(campaign?.audience_tags || []);
       setAudienceCount(null);
     }
   }, [open, campaign]);
 
   const toggleSource = (s: string) =>
     setSources(p => p.includes(s) ? p.filter(x => x !== s) : [...p, s]);
-  const toggleTag = (t: string) =>
-    setTags(p => p.includes(t) ? p.filter(x => x !== t) : [...p, t]);
 
   const previewAudience = async () => {
     setPreviewing(true);
@@ -168,6 +167,12 @@ function CampaignComposer({ open, onOpenChange, campaign, brokerId, isPreviewMod
     if (error) { toast.error('Failed to preview audience'); return; }
     setAudienceCount(data?.count ?? 0);
   };
+
+  // Auto-preview when audience tab opens or sources change
+  useEffect(() => {
+    if (open && !isPreviewMode) previewAudience();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, sources.join(',')]);
 
   const save = async (): Promise<string | null> => {
     if (!name.trim() || !subject.trim()) { toast.error('Name and subject required'); return null; }
@@ -256,22 +261,13 @@ function CampaignComposer({ open, onOpenChange, campaign, brokerId, isPreviewMod
                 <label className="flex items-center gap-2 text-sm"><Checkbox checked={sources.includes('contacts')} onCheckedChange={() => toggleSource('contacts')} disabled={isReadonly} /> Contacts (clients)</label>
                 <label className="flex items-center gap-2 text-sm"><Checkbox checked={sources.includes('partners')} onCheckedChange={() => toggleSource('partners')} disabled={isReadonly} /> Referral partners</label>
               </div>
-            </div>
-            <div>
-              <Label className="mb-2 block">Filter by tag (leave empty to send to all in pool)</Label>
-              <div className="flex gap-2 flex-wrap">
-                {AUDIENCE_TAGS.map(t => (
-                  <button key={t.value} type="button" disabled={isReadonly}
-                    onClick={() => toggleTag(t.value)}
-                    className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${tags.includes(t.value) ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-muted'}`}>
-                    {t.label}
-                  </button>
-                ))}
-              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Sends to everyone in the selected pool with an email address, except contacts marked as opted out.
+              </p>
             </div>
             <div className="flex items-center gap-3 pt-2">
               <Button variant="outline" size="sm" onClick={previewAudience} disabled={previewing || isPreviewMode}>
-                <Users className="w-4 h-4 mr-2" /> {previewing ? 'Counting...' : 'Preview audience'}
+                <Users className="w-4 h-4 mr-2" /> {previewing ? 'Counting...' : 'Refresh count'}
               </Button>
               {audienceCount !== null && <span className="text-sm font-medium">{audienceCount} recipients</span>}
             </div>

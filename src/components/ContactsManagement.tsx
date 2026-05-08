@@ -16,8 +16,8 @@ import { format } from 'date-fns';
 import { Plus, Search, Mail, Phone, Building2, User } from 'lucide-react';
 import { CoApplicantPicker } from '@/components/CoApplicantPicker';
 import { ContactLeadsList } from '@/components/ContactLeadsList';
-import { AUDIENCE_TAGS } from '@/components/EDMPlatform';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ContactsCsvImport } from '@/components/ContactsCsvImport';
 
 export interface Contact {
   id: string;
@@ -152,7 +152,9 @@ export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openCon
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-heading font-semibold">Contacts</h2>
-        <Dialog open={addOpen} onOpenChange={(v) => { setAddOpen(v); if (!v) resetForm(); }}>
+        <div className="flex items-center gap-2">
+          <ContactsCsvImport brokerId={effectiveBrokerId} isPreviewMode={isPreviewMode} onImported={onRefresh} />
+          <Dialog open={addOpen} onOpenChange={(v) => { setAddOpen(v); if (!v) resetForm(); }}>
           <DialogTrigger asChild>
             <Button size="sm"><Plus className="w-4 h-4 mr-2" /> Add Contact</Button>
           </DialogTrigger>
@@ -186,6 +188,7 @@ export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openCon
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Search & filter */}
@@ -314,26 +317,10 @@ export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openCon
                 </div>
                 <Separator />
                 <div>
-                  <Label className="text-xs mb-2 block">Email Audience Tags</Label>
-                  <div className="flex gap-2 flex-wrap">
-                    {AUDIENCE_TAGS.map(t => {
-                      const current = selectedContact.audience_tags || [];
-                      const active = current.includes(t.value);
-                      return (
-                        <button key={t.value} type="button"
-                          onClick={() => {
-                            const next = active ? current.filter(x => x !== t.value) : [...current, t.value];
-                            handleUpdate('audience_tags', next);
-                          }}
-                          className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${active ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-muted'}`}>
-                          {t.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <label className="flex items-center gap-2 text-xs text-muted-foreground mt-3">
+                  <Label className="text-xs mb-2 block">Email Broadcasts</Label>
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Checkbox checked={!!selectedContact.email_opt_out} onCheckedChange={(v) => handleUpdate('email_opt_out', !!v)} />
-                    Opt out of email broadcasts
+                    Exclude this contact from email broadcasts
                   </label>
                 </div>
                 <Separator />
