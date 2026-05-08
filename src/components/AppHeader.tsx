@@ -3,11 +3,13 @@ import { PreviewBanner } from './PreviewBanner';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, LayoutDashboard, Wrench, Settings2, Landmark } from 'lucide-react';
+import { LogOut, LayoutDashboard, Wrench, Settings2, Landmark, Calendar as CalendarIcon } from 'lucide-react';
 
 export function AppHeader() {
   const { user, role, signOut, isPreviewMode, isBrokerOrAdmin } = useAuth();
   const navigate = useNavigate();
+
+  const navBtn = "h-9 px-3 rounded-md border border-border bg-background hover:bg-muted hover:text-foreground transition-colors";
 
   return (
     <>
@@ -20,12 +22,13 @@ export function AppHeader() {
           }} className="flex items-center">
             <Logo className="h-32" />
           </button>
-          <nav className="flex items-center gap-3">
+          <nav className="flex items-center gap-2">
             {user ? (
               <>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
+                  className={navBtn}
                   onClick={() => {
                     const base = isBrokerOrAdmin ? '/admin' : '/dashboard';
                     const suffix = isPreviewMode ? '?preview=true' : '';
@@ -36,8 +39,9 @@ export function AppHeader() {
                   Dashboard
                 </Button>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
+                  className={navBtn}
                   onClick={() => {
                     const suffix = isPreviewMode ? '?preview=true' : '';
                     navigate(`/tools${suffix}`);
@@ -49,8 +53,9 @@ export function AppHeader() {
                 {isBrokerOrAdmin && (
                   <>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
+                      className={navBtn}
                       onClick={() => {
                         const suffix = isPreviewMode ? '?preview=true' : '';
                         navigate(`/admin/settlements${suffix}`);
@@ -60,8 +65,22 @@ export function AppHeader() {
                       Settlements
                     </Button>
                     <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
+                        className={navBtn}
+                        onClick={() => {
+                          const base = isBrokerOrAdmin ? '/admin' : '/dashboard';
+                          const suffix = isPreviewMode ? '?preview=true&tab=calendar' : '?tab=calendar';
+                          navigate(`${base}${suffix}`);
+                        }}
+                      >
+                        <CalendarIcon className="w-4 h-4 mr-2" />
+                        Calendar
+                      </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className={navBtn}
                         onClick={() => {
                           const suffix = isPreviewMode ? '?preview=true' : '';
                           navigate(`/admin/settings${suffix}`);
