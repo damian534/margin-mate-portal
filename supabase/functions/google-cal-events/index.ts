@@ -35,17 +35,33 @@ Deno.serve(async (req) => {
     const action = body.action || (req.method === "GET" ? "list" : null);
     const calendarId = encodeURIComponent(conn.calendar_id || "primary");
 
-    if (action === "list") {
-      const url = new URL(req.url);
-      const timeMin = url.searchParams.get("timeMin") || body.timeMin || new Date(Date.now() - 7*86400000).toISOString();
-      const timeMax = url.searchParams.get("timeMax") || body.timeMax || new Date(Date.now() + 60*86400000).toISOString();
+    if (action === "calendars") {
       const r = await fetch(
-        `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true&orderBy=startTime&maxResults=250`,
+        `https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=reader`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       const data = await r.json();
       if (!r.ok) return json({ error: data }, r.status);
-      return json({ events: data.items || [] }, 200);
+      return json({ calendars: data.items || [] }, 200);
+    }
+
+    if (action === "list") {
+      const url = new URL(req.url);
+      const timeMin = url.searchParams.get("timeMin") || body.timeMin || new Date(Date.now() - 7*86400000).toISOString();
+      const timeMax = url.searchParams.get("timeMax") || body.timeMax || new Date(Date.now() + 60*86400000).toISOString();
+      const calendarIds: string[] = Array.isArray(body.calendar_ids) && body.calendar_ids.length
+        ? body.calendar_ids
+        : [conn.calendar_id || "primary"];
+      const results = await Promise.all(calendarIds.map(async (cid) => {
+        const r = await fetch(
+          `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(cid)}/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true&orderBy=startTime&maxResults=250`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        const data = await r.json();
+        if (!r.ok) return [];
+        return (data.items || []).map((e: any) => ({ ...e, _calendarId: cid }));
+      }));
+      return json({ events: results.flat() }, 200);
     }
 
     if (action === "create") {
