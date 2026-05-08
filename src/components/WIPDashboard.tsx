@@ -459,7 +459,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                   </DropdownMenu>
                                 </div>
                                 {lead.loan_amount ? (
-                                  <p className="text-base font-semibold tabular-nums leading-none">
+                                  <p className="text-xs font-semibold tabular-nums leading-none text-muted-foreground">
                                     ${lead.loan_amount.toLocaleString()}
                                   </p>
                                 ) : null}
