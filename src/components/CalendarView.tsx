@@ -45,6 +45,12 @@ export function CalendarView() {
   const [calendars, setCalendars] = useState<GCalendar[]>([]);
   const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set());
 
+  const calendarColorMap = useMemo(() => {
+    const m = new Map<string, { bg: string; fg: string }>();
+    calendars.forEach(c => m.set(c.id, { bg: c.backgroundColor || '#3b82f6', fg: c.foregroundColor || '#ffffff' }));
+    return m;
+  }, [calendars]);
+
   const checkConnection = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -137,12 +143,6 @@ export function CalendarView() {
       </Card>
     );
   }
-
-  const calendarColorMap = useMemo(() => {
-    const m = new Map<string, { bg: string; fg: string }>();
-    calendars.forEach(c => m.set(c.id, { bg: c.backgroundColor || '#3b82f6', fg: c.foregroundColor || '#ffffff' }));
-    return m;
-  }, [calendars]);
 
   const fcEvents = events
     .filter(e => !e._calendarId || visibleIds.has(e._calendarId))
