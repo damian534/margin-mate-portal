@@ -123,6 +123,17 @@ export default function AdminCRM() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [leadSources, setLeadSources] = useState<LeadSource[]>([]);
   const [activeTab, setActiveTab] = usePersistedState<string>('crm.activeTab', 'leads');
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const t = searchParams.get('tab');
+    if (t && t !== activeTab) {
+      setActiveTab(t);
+      const next = new URLSearchParams(searchParams);
+      next.delete('tab');
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
   const [reportReferrerId, setReportReferrerId] = useState<string | null>(null);
   const [taskDueFilter, setTaskDueFilter] = usePersistedState<TaskDueFilter>('crm.leads.taskDueFilter', 'all_leads');
   const [leadTasks, setLeadTasks] = useState<LeadTask[]>([]);
@@ -622,7 +633,6 @@ export default function AdminCRM() {
               { value: 'companies', label: 'Companies', icon: Building2 },
               { value: 'referrers', label: 'Referrers', icon: Users },
               { value: 'broker_referrals', label: 'Broker Referrals', icon: Share2 },
-              { value: 'calendar', label: 'Calendar', icon: CalendarIcon },
               { value: 'reports', label: 'Reports', icon: BarChart3 },
             ].map((tab) => (
               <button
