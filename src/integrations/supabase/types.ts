@@ -177,11 +177,13 @@ export type Database = {
       }
       contacts: {
         Row: {
+          audience_tags: string[]
           co_applicant_contact_id: string | null
           company: string | null
           created_at: string
           created_by: string | null
           email: string | null
+          email_opt_out: boolean
           first_name: string
           id: string
           last_name: string
@@ -191,11 +193,13 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          audience_tags?: string[]
           co_applicant_contact_id?: string | null
           company?: string | null
           created_at?: string
           created_by?: string | null
           email?: string | null
+          email_opt_out?: boolean
           first_name: string
           id?: string
           last_name: string
@@ -205,11 +209,13 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          audience_tags?: string[]
           co_applicant_contact_id?: string | null
           company?: string | null
           created_at?: string
           created_by?: string | null
           email?: string | null
+          email_opt_out?: boolean
           first_name?: string
           id?: string
           last_name?: string
@@ -325,6 +331,116 @@ export type Database = {
           is_default?: boolean
           items?: Json
           name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      email_campaign_sends: {
+        Row: {
+          broker_id: string
+          campaign_id: string
+          created_at: string
+          error: string | null
+          id: string
+          recipient_email: string
+          recipient_id: string | null
+          recipient_name: string | null
+          recipient_type: string
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          broker_id: string
+          campaign_id: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          recipient_email: string
+          recipient_id?: string | null
+          recipient_name?: string | null
+          recipient_type: string
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          broker_id?: string
+          campaign_id?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          recipient_email?: string
+          recipient_id?: string | null
+          recipient_name?: string | null
+          recipient_type?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_campaign_sends_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "email_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_campaigns: {
+        Row: {
+          audience_sources: string[]
+          audience_tags: string[]
+          body_html: string
+          broker_id: string
+          created_at: string
+          created_by: string
+          failed_count: number
+          from_email: string | null
+          from_name: string | null
+          id: string
+          name: string
+          sent_at: string | null
+          sent_count: number
+          status: string
+          subject: string
+          total_recipients: number
+          updated_at: string
+        }
+        Insert: {
+          audience_sources?: string[]
+          audience_tags?: string[]
+          body_html?: string
+          broker_id: string
+          created_at?: string
+          created_by: string
+          failed_count?: number
+          from_email?: string | null
+          from_name?: string | null
+          id?: string
+          name: string
+          sent_at?: string | null
+          sent_count?: number
+          status?: string
+          subject: string
+          total_recipients?: number
+          updated_at?: string
+        }
+        Update: {
+          audience_sources?: string[]
+          audience_tags?: string[]
+          body_html?: string
+          broker_id?: string
+          created_at?: string
+          created_by?: string
+          failed_count?: number
+          from_email?: string | null
+          from_name?: string | null
+          id?: string
+          name?: string
+          sent_at?: string | null
+          sent_count?: number
+          status?: string
+          subject?: string
+          total_recipients?: number
           updated_at?: string
         }
         Relationships: []
@@ -897,6 +1013,7 @@ export type Database = {
       profiles: {
         Row: {
           address: string | null
+          audience_tags: string[]
           broker_id: string | null
           broker_notes: string | null
           company_id: string | null
@@ -905,6 +1022,7 @@ export type Database = {
           custom_fields: Json | null
           date_of_birth: string | null
           email: string | null
+          email_opt_out: boolean
           full_name: string | null
           id: string
           interests: string | null
@@ -917,6 +1035,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          audience_tags?: string[]
           broker_id?: string | null
           broker_notes?: string | null
           company_id?: string | null
@@ -925,6 +1044,7 @@ export type Database = {
           custom_fields?: Json | null
           date_of_birth?: string | null
           email?: string | null
+          email_opt_out?: boolean
           full_name?: string | null
           id?: string
           interests?: string | null
@@ -937,6 +1057,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          audience_tags?: string[]
           broker_id?: string | null
           broker_notes?: string | null
           company_id?: string | null
@@ -945,6 +1066,7 @@ export type Database = {
           custom_fields?: Json | null
           date_of_birth?: string | null
           email?: string | null
+          email_opt_out?: boolean
           full_name?: string | null
           id?: string
           interests?: string | null

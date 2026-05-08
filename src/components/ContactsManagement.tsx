@@ -16,6 +16,8 @@ import { format } from 'date-fns';
 import { Plus, Search, Mail, Phone, Building2, User } from 'lucide-react';
 import { CoApplicantPicker } from '@/components/CoApplicantPicker';
 import { ContactLeadsList } from '@/components/ContactLeadsList';
+import { AUDIENCE_TAGS } from '@/components/EDMPlatform';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export interface Contact {
   id: string;
@@ -30,6 +32,8 @@ export interface Contact {
   created_at: string;
   updated_at: string;
   co_applicant_contact_id?: string | null;
+  audience_tags?: string[] | null;
+  email_opt_out?: boolean | null;
 }
 
 interface ContactsManagementProps {
@@ -307,6 +311,30 @@ export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openCon
                 <div>
                   <Label className="text-xs">Notes</Label>
                   <Textarea value={selectedContact.notes || ''} onChange={e => handleUpdate('notes', e.target.value || null)} rows={3} />
+                </div>
+                <Separator />
+                <div>
+                  <Label className="text-xs mb-2 block">Email Audience Tags</Label>
+                  <div className="flex gap-2 flex-wrap">
+                    {AUDIENCE_TAGS.map(t => {
+                      const current = selectedContact.audience_tags || [];
+                      const active = current.includes(t.value);
+                      return (
+                        <button key={t.value} type="button"
+                          onClick={() => {
+                            const next = active ? current.filter(x => x !== t.value) : [...current, t.value];
+                            handleUpdate('audience_tags', next);
+                          }}
+                          className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${active ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-muted'}`}>
+                          {t.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground mt-3">
+                    <Checkbox checked={!!selectedContact.email_opt_out} onCheckedChange={(v) => handleUpdate('email_opt_out', !!v)} />
+                    Opt out of email broadcasts
+                  </label>
                 </div>
                 <Separator />
                 <CoApplicantPicker
