@@ -99,3 +99,13 @@
     @apply font-heading;
   }
 }
+
+/* Collapsed all-day row in FullCalendar */
+.fc-hide-allday .fc-timegrid-axis-frame:has(+ .fc-timegrid-axis-cushion),
+.fc-hide-allday .fc-daygrid-body,
+.fc-hide-allday .fc-scrollgrid-section-header + .fc-scrollgrid-section:not(.fc-scrollgrid-section-liquid) {
+  display: none !important;
+}
+.fc-hide-allday .fc-timegrid .fc-scrollgrid-section-header ~ .fc-scrollgrid-section:not(:last-child):not(.fc-scrollgrid-section-liquid) {
+  display: none !important;
+}

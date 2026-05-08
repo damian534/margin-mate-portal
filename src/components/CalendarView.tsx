@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Calendar as CalIcon, RefreshCw, Plug, Unplug } from 'lucide-react';
+import { Calendar as CalIcon, RefreshCw, Plug, Unplug, ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -44,6 +44,8 @@ export function CalendarView() {
   const [createDefaults, setCreateDefaults] = useState<{ start?: string; end?: string }>({});
   const [calendars, setCalendars] = useState<GCalendar[]>([]);
   const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set());
+  const [editingEvent, setEditingEvent] = useState<GEvent | null>(null);
+  const [allDayCollapsed, setAllDayCollapsed] = useState<boolean>(() => localStorage.getItem('gcal_allday_collapsed') === '1');
 
   const calendarColorMap = useMemo(() => {
     const m = new Map<string, { bg: string; fg: string }>();
@@ -204,6 +206,21 @@ export function CalendarView() {
         </Card>
 
         <Card className="p-4">
+          <div className="mb-2 flex justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                const next = !allDayCollapsed;
+                setAllDayCollapsed(next);
+                localStorage.setItem('gcal_allday_collapsed', next ? '1' : '0');
+              }}
+            >
+              {allDayCollapsed ? <ChevronRight className="w-4 h-4 mr-1" /> : <ChevronDown className="w-4 h-4 mr-1" />}
+              {allDayCollapsed ? 'Show all-day events' : 'Hide all-day events'}
+            </Button>
+          </div>
+          <div className={allDayCollapsed ? 'fc-hide-allday' : ''}>
           <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
             initialView="timeGridWeek"
@@ -217,21 +234,32 @@ export function CalendarView() {
             selectable
             select={(info) => {
               setCreateDefaults({ start: info.startStr, end: info.endStr });
+              setEditingEvent(null);
               setCreateOpen(true);
             }}
             eventClick={(info) => {
-              const link = (info.event.extendedProps as any).htmlLink;
-              if (link) window.open(link, '_blank');
+              info.jsEvent.preventDefault();
+              const ev = events.find(e => e.id === info.event.id);
+              if (ev) {
+                setEditingEvent(ev);
+                setCreateOpen(true);
+              }
             }}
           />
+          </div>
         </Card>
       </div>
 
       <CreateEventDialog
         open={createOpen}
-        onOpenChange={setCreateOpen}
-        defaultStart={createDefaults.start}
-        defaultEnd={createDefaults.end}
+        onOpenChange={(v) => { setCreateOpen(v); if (!v) setEditingEvent(null); }}
+        defaultStart={editingEvent ? (editingEvent.start?.dateTime || editingEvent.start?.date) : createDefaults.start}
+        defaultEnd={editingEvent ? (editingEvent.end?.dateTime || editingEvent.end?.date) : createDefaults.end}
+        eventId={editingEvent?.id}
+        defaultTitle={editingEvent?.summary}
+        defaultDescription={editingEvent?.description}
+        defaultLocation={editingEvent?.location}
+        htmlLink={editingEvent?.htmlLink}
         onCreated={() => loadEvents()}
       />
     </div>
