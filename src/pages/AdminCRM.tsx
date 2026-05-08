@@ -38,6 +38,8 @@ import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Filter, ListTodo, 
 import { Briefcase } from 'lucide-react';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { CalendarView } from '@/components/CalendarView';
+import { EDMPlatform } from '@/components/EDMPlatform';
+import { Mail as MailIcon } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { isPast, isToday, isTomorrow } from 'date-fns';
 
@@ -624,7 +626,7 @@ export default function AdminCRM() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           {/* Navigation Grid */}
-          <div className="grid grid-cols-4 sm:grid-cols-8 lg:grid-cols-8 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
             {[
               { value: 'leads', label: 'Leads', icon: TrendingUp },
               { value: 'wip', label: 'WIP', icon: Briefcase },
@@ -633,6 +635,7 @@ export default function AdminCRM() {
               { value: 'companies', label: 'Companies', icon: Building2 },
               { value: 'referrers', label: 'Referrers', icon: Users },
               { value: 'broker_referrals', label: 'Broker Referrals', icon: Share2 },
+              { value: 'edm', label: 'Email Campaigns', icon: MailIcon },
               { value: 'reports', label: 'Reports', icon: BarChart3 },
             ].map((tab) => (
               <button
