@@ -1,7 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calendar as CalIcon, RefreshCw, Plug, Unplug } from 'lucide-react';
 import { toast } from 'sonner';
 import FullCalendar from '@fullcalendar/react';
@@ -19,6 +21,18 @@ type GEvent = {
   htmlLink?: string;
   start?: { dateTime?: string; date?: string };
   end?: { dateTime?: string; date?: string };
+  _calendarId?: string;
+};
+
+type GCalendar = {
+  id: string;
+  summary: string;
+  summaryOverride?: string;
+  backgroundColor?: string;
+  foregroundColor?: string;
+  primary?: boolean;
+  selected?: boolean;
+  accessRole?: string;
 };
 
 export function CalendarView() {
@@ -28,6 +42,8 @@ export function CalendarView() {
   const [loading, setLoading] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [createDefaults, setCreateDefaults] = useState<{ start?: string; end?: string }>({});
+  const [calendars, setCalendars] = useState<GCalendar[]>([]);
+  const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set());
 
   const checkConnection = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -41,24 +57,52 @@ export function CalendarView() {
     setEmail(data?.google_email || null);
   }, []);
 
-  const loadEvents = useCallback(async () => {
+  const loadCalendars = useCallback(async () => {
+    const { data, error } = await supabase.functions.invoke('google-cal-events', {
+      body: { action: 'calendars' },
+    });
+    if (error) return;
+    if (data?.not_connected) { setConnected(false); return; }
+    const cals: GCalendar[] = data?.calendars || [];
+    setCalendars(cals);
+    setVisibleIds(prev => {
+      if (prev.size > 0) return prev;
+      const stored = localStorage.getItem('gcal_visible');
+      if (stored) {
+        try { return new Set(JSON.parse(stored)); } catch { /* ignore */ }
+      }
+      return new Set(cals.filter(c => c.selected !== false).map(c => c.id));
+    });
+  }, []);
+
+  const loadEvents = useCallback(async (ids?: string[]) => {
+    const calendar_ids = ids ?? Array.from(visibleIds);
+    if (calendar_ids.length === 0) { setEvents([]); return; }
     setLoading(true);
     const { data, error } = await supabase.functions.invoke('google-cal-events', {
-      body: { action: 'list' },
+      body: { action: 'list', calendar_ids },
     });
     setLoading(false);
     if (error) { toast.error('Failed to load events'); return; }
     if (data?.not_connected) { setConnected(false); return; }
     setEvents(data?.events || []);
-  }, []);
+  }, [visibleIds]);
 
   useEffect(() => {
     checkConnection();
   }, [checkConnection]);
 
   useEffect(() => {
-    if (connected) loadEvents();
-  }, [connected, loadEvents]);
+    if (connected) loadCalendars();
+  }, [connected, loadCalendars]);
+
+  useEffect(() => {
+    if (connected && visibleIds.size > 0) {
+      localStorage.setItem('gcal_visible', JSON.stringify(Array.from(visibleIds)));
+      loadEvents(Array.from(visibleIds));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connected, visibleIds]);
 
   const connect = async () => {
     const { data, error } = await supabase.functions.invoke('google-cal-oauth-start', {
@@ -94,14 +138,39 @@ export function CalendarView() {
     );
   }
 
-  const fcEvents = events.map(e => ({
-    id: e.id,
-    title: e.summary || '(no title)',
-    start: e.start?.dateTime || e.start?.date,
-    end: e.end?.dateTime || e.end?.date,
-    allDay: !e.start?.dateTime,
-    extendedProps: { description: e.description, location: e.location, hangoutLink: e.hangoutLink, htmlLink: e.htmlLink },
-  }));
+  const calendarColorMap = useMemo(() => {
+    const m = new Map<string, { bg: string; fg: string }>();
+    calendars.forEach(c => m.set(c.id, { bg: c.backgroundColor || '#3b82f6', fg: c.foregroundColor || '#ffffff' }));
+    return m;
+  }, [calendars]);
+
+  const fcEvents = events
+    .filter(e => !e._calendarId || visibleIds.has(e._calendarId))
+    .map(e => {
+      const colors = e._calendarId ? calendarColorMap.get(e._calendarId) : undefined;
+      return {
+        id: e.id,
+        title: e.summary || '(no title)',
+        start: e.start?.dateTime || e.start?.date,
+        end: e.end?.dateTime || e.end?.date,
+        allDay: !e.start?.dateTime,
+        backgroundColor: colors?.bg,
+        borderColor: colors?.bg,
+        textColor: colors?.fg,
+        extendedProps: { description: e.description, location: e.location, hangoutLink: e.hangoutLink, htmlLink: e.htmlLink },
+      };
+    });
+
+  const toggleCalendar = (id: string) => {
+    setVisibleIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const myCals = calendars.filter(c => c.accessRole === 'owner' || c.primary);
+  const otherCals = calendars.filter(c => c.accessRole !== 'owner' && !c.primary);
 
   return (
     <div className="space-y-4">
@@ -110,7 +179,7 @@ export function CalendarView() {
           Connected as <span className="font-medium text-foreground">{email}</span>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={loadEvents} disabled={loading}>
+          <Button variant="outline" size="sm" onClick={() => loadEvents()} disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />Refresh
           </Button>
           <Button size="sm" onClick={() => { setCreateDefaults({}); setCreateOpen(true); }}>
@@ -122,32 +191,82 @@ export function CalendarView() {
         </div>
       </div>
 
-      <Card className="p-4">
-        <FullCalendar
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-          initialView="timeGridWeek"
-          headerToolbar={{ left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' }}
-          height="auto"
-          events={fcEvents}
-          selectable
-          select={(info) => {
-            setCreateDefaults({ start: info.startStr, end: info.endStr });
-            setCreateOpen(true);
-          }}
-          eventClick={(info) => {
-            const link = (info.event.extendedProps as any).htmlLink;
-            if (link) window.open(link, '_blank');
-          }}
-        />
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4">
+        <Card className="p-4 h-fit">
+          <ScrollArea className="max-h-[70vh]">
+            <div className="space-y-4">
+              <CalendarGroup title="My calendars" cals={myCals} visibleIds={visibleIds} onToggle={toggleCalendar} />
+              {otherCals.length > 0 && (
+                <CalendarGroup title="Other calendars" cals={otherCals} visibleIds={visibleIds} onToggle={toggleCalendar} />
+              )}
+            </div>
+          </ScrollArea>
+        </Card>
+
+        <Card className="p-4">
+          <FullCalendar
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+            initialView="timeGridWeek"
+            headerToolbar={{ left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' }}
+            height="auto"
+            nowIndicator
+            slotMinTime="06:00:00"
+            slotMaxTime="22:00:00"
+            scrollTime="08:00:00"
+            events={fcEvents}
+            selectable
+            select={(info) => {
+              setCreateDefaults({ start: info.startStr, end: info.endStr });
+              setCreateOpen(true);
+            }}
+            eventClick={(info) => {
+              const link = (info.event.extendedProps as any).htmlLink;
+              if (link) window.open(link, '_blank');
+            }}
+          />
+        </Card>
+      </div>
 
       <CreateEventDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
         defaultStart={createDefaults.start}
         defaultEnd={createDefaults.end}
-        onCreated={loadEvents}
+        onCreated={() => loadEvents()}
       />
+    </div>
+  );
+}
+
+function CalendarGroup({
+  title, cals, visibleIds, onToggle,
+}: {
+  title: string;
+  cals: GCalendar[];
+  visibleIds: Set<string>;
+  onToggle: (id: string) => void;
+}) {
+  return (
+    <div>
+      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">{title}</div>
+      <div className="space-y-1.5">
+        {cals.map(c => {
+          const checked = visibleIds.has(c.id);
+          const color = c.backgroundColor || '#3b82f6';
+          return (
+            <label key={c.id} className="flex items-center gap-2 cursor-pointer text-sm py-1 hover:bg-muted/50 rounded px-1">
+              <Checkbox
+                checked={checked}
+                onCheckedChange={() => onToggle(c.id)}
+                style={checked ? { backgroundColor: color, borderColor: color } : { borderColor: color }}
+              />
+              <span className="truncate flex-1" title={c.summaryOverride || c.summary}>
+                {c.summaryOverride || c.summary}
+              </span>
+            </label>
+          );
+        })}
+      </div>
     </div>
   );
 }
