@@ -38,6 +38,7 @@ import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Filter, ListTodo, 
 import { Briefcase } from 'lucide-react';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { CalendarView } from '@/components/CalendarView';
+import { useSearchParams } from 'react-router-dom';
 import { isPast, isToday, isTomorrow } from 'date-fns';
 
 type TaskDueFilter = 'all_leads' | 'overdue' | 'today' | 'tomorrow' | 'later' | 'no_tasks';
