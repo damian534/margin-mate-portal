@@ -997,6 +997,10 @@ export default function AdminCRM() {
             <CalendarView />
           </TabsContent>
 
+          <TabsContent value="edm" className="mt-4">
+            <EDMPlatform isPreviewMode={isPreviewMode} />
+          </TabsContent>
+
 
 
         </Tabs>
