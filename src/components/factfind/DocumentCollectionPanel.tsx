@@ -98,6 +98,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [savingDocId, setSavingDocId] = useState<string | null>(null);
   const [mirOpen, setMirOpen] = useState(false);
+  const [resendingBatchId, setResendingBatchId] = useState<string | null>(null);
 
   const primaryName = primaryApplicantName?.trim() || 'Primary Applicant';
   const primaryEmail = primaryApplicantEmail?.trim() || null;
@@ -557,6 +558,57 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
     }
   };
 
+  const resendMirBatch = async (batchId: string, docs: DocumentRequest[]) => {
+    if (isPreviewMode) { toast.success('Resent MIR (preview)'); return; }
+    setResendingBatchId(batchId);
+    try {
+      const { data: batch, error: batchErr } = await (supabase as any)
+        .from('mir_requests').select('*').eq('id', batchId).maybeSingle();
+      if (batchErr || !batch) { toast.error('Could not load original MIR'); return; }
+
+      const recipientEmail = (batch.recipient_emails && batch.recipient_emails[0]) || null;
+      const applicant = applicants.find(a => a.id === docs[0].applicant_id);
+      const recipient = recipientEmail || applicant?.email || null;
+      if (!recipient) { toast.error('No recipient email on file'); return; }
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) { toast.error('Not authenticated'); return; }
+
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-mir-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({
+          lead_id: leadId,
+          app_url: 'https://connect.margin.com.au',
+          document_names: docs.map(d => d.name),
+          recipient_email: recipient,
+          recipient_name: applicant?.name,
+          lender: batch.lender || undefined,
+          message: batch.message || undefined,
+          from_email: batch.from_email,
+          from_name: batch.from_name || undefined,
+          reply_to: batch.from_email,
+        }),
+      });
+      if (!res.ok) { toast.error('Resend failed'); return; }
+
+      const nowIso = new Date().toISOString();
+      await supabase.from('document_requests').update({ mir_requested_at: nowIso, requested_at: nowIso } as any).in('id', docs.map(d => d.id));
+
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        const summary = `📨 MIR resent${batch.lender ? ` (${batch.lender})` : ''} to ${applicant?.name || recipient}\n${docs.map(d => `• ${d.name}`).join('\n')}`;
+        await supabase.from('notes').insert({ lead_id: leadId, content: summary, author_id: userData?.user?.id ?? null } as any);
+      } catch {}
+
+      toast.success('MIR resent');
+      await fetchAll();
+    } finally {
+      setResendingBatchId(null);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Premium top bar: Request action + compact KPI pills */}
@@ -715,7 +767,18 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
                       <p className="text-xs font-medium text-amber-900">
                         Sent {ts ? new Date(ts).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' }) : '—'}
                       </p>
-                      <span className="text-[11px] text-amber-800">{collected}/{docs.length} received</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-amber-800">{collected}/{docs.length} received</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 text-[11px] gap-1 text-amber-900 hover:bg-amber-100 px-2"
+                          onClick={() => resendMirBatch(batchId, docs)}
+                          disabled={resendingBatchId === batchId}
+                        >
+                          <Mail className="w-3 h-3" /> {resendingBatchId === batchId ? 'Sending…' : 'Resend'}
+                        </Button>
+                      </div>
                     </div>
                     <ul className="space-y-0.5">
                       {docs.map(d => {
