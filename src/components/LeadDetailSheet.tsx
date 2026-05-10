@@ -615,10 +615,10 @@ export function LeadDetailSheet({
       <div
         key={task.id}
         className={cn(
-          "group rounded-lg border bg-background pl-3 pr-2 py-2 flex items-center gap-3 hover:shadow-sm transition-all border-l-4",
-          tone === 'destructive' && 'border-l-destructive border-y-destructive/20 border-r-destructive/20',
-          tone === 'success' && 'border-l-success border-y-success/20 border-r-success/20',
-          tone === 'muted' && 'border-l-muted-foreground/30 border-y-border border-r-border',
+          "group rounded-lg border pl-3 pr-2 py-2 flex items-center gap-3 hover:shadow-sm transition-all",
+          tone === 'destructive' && 'bg-destructive/10 border-destructive/30',
+          tone === 'success' && 'bg-success/10 border-success/30',
+          tone === 'muted' && 'bg-muted border-border',
         )}
       >
         <Checkbox
