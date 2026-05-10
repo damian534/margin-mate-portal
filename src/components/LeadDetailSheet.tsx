@@ -852,10 +852,10 @@ export function LeadDetailSheet({
           )}
 
           {/* Tasks Hero — focal point for daily action */}
-          <div className="mb-4 rounded-xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-background to-background shadow-md overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 bg-primary/10 border-b border-primary/20">
+          <div className="mb-4 rounded-xl border-2 border-success/30 bg-gradient-to-br from-success/10 via-background to-background shadow-md overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 bg-success/10 border-b border-success/20">
               <div className="flex items-center gap-2 min-w-0">
-                <div className="w-7 h-7 rounded-md bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+                <div className="w-7 h-7 rounded-md bg-success text-success-foreground flex items-center justify-center shrink-0">
                   <CheckCircle className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
@@ -863,7 +863,7 @@ export function LeadDetailSheet({
                   <p className="text-[11px] text-muted-foreground leading-tight">
                     {pendingTasks.length} open
                     {overdueTasks.length > 0 && <span className="text-destructive font-medium"> · {overdueTasks.length} overdue</span>}
-                    {todayColTasks.length > 0 && <span className="text-primary font-medium"> · {todayColTasks.length} today</span>}
+                    {todayColTasks.length > 0 && <span className="text-success font-medium"> · {todayColTasks.length} today</span>}
                   </p>
                 </div>
               </div>
@@ -930,7 +930,12 @@ export function LeadDetailSheet({
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Input type="datetime-local" value={newTaskDueDate} onChange={e => setNewTaskDueDate(e.target.value)} className="h-8 text-sm flex-1" />
+                      <Input
+                        type="date"
+                        value={newTaskDueDate ? newTaskDueDate.slice(0, 10) : ''}
+                        onChange={e => setNewTaskDueDate(e.target.value ? `${e.target.value}T09:00` : '')}
+                        className="h-8 text-sm flex-1"
+                      />
                       <Button size="sm" className="h-8 text-xs" onClick={createTask} disabled={!newTaskTitle.trim()}>Create</Button>
                       <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setShowTaskForm(false); setNewTaskTitle(''); setNewTaskDueDate(''); }}>Cancel</Button>
                     </div>
@@ -940,19 +945,19 @@ export function LeadDetailSheet({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
                   {([
                     { key: 'overdue', label: 'Overdue', tone: 'destructive' as const, list: overdueColTasks, Icon: AlertTriangle },
-                    { key: 'today', label: 'Today', tone: 'primary' as const, list: todayColTasks, Icon: Clock },
+                    { key: 'today', label: 'Today', tone: 'success' as const, list: todayColTasks, Icon: Clock },
                     { key: 'upcoming', label: 'Upcoming', tone: 'muted' as const, list: upcomingColTasks, Icon: Calendar },
                   ]).map(col => (
                     <div key={col.key} className={cn(
                       "rounded-lg border bg-background flex flex-col min-h-[140px]",
                       col.tone === 'destructive' && 'border-destructive/40',
-                      col.tone === 'primary' && 'border-primary/40',
+                      col.tone === 'success' && 'border-success/40',
                       col.tone === 'muted' && 'border-border',
                     )}>
                       <div className={cn(
                         "px-2.5 py-1.5 border-b flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider",
                         col.tone === 'destructive' && 'border-destructive/30 text-destructive bg-destructive/5',
-                        col.tone === 'primary' && 'border-primary/30 text-primary bg-primary/5',
+                        col.tone === 'success' && 'border-success/30 text-success bg-success/5',
                         col.tone === 'muted' && 'border-border text-muted-foreground bg-muted/40',
                       )}>
                         <span className="flex items-center gap-1.5"><col.Icon className="w-3.5 h-3.5" />{col.label}</span>
