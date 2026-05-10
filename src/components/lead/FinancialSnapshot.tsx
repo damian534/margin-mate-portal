@@ -10,6 +10,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { FactFindWizardDialog } from './FactFindWizardDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { FinancialPositionEditor } from '@/components/financial-position/FinancialPositionEditor';
+import { useFactFindEnabled } from '@/hooks/useFactFindEnabled';
 
 interface Props {
   leadId: string;
@@ -31,6 +32,7 @@ const SAMPLE: FactFindAggregates = {
 
 export function FinancialSnapshot({ leadId, loanAmount, referrerCommission, isPreviewMode, onSendFactFind, prefill }: Props) {
   const { user } = useAuth();
+  const factFindEnabled = useFactFindEnabled();
   const [agg, setAgg] = useState<FactFindAggregates | null>(null);
   const [open, setOpen] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -74,7 +76,8 @@ export function FinancialSnapshot({ leadId, loanAmount, referrerCommission, isPr
         />
       </div>
 
-      {/* Full position card */}
+      {/* Full position card (fact-find driven) */}
+      {factFindEnabled && (
       <div className="rounded-xl border border-border/60 bg-card overflow-hidden">
         <button
           type="button"
@@ -146,7 +149,9 @@ export function FinancialSnapshot({ leadId, loanAmount, referrerCommission, isPr
           </div>
         )}
       </div>
+      )}
 
+      {factFindEnabled && (
       <FactFindWizardDialog
         open={wizardOpen}
         onOpenChange={setWizardOpen}
@@ -155,7 +160,9 @@ export function FinancialSnapshot({ leadId, loanAmount, referrerCommission, isPr
         prefill={prefill}
         onComplete={refresh}
       />
+      )}
 
+      {factFindEnabled && (
       <Dialog open={posOpen} onOpenChange={setPosOpen}>
         <DialogContent className="max-w-5xl w-[95vw] h-[92vh] p-0 overflow-hidden flex flex-col">
           <DialogHeader className="px-6 py-3 border-b shrink-0">
@@ -170,6 +177,7 @@ export function FinancialSnapshot({ leadId, loanAmount, referrerCommission, isPr
           </div>
         </DialogContent>
       </Dialog>
+      )}
     </div>
   );
 }
