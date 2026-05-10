@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { format, isPast, isToday } from 'date-fns';
 import { notifyPartnerNote } from '@/lib/notifications';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import { useTeamMembers } from '@/hooks/useTeamMembers';
 import {
   Mail, Phone, Send, Trash2, Users, Building2, DollarSign,
   Calendar, Plus, CheckCircle, Clock, AlertTriangle,
@@ -175,6 +176,7 @@ export function LeadDetailSheet({
   contacts: contactsList = [], referrers: referrersList = [], isPreviewMode, onUpdateStatus, onUpdateWipStatus, onUpdateCommission, onDeleteLead, onDuplicateLead, onLeadChange, onOpenContact, sampleNotes, onLeadSourcesChanged
 }: LeadDetailSheetProps) {
   const { user, role } = useAuth();
+  const { members: teamMembers } = useTeamMembers();
   const isSuperAdmin = role === 'super_admin';
   const [notes, setNotes] = useState<Note[]>([]);
   const [brokerOptions, setBrokerOptions] = useState<{ id: string; name: string; email: string | null }[]>([]);
@@ -421,30 +423,42 @@ export function LeadDetailSheet({
     if (isPreviewMode) {
       setTasks(prev => prev.map(t => t.id === task.id ? { ...t, completed, completed_at: completed ? new Date().toISOString() : null } : t));
       toast.success(completed ? 'Task completed' : 'Task reopened');
+      await addNote(completed ? `✅ Task completed: "${task.title}"` : `↩️ Task reopened: "${task.title}"`, 'note', task.id);
       return;
     }
     await supabase.from('tasks').update({ completed, completed_at: completed ? new Date().toISOString() : null }).eq('id', task.id);
     setTasks(prev => prev.map(t => t.id === task.id ? { ...t, completed, completed_at: completed ? new Date().toISOString() : null } : t));
     toast.success(completed ? 'Task completed' : 'Task reopened');
+    await addNote(completed ? `✅ Task completed: "${task.title}"` : `↩️ Task reopened: "${task.title}"`, 'note', task.id);
   };
 
   const rescheduleTask = async (taskId: string, dueLocal: string) => {
+    const prevTask = tasks.find(t => t.id === taskId);
+    const prevDate = prevTask?.due_date ? format(new Date(prevTask.due_date), 'dd MMM yyyy') : 'no date';
     const iso = dueLocal ? new Date(dueLocal).toISOString() : null;
+    const newDate = iso ? format(new Date(iso), 'dd MMM yyyy') : 'no date';
+    if (prevDate === newDate) return;
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, due_date: iso } : t));
     if (!isPreviewMode) {
       const { error } = await supabase.from('tasks').update({ due_date: iso }).eq('id', taskId);
       if (error) { toast.error('Failed to reschedule'); return; }
     }
     toast.success('Task rescheduled');
+    await addNote(`📅 Task rescheduled${prevTask ? ` "${prevTask.title}"` : ''}: ${prevDate} → ${newDate}`, 'note', taskId);
   };
 
   const reassignTask = async (taskId: string, userId: string | null) => {
+    const prevTask = tasks.find(t => t.id === taskId);
+    const prevName = prevTask?.assigned_to ? (teamMembers.find(m => m.user_id === prevTask.assigned_to)?.name || 'someone') : 'unassigned';
+    const newName = userId ? (teamMembers.find(m => m.user_id === userId)?.name || 'someone') : 'unassigned';
+    if (prevTask?.assigned_to === userId) return;
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, assigned_to: userId } : t));
     if (!isPreviewMode) {
       const { error } = await (supabase as any).from('tasks').update({ assigned_to: userId }).eq('id', taskId);
       if (error) { toast.error('Failed to reassign'); return; }
     }
     toast.success(userId ? 'Task reassigned' : 'Task unassigned');
+    await addNote(`👤 Task reassigned${prevTask ? ` "${prevTask.title}"` : ''}: ${prevName} → ${newName}`, 'note', taskId);
   };
 
   const handleEmailClick = () => {
