@@ -8,6 +8,8 @@ import { TrendingUp, TrendingDown, Wallet, Coins, Scale, ChevronDown, ChevronRig
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { FactFindWizardDialog } from './FactFindWizardDialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { FinancialPositionEditor } from '@/components/financial-position/FinancialPositionEditor';
 
 interface Props {
   leadId: string;
@@ -32,6 +34,7 @@ export function FinancialSnapshot({ leadId, loanAmount, referrerCommission, isPr
   const [agg, setAgg] = useState<FactFindAggregates | null>(null);
   const [open, setOpen] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [posOpen, setPosOpen] = useState(false);
   const [sendInfo, setSendInfo] = useState<{ last_sent_at: string | null; last_send_mode: string | null; last_send_error: string | null; send_count: number } | null>(null);
 
   const refresh = () => {
@@ -129,9 +132,14 @@ export function FinancialSnapshot({ leadId, loanAmount, referrerCommission, isPr
                   </div>
                 )}
                 <div className="pt-1">
-                  <Button size="sm" variant="outline" className="gap-1.5 w-full" onClick={() => setWizardOpen(true)}>
-                    <Pencil className="w-3.5 h-3.5" /> Edit financial position
-                  </Button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <Button size="sm" className="gap-1.5" onClick={() => setPosOpen(true)}>
+                      <Scale className="w-3.5 h-3.5" /> Open financial position
+                    </Button>
+                    <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setWizardOpen(true)}>
+                      <Pencil className="w-3.5 h-3.5" /> Step-by-step fact find
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
@@ -147,6 +155,21 @@ export function FinancialSnapshot({ leadId, loanAmount, referrerCommission, isPr
         prefill={prefill}
         onComplete={refresh}
       />
+
+      <Dialog open={posOpen} onOpenChange={setPosOpen}>
+        <DialogContent className="max-w-5xl w-[95vw] h-[92vh] p-0 overflow-hidden flex flex-col">
+          <DialogHeader className="px-6 py-3 border-b shrink-0">
+            <DialogTitle className="text-base">Financial position</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+            <FinancialPositionEditor
+              leadId={leadId}
+              isPreviewMode={isPreviewMode}
+              onChange={refresh}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
