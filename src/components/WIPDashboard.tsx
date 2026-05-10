@@ -504,9 +504,9 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                     <span className="truncate">Referred by {getContactName(lead.source_contact_id)}</span>
                                   </div>
                                 )}
-                                {lead.created_at && (
-                                  <p className="text-[10px] text-muted-foreground/70">{format(new Date(lead.created_at), 'dd MMM')}</p>
-                                )}
+                                <p className="text-[10px] text-muted-foreground/70 pt-1 border-t border-border/40">
+                                  {lead.created_at ? format(new Date(lead.created_at), 'dd MMM') : ''}
+                                </p>
                                 {docs && docs.requested > 0 && (
                                   <div className="pt-1 border-t border-border/40 space-y-1">
                                     <div className="flex items-center justify-between text-[10px]">
