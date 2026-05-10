@@ -1289,6 +1289,25 @@ export function LeadDetailSheet({
 
             {/* Documents Tab */}
             <TabsContent value="documents" className="mt-4">
+              <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/30 px-3 py-2 mb-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Automatic reminder emails</p>
+                  <p className="text-xs text-muted-foreground">
+                    Sends a nudge to the client (and co-applicants) on day 2, 4, 7, 11, 16, 22, and 30 while documents are still outstanding. Stops automatically when all docs are uploaded or the deal closes.
+                  </p>
+                </div>
+                <Switch
+                  checked={!lead.doc_reminders_paused}
+                  onCheckedChange={async (checked) => {
+                    const paused = !checked;
+                    onLeadChange?.({ ...lead, doc_reminders_paused: paused });
+                    if (isPreviewMode) { toast.success(paused ? 'Reminders paused (preview)' : 'Reminders enabled (preview)'); return; }
+                    const { error } = await supabase.from('leads').update({ doc_reminders_paused: paused } as any).eq('id', lead.id);
+                    if (error) { toast.error('Failed to update reminders'); onLeadChange?.({ ...lead, doc_reminders_paused: !paused }); }
+                    else toast.success(paused ? 'Reminders paused' : 'Reminders enabled');
+                  }}
+                />
+              </div>
               <DocumentCollectionPanel
                 leadId={lead.id}
                 isPreviewMode={isPreviewMode}
