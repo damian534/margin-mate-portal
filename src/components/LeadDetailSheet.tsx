@@ -1313,12 +1313,18 @@ export function LeadDetailSheet({
                         const isCall = note.content.startsWith('📞');
                         const isTaskNote = note.content.startsWith('📋');
                         const isDocReq = note.content.startsWith('📄');
+                        const isMir = note.content.startsWith('📨');
                         return (
                           <div key={note.id} className="relative pb-3">
                             <div className={`absolute -left-[14px] top-1.5 w-3 h-3 rounded-full border-2 border-background ${
-                              isEmail ? 'bg-blue-500' : isCall ? 'bg-green-500' : isTaskNote ? 'bg-amber-500' : isDocReq ? 'bg-purple-500' : 'bg-muted-foreground/40'
+                              isMir ? 'bg-orange-500' : isEmail ? 'bg-blue-500' : isCall ? 'bg-green-500' : isTaskNote ? 'bg-amber-500' : isDocReq ? 'bg-purple-500' : 'bg-muted-foreground/40'
                             }`} />
-                            <div className="bg-muted/50 rounded-lg p-2.5">
+                            <div className={`rounded-lg p-2.5 ${isMir ? 'bg-orange-50 border border-orange-200' : 'bg-muted/50'}`}>
+                              {isMir && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-800 text-[10px] font-semibold uppercase tracking-wide mb-1">
+                                  MIR
+                                </span>
+                              )}
                               <p className="text-sm whitespace-pre-wrap">{note.content}</p>
                               <div className="flex items-center gap-2 mt-1">
                                 <p className="text-xs text-muted-foreground">{format(new Date(note.created_at), 'dd MMM yyyy, HH:mm')}</p>
