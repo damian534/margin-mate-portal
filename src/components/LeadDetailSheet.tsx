@@ -902,12 +902,13 @@ export function LeadDetailSheet({
               { id: 'sec-tabs', label: 'Commission', icon: DollarSign, tab: 'commission' },
             ].map((link) => {
               const Icon = link.icon;
-              const isActiveTab = link.tab && activeTab === link.tab;
+              const isActiveTab = activeNavKey === `${link.id}-${link.label}`;
               return (
                 <button
                   key={`${link.id}-${link.label}`}
                   type="button"
                   onClick={() => {
+                    setActiveNavKey(`${link.id}-${link.label}`);
                     if (link.tab) setActiveTab(link.tab);
                     requestAnimationFrame(() => {
                       const el = document.getElementById(link.id);
