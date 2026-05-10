@@ -276,7 +276,10 @@ export type Database = {
           file_path: string | null
           file_size: number | null
           id: string
+          is_mir: boolean
           lead_id: string
+          mir_batch_id: string | null
+          mir_requested_at: string | null
           name: string
           rejection_reason: string | null
           requested_at: string | null
@@ -295,7 +298,10 @@ export type Database = {
           file_path?: string | null
           file_size?: number | null
           id?: string
+          is_mir?: boolean
           lead_id: string
+          mir_batch_id?: string | null
+          mir_requested_at?: string | null
           name: string
           rejection_reason?: string | null
           requested_at?: string | null
@@ -314,7 +320,10 @@ export type Database = {
           file_path?: string | null
           file_size?: number | null
           id?: string
+          is_mir?: boolean
           lead_id?: string
+          mir_batch_id?: string | null
+          mir_requested_at?: string | null
           name?: string
           rejection_reason?: string | null
           requested_at?: string | null
@@ -998,6 +1007,48 @@ export type Database = {
           lender?: string | null
           security_address?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      mir_requests: {
+        Row: {
+          created_at: string
+          document_count: number
+          from_email: string
+          from_name: string | null
+          id: string
+          lead_id: string
+          lender: string | null
+          message: string | null
+          recipient_emails: string[]
+          requested_at: string
+          requested_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_count?: number
+          from_email: string
+          from_name?: string | null
+          id?: string
+          lead_id: string
+          lender?: string | null
+          message?: string | null
+          recipient_emails?: string[]
+          requested_at?: string
+          requested_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_count?: number
+          from_email?: string
+          from_name?: string | null
+          id?: string
+          lead_id?: string
+          lender?: string | null
+          message?: string | null
+          recipient_emails?: string[]
+          requested_at?: string
+          requested_by?: string | null
         }
         Relationships: []
       }
