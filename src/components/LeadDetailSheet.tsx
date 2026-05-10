@@ -185,6 +185,7 @@ export function LeadDetailSheet({
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
+  const [newTaskDescription, setNewTaskDescription] = useState('');
   const [activeTab, setActiveTab] = useState('timeline');
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<{ id: string; title: string; dueDate: string } | null>(null);
@@ -373,6 +374,7 @@ export function LeadDetailSheet({
     } else {
       const { error } = await supabase.from('tasks').insert({
         lead_id: lead.id, title: newTaskTitle.trim(),
+        description: newTaskDescription.trim() || null,
         due_date: newTaskDueDate ? new Date(newTaskDueDate).toISOString() : null,
         created_by: user.id,
       });
@@ -380,7 +382,7 @@ export function LeadDetailSheet({
       toast.success('Task created');
       fetchTasks(lead.id);
     }
-    setNewTaskTitle(''); setNewTaskDueDate(''); setShowTaskForm(false);
+    setNewTaskTitle(''); setNewTaskDueDate(''); setNewTaskDescription(''); setShowTaskForm(false);
   };
 
   const updateTask = async (taskId: string) => {
@@ -906,14 +908,27 @@ export function LeadDetailSheet({
                 )}
 
                 {showTaskForm && (
-                  <div className="bg-background border border-border rounded-lg p-3 space-y-2">
-                    <Input
-                      placeholder="What needs doing?"
-                      value={newTaskTitle}
-                      onChange={e => setNewTaskTitle(e.target.value)}
-                      className="h-8 text-sm"
-                      autoFocus
-                    />
+                  <div className="bg-background border border-border rounded-lg p-4 space-y-4 shadow-sm">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Task title</Label>
+                      <Input
+                        placeholder="Enter a task title"
+                        value={newTaskTitle}
+                        onChange={e => setNewTaskTitle(e.target.value)}
+                        className="h-11 text-base font-medium border-0 border-b rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Notes</Label>
+                      <Textarea
+                        placeholder="Add details, context, or instructions..."
+                        value={newTaskDescription}
+                        onChange={e => setNewTaskDescription(e.target.value)}
+                        rows={6}
+                        className="text-sm resize-y min-h-[140px]"
+                      />
+                    </div>
                     <div>
                       <p className="text-[11px] text-muted-foreground mb-1.5">Quick follow-up</p>
                       <div className="flex flex-wrap gap-1.5">
@@ -929,15 +944,20 @@ export function LeadDetailSheet({
                         })}
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Input
-                        type="date"
-                        value={newTaskDueDate ? newTaskDueDate.slice(0, 10) : ''}
-                        onChange={e => setNewTaskDueDate(e.target.value ? `${e.target.value}T09:00` : '')}
-                        className="h-8 text-sm flex-1"
-                      />
-                      <Button size="sm" className="h-8 text-xs" onClick={createTask} disabled={!newTaskTitle.trim()}>Create</Button>
-                      <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setShowTaskForm(false); setNewTaskTitle(''); setNewTaskDueDate(''); }}>Cancel</Button>
+                    <div className="flex items-center gap-2 pt-1 border-t">
+                      <div className="flex-1">
+                        <Label className="text-[11px] text-muted-foreground">Due date</Label>
+                        <Input
+                          type="date"
+                          value={newTaskDueDate ? newTaskDueDate.slice(0, 10) : ''}
+                          onChange={e => setNewTaskDueDate(e.target.value ? `${e.target.value}T09:00` : '')}
+                          className="h-9 text-sm"
+                        />
+                      </div>
+                      <div className="flex gap-2 self-end">
+                        <Button variant="ghost" size="sm" onClick={() => { setShowTaskForm(false); setNewTaskTitle(''); setNewTaskDueDate(''); setNewTaskDescription(''); }}>Cancel</Button>
+                        <Button size="sm" onClick={createTask} disabled={!newTaskTitle.trim()}>Create task</Button>
+                      </div>
                     </div>
                   </div>
                 )}
