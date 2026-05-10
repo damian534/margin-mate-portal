@@ -881,6 +881,22 @@ export function LeadDetailSheet({
 
             {!heroCollapsed && (
               <div className="p-3 space-y-3">
+                {taskTemplates.length > 0 && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] text-muted-foreground">Apply template:</span>
+                    <Select onValueChange={(v) => applyTaskTemplate(v)}>
+                      <SelectTrigger className="h-7 text-xs w-auto min-w-[180px]">
+                        <SelectValue placeholder="Choose template..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {taskTemplates.map(tpl => (
+                          <SelectItem key={tpl.id} value={tpl.id} className="text-xs">{tpl.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 {showTaskForm && (
                   <div className="bg-background border border-border rounded-lg p-3 space-y-2">
                     <Input
@@ -890,6 +906,21 @@ export function LeadDetailSheet({
                       className="h-8 text-sm"
                       autoFocus
                     />
+                    <div>
+                      <p className="text-[11px] text-muted-foreground mb-1.5">Quick follow-up</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {FOLLOW_UP_OPTIONS.map(opt => {
+                          const targetDate = getFollowUpDate(opt);
+                          const isSelected = newTaskDueDate && Math.abs(new Date(newTaskDueDate).getTime() - targetDate.getTime()) < 60000;
+                          return (
+                            <Button key={opt.label} type="button" variant={isSelected ? 'default' : 'outline'} size="sm" className="h-7 text-xs px-2.5"
+                              onClick={() => setNewTaskDueDate(formatDatetimeLocal(getFollowUpDate(opt)))}>
+                              {opt.label}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </div>
                     <div className="flex gap-2">
                       <Input type="datetime-local" value={newTaskDueDate} onChange={e => setNewTaskDueDate(e.target.value)} className="h-8 text-sm flex-1" />
                       <Button size="sm" className="h-8 text-xs" onClick={createTask} disabled={!newTaskTitle.trim()}>Create</Button>
@@ -927,6 +958,18 @@ export function LeadDetailSheet({
                     </div>
                   ))}
                 </div>
+
+                {completedTasks.length > 0 && (
+                  <Collapsible>
+                    <CollapsibleTrigger className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+                      <ChevronRight className="w-3 h-3" />
+                      {completedTasks.length} completed
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-1.5 mt-1.5">
+                      {completedTasks.map(renderTaskItem)}
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
               </div>
             )}
           </div>
