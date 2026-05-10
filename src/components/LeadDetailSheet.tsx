@@ -650,10 +650,10 @@ export function LeadDetailSheet({
               <p className={`text-sm font-medium ${task.completed ? 'line-through text-muted-foreground' : ''}`}>{task.title}</p>
               <div className="flex items-center gap-2 mt-0.5">
                 {task.due_date && (
-                  <span className={`text-xs flex items-center gap-1 ${isOverdue ? 'text-destructive' : isDueToday ? 'text-primary' : 'text-muted-foreground'}`}>
+                  <span className={`text-xs flex items-center gap-1 ${isOverdue ? 'text-destructive' : isDueToday ? 'text-success' : 'text-muted-foreground'}`}>
                     <Calendar className="w-3 h-3" />
                     {isOverdue ? 'Overdue — ' : isDueToday ? 'Today — ' : ''}
-                    {format(new Date(task.due_date), 'dd MMM, HH:mm')}
+                    {format(new Date(task.due_date), 'dd MMM')}
                   </span>
                 )}
                 {taskNotes.length > 0 && (
