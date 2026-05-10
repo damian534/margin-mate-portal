@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Loader2, MapPin } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Suggestion {
   display_name: string;
@@ -56,15 +57,28 @@ export function AddressAutocomplete({
     const ctrl = new AbortController();
     const t = setTimeout(async () => {
       try {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=0&countrycodes=au&limit=6&q=${encodeURIComponent(q)}`;
-        const res = await fetch(url, {
-          signal: ctrl.signal,
-          headers: { "Accept-Language": "en-AU" },
-        });
-        if (!res.ok) throw new Error("lookup failed");
-        const data: Suggestion[] = await res.json();
-        setSuggestions(data);
-        setOpen(data.length > 0);
+        const { data, error } = await supabase.functions.invoke("address-search", {
+          method: "GET" as any,
+          // pass query via querystring through the underlying fetch
+        } as any);
+        // The supabase-js invoke does not support querystrings cleanly; fall back to direct fetch.
+        let results: Suggestion[] = [];
+        if (error || !data) {
+          const projectUrl = (import.meta as any).env.VITE_SUPABASE_URL;
+          const anonKey = (import.meta as any).env.VITE_SUPABASE_PUBLISHABLE_KEY;
+          const res = await fetch(
+            `${projectUrl}/functions/v1/address-search?q=${encodeURIComponent(q)}`,
+            {
+              signal: ctrl.signal,
+              headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+            }
+          );
+          if (res.ok) results = await res.json();
+        } else {
+          results = data as Suggestion[];
+        }
+        setSuggestions(results);
+        setOpen(results.length > 0);
         setActiveIdx(-1);
       } catch {
         // silently ignore
