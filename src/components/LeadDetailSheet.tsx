@@ -601,6 +601,7 @@ export function LeadDetailSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-3xl overflow-y-auto p-0">
+        {(() => null)()}
         {/* Contact Header Card */}
         <div className="bg-muted/30 p-6 pb-4 border-b">
           <SheetHeader className="mb-4">
@@ -645,6 +646,51 @@ export function LeadDetailSheet({
             </SheetTitle>
           </SheetHeader>
 
+          {/* Sticky section navigator — jump to any section without scrolling */}
+          <nav
+            className="sticky top-0 z-30 -mx-6 px-4 py-2 bg-background/95 backdrop-blur border-y border-border mb-4 overflow-x-auto"
+            aria-label="Lead sections"
+          >
+            <div className="flex items-center gap-1 min-w-max">
+              {[
+                { id: 'sec-overview', label: 'Overview', icon: Users },
+                { id: 'sec-loan', label: 'Loan', icon: DollarSign },
+                { id: 'sec-referrals', label: 'Referrals', icon: Activity },
+                { id: 'sec-status', label: 'Status', icon: CheckCircle },
+                { id: 'sec-tabs', label: 'Tasks', icon: Clock, tab: 'timeline' },
+                ...((lead.portal_mode || 'both') !== 'fact_find'
+                  ? [{ id: 'sec-tabs', label: 'Documents', icon: FileText, tab: 'documents' }]
+                  : []),
+                { id: 'sec-tabs', label: 'Commission', icon: DollarSign, tab: 'commission' },
+              ].map((link) => {
+                const Icon = link.icon;
+                const isActiveTab = link.tab && activeTab === link.tab;
+                return (
+                  <button
+                    key={`${link.id}-${link.label}`}
+                    type="button"
+                    onClick={() => {
+                      if (link.tab) setActiveTab(link.tab);
+                      requestAnimationFrame(() => {
+                        const el = document.getElementById(link.id);
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      });
+                    }}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors',
+                      isActiveTab
+                        ? 'bg-foreground text-background'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                    )}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {link.label}
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+
           {!isPreviewMode && lead.broker_id === user?.id && (
             <div className="mb-3">
               <ReferLeadDialog
@@ -655,7 +701,7 @@ export function LeadDetailSheet({
           )}
 
           {/* Applicants — primary + co-applicant side-by-side */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+          <div id="sec-overview" className="scroll-mt-16 grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <div className="rounded-lg border border-border bg-muted/20 p-3">
               <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0 space-y-0.5">
@@ -719,7 +765,7 @@ export function LeadDetailSheet({
           </div>
 
           {/* Financial snapshot */}
-          <div className="mt-4">
+          <div id="sec-loan" className="scroll-mt-16 mt-4">
             <FinancialSnapshot
               leadId={lead.id}
               loanAmount={lead.loan_amount}
@@ -764,7 +810,7 @@ export function LeadDetailSheet({
           </div>
 
           {/* Referral Partner — editable */}
-          <div className="mt-3 rounded-lg border border-border bg-muted/20 overflow-hidden">
+          <div id="sec-referrals" className="scroll-mt-16 mt-3 rounded-lg border border-border bg-muted/20 overflow-hidden">
             <div className="px-3 py-2 bg-muted/40 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Users className="w-3.5 h-3.5 text-primary" />
@@ -874,6 +920,7 @@ export function LeadDetailSheet({
 
         <div className="p-6 space-y-5">
           {/* Status + Next Task Row */}
+          <div id="sec-status" className="scroll-mt-16" />
           <div className="flex gap-3">
             <div className="flex-1">
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">Status</Label>
@@ -1130,6 +1177,7 @@ export function LeadDetailSheet({
           <Separator />
 
           {/* Tabs: Timeline (Tasks + Activity), Commission */}
+          <div id="sec-tabs" className="scroll-mt-16" />
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className={cn("w-full grid", (lead.portal_mode || 'both') === 'fact_find' ? 'grid-cols-2' : 'grid-cols-3')}>
               <TabsTrigger value="timeline" className="gap-1 text-xs px-1.5">
