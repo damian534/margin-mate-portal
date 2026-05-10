@@ -554,23 +554,36 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
 
   return (
     <div className="space-y-4">
-      {/* Summary */}
-      <div className="flex gap-3 text-sm">
-        <div className="flex-1 bg-muted/50 rounded-lg p-2.5 text-center">
-          <p className="text-lg font-semibold">{requestedCount}</p>
-          <p className="text-xs text-muted-foreground">Requested</p>
+      {/* Premium top bar: Request action + compact KPI pills */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2 text-xs">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-medium">
+            <FileText className="w-3 h-3" /> {documents.length} total
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-50 text-slate-600 border border-slate-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-400" /> {pendingCount} not collected
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> {uploadedCount} uploaded
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> {approvedCount} approved
+          </span>
         </div>
-        <div className="flex-1 bg-amber-50 rounded-lg p-2.5 text-center border border-amber-100">
-          <p className="text-lg font-semibold text-amber-700">{pendingCount}</p>
-          <p className="text-xs text-amber-600">Pending</p>
-        </div>
-        <div className="flex-1 bg-blue-50 rounded-lg p-2.5 text-center border border-blue-100">
-          <p className="text-lg font-semibold text-blue-700">{uploadedCount}</p>
-          <p className="text-xs text-blue-600">Uploaded</p>
-        </div>
-        <div className="flex-1 bg-green-50 rounded-lg p-2.5 text-center border border-green-100">
-          <p className="text-lg font-semibold text-green-700">{approvedCount}</p>
-          <p className="text-xs text-green-600">Approved</p>
+        <div className="flex items-center gap-2">
+          {unrequestedDocs.length > 0 ? (
+            <Button size="sm" className="h-8 text-xs gap-1.5 bg-foreground text-background hover:bg-foreground/90" onClick={requestDocuments} disabled={isRequesting}>
+              <Send className="w-3.5 h-3.5" /> {isRequesting ? 'Requesting…' : `Request Documents (${unrequestedDocs.length})`}
+            </Button>
+          ) : outstandingRequestedDocs.length > 0 ? (
+            <Button size="sm" className="h-8 text-xs gap-1.5 bg-foreground text-background hover:bg-foreground/90" onClick={resendDocumentsLink} disabled={isRequesting}>
+              <Mail className="w-3.5 h-3.5" /> {isRequesting ? 'Sending…' : 'Resend Link'}
+            </Button>
+          ) : (
+            <Button size="sm" className="h-8 text-xs gap-1.5" disabled>
+              <Send className="w-3.5 h-3.5" /> Request Documents
+            </Button>
+          )}
         </div>
       </div>
 
@@ -636,24 +649,6 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
         </div>
       )}
 
-      {/* Template quick-add — always visible */}
-      <div className="flex items-center gap-2 flex-wrap bg-muted/30 rounded-lg p-2.5">
-        <span className="text-xs text-muted-foreground flex items-center gap-1">
-          <Sparkles className="w-3 h-3" /> Add checklist
-          {activeApplicantId !== 'all' && activeApplicantId !== 'unassigned'
-            ? ` for ${applicants.find(a => a.id === activeApplicantId)?.name || 'applicant'}:`
-            : ' (unassigned):'}
-        </span>
-        {templates.map(t => (
-          <Button key={t.id} variant="outline" size="sm" className="h-7 text-xs" onClick={() => loadTemplate(t, targetApplicantId)}>
-            + {t.name}
-          </Button>
-        ))}
-        {templates.length === 0 && (
-          <span className="text-xs text-muted-foreground italic">No templates yet — add some in Settings → Document Templates.</span>
-        )}
-      </div>
-
       {!isLoading && applicants.length === 0 && documents.length === 0 && (
         <div className="text-center py-6 border border-dashed rounded-lg">
           <Users className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
@@ -662,20 +657,21 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
         </div>
       )}
 
-      {/* Sections */}
-      <div className="space-y-4">
+      {/* Sections — premium table cards */}
+      <div className="space-y-3">
         {finalSections.map(section => {
           const docs = sections[section] || [];
           if (activeApplicantId === 'all' && docs.length === 0) return null;
           return (
-            <div key={section} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {section} <span className="text-muted-foreground/60">({docs.length})</span>
-                </h4>
+            <div key={section} className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-2.5 bg-muted/30 border-b border-border">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-semibold text-foreground">{section}</h4>
+                  <span className="text-xs text-muted-foreground">{docs.length} {docs.length === 1 ? 'item' : 'items'}</span>
+                </div>
                 {activeApplicantId !== 'all' && (
-                  <Button variant="ghost" size="sm" className="h-6 text-xs gap-1" onClick={() => setAddingTo({ section, applicantId: targetApplicantId })}>
-                    <Plus className="w-3 h-3" /> Add
+                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setAddingTo({ section, applicantId: targetApplicantId })}>
+                    <Plus className="w-3 h-3" /> Add document
                   </Button>
                 )}
               </div>
@@ -692,14 +688,14 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
               )}
 
               {docs.length === 0 ? (
-                <p className="text-xs text-muted-foreground italic px-1">No documents in this section</p>
+                <p className="text-xs text-muted-foreground italic px-4 py-3">No documents in this section</p>
               ) : (
-                <div className="space-y-2">
+                <div className="divide-y divide-border">
                   {docs.map(doc => {
                     const cfg = STATUS_CONFIG[doc.status] || STATUS_CONFIG.pending;
                     const applicant = applicants.find(a => a.id === doc.applicant_id);
                     return (
-                      <div key={doc.id} className="rounded-lg border p-3 space-y-2">
+                      <div key={doc.id} className="px-4 py-3 hover:bg-muted/20 transition-colors space-y-2">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-start gap-2 flex-1 min-w-0">
                             <FileText className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
@@ -711,7 +707,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
                                 onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
                                 disabled={savingDocId === doc.id}
                                 aria-label="Document name"
-                                className="h-8 text-sm font-medium"
+                                className="h-8 text-sm font-medium border-transparent bg-transparent hover:bg-background hover:border-border focus:bg-background focus:border-border px-2 -mx-2"
                               />
                               {doc.description && <p className="text-xs text-muted-foreground">{doc.description}</p>}
                               {activeApplicantId === 'all' && applicant && (
@@ -719,7 +715,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
                               )}
                             </div>
                           </div>
-                          <Badge variant="outline" className={cn("shrink-0 text-[10px] gap-1", cfg.color)}>
+                          <Badge variant="outline" className={cn("shrink-0 text-[10px] gap-1.5 font-medium", cfg.color)}>
                             {cfg.icon} {cfg.label}
                           </Badge>
                           {!doc.requested_at && doc.status === 'pending' && (
@@ -784,6 +780,24 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
             </div>
           );
         })}
+      </div>
+
+      {/* Templates quick-add — moved to bottom for less clutter */}
+      <div className="flex items-center gap-2 flex-wrap bg-muted/30 rounded-lg p-2.5">
+        <span className="text-xs text-muted-foreground flex items-center gap-1">
+          <Sparkles className="w-3 h-3" /> Add checklist
+          {activeApplicantId !== 'all' && activeApplicantId !== 'unassigned'
+            ? ` for ${applicants.find(a => a.id === activeApplicantId)?.name || 'applicant'}:`
+            : ' (unassigned):'}
+        </span>
+        {templates.map(t => (
+          <Button key={t.id} variant="outline" size="sm" className="h-7 text-xs" onClick={() => loadTemplate(t, targetApplicantId)}>
+            + {t.name}
+          </Button>
+        ))}
+        {templates.length === 0 && (
+          <span className="text-xs text-muted-foreground italic">No templates yet — add some in Settings → Document Templates.</span>
+        )}
       </div>
 
       <div className="space-y-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
