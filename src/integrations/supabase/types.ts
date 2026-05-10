@@ -234,6 +234,39 @@ export type Database = {
           },
         ]
       }
+      document_reminder_sends: {
+        Row: {
+          day_offset: number
+          error: string | null
+          id: string
+          lead_id: string
+          recipient_email: string
+          recipient_name: string | null
+          resend_id: string | null
+          sent_at: string
+        }
+        Insert: {
+          day_offset: number
+          error?: string | null
+          id?: string
+          lead_id: string
+          recipient_email: string
+          recipient_name?: string | null
+          resend_id?: string | null
+          sent_at?: string
+        }
+        Update: {
+          day_offset?: number
+          error?: string | null
+          id?: string
+          lead_id?: string
+          recipient_email?: string
+          recipient_name?: string | null
+          resend_id?: string | null
+          sent_at?: string
+        }
+        Relationships: []
+      }
       document_requests: {
         Row: {
           applicant_id: string | null
@@ -752,6 +785,7 @@ export type Database = {
           company_commission_type: string | null
           created_at: string
           custom_fields: Json | null
+          doc_reminders_paused: boolean
           email: string | null
           estimated_settlement_date: string | null
           first_name: string
@@ -785,6 +819,7 @@ export type Database = {
           company_commission_type?: string | null
           created_at?: string
           custom_fields?: Json | null
+          doc_reminders_paused?: boolean
           email?: string | null
           estimated_settlement_date?: string | null
           first_name: string
@@ -818,6 +853,7 @@ export type Database = {
           company_commission_type?: string | null
           created_at?: string
           custom_fields?: Json | null
+          doc_reminders_paused?: boolean
           email?: string | null
           estimated_settlement_date?: string | null
           first_name?: string
