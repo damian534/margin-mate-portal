@@ -19,6 +19,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { toast } from 'sonner';
 import { format, isPast, isToday } from 'date-fns';
 import { notifyPartnerNote } from '@/lib/notifications';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import {
   Mail, Phone, Send, Trash2, Users, Building2, DollarSign,
   Calendar, Plus, CheckCircle, Clock, AlertTriangle,
@@ -89,6 +90,7 @@ interface Task {
   completed_at: string | null;
   created_at: string;
   checklist_items?: { text: string; done: boolean }[];
+  assigned_to?: string | null;
 }
 
 interface LeadSource {
@@ -190,6 +192,9 @@ export function LeadDetailSheet({
   const [partnerPickerOpen, setPartnerPickerOpen] = useState(false);
   const [addingSource, setAddingSource] = useState(false);
   const [newSourceLabel, setNewSourceLabel] = useState('');
+  const [heroCollapsed, setHeroCollapsed] = usePersistedState<boolean>('crm.deal.tasksHero.collapsed', false);
+  const [heroNoteFor, setHeroNoteFor] = useState<string | null>(null);
+  const [heroNoteText, setHeroNoteText] = useState('');
 
   const handleAddSource = async () => {
     const label = newSourceLabel.trim();
@@ -419,6 +424,25 @@ export function LeadDetailSheet({
     toast.success(completed ? 'Task completed' : 'Task reopened');
   };
 
+  const rescheduleTask = async (taskId: string, dueLocal: string) => {
+    const iso = dueLocal ? new Date(dueLocal).toISOString() : null;
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, due_date: iso } : t));
+    if (!isPreviewMode) {
+      const { error } = await supabase.from('tasks').update({ due_date: iso }).eq('id', taskId);
+      if (error) { toast.error('Failed to reschedule'); return; }
+    }
+    toast.success('Task rescheduled');
+  };
+
+  const reassignTask = async (taskId: string, userId: string | null) => {
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, assigned_to: userId } : t));
+    if (!isPreviewMode) {
+      const { error } = await (supabase as any).from('tasks').update({ assigned_to: userId }).eq('id', taskId);
+      if (error) { toast.error('Failed to reassign'); return; }
+    }
+    toast.success(userId ? 'Task reassigned' : 'Task unassigned');
+  };
+
   const handleEmailClick = () => {
     if (!lead?.email) return;
     window.open(`mailto:${encodeURIComponent(lead.email)}`, '_blank');
@@ -438,7 +462,127 @@ export function LeadDetailSheet({
   const pendingTasks = tasks.filter(t => !t.completed);
   const completedTasks = tasks.filter(t => t.completed);
 
+  const overdueColTasks = overdueTasks;
+  const todayColTasks = tasks.filter(t => !t.completed && t.due_date && isToday(new Date(t.due_date)));
+  const upcomingColTasks = tasks.filter(t =>
+    !t.completed && (
+      !t.due_date ||
+      (!isToday(new Date(t.due_date)) && !isPast(new Date(t.due_date)))
+    )
+  );
+
   const getTaskNotes = (taskId: string) => notes.filter(n => n.task_id === taskId);
+
+  const formatDatetimeLocalFromIso = (iso: string | null) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const renderHeroTask = (task: Task, tone: 'destructive' | 'primary' | 'muted') => {
+    const taskNotes = getTaskNotes(task.id);
+    return (
+      <div
+        key={task.id}
+        className={cn(
+          "group rounded-md border bg-background px-2 py-1.5 flex items-start gap-2 hover:shadow-sm transition-all",
+          tone === 'destructive' && 'border-destructive/30',
+          tone === 'primary' && 'border-primary/30',
+          tone === 'muted' && 'border-border',
+        )}
+      >
+        <Checkbox
+          checked={task.completed}
+          onCheckedChange={() => toggleTaskComplete(task)}
+          className="mt-0.5"
+        />
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium leading-snug break-words">{task.title}</p>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            {/* Due date */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className={cn(
+                  "inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded hover:bg-muted transition-colors",
+                  tone === 'destructive' && 'text-destructive',
+                  tone === 'primary' && 'text-primary',
+                  tone === 'muted' && 'text-muted-foreground',
+                )}>
+                  <Clock className="w-3 h-3" />
+                  {task.due_date ? format(new Date(task.due_date), 'dd MMM HH:mm') : 'No date'}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-2 z-[100]" align="start">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] text-muted-foreground">Reschedule</Label>
+                  <Input
+                    type="datetime-local"
+                    defaultValue={formatDatetimeLocalFromIso(task.due_date)}
+                    onBlur={(e) => rescheduleTask(task.id, e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Reassign */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="inline-flex items-center gap-1 text-[10px] text-muted-foreground px-1.5 py-0.5 rounded hover:bg-muted transition-colors">
+                  <Users className="w-3 h-3" />
+                  {task.assigned_to ? 'Assigned' : 'Assign'}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2 z-[100]" align="start">
+                <Label className="text-[10px] text-muted-foreground mb-1 block">Assign to</Label>
+                <AssigneePicker
+                  value={task.assigned_to ?? null}
+                  onChange={(uid) => reassignTask(task.id, uid)}
+                  size="sm"
+                />
+              </PopoverContent>
+            </Popover>
+
+            {/* Add note */}
+            <Popover open={heroNoteFor === task.id} onOpenChange={(o) => { setHeroNoteFor(o ? task.id : null); if (!o) setHeroNoteText(''); }}>
+              <PopoverTrigger asChild>
+                <button className="inline-flex items-center gap-1 text-[10px] text-muted-foreground px-1.5 py-0.5 rounded hover:bg-muted transition-colors">
+                  <MessageSquare className="w-3 h-3" />
+                  {taskNotes.length > 0 ? taskNotes.length : 'Note'}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-2 z-[100]" align="start">
+                <Label className="text-[10px] text-muted-foreground mb-1 block">Add a note</Label>
+                <Textarea
+                  value={heroNoteText}
+                  onChange={(e) => setHeroNoteText(e.target.value)}
+                  placeholder="Quick note…"
+                  className="text-xs min-h-[60px]"
+                />
+                <div className="flex justify-end gap-1 mt-2">
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setHeroNoteFor(null); setHeroNoteText(''); }}>Cancel</Button>
+                  <Button
+                    size="sm"
+                    className="h-7 text-xs"
+                    disabled={!heroNoteText.trim()}
+                    onClick={async () => {
+                      const text = heroNoteText.trim();
+                      if (!text) return;
+                      const content = `📋 [Task: ${task.title}] ${text}`;
+                      await addNote(content, 'note', task.id);
+                      setHeroNoteText('');
+                      setHeroNoteFor(null);
+                    }}
+                  >Save</Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const renderTaskItem = (task: Task) => {
     const isOverdue = !task.completed && task.due_date && isPast(new Date(task.due_date)) && !isToday(new Date(task.due_date));
@@ -698,6 +842,94 @@ export function LeadDetailSheet({
               />
             </div>
           )}
+
+          {/* Tasks Hero — focal point for daily action */}
+          <div className="mb-4 rounded-xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-background to-background shadow-md overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 bg-primary/10 border-b border-primary/20">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-7 h-7 rounded-md bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+                  <CheckCircle className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-foreground leading-tight">Tasks</h3>
+                  <p className="text-[11px] text-muted-foreground leading-tight">
+                    {pendingTasks.length} open
+                    {overdueTasks.length > 0 && <span className="text-destructive font-medium"> · {overdueTasks.length} overdue</span>}
+                    {todayColTasks.length > 0 && <span className="text-primary font-medium"> · {todayColTasks.length} today</span>}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button
+                  size="sm"
+                  className="h-8 gap-1 text-xs"
+                  onClick={() => { setShowTaskForm(s => !s); setHeroCollapsed(false); }}
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add task
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 w-8 p-0"
+                  onClick={() => setHeroCollapsed(c => !c)}
+                  title={heroCollapsed ? 'Expand' : 'Collapse'}
+                >
+                  {heroCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4 rotate-90" />}
+                </Button>
+              </div>
+            </div>
+
+            {!heroCollapsed && (
+              <div className="p-3 space-y-3">
+                {showTaskForm && (
+                  <div className="bg-background border border-border rounded-lg p-3 space-y-2">
+                    <Input
+                      placeholder="What needs doing?"
+                      value={newTaskTitle}
+                      onChange={e => setNewTaskTitle(e.target.value)}
+                      className="h-8 text-sm"
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                      <Input type="datetime-local" value={newTaskDueDate} onChange={e => setNewTaskDueDate(e.target.value)} className="h-8 text-sm flex-1" />
+                      <Button size="sm" className="h-8 text-xs" onClick={createTask} disabled={!newTaskTitle.trim()}>Create</Button>
+                      <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setShowTaskForm(false); setNewTaskTitle(''); setNewTaskDueDate(''); }}>Cancel</Button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                  {([
+                    { key: 'overdue', label: 'Overdue', tone: 'destructive' as const, list: overdueColTasks, Icon: AlertTriangle },
+                    { key: 'today', label: 'Today', tone: 'primary' as const, list: todayColTasks, Icon: Clock },
+                    { key: 'upcoming', label: 'Upcoming', tone: 'muted' as const, list: upcomingColTasks, Icon: Calendar },
+                  ]).map(col => (
+                    <div key={col.key} className={cn(
+                      "rounded-lg border bg-background flex flex-col min-h-[140px]",
+                      col.tone === 'destructive' && 'border-destructive/40',
+                      col.tone === 'primary' && 'border-primary/40',
+                      col.tone === 'muted' && 'border-border',
+                    )}>
+                      <div className={cn(
+                        "px-2.5 py-1.5 border-b flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider",
+                        col.tone === 'destructive' && 'border-destructive/30 text-destructive bg-destructive/5',
+                        col.tone === 'primary' && 'border-primary/30 text-primary bg-primary/5',
+                        col.tone === 'muted' && 'border-border text-muted-foreground bg-muted/40',
+                      )}>
+                        <span className="flex items-center gap-1.5"><col.Icon className="w-3.5 h-3.5" />{col.label}</span>
+                        <span>{col.list.length}</span>
+                      </div>
+                      <div className="p-1.5 space-y-1.5 flex-1">
+                        {col.list.length === 0 ? (
+                          <p className="text-[11px] text-muted-foreground text-center py-4">Nothing here</p>
+                        ) : col.list.map(t => renderHeroTask(t, col.tone))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Applicants — primary + co-applicant side-by-side */}
           <div id="sec-overview" className="scroll-mt-16 grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
