@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.google-cal-oauth-callback]
 verify_jwt = false
+
+[functions.send-document-reminders]
+verify_jwt = false
+
+[functions.unsubscribe-doc-reminders]
+verify_jwt = false
