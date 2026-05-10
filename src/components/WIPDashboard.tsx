@@ -432,6 +432,9 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                     ) : (
                                       <p className="font-semibold text-sm leading-tight break-words" title={fullName}>{fullName}</p>
                                     )}
+                                    {lead.loan_purpose && (
+                                      <p className="text-[11px] text-muted-foreground truncate">{lead.loan_purpose}</p>
+                                    )}
                                   </div>
                                   <AssigneeBadge userId={lead.assigned_to ?? null} />
                                   <DropdownMenu>
@@ -479,6 +482,31 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                     ${lead.loan_amount.toLocaleString()}
                                   </p>
                                 ) : null}
+                                {lead.source && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground inline-block">
+                                    {leadSources.find(s => s.name === lead.source)?.label || lead.source}
+                                  </span>
+                                )}
+                                {lead.referral_partner_id && getReferrerName?.(lead.referral_partner_id) && (
+                                  <div className="text-[10px] text-muted-foreground flex items-center gap-1 pt-1 border-t border-border/40">
+                                    <Users className="w-3 h-3 shrink-0" />
+                                    <span className="truncate">
+                                      {getReferrerName(lead.referral_partner_id)}
+                                      {getReferrerCompany?.(lead.referral_partner_id) && (
+                                        <span className="opacity-70"> · {getReferrerCompany(lead.referral_partner_id)}</span>
+                                      )}
+                                    </span>
+                                  </div>
+                                )}
+                                {lead.source_contact_id && getContactName?.(lead.source_contact_id) && !lead.referral_partner_id && (
+                                  <div className="text-[10px] text-muted-foreground flex items-center gap-1 pt-1 border-t border-border/40">
+                                    <Users className="w-3 h-3 shrink-0" />
+                                    <span className="truncate">Referred by {getContactName(lead.source_contact_id)}</span>
+                                  </div>
+                                )}
+                                {lead.created_at && (
+                                  <p className="text-[10px] text-muted-foreground/70">{format(new Date(lead.created_at), 'dd MMM')}</p>
+                                )}
                                 {docs && docs.requested > 0 && (
                                   <div className="pt-1 border-t border-border/40 space-y-1">
                                     <div className="flex items-center justify-between text-[10px]">
