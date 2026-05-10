@@ -825,23 +825,32 @@ export function LeadDetailSheet({
                 </div>
               )}
               {taskNotes.length > 0 && (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {taskNotes.map(n => (
-                    <div key={n.id} className="bg-muted/50 rounded p-2 text-xs">
-                      <p className="whitespace-pre-wrap">{n.content.replace(/^📋 \[Task: .*?\] /, '')}</p>
-                      <p className="text-muted-foreground mt-1">{format(new Date(n.created_at), 'dd MMM, HH:mm')}</p>
+                    <div key={n.id} className="bg-muted/50 rounded-md p-3 text-sm">
+                      <p className="whitespace-pre-wrap leading-relaxed">{n.content.replace(/^📋 \[Task: .*?\] /, '')}</p>
+                      <p className="text-xs text-muted-foreground mt-1.5">{format(new Date(n.created_at), 'dd MMM, HH:mm')}</p>
                     </div>
                   ))}
                 </div>
               )}
-              <div className="flex gap-1.5">
-                <Input placeholder="Add a note to this task..." value={taskNoteText} onChange={e => setTaskNoteText(e.target.value)}
-                  className="h-7 text-xs" onKeyDown={e => { if (e.key === 'Enter') addTaskNote(task.id); }} />
-                <Button size="sm" className="h-7 text-xs px-2" disabled={!taskNoteText.trim()} onClick={() => addTaskNote(task.id)}>
-                  <Send className="w-3 h-3" />
-                </Button>
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Notes</Label>
+                <Textarea
+                  placeholder="Add a note to this task..."
+                  value={taskNoteText}
+                  onChange={e => setTaskNoteText(e.target.value)}
+                  rows={5}
+                  className="text-sm resize-y min-h-[120px]"
+                  onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) addTaskNote(task.id); }}
+                />
+                <div className="flex justify-end">
+                  <Button size="sm" disabled={!taskNoteText.trim()} onClick={() => addTaskNote(task.id)}>
+                    <Send className="w-3.5 h-3.5 mr-1.5" /> Add note
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center justify-between gap-2 pt-2 border-t">
                 <Button
                   variant={task.completed ? 'outline' : 'default'}
                   size="sm"
