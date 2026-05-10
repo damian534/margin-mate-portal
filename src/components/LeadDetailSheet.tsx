@@ -962,34 +962,18 @@ export function LeadDetailSheet({
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-                  {([
-                    { key: 'overdue', label: 'Overdue', tone: 'destructive' as const, list: overdueColTasks, Icon: AlertTriangle },
-                    { key: 'today', label: 'Today', tone: 'success' as const, list: todayColTasks, Icon: Clock },
-                    { key: 'upcoming', label: 'Upcoming', tone: 'muted' as const, list: upcomingColTasks, Icon: Calendar },
-                  ]).map(col => (
-                    <div key={col.key} className={cn(
-                      "rounded-lg border bg-background flex flex-col min-h-[140px]",
-                      col.tone === 'destructive' && 'border-destructive/40',
-                      col.tone === 'success' && 'border-success/40',
-                      col.tone === 'muted' && 'border-border',
-                    )}>
-                      <div className={cn(
-                        "px-2.5 py-1.5 border-b flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider",
-                        col.tone === 'destructive' && 'border-destructive/30 text-destructive bg-destructive/5',
-                        col.tone === 'success' && 'border-success/30 text-success bg-success/5',
-                        col.tone === 'muted' && 'border-border text-muted-foreground bg-muted/40',
-                      )}>
-                        <span className="flex items-center gap-1.5"><col.Icon className="w-3.5 h-3.5" />{col.label}</span>
-                        <span>{col.list.length}</span>
-                      </div>
-                      <div className="p-1.5 space-y-1.5 flex-1">
-                        {col.list.length === 0 ? (
-                          <p className="text-[11px] text-muted-foreground text-center py-4">Nothing here</p>
-                        ) : col.list.map(t => renderHeroTask(t, col.tone))}
-                      </div>
-                    </div>
-                  ))}
+                <div className="space-y-2">
+                  {(() => {
+                    const all = [
+                      ...overdueColTasks.map(t => ({ t, tone: 'destructive' as const })),
+                      ...todayColTasks.map(t => ({ t, tone: 'success' as const })),
+                      ...upcomingColTasks.map(t => ({ t, tone: 'muted' as const })),
+                    ];
+                    if (all.length === 0) {
+                      return <p className="text-xs text-muted-foreground text-center py-6">No open tasks</p>;
+                    }
+                    return all.map(({ t, tone }) => renderHeroTaskRow(t, tone));
+                  })()}
                 </div>
 
                 {completedTasks.length > 0 && (
