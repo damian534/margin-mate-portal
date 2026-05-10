@@ -192,6 +192,9 @@ export function LeadDetailSheet({
   const [partnerPickerOpen, setPartnerPickerOpen] = useState(false);
   const [addingSource, setAddingSource] = useState(false);
   const [newSourceLabel, setNewSourceLabel] = useState('');
+  const [heroCollapsed, setHeroCollapsed] = usePersistedState<boolean>('crm.deal.tasksHero.collapsed', false);
+  const [heroNoteFor, setHeroNoteFor] = useState<string | null>(null);
+  const [heroNoteText, setHeroNoteText] = useState('');
 
   const handleAddSource = async () => {
     const label = newSourceLabel.trim();
