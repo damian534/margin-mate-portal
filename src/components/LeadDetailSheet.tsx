@@ -594,6 +594,111 @@ export function LeadDetailSheet({
     );
   };
 
+  const renderHeroTaskRow = (task: Task, tone: 'destructive' | 'success' | 'muted') => {
+    const taskNotes = getTaskNotes(task.id);
+    const due = task.due_date ? new Date(task.due_date) : null;
+    return (
+      <div
+        key={task.id}
+        className={cn(
+          "group rounded-lg border bg-background pl-3 pr-2 py-2 flex items-center gap-3 hover:shadow-sm transition-all border-l-4",
+          tone === 'destructive' && 'border-l-destructive border-y-destructive/20 border-r-destructive/20',
+          tone === 'success' && 'border-l-success border-y-success/20 border-r-success/20',
+          tone === 'muted' && 'border-l-muted-foreground/30 border-y-border border-r-border',
+        )}
+      >
+        <Checkbox
+          checked={task.completed}
+          onCheckedChange={() => toggleTaskComplete(task)}
+        />
+        <button
+          type="button"
+          onClick={() => { setExpandedTaskId(task.id); setOpenHeroTaskId(task.id); }}
+          className="flex-1 min-w-0 text-left text-sm font-medium leading-snug truncate hover:underline"
+        >
+          {task.title}
+        </button>
+
+        {/* Inline actions */}
+        <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+          <Popover>
+            <PopoverTrigger asChild>
+              <button title="Reassign" className="inline-flex items-center justify-center w-7 h-7 rounded hover:bg-muted text-muted-foreground">
+                <Users className="w-3.5 h-3.5" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-2 z-[100]" align="end">
+              <Label className="text-[10px] text-muted-foreground mb-1 block">Assign to</Label>
+              <AssigneePicker value={task.assigned_to ?? null} onChange={(uid) => reassignTask(task.id, uid)} size="sm" />
+            </PopoverContent>
+          </Popover>
+
+          <Popover open={heroNoteFor === task.id} onOpenChange={(o) => { setHeroNoteFor(o ? task.id : null); if (!o) setHeroNoteText(''); }}>
+            <PopoverTrigger asChild>
+              <button title="Add note" className="inline-flex items-center justify-center w-7 h-7 rounded hover:bg-muted text-muted-foreground relative">
+                <MessageSquare className="w-3.5 h-3.5" />
+                {taskNotes.length > 0 && <span className="absolute -top-0.5 -right-0.5 text-[9px] bg-primary text-primary-foreground rounded-full px-1 leading-tight">{taskNotes.length}</span>}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-2 z-[100]" align="end">
+              <Label className="text-[10px] text-muted-foreground mb-1 block">Add a note</Label>
+              <Textarea value={heroNoteText} onChange={(e) => setHeroNoteText(e.target.value)} placeholder="Quick note…" className="text-xs min-h-[60px]" />
+              <div className="flex justify-end gap-1 mt-2">
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setHeroNoteFor(null); setHeroNoteText(''); }}>Cancel</Button>
+                <Button size="sm" className="h-7 text-xs" disabled={!heroNoteText.trim()} onClick={async () => {
+                  const text = heroNoteText.trim();
+                  await addNote(`📋 [Task: ${task.title}] ${text}`, 'note', task.id);
+                  setHeroNoteFor(null); setHeroNoteText('');
+                }}>Save</Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        {/* Date badge — calendar style */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              title={due ? format(due, 'EEEE, dd MMM yyyy') : 'Set due date'}
+              className={cn(
+                "shrink-0 w-14 rounded-md border text-center overflow-hidden hover:ring-2 hover:ring-offset-1 transition-all",
+                tone === 'destructive' && 'border-destructive/40 hover:ring-destructive/30',
+                tone === 'success' && 'border-success/40 hover:ring-success/30',
+                tone === 'muted' && 'border-border hover:ring-border',
+              )}
+            >
+              <div className={cn(
+                "text-[9px] font-semibold uppercase tracking-wider py-0.5",
+                tone === 'destructive' && 'bg-destructive/10 text-destructive',
+                tone === 'success' && 'bg-success/10 text-success',
+                tone === 'muted' && 'bg-muted text-muted-foreground',
+              )}>
+                {due ? format(due, 'MMM') : '—'}
+              </div>
+              <div className={cn(
+                "text-base font-bold leading-tight py-0.5",
+                tone === 'destructive' && 'text-destructive',
+                tone === 'success' && 'text-success',
+                tone === 'muted' && 'text-foreground',
+              )}>
+                {due ? format(due, 'dd') : '–'}
+              </div>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-2 z-[100]" align="end">
+            <Label className="text-[10px] text-muted-foreground">Reschedule</Label>
+            <Input
+              type="date"
+              defaultValue={due ? format(due, 'yyyy-MM-dd') : ''}
+              onBlur={(e) => rescheduleTask(task.id, e.target.value ? `${e.target.value}T09:00` : '')}
+              className="h-8 text-xs mt-1"
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+    );
+  };
+
   const renderTaskItem = (task: Task) => {
     const isOverdue = !task.completed && task.due_date && isPast(new Date(task.due_date)) && !isToday(new Date(task.due_date));
     const isDueToday = !task.completed && task.due_date && isToday(new Date(task.due_date));
