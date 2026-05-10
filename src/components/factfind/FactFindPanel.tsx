@@ -76,7 +76,7 @@ export function FactFindPanel({ leadId, isPreviewMode }: FactFindPanelProps) {
       .limit(1)
       .single();
     if (data) {
-      setPortalLink(`${window.location.origin}/client-portal/${(data as any).token}`);
+      setPortalLink(`https://connect.margin.com.au/client-portal/${(data as any).token}`);
     }
   };
 
@@ -117,7 +117,7 @@ export function FactFindPanel({ leadId, isPreviewMode }: FactFindPanelProps) {
 
   const generatePortalLink = async () => {
     if (isPreviewMode) {
-      setPortalLink(`${window.location.origin}/client-portal/preview-token-123`);
+      setPortalLink(`https://connect.margin.com.au/client-portal/preview-token-123`);
       toast.success('Portal link generated (preview)');
       return;
     }
@@ -129,7 +129,7 @@ export function FactFindPanel({ leadId, isPreviewMode }: FactFindPanelProps) {
       .select('token')
       .single();
     if (error) { toast.error('Failed to generate link'); setGeneratingLink(false); return; }
-    const link = `${window.location.origin}/client-portal/${(data as any).token}`;
+    const link = `https://connect.margin.com.au/client-portal/${(data as any).token}`;
     setPortalLink(link);
     setGeneratingLink(false);
     toast.success('Client portal link generated');
