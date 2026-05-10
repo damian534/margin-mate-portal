@@ -482,7 +482,7 @@ export function LeadDetailSheet({
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   };
 
-  const renderHeroTask = (task: Task, tone: 'destructive' | 'primary' | 'muted') => {
+  const renderHeroTask = (task: Task, tone: 'destructive' | 'success' | 'muted') => {
     const taskNotes = getTaskNotes(task.id);
     return (
       <div
@@ -490,7 +490,7 @@ export function LeadDetailSheet({
         className={cn(
           "group rounded-md border bg-background px-2 py-1.5 flex items-start gap-2 hover:shadow-sm transition-all",
           tone === 'destructive' && 'border-destructive/30',
-          tone === 'primary' && 'border-primary/30',
+          tone === 'success' && 'border-success/30',
           tone === 'muted' && 'border-border',
         )}
       >
@@ -500,7 +500,13 @@ export function LeadDetailSheet({
           className="mt-0.5"
         />
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium leading-snug break-words">{task.title}</p>
+          <button
+            type="button"
+            onClick={() => { setExpandedTaskId(task.id); setOpenHeroTaskId(task.id); }}
+            className="text-left text-xs font-medium leading-snug break-words hover:underline w-full"
+          >
+            {task.title}
+          </button>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             {/* Due date */}
             <Popover>
@@ -508,20 +514,20 @@ export function LeadDetailSheet({
                 <button className={cn(
                   "inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded hover:bg-muted transition-colors",
                   tone === 'destructive' && 'text-destructive',
-                  tone === 'primary' && 'text-primary',
+                  tone === 'success' && 'text-success',
                   tone === 'muted' && 'text-muted-foreground',
                 )}>
                   <Clock className="w-3 h-3" />
-                  {task.due_date ? format(new Date(task.due_date), 'dd MMM HH:mm') : 'No date'}
+                  {task.due_date ? format(new Date(task.due_date), 'dd MMM') : 'No date'}
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-2 z-[100]" align="start">
                 <div className="space-y-1.5">
                   <Label className="text-[10px] text-muted-foreground">Reschedule</Label>
                   <Input
-                    type="datetime-local"
-                    defaultValue={formatDatetimeLocalFromIso(task.due_date)}
-                    onBlur={(e) => rescheduleTask(task.id, e.target.value)}
+                    type="date"
+                    defaultValue={task.due_date ? format(new Date(task.due_date), 'yyyy-MM-dd') : ''}
+                    onBlur={(e) => rescheduleTask(task.id, e.target.value ? `${e.target.value}T09:00` : '')}
                     className="h-8 text-xs"
                   />
                 </div>
