@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { LeadStatus } from '@/hooks/useLeadStatuses';
 import { AssigneePicker } from '@/components/AssigneePicker';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -195,6 +196,7 @@ export function LeadDetailSheet({
   const [heroCollapsed, setHeroCollapsed] = usePersistedState<boolean>('crm.deal.tasksHero.collapsed', false);
   const [heroNoteFor, setHeroNoteFor] = useState<string | null>(null);
   const [heroNoteText, setHeroNoteText] = useState('');
+  const [openHeroTaskId, setOpenHeroTaskId] = useState<string | null>(null);
 
   const handleAddSource = async () => {
     const label = newSourceLabel.trim();
@@ -480,7 +482,7 @@ export function LeadDetailSheet({
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   };
 
-  const renderHeroTask = (task: Task, tone: 'destructive' | 'primary' | 'muted') => {
+  const renderHeroTask = (task: Task, tone: 'destructive' | 'success' | 'muted') => {
     const taskNotes = getTaskNotes(task.id);
     return (
       <div
@@ -488,7 +490,7 @@ export function LeadDetailSheet({
         className={cn(
           "group rounded-md border bg-background px-2 py-1.5 flex items-start gap-2 hover:shadow-sm transition-all",
           tone === 'destructive' && 'border-destructive/30',
-          tone === 'primary' && 'border-primary/30',
+          tone === 'success' && 'border-success/30',
           tone === 'muted' && 'border-border',
         )}
       >
@@ -498,7 +500,13 @@ export function LeadDetailSheet({
           className="mt-0.5"
         />
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium leading-snug break-words">{task.title}</p>
+          <button
+            type="button"
+            onClick={() => { setExpandedTaskId(task.id); setOpenHeroTaskId(task.id); }}
+            className="text-left text-xs font-medium leading-snug break-words hover:underline w-full"
+          >
+            {task.title}
+          </button>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             {/* Due date */}
             <Popover>
@@ -506,20 +514,20 @@ export function LeadDetailSheet({
                 <button className={cn(
                   "inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded hover:bg-muted transition-colors",
                   tone === 'destructive' && 'text-destructive',
-                  tone === 'primary' && 'text-primary',
+                  tone === 'success' && 'text-success',
                   tone === 'muted' && 'text-muted-foreground',
                 )}>
                   <Clock className="w-3 h-3" />
-                  {task.due_date ? format(new Date(task.due_date), 'dd MMM HH:mm') : 'No date'}
+                  {task.due_date ? format(new Date(task.due_date), 'dd MMM') : 'No date'}
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-2 z-[100]" align="start">
                 <div className="space-y-1.5">
                   <Label className="text-[10px] text-muted-foreground">Reschedule</Label>
                   <Input
-                    type="datetime-local"
-                    defaultValue={formatDatetimeLocalFromIso(task.due_date)}
-                    onBlur={(e) => rescheduleTask(task.id, e.target.value)}
+                    type="date"
+                    defaultValue={task.due_date ? format(new Date(task.due_date), 'yyyy-MM-dd') : ''}
+                    onBlur={(e) => rescheduleTask(task.id, e.target.value ? `${e.target.value}T09:00` : '')}
                     className="h-8 text-xs"
                   />
                 </div>
@@ -642,10 +650,10 @@ export function LeadDetailSheet({
               <p className={`text-sm font-medium ${task.completed ? 'line-through text-muted-foreground' : ''}`}>{task.title}</p>
               <div className="flex items-center gap-2 mt-0.5">
                 {task.due_date && (
-                  <span className={`text-xs flex items-center gap-1 ${isOverdue ? 'text-destructive' : isDueToday ? 'text-primary' : 'text-muted-foreground'}`}>
+                  <span className={`text-xs flex items-center gap-1 ${isOverdue ? 'text-destructive' : isDueToday ? 'text-success' : 'text-muted-foreground'}`}>
                     <Calendar className="w-3 h-3" />
                     {isOverdue ? 'Overdue — ' : isDueToday ? 'Today — ' : ''}
-                    {format(new Date(task.due_date), 'dd MMM, HH:mm')}
+                    {format(new Date(task.due_date), 'dd MMM')}
                   </span>
                 )}
                 {taskNotes.length > 0 && (
@@ -844,10 +852,10 @@ export function LeadDetailSheet({
           )}
 
           {/* Tasks Hero — focal point for daily action */}
-          <div className="mb-4 rounded-xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-background to-background shadow-md overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 bg-primary/10 border-b border-primary/20">
+          <div className="mb-4 rounded-xl border-2 border-success/30 bg-gradient-to-br from-success/10 via-background to-background shadow-md overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 bg-success/10 border-b border-success/20">
               <div className="flex items-center gap-2 min-w-0">
-                <div className="w-7 h-7 rounded-md bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+                <div className="w-7 h-7 rounded-md bg-success text-success-foreground flex items-center justify-center shrink-0">
                   <CheckCircle className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
@@ -855,7 +863,7 @@ export function LeadDetailSheet({
                   <p className="text-[11px] text-muted-foreground leading-tight">
                     {pendingTasks.length} open
                     {overdueTasks.length > 0 && <span className="text-destructive font-medium"> · {overdueTasks.length} overdue</span>}
-                    {todayColTasks.length > 0 && <span className="text-primary font-medium"> · {todayColTasks.length} today</span>}
+                    {todayColTasks.length > 0 && <span className="text-success font-medium"> · {todayColTasks.length} today</span>}
                   </p>
                 </div>
               </div>
@@ -922,7 +930,12 @@ export function LeadDetailSheet({
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Input type="datetime-local" value={newTaskDueDate} onChange={e => setNewTaskDueDate(e.target.value)} className="h-8 text-sm flex-1" />
+                      <Input
+                        type="date"
+                        value={newTaskDueDate ? newTaskDueDate.slice(0, 10) : ''}
+                        onChange={e => setNewTaskDueDate(e.target.value ? `${e.target.value}T09:00` : '')}
+                        className="h-8 text-sm flex-1"
+                      />
                       <Button size="sm" className="h-8 text-xs" onClick={createTask} disabled={!newTaskTitle.trim()}>Create</Button>
                       <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setShowTaskForm(false); setNewTaskTitle(''); setNewTaskDueDate(''); }}>Cancel</Button>
                     </div>
@@ -932,19 +945,19 @@ export function LeadDetailSheet({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
                   {([
                     { key: 'overdue', label: 'Overdue', tone: 'destructive' as const, list: overdueColTasks, Icon: AlertTriangle },
-                    { key: 'today', label: 'Today', tone: 'primary' as const, list: todayColTasks, Icon: Clock },
+                    { key: 'today', label: 'Today', tone: 'success' as const, list: todayColTasks, Icon: Clock },
                     { key: 'upcoming', label: 'Upcoming', tone: 'muted' as const, list: upcomingColTasks, Icon: Calendar },
                   ]).map(col => (
                     <div key={col.key} className={cn(
                       "rounded-lg border bg-background flex flex-col min-h-[140px]",
                       col.tone === 'destructive' && 'border-destructive/40',
-                      col.tone === 'primary' && 'border-primary/40',
+                      col.tone === 'success' && 'border-success/40',
                       col.tone === 'muted' && 'border-border',
                     )}>
                       <div className={cn(
                         "px-2.5 py-1.5 border-b flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider",
                         col.tone === 'destructive' && 'border-destructive/30 text-destructive bg-destructive/5',
-                        col.tone === 'primary' && 'border-primary/30 text-primary bg-primary/5',
+                        col.tone === 'success' && 'border-success/30 text-success bg-success/5',
                         col.tone === 'muted' && 'border-border text-muted-foreground bg-muted/40',
                       )}>
                         <span className="flex items-center gap-1.5"><col.Icon className="w-3.5 h-3.5" />{col.label}</span>
@@ -1680,6 +1693,21 @@ export function LeadDetailSheet({
           </div>
         </div>
       </SheetContent>
+      <Dialog
+        open={!!openHeroTaskId}
+        onOpenChange={(o) => { if (!o) setOpenHeroTaskId(null); }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Task</DialogTitle>
+          </DialogHeader>
+          {(() => {
+            const t = tasks.find(x => x.id === openHeroTaskId);
+            if (!t) return <p className="text-sm text-muted-foreground">Task not found.</p>;
+            return renderTaskItem(t);
+          })()}
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 }
