@@ -72,20 +72,6 @@ serve(async (req) => {
     const origin = referer ? new URL(referer).origin : "";
     const redirectTo = `${origin}/reset-password`;
 
-    const { data, error } = await adminClient.auth.admin.generateLink({
-      type: "recovery",
-      email,
-      options: { redirectTo },
-    });
-
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Send the reset email using the standard method
     const { error: resetError } = await adminClient.auth.resetPasswordForEmail(email, {
       redirectTo,
     });
