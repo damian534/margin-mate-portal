@@ -22,3 +22,22 @@ export function usePersistedState<T>(key: string, defaultValue: T): [T, React.Di
 
   return [value, setValue];
 }
+
+/** Persist a Set<string> across navigations / refreshes. */
+export function usePersistedStringSet(
+  key: string,
+  defaultValue: string[] = []
+): [Set<string>, React.Dispatch<React.SetStateAction<Set<string>>>] {
+  const [arr, setArr] = usePersistedState<string[]>(key, defaultValue);
+  const setValue: React.Dispatch<React.SetStateAction<Set<string>>> = (update) => {
+    setArr((prev) => {
+      const prevSet = new Set(prev);
+      const next =
+        typeof update === 'function'
+          ? (update as (s: Set<string>) => Set<string>)(prevSet)
+          : update;
+      return Array.from(next);
+    });
+  };
+  return [new Set(arr), setValue];
+}
