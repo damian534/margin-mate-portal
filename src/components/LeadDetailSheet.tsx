@@ -1693,6 +1693,21 @@ export function LeadDetailSheet({
           </div>
         </div>
       </SheetContent>
+      <Dialog
+        open={!!openHeroTaskId}
+        onOpenChange={(o) => { if (!o) setOpenHeroTaskId(null); }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Task</DialogTitle>
+          </DialogHeader>
+          {(() => {
+            const t = tasks.find(x => x.id === openHeroTaskId);
+            if (!t) return <p className="text-sm text-muted-foreground">Task not found.</p>;
+            return renderTaskItem(t);
+          })()}
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 }
