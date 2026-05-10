@@ -740,6 +740,11 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
                           <Badge variant="outline" className={cn("shrink-0 text-[10px] gap-1.5 font-medium", cfg.color)}>
                             {cfg.icon} {cfg.label}
                           </Badge>
+                          {doc.is_mir && (
+                            <Badge variant="outline" className="shrink-0 text-[10px] gap-1 bg-amber-50 text-amber-800 border-amber-200 font-semibold uppercase tracking-wide">
+                              <AlertTriangle className="w-2.5 h-2.5" /> MIR
+                            </Badge>
+                          )}
                           {!doc.requested_at && doc.status === 'pending' && (
                             <Badge variant="outline" className="shrink-0 text-[10px] gap-1 bg-muted text-muted-foreground border-muted">
                               Not requested
@@ -749,7 +754,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
 
                         {doc.requested_at && (
                           <p className="text-[10px] text-muted-foreground">
-                            Requested {new Date(doc.requested_at).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' })}
+                            {doc.is_mir ? 'MIR sent' : 'Requested'} {new Date(doc.mir_requested_at || doc.requested_at).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' })}
                           </p>
                         )}
 
