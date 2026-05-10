@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Loader2, MapPin } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 
 interface Suggestion {
   display_name: string;
