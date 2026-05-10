@@ -65,6 +65,7 @@ export default function ClientPortal() {
   const [leadLastName, setLeadLastName] = useState('');
   const [documents, setDocuments] = useState<DocumentRequest[]>([]);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [marking, setMarking] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     validateAndLoad();
@@ -118,6 +119,28 @@ export default function ClientPortal() {
 
     toast.success('File uploaded successfully');
     setDocuments(prev => prev.map(d => d.id === docId ? { ...d, status: 'uploaded', file_name: file.name } : d));
+  };
+
+  const handleMarkComplete = async (docId: string) => {
+    setMarking(prev => ({ ...prev, [docId]: true }));
+    const res = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/client-portal-mark-complete`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, document_id: docId }),
+      }
+    );
+    setMarking(prev => ({ ...prev, [docId]: false }));
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      toast.error(errData.error || 'Failed to mark as completed');
+      return;
+    }
+    toast.success('Marked as completed');
+    setDocuments(prev => prev.map(d => d.id === docId
+      ? { ...d, status: 'uploaded', file_name: 'Completed via bankstatements.com.au' }
+      : d));
   };
 
   if (loading) {
@@ -213,6 +236,18 @@ export default function ClientPortal() {
                             <Upload className="w-3.5 h-3.5" />
                             {doc.status === 'rejected' ? 'Upload Again' : 'Upload File'}
                           </Button>
+                          {/(bankstatements\.com\.au|bankstatements)/i.test(`${doc.name} ${doc.description ?? ''}`) && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="w-full gap-1.5 rounded-full"
+                              disabled={!!marking[doc.id]}
+                              onClick={() => handleMarkComplete(doc.id)}
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              {marking[doc.id] ? 'Saving…' : "I've completed this via the link"}
+                            </Button>
+                          )}
                         </>
                       )}
                     </CardContent>
