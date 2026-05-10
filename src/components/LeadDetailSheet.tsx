@@ -810,7 +810,7 @@ export function LeadDetailSheet({
           </div>
 
           {/* Referral Partner — editable */}
-          <div className="mt-3 rounded-lg border border-border bg-muted/20 overflow-hidden">
+          <div id="sec-referrals" className="scroll-mt-16 mt-3 rounded-lg border border-border bg-muted/20 overflow-hidden">
             <div className="px-3 py-2 bg-muted/40 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Users className="w-3.5 h-3.5 text-primary" />
@@ -920,6 +920,7 @@ export function LeadDetailSheet({
 
         <div className="p-6 space-y-5">
           {/* Status + Next Task Row */}
+          <div id="sec-status" className="scroll-mt-16" />
           <div className="flex gap-3">
             <div className="flex-1">
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">Status</Label>
