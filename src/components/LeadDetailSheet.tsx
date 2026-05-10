@@ -895,6 +895,7 @@ export function LeadDetailSheet({
               { id: 'sec-referrals', label: 'Referrals', icon: Activity },
               { id: 'sec-status', label: 'Status', icon: CheckCircle },
               { id: 'sec-tabs', label: 'Tasks', icon: Clock, tab: 'timeline' },
+              { id: 'sec-activity', label: 'Timeline', icon: Activity, tab: 'timeline' },
               ...((lead.portal_mode || 'both') !== 'fact_find'
                 ? [{ id: 'sec-tabs', label: 'Documents', icon: FileText, tab: 'documents' }]
                 : []),
@@ -1618,7 +1619,7 @@ export function LeadDetailSheet({
             {/* Timeline Tab — Tasks stacked above Activity */}
             <TabsContent value="timeline" className="mt-4 space-y-4">
               {/* Activity Section */}
-              <div className="space-y-2">
+              <div id="sec-activity" className="space-y-2 scroll-mt-16">
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                   <MessageSquare className="w-3.5 h-3.5" /> Activity
                 </h4>
