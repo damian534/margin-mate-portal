@@ -97,6 +97,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   const [newDocDescription, setNewDocDescription] = useState('');
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [savingDocId, setSavingDocId] = useState<string | null>(null);
+  const [mirOpen, setMirOpen] = useState(false);
 
   const primaryName = primaryApplicantName?.trim() || 'Primary Applicant';
   const primaryEmail = primaryApplicantEmail?.trim() || null;
