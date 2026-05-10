@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChevronDown, ChevronRight, DollarSign, Users, ChevronsDownUp, ChevronsUpDown, ClipboardList, FileDown, FileText, MoreVertical, Maximize2, Minimize2 } from 'lucide-react';
 import { AssigneeBadge } from '@/components/AssigneePicker';
-import { usePersistedState } from '@/hooks/usePersistedState';
+import { usePersistedState, usePersistedStringSet } from '@/hooks/usePersistedState';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
 interface Lead {
@@ -56,7 +56,7 @@ interface LeadsKanbanProps {
 }
 
 export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName, getReferrerCompany, getContactName, onOpenLead, onUpdateStatus, onUpdateWipStatus, tasksByLead, taskDueFilter, docsByLead, onDownloadDocs }: LeadsKanbanProps) {
-  const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set());
+  const [collapsedColumns, setCollapsedColumns] = usePersistedStringSet('crm.leads.kanban.collapsedColumns', []);
   const [compact, setCompact] = usePersistedState<boolean>('crm.leads.kanban.compact', false);
 
   // Auto-expand columns that have leads when a task filter is applied
