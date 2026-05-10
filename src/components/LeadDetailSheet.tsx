@@ -982,6 +982,50 @@ export function LeadDetailSheet({
           )}
 
           {/* Tasks Hero — focal point for daily action */}
+          {/* Applicants — primary + co-applicant side-by-side (moved above tasks) */}
+          <div id="sec-overview" className="scroll-mt-16 grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <div className="rounded-lg border border-border bg-muted/20 p-3">
+              <div className="flex items-start gap-3">
+                <div className="flex-1 min-w-0 space-y-0.5">
+                  <p className="text-sm font-medium truncate">{lead.first_name} {lead.last_name}</p>
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                    {(primaryApplicantContact?.email || lead.email) && (
+                      <a href={`mailto:${primaryApplicantContact?.email || lead.email}`} className="text-xs text-primary hover:underline flex items-center gap-1 truncate">
+                        <Mail className="w-3 h-3 shrink-0" /> {primaryApplicantContact?.email || lead.email}
+                      </a>
+                    )}
+                    {(primaryApplicantContact?.phone || lead.phone) && (
+                      <a href={`tel:${primaryApplicantContact?.phone || lead.phone}`} className="text-xs text-primary hover:underline flex items-center gap-1 truncate">
+                        <Phone className="w-3 h-3 shrink-0" /> {primaryApplicantContact?.phone || lead.phone}
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2 mt-3 pt-2 border-t border-border">
+                {primaryApplicantContact && onOpenContact && (
+                  <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-8" onClick={() => onOpenContact(primaryApplicantContact.id)}>
+                    <ExternalLink className="w-3 h-3" /> Open
+                  </Button>
+                )}
+              </div>
+            </div>
+            <CoApplicantPicker
+              contacts={contactsList}
+              value={lead.co_applicant_contact_id ?? null}
+              excludeIds={lead.source_contact_id ? [lead.source_contact_id] : []}
+              isPreviewMode={isPreviewMode}
+              onOpenContact={onOpenContact}
+              hideHeader
+              onChange={async (newId) => {
+                onLeadChange?.({ ...lead, co_applicant_contact_id: newId });
+                if (!isPreviewMode) {
+                  await supabase.from('leads').update({ co_applicant_contact_id: newId } as any).eq('id', lead.id);
+                }
+              }}
+            />
+          </div>
+
           <div className="mb-4 rounded-xl border-2 border-success/30 bg-gradient-to-br from-success/10 via-background to-background shadow-md overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 bg-success/10 border-b border-success/20">
               <div className="flex items-center gap-2 min-w-0">
@@ -1117,50 +1161,6 @@ export function LeadDetailSheet({
                 )}
               </div>
             )}
-          </div>
-
-          {/* Applicants — primary + co-applicant side-by-side */}
-          <div id="sec-overview" className="scroll-mt-16 grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-            <div className="rounded-lg border border-border bg-muted/20 p-3">
-              <div className="flex items-start gap-3">
-                <div className="flex-1 min-w-0 space-y-0.5">
-                  <p className="text-sm font-medium truncate">{lead.first_name} {lead.last_name}</p>
-                  <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-                    {(primaryApplicantContact?.email || lead.email) && (
-                      <a href={`mailto:${primaryApplicantContact?.email || lead.email}`} className="text-xs text-primary hover:underline flex items-center gap-1 truncate">
-                        <Mail className="w-3 h-3 shrink-0" /> {primaryApplicantContact?.email || lead.email}
-                      </a>
-                    )}
-                    {(primaryApplicantContact?.phone || lead.phone) && (
-                      <a href={`tel:${primaryApplicantContact?.phone || lead.phone}`} className="text-xs text-primary hover:underline flex items-center gap-1 truncate">
-                        <Phone className="w-3 h-3 shrink-0" /> {primaryApplicantContact?.phone || lead.phone}
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-2 mt-3 pt-2 border-t border-border">
-                {primaryApplicantContact && onOpenContact && (
-                  <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-8" onClick={() => onOpenContact(primaryApplicantContact.id)}>
-                    <ExternalLink className="w-3 h-3" /> Open
-                  </Button>
-                )}
-              </div>
-            </div>
-            <CoApplicantPicker
-              contacts={contactsList}
-              value={lead.co_applicant_contact_id ?? null}
-              excludeIds={lead.source_contact_id ? [lead.source_contact_id] : []}
-              isPreviewMode={isPreviewMode}
-              onOpenContact={onOpenContact}
-              hideHeader
-              onChange={async (newId) => {
-                onLeadChange?.({ ...lead, co_applicant_contact_id: newId });
-                if (!isPreviewMode) {
-                  await supabase.from('leads').update({ co_applicant_contact_id: newId } as any).eq('id', lead.id);
-                }
-              }}
-            />
           </div>
 
           {/* Read-only info */}
