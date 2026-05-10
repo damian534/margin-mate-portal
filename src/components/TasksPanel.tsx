@@ -15,7 +15,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { toast } from 'sonner';
 import { format, isPast, isToday, isTomorrow } from 'date-fns';
 import { Plus, Calendar, User, AlertTriangle, List, Columns, ChevronsUpDown, Check, UserPlus } from 'lucide-react';
-import { AssigneePicker, AssigneeBadge } from '@/components/AssigneePicker';
+import { AssigneePicker, AssigneeBadge, AssigneeFilter } from '@/components/AssigneePicker';
+import { usePersistedState } from '@/hooks/usePersistedState';
 
 type DueFilter = 'all' | 'overdue' | 'today' | 'tomorrow' | 'later' | 'no_date';
 
@@ -62,6 +63,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
   const [showCompleted, setShowCompleted] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
   const [dueFilter, setDueFilter] = useState<DueFilter>('all');
+  const [assigneeFilter, setAssigneeFilter] = usePersistedState<string>('crm.tasks.assigneeFilter', 'all');
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const [newTitle, setNewTitle] = useState('');
@@ -197,8 +199,13 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
         return getTaskDueCategory(t) === dueFilter;
       });
     }
+    if (assigneeFilter === 'unassigned') {
+      result = result.filter(t => !t.assigned_to);
+    } else if (assigneeFilter !== 'all') {
+      result = result.filter(t => t.assigned_to === assigneeFilter);
+    }
     return result;
-  }, [tasks, showCompleted, dueFilter]);
+  }, [tasks, showCompleted, dueFilter, assigneeFilter]);
 
   if (loading) return <p className="text-muted-foreground text-center py-12">Loading tasks...</p>;
 
@@ -215,6 +222,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
           )}
         </div>
         <div className="flex items-center gap-2">
+          <AssigneeFilter value={assigneeFilter} onChange={setAssigneeFilter} className="w-44 h-8 text-xs" />
           {/* View toggle */}
           <div className="flex items-center border rounded-md">
             <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-2" onClick={() => setViewMode('list')}>
