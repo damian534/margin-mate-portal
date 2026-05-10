@@ -424,6 +424,25 @@ export function LeadDetailSheet({
     toast.success(completed ? 'Task completed' : 'Task reopened');
   };
 
+  const rescheduleTask = async (taskId: string, dueLocal: string) => {
+    const iso = dueLocal ? new Date(dueLocal).toISOString() : null;
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, due_date: iso } : t));
+    if (!isPreviewMode) {
+      const { error } = await supabase.from('tasks').update({ due_date: iso }).eq('id', taskId);
+      if (error) { toast.error('Failed to reschedule'); return; }
+    }
+    toast.success('Task rescheduled');
+  };
+
+  const reassignTask = async (taskId: string, userId: string | null) => {
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, assigned_to: userId } : t));
+    if (!isPreviewMode) {
+      const { error } = await (supabase as any).from('tasks').update({ assigned_to: userId }).eq('id', taskId);
+      if (error) { toast.error('Failed to reassign'); return; }
+    }
+    toast.success(userId ? 'Task reassigned' : 'Task unassigned');
+  };
+
   const handleEmailClick = () => {
     if (!lead?.email) return;
     window.open(`mailto:${encodeURIComponent(lead.email)}`, '_blank');
