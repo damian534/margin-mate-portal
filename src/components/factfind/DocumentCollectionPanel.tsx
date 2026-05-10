@@ -46,10 +46,10 @@ interface DocumentCollectionPanelProps {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  pending: { label: 'Pending', color: 'bg-amber-100 text-amber-700 border-amber-200', icon: <Clock className="w-3 h-3" /> },
-  uploaded: { label: 'Uploaded', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: <Upload className="w-3 h-3" /> },
-  approved: { label: 'Approved', color: 'bg-green-100 text-green-700 border-green-200', icon: <CheckCircle2 className="w-3 h-3" /> },
-  rejected: { label: 'Rejected', color: 'bg-red-100 text-red-700 border-red-200', icon: <XCircle className="w-3 h-3" /> },
+  pending: { label: 'Not Collected', color: 'bg-slate-100 text-slate-600 border-slate-200', icon: <span className="w-1.5 h-1.5 rounded-full bg-slate-400" /> },
+  uploaded: { label: 'Uploaded', color: 'bg-blue-50 text-blue-700 border-blue-200', icon: <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> },
+  approved: { label: 'Approved', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> },
+  rejected: { label: 'Rejected', color: 'bg-red-50 text-red-700 border-red-200', icon: <span className="w-1.5 h-1.5 rounded-full bg-red-500" /> },
 };
 
 const SECTION_ORDER = ['Identity', 'Income', 'Bank Statements', 'Tax Returns', 'Additional', 'Other'];
