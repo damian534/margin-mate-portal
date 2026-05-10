@@ -439,7 +439,7 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
           </DialogHeader>
           <div className="space-y-4">
             <div><Label>Name *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Ray White Glenroy" maxLength={200} /></div>
-            <div><Label>Address</Label><Input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="123 Main St, Glenroy VIC" maxLength={500} /></div>
+            <div><Label>Address</Label><AddressAutocomplete value={form.address} onChange={(v) => setForm(f => ({ ...f, address: v }))} placeholder="123 Main St, Glenroy VIC" /></div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label>Phone</Label><Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} maxLength={20} /></div>
               <div><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} maxLength={255} /></div>
