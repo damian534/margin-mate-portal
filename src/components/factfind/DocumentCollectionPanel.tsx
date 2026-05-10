@@ -576,6 +576,14 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs gap-1.5 border-amber-300 text-amber-800 hover:bg-amber-50"
+            onClick={() => setMirOpen(true)}
+          >
+            <AlertTriangle className="w-3.5 h-3.5" /> Request MIR
+          </Button>
           {unrequestedDocs.length > 0 ? (
             <Button size="sm" className="h-8 text-xs gap-1.5 bg-foreground text-background hover:bg-foreground/90" onClick={requestDocuments} disabled={isRequesting}>
               <Send className="w-3.5 h-3.5" /> {isRequesting ? 'Requesting…' : `Request Documents (${unrequestedDocs.length})`}
@@ -591,6 +599,15 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
           )}
         </div>
       </div>
+
+      <RequestMirDialog
+        open={mirOpen}
+        onOpenChange={setMirOpen}
+        leadId={leadId}
+        applicants={applicants}
+        isPreviewMode={isPreviewMode}
+        onSent={() => fetchAll()}
+      />
 
       {/* Applicant tabs */}
       <div className="flex items-center gap-2 flex-wrap border-b pb-2">
