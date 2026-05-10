@@ -1,5 +1,5 @@
 import { LeadStatus } from '@/hooks/useLeadStatuses';
-import { usePersistedState } from '@/hooks/usePersistedState';
+import { usePersistedState, usePersistedStringSet } from '@/hooks/usePersistedState';
 import { useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -79,8 +79,8 @@ interface WIPDashboardProps {
 
 export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead, docsByLead, onDownloadDocs, leadSources = [], getReferrerName, getReferrerCompany, getContactName }: WIPDashboardProps) {
   const [assigneeFilter, setAssigneeFilter] = usePersistedState<string>('crm.wip.assigneeFilter', 'all');
-  const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set());
-  const [search, setSearch] = useState('');
+  const [collapsedColumns, setCollapsedColumns] = usePersistedStringSet('crm.wip.collapsedColumns', []);
+  const [search, setSearch] = usePersistedState<string>('crm.wip.search', '');
   const [compact, setCompact] = usePersistedState<boolean>('crm.wip.compact', false);
   const [view, setView] = usePersistedState<'kanban' | 'list'>('crm.wip.view', 'kanban');
 
