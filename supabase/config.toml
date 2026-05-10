@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.unsubscribe-doc-reminders]
 verify_jwt = false
+
+[functions.address-search]
+verify_jwt = false

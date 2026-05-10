@@ -56,15 +56,19 @@ export function AddressAutocomplete({
     const ctrl = new AbortController();
     const t = setTimeout(async () => {
       try {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=0&countrycodes=au&limit=6&q=${encodeURIComponent(q)}`;
-        const res = await fetch(url, {
-          signal: ctrl.signal,
-          headers: { "Accept-Language": "en-AU" },
-        });
+        const projectUrl = (import.meta as any).env.VITE_SUPABASE_URL;
+        const anonKey = (import.meta as any).env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        const res = await fetch(
+          `${projectUrl}/functions/v1/address-search?q=${encodeURIComponent(q)}`,
+          {
+            signal: ctrl.signal,
+            headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+          }
+        );
         if (!res.ok) throw new Error("lookup failed");
-        const data: Suggestion[] = await res.json();
-        setSuggestions(data);
-        setOpen(data.length > 0);
+        const results: Suggestion[] = await res.json();
+        setSuggestions(results);
+        setOpen(results.length > 0);
         setActiveIdx(-1);
       } catch {
         // silently ignore
