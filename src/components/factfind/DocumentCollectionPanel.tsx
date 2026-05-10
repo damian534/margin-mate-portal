@@ -679,6 +679,64 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
         </div>
       )}
 
+      {/* MIR Requests summary — grouped by batch, shown above regular sections */}
+      {(() => {
+        const mirDocs = visibleDocs.filter(d => d.is_mir && d.mir_batch_id);
+        if (mirDocs.length === 0) return null;
+        const batches = new Map<string, DocumentRequest[]>();
+        mirDocs.forEach(d => {
+          const id = d.mir_batch_id!;
+          batches.set(id, [...(batches.get(id) || []), d]);
+        });
+        const ordered = Array.from(batches.entries()).sort((a, b) => {
+          const ta = a[1][0].mir_requested_at || a[1][0].requested_at || '';
+          const tb = b[1][0].mir_requested_at || b[1][0].requested_at || '';
+          return tb.localeCompare(ta);
+        });
+        return (
+          <div className="rounded-xl border border-amber-200 bg-amber-50/40 shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-2.5 bg-amber-100/60 border-b border-amber-200">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-700" />
+                <h4 className="text-sm font-semibold text-amber-900">MIR Requests</h4>
+                <span className="text-xs text-amber-800">{mirDocs.length} document{mirDocs.length === 1 ? '' : 's'} across {ordered.length} request{ordered.length === 1 ? '' : 's'}</span>
+              </div>
+              <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-amber-900 hover:bg-amber-100" onClick={() => setMirOpen(true)}>
+                <Plus className="w-3 h-3" /> New MIR
+              </Button>
+            </div>
+            <div className="divide-y divide-amber-100">
+              {ordered.map(([batchId, docs]) => {
+                const ts = docs[0].mir_requested_at || docs[0].requested_at;
+                const collected = docs.filter(d => d.status === 'uploaded' || d.status === 'approved').length;
+                return (
+                  <div key={batchId} className="px-4 py-3">
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <p className="text-xs font-medium text-amber-900">
+                        Sent {ts ? new Date(ts).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' }) : '—'}
+                      </p>
+                      <span className="text-[11px] text-amber-800">{collected}/{docs.length} received</span>
+                    </div>
+                    <ul className="space-y-0.5">
+                      {docs.map(d => {
+                        const cfg = STATUS_CONFIG[d.status] || STATUS_CONFIG.pending;
+                        return (
+                          <li key={d.id} className="flex items-center gap-2 text-xs text-foreground/80">
+                            <span className={cn("inline-flex items-center justify-center w-1.5 h-1.5 rounded-full", d.status === 'approved' ? 'bg-emerald-500' : d.status === 'uploaded' ? 'bg-blue-500' : 'bg-slate-400')} />
+                            <span className="flex-1 truncate">{d.name}</span>
+                            <span className="text-[10px] text-muted-foreground">{cfg.label}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Sections — premium table cards */}
       <div className="space-y-3">
         {finalSections.map(section => {
