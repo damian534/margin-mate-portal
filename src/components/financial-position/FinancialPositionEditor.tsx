@@ -152,7 +152,7 @@ export function FinancialPositionEditor({ leadId, token, isPreviewMode, readOnly
       </div>
 
       {/* Tabs */}
-      <UnderlineTabs
+      <UnderlineTabs<TabKey>
         value={tab}
         onChange={setTab}
         tabs={[
