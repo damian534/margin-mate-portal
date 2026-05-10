@@ -521,7 +521,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
           body: JSON.stringify({
             lead_id: leadId,
-            app_url: window.location.origin,
+            app_url: 'https://connect.margin.com.au',
             mode: 'documents',
             recipient_email: recipientEmail,
             recipient_name: applicant?.name,
