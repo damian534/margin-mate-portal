@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Plus, Upload, FileText, CheckCircle2, XCircle, Clock, Trash2, Download, UserPlus, Users, Sparkles, Send, Mail } from 'lucide-react';
+import { Plus, Upload, FileText, CheckCircle2, XCircle, Clock, Trash2, Download, UserPlus, Users, Sparkles, Send, Mail, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
+import { RequestMirDialog } from './RequestMirDialog';
 
 interface DocumentRequest {
   id: string;
@@ -24,6 +25,9 @@ interface DocumentRequest {
   applicant_id: string | null;
   section: string | null;
   requested_at: string | null;
+  is_mir?: boolean;
+  mir_batch_id?: string | null;
+  mir_requested_at?: string | null;
 }
 
 interface Applicant {
