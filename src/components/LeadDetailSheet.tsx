@@ -19,6 +19,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { toast } from 'sonner';
 import { format, isPast, isToday } from 'date-fns';
 import { notifyPartnerNote } from '@/lib/notifications';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import {
   Mail, Phone, Send, Trash2, Users, Building2, DollarSign,
   Calendar, Plus, CheckCircle, Clock, AlertTriangle,
@@ -89,6 +90,7 @@ interface Task {
   completed_at: string | null;
   created_at: string;
   checklist_items?: { text: string; done: boolean }[];
+  assigned_to?: string | null;
 }
 
 interface LeadSource {
