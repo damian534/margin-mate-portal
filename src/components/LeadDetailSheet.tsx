@@ -1177,6 +1177,7 @@ export function LeadDetailSheet({
           <Separator />
 
           {/* Tabs: Timeline (Tasks + Activity), Commission */}
+          <div id="sec-tabs" className="scroll-mt-16" />
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className={cn("w-full grid", (lead.portal_mode || 'both') === 'fact_find' ? 'grid-cols-2' : 'grid-cols-3')}>
               <TabsTrigger value="timeline" className="gap-1 text-xs px-1.5">
