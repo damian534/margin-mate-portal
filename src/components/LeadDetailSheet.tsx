@@ -462,7 +462,127 @@ export function LeadDetailSheet({
   const pendingTasks = tasks.filter(t => !t.completed);
   const completedTasks = tasks.filter(t => t.completed);
 
+  const overdueColTasks = overdueTasks;
+  const todayColTasks = tasks.filter(t => !t.completed && t.due_date && isToday(new Date(t.due_date)));
+  const upcomingColTasks = tasks.filter(t =>
+    !t.completed && (
+      !t.due_date ||
+      (!isToday(new Date(t.due_date)) && !isPast(new Date(t.due_date)))
+    )
+  );
+
   const getTaskNotes = (taskId: string) => notes.filter(n => n.task_id === taskId);
+
+  const formatDatetimeLocalFromIso = (iso: string | null) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const renderHeroTask = (task: Task, tone: 'destructive' | 'primary' | 'muted') => {
+    const taskNotes = getTaskNotes(task.id);
+    return (
+      <div
+        key={task.id}
+        className={cn(
+          "group rounded-md border bg-background px-2 py-1.5 flex items-start gap-2 hover:shadow-sm transition-all",
+          tone === 'destructive' && 'border-destructive/30',
+          tone === 'primary' && 'border-primary/30',
+          tone === 'muted' && 'border-border',
+        )}
+      >
+        <Checkbox
+          checked={task.completed}
+          onCheckedChange={() => toggleTaskComplete(task)}
+          className="mt-0.5"
+        />
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium leading-snug break-words">{task.title}</p>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            {/* Due date */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className={cn(
+                  "inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded hover:bg-muted transition-colors",
+                  tone === 'destructive' && 'text-destructive',
+                  tone === 'primary' && 'text-primary',
+                  tone === 'muted' && 'text-muted-foreground',
+                )}>
+                  <Clock className="w-3 h-3" />
+                  {task.due_date ? format(new Date(task.due_date), 'dd MMM HH:mm') : 'No date'}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-2 z-[100]" align="start">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] text-muted-foreground">Reschedule</Label>
+                  <Input
+                    type="datetime-local"
+                    defaultValue={formatDatetimeLocalFromIso(task.due_date)}
+                    onBlur={(e) => rescheduleTask(task.id, e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Reassign */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="inline-flex items-center gap-1 text-[10px] text-muted-foreground px-1.5 py-0.5 rounded hover:bg-muted transition-colors">
+                  <Users className="w-3 h-3" />
+                  {task.assigned_to ? 'Assigned' : 'Assign'}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2 z-[100]" align="start">
+                <Label className="text-[10px] text-muted-foreground mb-1 block">Assign to</Label>
+                <AssigneePicker
+                  value={task.assigned_to ?? null}
+                  onChange={(uid) => reassignTask(task.id, uid)}
+                  size="sm"
+                />
+              </PopoverContent>
+            </Popover>
+
+            {/* Add note */}
+            <Popover open={heroNoteFor === task.id} onOpenChange={(o) => { setHeroNoteFor(o ? task.id : null); if (!o) setHeroNoteText(''); }}>
+              <PopoverTrigger asChild>
+                <button className="inline-flex items-center gap-1 text-[10px] text-muted-foreground px-1.5 py-0.5 rounded hover:bg-muted transition-colors">
+                  <MessageSquare className="w-3 h-3" />
+                  {taskNotes.length > 0 ? taskNotes.length : 'Note'}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-2 z-[100]" align="start">
+                <Label className="text-[10px] text-muted-foreground mb-1 block">Add a note</Label>
+                <Textarea
+                  value={heroNoteText}
+                  onChange={(e) => setHeroNoteText(e.target.value)}
+                  placeholder="Quick note…"
+                  className="text-xs min-h-[60px]"
+                />
+                <div className="flex justify-end gap-1 mt-2">
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setHeroNoteFor(null); setHeroNoteText(''); }}>Cancel</Button>
+                  <Button
+                    size="sm"
+                    className="h-7 text-xs"
+                    disabled={!heroNoteText.trim()}
+                    onClick={async () => {
+                      const text = heroNoteText.trim();
+                      if (!text) return;
+                      const content = `📋 [Task: ${task.title}] ${text}`;
+                      await addNote(content, 'note', task.id);
+                      setHeroNoteText('');
+                      setHeroNoteFor(null);
+                    }}
+                  >Save</Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const renderTaskItem = (task: Task) => {
     const isOverdue = !task.completed && task.due_date && isPast(new Date(task.due_date)) && !isToday(new Date(task.due_date));
