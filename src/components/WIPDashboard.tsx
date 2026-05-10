@@ -12,6 +12,8 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { format } from 'date-fns';
+import { Users } from 'lucide-react';
 
 export const WIP_STATUSES = [
   { name: 'onboarding', label: 'Onboarding', color: '#94a3b8' },
@@ -48,6 +50,16 @@ interface WIPLead {
   approved_date?: string | null;
   settled_date?: string | null;
   assigned_to?: string | null;
+  loan_purpose?: string | null;
+  source?: string | null;
+  referral_partner_id?: string | null;
+  source_contact_id?: string | null;
+  created_at?: string | null;
+}
+
+interface LeadSource {
+  name: string;
+  label: string;
 }
 
 interface WIPDashboardProps {
@@ -59,9 +71,13 @@ interface WIPDashboardProps {
   onSendBackToLead?: (leadId: string, leadStatus: string) => void;
   docsByLead?: Map<string, { requested: number; completed: number; files: { path: string; name: string }[] }>;
   onDownloadDocs?: (leadId: string) => void;
+  leadSources?: LeadSource[];
+  getReferrerName?: (partnerId: string | null) => string | null;
+  getReferrerCompany?: (partnerId: string | null) => string | null;
+  getContactName?: (contactId: string | null) => string | null;
 }
 
-export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead, docsByLead, onDownloadDocs }: WIPDashboardProps) {
+export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead, docsByLead, onDownloadDocs, leadSources = [], getReferrerName, getReferrerCompany, getContactName }: WIPDashboardProps) {
   const [assigneeFilter, setAssigneeFilter] = usePersistedState<string>('crm.wip.assigneeFilter', 'all');
   const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
