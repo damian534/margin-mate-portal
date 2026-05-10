@@ -59,7 +59,7 @@ function buildEmailHtml(clientName: string, portalUrl: string, brokerName: strin
 <body>
   <div class="container">
     <div class="header">
-      <h1><span class="brand-m">M</span>argin <span style="color:#e63946;">Connect</span></h1>
+      <h1><span style="color:#1a1a1a;">Margin Connect</span></h1>
     </div>
     <div class="body-content">
       <p class="greeting">Hi ${clientName},</p>
@@ -151,7 +151,7 @@ function buildDocumentsEmailHtml(clientName: string, portalUrl: string, brokerNa
 <body>
   <div class="container">
     <div class="header">
-      <h1><span style="color:#e63946;">M</span>argin <span style="color:#e63946;">Connect</span></h1>
+      <h1><span style="color:#1a1a1a;">Margin Connect</span></h1>
     </div>
     <div class="body-content">
       <p class="greeting">Hi ${clientName},</p>
