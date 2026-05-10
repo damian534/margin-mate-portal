@@ -57,26 +57,17 @@ export function AddressAutocomplete({
     const ctrl = new AbortController();
     const t = setTimeout(async () => {
       try {
-        const { data, error } = await supabase.functions.invoke("address-search", {
-          method: "GET" as any,
-          // pass query via querystring through the underlying fetch
-        } as any);
-        // The supabase-js invoke does not support querystrings cleanly; fall back to direct fetch.
-        let results: Suggestion[] = [];
-        if (error || !data) {
-          const projectUrl = (import.meta as any).env.VITE_SUPABASE_URL;
-          const anonKey = (import.meta as any).env.VITE_SUPABASE_PUBLISHABLE_KEY;
-          const res = await fetch(
-            `${projectUrl}/functions/v1/address-search?q=${encodeURIComponent(q)}`,
-            {
-              signal: ctrl.signal,
-              headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` },
-            }
-          );
-          if (res.ok) results = await res.json();
-        } else {
-          results = data as Suggestion[];
-        }
+        const projectUrl = (import.meta as any).env.VITE_SUPABASE_URL;
+        const anonKey = (import.meta as any).env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        const res = await fetch(
+          `${projectUrl}/functions/v1/address-search?q=${encodeURIComponent(q)}`,
+          {
+            signal: ctrl.signal,
+            headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+          }
+        );
+        if (!res.ok) throw new Error("lookup failed");
+        const results: Suggestion[] = await res.json();
         setSuggestions(results);
         setOpen(results.length > 0);
         setActiveIdx(-1);
