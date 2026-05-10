@@ -8,10 +8,11 @@ import { DocumentTemplatesManagement } from '@/components/DocumentTemplatesManag
 import { TaskTemplatesManagement } from '@/components/TaskTemplatesManagement';
 import { LeadSourcesManagement } from '@/components/LeadSourcesManagement';
 import { LendersManagement } from '@/components/LendersManagement';
+import { FactFindToggle } from '@/components/FactFindToggle';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
-import { KeyRound, UserCog, Settings2, FileText, ListChecks, Tag, Building2 } from 'lucide-react';
+import { KeyRound, UserCog, Settings2, FileText, ListChecks, Tag, Building2, ClipboardList } from 'lucide-react';
 
 export default function AdminSettings() {
   const { isPreviewMode } = useAuth();
@@ -40,6 +41,7 @@ export default function AdminSettings() {
     { value: 'task-templates', label: 'Task Templates', icon: ListChecks },
     { value: 'lead-sources', label: 'Lead Sources', icon: Tag },
     { value: 'lenders', label: 'Lenders', icon: Building2 },
+    { value: 'fact-find', label: 'Fact Find', icon: ClipboardList },
   ];
 
   return (
@@ -80,6 +82,7 @@ export default function AdminSettings() {
         {activeSection === 'task-templates' && <TaskTemplatesManagement />}
         {activeSection === 'lead-sources' && <LeadSourcesManagement />}
         {activeSection === 'lenders' && <LendersManagement />}
+        {activeSection === 'fact-find' && <FactFindToggle />}
       </main>
     </div>
   );
