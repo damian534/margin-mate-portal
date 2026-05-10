@@ -931,6 +931,14 @@ export default function AdminCRM() {
               onOpenLead={(lead) => openLead(lead as Lead)}
               docsByLead={docsByLead}
               onDownloadDocs={downloadLeadDocsZip}
+              leadSources={leadSources}
+              getReferrerName={getReferrerName}
+              getReferrerCompany={getReferrerCompany}
+              getContactName={(contactId) => {
+                if (!contactId) return null;
+                const c = contacts.find(ct => ct.id === contactId);
+                return c ? `${c.first_name} ${c.last_name}` : null;
+              }}
               onLocalUpdate={(leadId, wip_status) => {
                 setLeads(prev => prev.map(l => l.id === leadId ? { ...l, wip_status } : l));
               }}
