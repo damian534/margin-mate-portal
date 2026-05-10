@@ -10,6 +10,7 @@ import { ChevronLeft, ChevronRight, CheckCircle2, Lightbulb } from 'lucide-react
 import { cn } from '@/lib/utils';
 import { AllFormData } from './types';
 import logoIcon from '@/assets/margin-icon-tm.png';
+import { FinancialPositionEditor } from '@/components/financial-position/FinancialPositionEditor';
 
 interface Props {
   leadId: string;
@@ -28,6 +29,7 @@ export function MortgageFactFindWizard({ leadId, token, isPreviewMode, readOnly,
   const [isComplete, setIsComplete] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [viewMode, setViewMode] = useState<'step' | 'list'>('step');
 
   // Determine active (visible) steps based on conditions
   const activeSteps = useMemo(
@@ -252,17 +254,35 @@ export function MortgageFactFindWizard({ leadId, token, isPreviewMode, readOnly,
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-3">
           <div className="flex items-center justify-between mb-3">
             <img src={logoIcon} alt="Margin Finance" className="h-10 w-auto" />
-            <button
-              className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors border border-border rounded-full px-3 py-1.5"
-              onClick={() => {/* TODO: show summary */}}
-            >
-              View summary
-            </button>
+            <div className="inline-flex rounded-full border border-border p-0.5 text-xs font-medium">
+              <button
+                className={cn('px-3 py-1 rounded-full transition-colors',
+                  viewMode === 'step' ? 'bg-foreground text-background' : 'text-muted-foreground')}
+                onClick={() => setViewMode('step')}
+              >Step view</button>
+              <button
+                className={cn('px-3 py-1 rounded-full transition-colors',
+                  viewMode === 'list' ? 'bg-foreground text-background' : 'text-muted-foreground')}
+                onClick={() => setViewMode('list')}
+              >List view</button>
+            </div>
           </div>
-          <Progress value={progress} className="h-1" />
+          {viewMode === 'step' && <Progress value={progress} className="h-1" />}
         </div>
       </div>
 
+      {viewMode === 'list' ? (
+        <div className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-6">
+          <FinancialPositionEditor
+            leadId={leadId}
+            token={token}
+            isPreviewMode={isPreviewMode}
+            readOnly={readOnly}
+            onChange={() => { /* nothing — local state in editor */ }}
+          />
+        </div>
+      ) : (
+      <>
       {/* Content */}
       <div className="flex-1 max-w-2xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-12">
         {/* Back button + Title */}
@@ -363,6 +383,8 @@ export function MortgageFactFindWizard({ leadId, token, isPreviewMode, readOnly,
             </Button>
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );
