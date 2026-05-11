@@ -82,7 +82,7 @@ interface WIPDashboardProps {
 }
 
 export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead, docsByLead, onDownloadDocs, leadSources = [], getReferrerName, getReferrerCompany, getContactName, externalSearch }: WIPDashboardProps) {
-  const [assigneeFilter, setAssigneeFilter] = usePersistedState<string>('crm.wip.assigneeFilter', 'all');
+  const [assigneeFilter, setAssigneeFilter] = usePersistedState<string[]>('crm.wip.assigneeFilterMulti', []);
   const [collapsedColumns, setCollapsedColumns] = usePersistedStringSet('crm.wip.collapsedColumns', []);
   const [search, setSearch] = usePersistedState<string>('crm.wip.search', '');
   const [compact, setCompact] = usePersistedState<boolean>('crm.wip.compact', false);
@@ -101,8 +101,13 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
 
   const visibleLeads = useMemo(() => {
     let result = leads;
-    if (assigneeFilter === 'unassigned') result = result.filter(l => !l.assigned_to);
-    else if (assigneeFilter !== 'all') result = result.filter(l => l.assigned_to === assigneeFilter);
+    if (assigneeFilter.length > 0) {
+      const wantUnassigned = assigneeFilter.includes('__unassigned__');
+      result = result.filter(l => {
+        if (!l.assigned_to) return wantUnassigned;
+        return assigneeFilter.includes(l.assigned_to);
+      });
+    }
     const effective = (externalSearch ?? search) || '';
     const q = effective.trim().toLowerCase();
     if (q) {
