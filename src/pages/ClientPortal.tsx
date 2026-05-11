@@ -44,6 +44,7 @@ interface DocumentRequest {
   status: string;
   file_name: string | null;
   rejection_reason: string | null;
+  applicant_id?: string | null;
   section?: string | null;
 }
 
@@ -55,6 +56,16 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
 };
 
 const SECTION_ORDER = ['Identity', 'Income', 'Bank Statements', 'Tax Returns', 'Additional', 'Other'];
+
+const getDocumentSection = (doc: DocumentRequest) => {
+  if (doc.section?.trim()) return doc.section.trim();
+  const text = `${doc.name} ${doc.description || ''}`.toLowerCase();
+  if (/(driver|licence|license|passport|medicare|identity|id\b)/.test(text)) return 'Identity';
+  if (/(payslip|pay slip|income statement|salary|employment|mygov)/.test(text)) return 'Income';
+  if (/(bank|statement|savings|everyday|account)/.test(text)) return 'Bank Statements';
+  if (/(tax|ato|return)/.test(text)) return 'Tax Returns';
+  return 'Other';
+};
 
 export default function ClientPortal() {
   const { token } = useParams<{ token: string }>();
@@ -100,7 +111,8 @@ export default function ClientPortal() {
     const nameParts = (data.lead_name || '').split(' ');
     setLeadFirstName(nameParts[0] || '');
     setLeadLastName(nameParts.slice(1).join(' ') || '');
-    setDocuments(data.documents || []);
+    const loadedDocuments = (data.documents || []) as DocumentRequest[];
+    setDocuments(applicantId ? loadedDocuments.filter(doc => doc.applicant_id === applicantId) : loadedDocuments);
     setLoading(false);
   };
 
@@ -192,7 +204,7 @@ export default function ClientPortal() {
           ) : (
             (() => {
               const grouped = documents.reduce<Record<string, DocumentRequest[]>>((acc, d) => {
-                const sec = d.section || 'Other';
+                const sec = getDocumentSection(d);
                 (acc[sec] ||= []).push(d);
                 return acc;
               }, {});
