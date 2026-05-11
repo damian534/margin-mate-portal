@@ -586,12 +586,21 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
         const applicant = applicants.find(a => a.id === applicantId || (isPrimaryFallback(applicantId) && a.display_order === 0));
         const recipientEmail = applicant?.email || (applicant?.display_order === 0 ? primaryEmail : null);
         if (!recipientEmail) return;
-        const groupsMap = docs.reduce<Record<string, string[]>>((acc, d) => {
+        // Split: rejected docs go in their own "action required" section with reasons;
+        // pending docs go in the standard "documents requested" list.
+        const pendingDocs = docs.filter(d => d.status !== 'rejected');
+        const rejectedDocs = docs.filter(d => d.status === 'rejected');
+        const groupsMap = pendingDocs.reduce<Record<string, string[]>>((acc, d) => {
           const sec = d.section || 'Other';
           acc[sec] = [...(acc[sec] || []), d.name];
           return acc;
         }, {});
         const document_groups = Object.entries(groupsMap).map(([section, names]) => ({ section, names }));
+        const rejected_documents = rejectedDocs.map(d => ({
+          name: d.name,
+          reason: d.rejection_reason || '',
+          section: d.section || 'Other',
+        }));
         const scopedApplicantId = (applicant && !isPrimaryFallback(applicant.id)) ? applicant.id : (docs.find(d => d.applicant_id)?.applicant_id || null);
         const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-fact-find`, {
           method: 'POST',
@@ -602,8 +611,9 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
             mode: 'documents',
             recipient_email: recipientEmail,
             recipient_name: applicant?.name,
-            document_names: docs.map(d => d.name),
+            document_names: pendingDocs.map(d => d.name),
             document_groups,
+            rejected_documents,
             applicant_id: scopedApplicantId,
           }),
         }).catch(() => null);
