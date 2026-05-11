@@ -1157,6 +1157,7 @@ export function LeadDetailSheet({
                 }
               }}
             />
+            {lead.co_applicant_contact_id && (
             <CoApplicantPicker
               contacts={mergedContactsList}
               value={lead.co_applicant_contact_id_2 ?? null}
@@ -1175,7 +1176,8 @@ export function LeadDetailSheet({
                   await supabase.from('leads').update({ co_applicant_contact_id_2: newId } as any).eq('id', lead.id);
                 }
               }}
-            />
+            />)}
+            {lead.co_applicant_contact_id_2 && (
             <CoApplicantPicker
               contacts={mergedContactsList}
               value={lead.co_applicant_contact_id_3 ?? null}
@@ -1194,7 +1196,7 @@ export function LeadDetailSheet({
                   await supabase.from('leads').update({ co_applicant_contact_id_3: newId } as any).eq('id', lead.id);
                 }
               }}
-            />
+            />)}
           </div>
 
           {/* Expand / Collapse all sections */}
