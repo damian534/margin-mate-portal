@@ -316,7 +316,8 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
             </div>
           );
         })}
-      </div>
+        </div>
+      </HorizontalScrollWithTopBar>
     </div>
   );
 }
