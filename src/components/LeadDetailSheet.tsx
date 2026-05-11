@@ -901,51 +901,6 @@ export function LeadDetailSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-3xl overflow-y-auto p-0">
-        {/* Sticky section navigator — pinned to top of sheet, always visible while scrolling */}
-        <nav
-          className="sticky top-0 z-40 px-4 py-2 bg-background/95 backdrop-blur border-b border-border overflow-x-auto"
-          aria-label="Lead sections"
-        >
-          <div className="flex items-center gap-1 min-w-max">
-            {[
-              { id: 'sec-overview', label: 'Overview', icon: Users },
-              { id: 'sec-loan', label: 'Loan', icon: DollarSign },
-              { id: 'sec-referrals', label: 'Referrals', icon: Activity },
-              { id: 'sec-status', label: 'Status', icon: CheckCircle },
-              { id: 'sec-tabs', label: 'Tasks', icon: Clock, tab: 'timeline' },
-              { id: 'sec-activity', label: 'Timeline', icon: Activity, tab: 'timeline' },
-              { id: 'sec-tabs', label: 'Documents', icon: FileText, tab: 'documents' },
-              { id: 'sec-tabs', label: 'Commission', icon: DollarSign, tab: 'commission' },
-            ].map((link) => {
-              const Icon = link.icon;
-              const isActiveTab = activeNavKey === `${link.id}-${link.label}`;
-              return (
-                <button
-                  key={`${link.id}-${link.label}`}
-                  type="button"
-                  onClick={() => {
-                    setActiveNavKey(`${link.id}-${link.label}`);
-                    if (link.tab) setActiveTab(link.tab);
-                    requestAnimationFrame(() => {
-                      const el = document.getElementById(link.id);
-                      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    });
-                  }}
-                  className={cn(
-                    'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors',
-                    isActiveTab
-                      ? 'bg-foreground text-background'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                  )}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {link.label}
-                </button>
-              );
-            })}
-          </div>
-        </nav>
-
         {/* Contact Header Card */}
         <div className="bg-muted/30 p-6 pb-4 border-b">
           <SheetHeader className="mb-4">
