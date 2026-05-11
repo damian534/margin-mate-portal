@@ -913,9 +913,7 @@ export function LeadDetailSheet({
               { id: 'sec-status', label: 'Status', icon: CheckCircle },
               { id: 'sec-tabs', label: 'Tasks', icon: Clock, tab: 'timeline' },
               { id: 'sec-activity', label: 'Timeline', icon: Activity, tab: 'timeline' },
-              ...((lead.portal_mode || 'both') !== 'fact_find'
-                ? [{ id: 'sec-tabs', label: 'Documents', icon: FileText, tab: 'documents' }]
-                : []),
+              { id: 'sec-tabs', label: 'Documents', icon: FileText, tab: 'documents' },
               { id: 'sec-tabs', label: 'Commission', icon: DollarSign, tab: 'commission' },
             ].map((link) => {
               const Icon = link.icon;
@@ -1315,34 +1313,6 @@ export function LeadDetailSheet({
             )}
           </div>
 
-          {/* Client portal scope */}
-          <div className="mt-3 rounded-lg border border-border bg-muted/20 px-3 py-2 flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wider text-foreground">Client Portal</p>
-              <p className="text-[11px] text-muted-foreground">Choose what the client receives and sees.</p>
-            </div>
-            <Select
-              value={lead.portal_mode || 'both'}
-              onValueChange={async (v) => {
-                const next = v as 'both' | 'fact_find' | 'documents';
-                onLeadChange?.({ ...lead, portal_mode: next });
-                if (!isPreviewMode) {
-                  const { error } = await supabase.from('leads').update({ portal_mode: next } as any).eq('id', lead.id);
-                  if (error) { toast.error('Could not update portal scope'); return; }
-                }
-                if (next === 'fact_find' && activeTab === 'documents') setActiveTab('timeline');
-                toast.success('Portal scope updated');
-              }}
-            >
-              <SelectTrigger className="h-8 text-xs w-[180px] shrink-0"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="both">Fact Find + Documents</SelectItem>
-                <SelectItem value="fact_find">Fact Find only</SelectItem>
-                <SelectItem value="documents">Documents only</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
           {/* Referral Partner — editable */}
           <div id="sec-referrals" className="scroll-mt-16 mt-3 rounded-lg border border-border bg-muted/20 overflow-hidden">
             <div className="px-3 py-2 bg-muted/40 border-b border-border flex items-center justify-between">
@@ -1677,18 +1647,16 @@ export function LeadDetailSheet({
           {/* Tabs: Timeline (Tasks + Activity), Commission */}
           <div id="sec-tabs" className="scroll-mt-16" />
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className={cn("w-full grid", (lead.portal_mode || 'both') === 'fact_find' ? 'grid-cols-2' : 'grid-cols-3')}>
+            <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="timeline" className="gap-1 text-xs px-1.5">
                 <Activity className="w-3.5 h-3.5" /> Timeline
                 {pendingTasks.length > 0 && (
                   <span className="ml-0.5 bg-primary/10 text-primary text-[10px] px-1 py-0.5 rounded-full">{pendingTasks.length}</span>
                 )}
               </TabsTrigger>
-              {(lead.portal_mode || 'both') !== 'fact_find' && (
-                <TabsTrigger value="documents" className="gap-1 text-xs px-1.5">
-                  <FileText className="w-3.5 h-3.5" /> Docs
-                </TabsTrigger>
-              )}
+              <TabsTrigger value="documents" className="gap-1 text-xs px-1.5">
+                <FileText className="w-3.5 h-3.5" /> Docs
+              </TabsTrigger>
               <TabsTrigger value="commission" className="gap-1 text-xs px-1.5">
                 <DollarSign className="w-3.5 h-3.5" /> Commission
               </TabsTrigger>
