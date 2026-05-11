@@ -2,6 +2,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders } from "../_shared/cors.ts";
 
 const RESEND_GATEWAY = "https://connector-gateway.lovable.dev/resend/emails";
+const PROJECT_REF = (Deno.env.get("SUPABASE_URL") || "").match(/https:\/\/([^.]+)\./)?.[1] || "";
+const UNSUBSCRIBE_BASE = `https://${PROJECT_REF}.supabase.co/functions/v1/email-unsubscribe`;
+
+function appendUnsubscribeFooter(html: string, token: string): string {
+  const url = `${UNSUBSCRIBE_BASE}?t=${token}`;
+  const footer = `<div style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:11px;color:#94a3b8;text-align:center;font-family:system-ui,sans-serif">You are receiving this email because you are a contact of Margin Connect. <a href="${url}" style="color:#94a3b8;text-decoration:underline">Unsubscribe</a></div>`;
+  return html + footer;
+}
 
 function escapeHtml(s: string) {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
@@ -118,8 +126,19 @@ Deno.serve(async (req) => {
       let sent = 0, failed = 0;
       const sendLogs: any[] = [];
 
+      // Pull suppression list once
+      const { data: suppressions } = await admin
+        .from("email_suppressions")
+        .select("email")
+        .eq("broker_id", brokerId);
+      const suppressed = new Set((suppressions || []).map((s: any) => s.email.toLowerCase()));
+
       // Sequential to be gentle on rate limits
       for (const r of recipients) {
+        if (suppressed.has(r.email.toLowerCase())) {
+          // Skip silently — already on suppression list
+          continue;
+        }
         const vars = {
           first_name: r.first_name || "",
           last_name: r.last_name || "",
@@ -127,7 +146,10 @@ Deno.serve(async (req) => {
           email: r.email,
         };
         const subject = applyMergeTags(campaign.subject, vars);
-        const html = applyMergeTags(campaign.body_html, vars);
+        // Pre-generate unsubscribe token for this send so the footer link works
+        const unsubToken = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+        const html = appendUnsubscribeFooter(applyMergeTags(campaign.body_html, vars), unsubToken);
+        const unsubUrl = `${UNSUBSCRIBE_BASE}?t=${unsubToken}`;
         try {
           const resp = await fetch(RESEND_GATEWAY, {
             method: "POST",
@@ -136,19 +158,32 @@ Deno.serve(async (req) => {
               "Authorization": `Bearer ${LOVABLE_KEY}`,
               "X-Connection-Api-Key": RESEND_KEY,
             },
-            body: JSON.stringify({ from: fromHeader, to: [r.email], subject, html }),
+            body: JSON.stringify({
+              from: fromHeader,
+              to: [r.email],
+              subject,
+              html,
+              headers: {
+                "List-Unsubscribe": `<${unsubUrl}>`,
+                "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+              },
+              tags: [
+                { name: "campaign_id", value: campaign_id },
+                { name: "broker_id", value: brokerId },
+              ],
+            }),
           });
           const data = await resp.json().catch(() => ({}));
           if (!resp.ok) {
             failed++;
-            sendLogs.push({ campaign_id, broker_id: brokerId, recipient_email: r.email, recipient_name: vars.full_name, recipient_type: r.type, recipient_id: r.id, status: "failed", error: JSON.stringify(data).slice(0, 500) });
+            sendLogs.push({ campaign_id, broker_id: brokerId, recipient_email: r.email, recipient_name: vars.full_name, recipient_type: r.type, recipient_id: r.id, status: "failed", error: JSON.stringify(data).slice(0, 500), unsubscribe_token: unsubToken });
           } else {
             sent++;
-            sendLogs.push({ campaign_id, broker_id: brokerId, recipient_email: r.email, recipient_name: vars.full_name, recipient_type: r.type, recipient_id: r.id, status: "sent", sent_at: new Date().toISOString() });
+            sendLogs.push({ campaign_id, broker_id: brokerId, recipient_email: r.email, recipient_name: vars.full_name, recipient_type: r.type, recipient_id: r.id, status: "sent", sent_at: new Date().toISOString(), resend_id: data?.id || null, unsubscribe_token: unsubToken });
           }
         } catch (e) {
           failed++;
-          sendLogs.push({ campaign_id, broker_id: brokerId, recipient_email: r.email, recipient_name: vars.full_name, recipient_type: r.type, recipient_id: r.id, status: "failed", error: String(e).slice(0, 500) });
+          sendLogs.push({ campaign_id, broker_id: brokerId, recipient_email: r.email, recipient_name: vars.full_name, recipient_type: r.type, recipient_id: r.id, status: "failed", error: String(e).slice(0, 500), unsubscribe_token: unsubToken });
         }
         // throttle ~5/sec
         await new Promise((res) => setTimeout(res, 200));
