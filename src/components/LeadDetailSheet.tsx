@@ -945,14 +945,52 @@ export function LeadDetailSheet({
             </SheetTitle>
           </SheetHeader>
 
-          {!isPreviewMode && lead.broker_id === user?.id && (
-            <div className="mb-3">
-              <ReferLeadDialog
-                leadId={lead.id}
-                leadName={`${lead.first_name} ${lead.last_name}`}
-              />
+          <div className="mb-3 flex items-end gap-3">
+            {!isPreviewMode && lead.broker_id === user?.id && (
+              <div className="shrink-0">
+                <ReferLeadDialog
+                  leadId={lead.id}
+                  leadName={`${lead.first_name} ${lead.last_name}`}
+                />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Lead Source</Label>
+              <Select
+                value={lead.source ?? ''}
+                onValueChange={async (val) => {
+                  if (val === '__add_new__') { setAddingSource(true); return; }
+                  const source = val || null;
+                  onLeadChange?.({ ...lead, source });
+                  if (!isPreviewMode) {
+                    await supabase.from('leads').update({ source } as any).eq('id', lead.id);
+                  }
+                }}
+              >
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Select source" /></SelectTrigger>
+                <SelectContent>
+                  {leadSources.map(s => (
+                    <SelectItem key={s.name} value={s.name}>{s.label}</SelectItem>
+                  ))}
+                  <SelectItem value="__add_new__" className="text-primary font-medium">+ Add new source…</SelectItem>
+                </SelectContent>
+              </Select>
+              {addingSource && (
+                <div className="mt-2 flex gap-1.5">
+                  <Input
+                    autoFocus
+                    value={newSourceLabel}
+                    onChange={(e) => setNewSourceLabel(e.target.value)}
+                    placeholder="New source name"
+                    className="h-8 text-sm"
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleAddSource(); if (e.key === 'Escape') { setAddingSource(false); setNewSourceLabel(''); } }}
+                  />
+                  <Button size="sm" className="h-8" onClick={handleAddSource}>Add</Button>
+                  <Button size="sm" variant="ghost" className="h-8" onClick={() => { setAddingSource(false); setNewSourceLabel(''); }}>Cancel</Button>
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
           {/* Tasks Hero — focal point for daily action */}
           {/* Applicants — primary + co-applicant side-by-side (moved above tasks) */}
@@ -1575,48 +1613,6 @@ export function LeadDetailSheet({
         </div>
 
         <div className="p-6 space-y-5">
-          {/* Lead Source */}
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Lead Source</Label>
-              <Select
-                value={lead.source ?? ''}
-                onValueChange={async (val) => {
-                  if (val === '__add_new__') { setAddingSource(true); return; }
-                  const source = val || null;
-                  onLeadChange?.({ ...lead, source });
-                  if (!isPreviewMode) {
-                    await supabase.from('leads').update({ source } as any).eq('id', lead.id);
-                  }
-                }}
-              >
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Select source" /></SelectTrigger>
-                <SelectContent>
-                  {leadSources.map(s => (
-                    <SelectItem key={s.name} value={s.name}>{s.label}</SelectItem>
-                  ))}
-                  <SelectItem value="__add_new__" className="text-primary font-medium">+ Add new source…</SelectItem>
-                </SelectContent>
-              </Select>
-              {addingSource && (
-                <div className="mt-2 flex gap-1.5">
-                  <Input
-                    autoFocus
-                    value={newSourceLabel}
-                    onChange={(e) => setNewSourceLabel(e.target.value)}
-                    placeholder="New source name"
-                    className="h-8 text-sm"
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleAddSource(); if (e.key === 'Escape') { setAddingSource(false); setNewSourceLabel(''); } }}
-                  />
-                  <Button size="sm" className="h-8" onClick={handleAddSource}>Add</Button>
-                  <Button size="sm" variant="ghost" className="h-8" onClick={() => { setAddingSource(false); setNewSourceLabel(''); }}>Cancel</Button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <Separator />
-
           {/* Timeline */}
           <div id="sec-tabs" className="scroll-mt-16" />
           <div id="sec-activity" className="scroll-mt-16" />
