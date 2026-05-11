@@ -693,6 +693,60 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_finance_extensions: {
+        Row: {
+          created_at: string
+          id: string
+          lead_id: string
+          message: string | null
+          previous_due_date: string | null
+          proposed_new_date: string | null
+          recipient_contact_id: string | null
+          recipient_email: string
+          recipient_name: string | null
+          recipient_role: string | null
+          requested_by: string | null
+          requested_days: number
+          resend_id: string | null
+          sent_at: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_id: string
+          message?: string | null
+          previous_due_date?: string | null
+          proposed_new_date?: string | null
+          recipient_contact_id?: string | null
+          recipient_email: string
+          recipient_name?: string | null
+          recipient_role?: string | null
+          requested_by?: string | null
+          requested_days: number
+          resend_id?: string | null
+          sent_at?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_id?: string
+          message?: string | null
+          previous_due_date?: string | null
+          proposed_new_date?: string | null
+          recipient_contact_id?: string | null
+          recipient_email?: string
+          recipient_name?: string | null
+          recipient_role?: string | null
+          requested_by?: string | null
+          requested_days?: number
+          resend_id?: string | null
+          sent_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
       lead_professional_contacts: {
         Row: {
           contact_id: string
@@ -827,6 +881,7 @@ export type Database = {
           doc_reminders_paused: boolean
           email: string | null
           estimated_settlement_date: string | null
+          finance_due_date: string | null
           first_name: string
           id: string
           last_name: string
@@ -845,6 +900,7 @@ export type Database = {
           source: string | null
           source_contact_id: string | null
           status: string
+          subject_to_finance: boolean
           updated_at: string
           wip_status: string | null
         }
@@ -861,6 +917,7 @@ export type Database = {
           doc_reminders_paused?: boolean
           email?: string | null
           estimated_settlement_date?: string | null
+          finance_due_date?: string | null
           first_name: string
           id?: string
           last_name: string
@@ -879,6 +936,7 @@ export type Database = {
           source?: string | null
           source_contact_id?: string | null
           status?: string
+          subject_to_finance?: boolean
           updated_at?: string
           wip_status?: string | null
         }
@@ -895,6 +953,7 @@ export type Database = {
           doc_reminders_paused?: boolean
           email?: string | null
           estimated_settlement_date?: string | null
+          finance_due_date?: string | null
           first_name?: string
           id?: string
           last_name?: string
@@ -913,6 +972,7 @@ export type Database = {
           source?: string | null
           source_contact_id?: string | null
           status?: string
+          subject_to_finance?: boolean
           updated_at?: string
           wip_status?: string | null
         }
