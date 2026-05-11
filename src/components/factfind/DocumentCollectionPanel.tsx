@@ -316,6 +316,10 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
     setApplicants(prev => prev.filter(a => a.id !== id));
     setDocuments(prev => prev.filter(d => d.applicant_id !== id));
     if (activeApplicantId === id) setActiveApplicantId('all');
+    // Sync to deal card: if removing applicant 2, also unlink the co-applicant contact from the lead.
+    if (applicant?.display_order === 1 && onCoApplicantRemoved) {
+      try { await onCoApplicantRemoved(); } catch (e) { console.warn('Co-applicant unlink failed', e); }
+    }
     toast.success('Applicant removed');
   };
 
