@@ -34,6 +34,7 @@ import { FinancialSnapshot } from '@/components/lead/FinancialSnapshot';
 import { StatusBadge } from '@/components/StatusBadge';
 import { CoApplicantPicker } from '@/components/CoApplicantPicker';
 import { ProfessionalContactsSection } from '@/components/ProfessionalContactsSection';
+import { SubjectToFinanceSection } from '@/components/SubjectToFinanceSection';
 import { LoanSplitsEditor } from '@/components/LoanSplitsEditor';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -72,6 +73,8 @@ interface Lead {
   estimated_settlement_date?: string | null;
   assigned_to?: string | null;
   doc_reminders_paused?: boolean | null;
+  subject_to_finance?: boolean | null;
+  finance_due_date?: string | null;
 }
 
 interface Note {
