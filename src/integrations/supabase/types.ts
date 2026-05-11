@@ -89,18 +89,30 @@ export type Database = {
       broker_email_settings: {
         Row: {
           broker_id: string
+          claude_default_prompt: string | null
+          claude_webhook_enabled: boolean
+          claude_webhook_secret: string | null
+          claude_webhook_url: string | null
           created_at: string
           milestone_bcc_email: string | null
           updated_at: string
         }
         Insert: {
           broker_id: string
+          claude_default_prompt?: string | null
+          claude_webhook_enabled?: boolean
+          claude_webhook_secret?: string | null
+          claude_webhook_url?: string | null
           created_at?: string
           milestone_bcc_email?: string | null
           updated_at?: string
         }
         Update: {
           broker_id?: string
+          claude_default_prompt?: string | null
+          claude_webhook_enabled?: boolean
+          claude_webhook_secret?: string | null
+          claude_webhook_url?: string | null
           created_at?: string
           milestone_bcc_email?: string | null
           updated_at?: string
