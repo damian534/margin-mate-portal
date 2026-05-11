@@ -28,13 +28,14 @@ interface Props {
   leadId: string;
   isPreviewMode?: boolean;
   onTotalChange?: (total: number) => void;
+  onSettlementStateChange?: (isSettled: boolean, settledDate: string | null) => void;
   /** When true, the section presents as the Settlement record (loan splits become settled). */
   settled?: boolean;
   /** Optional settlement date to surface in the header. */
   settledDate?: string | null;
 }
 
-export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, settled = false, settledDate = null }: Props) {
+export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, onSettlementStateChange, settled = false, settledDate = null }: Props) {
   const [splits, setSplits] = useState<LoanSplit[]>([]);
   const [lenders, setLenders] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,10 +84,12 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, settled
     await supabase.from('loan_splits').update(patch as any).eq('id', id);
     // When a split is marked settled, propagate to the lead status.
     if (patch.settled === true) {
+      const nextSettledDate = patch.settled_date ?? format(new Date(), 'yyyy-MM-dd');
       await supabase.from('leads').update({
         status: 'settled',
-        settled_date: format(new Date(), 'yyyy-MM-dd'),
+        settled_date: nextSettledDate,
       } as any).eq('id', leadId);
+      onSettlementStateChange?.(true, nextSettledDate);
     }
     // When a split is un-toggled and no splits remain settled, revert the lead status.
     if (patch.settled === false) {
@@ -96,6 +99,7 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, settled
           status: 'approved',
           settled_date: null,
         } as any).eq('id', leadId);
+        onSettlementStateChange?.(false, null);
       }
     }
   };
@@ -105,6 +109,10 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, settled
     setSplits(next); recomputeTotal(next);
     if (isPreviewMode || id.startsWith('preview-')) return;
     await supabase.from('loan_splits').delete().eq('id', id);
+    if (!next.some(s => s.settled)) {
+      await supabase.from('leads').update({ status: 'approved', settled_date: null } as any).eq('id', leadId);
+      onSettlementStateChange?.(false, null);
+    }
   };
 
   const total = splits.reduce((sum, x) => sum + (x.amount || 0), 0);
