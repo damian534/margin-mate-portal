@@ -209,6 +209,7 @@ export function LeadDetailSheet({
   const [addingSource, setAddingSource] = useState(false);
   const [newSourceLabel, setNewSourceLabel] = useState('');
   const [heroCollapsed, setHeroCollapsed] = usePersistedState<boolean>('crm.deal.tasksHero.collapsed', false);
+  const [expandAllOn, setExpandAllOn] = useState(false);
   const [heroNoteFor, setHeroNoteFor] = useState<string | null>(null);
   const [heroNoteText, setHeroNoteText] = useState('');
   const [openHeroTaskId, setOpenHeroTaskId] = useState<string | null>(null);
@@ -1041,6 +1042,25 @@ export function LeadDetailSheet({
                 }
               }}
             />
+          </div>
+
+          {/* Expand / Collapse all sections */}
+          <div className="flex justify-end mb-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 gap-1 text-xs"
+              onClick={() => {
+                const expand = heroCollapsed || true;
+                // Toggle: if hero is collapsed OR any section is likely collapsed, expand all; otherwise collapse all
+                const shouldExpand = !expandAllOn;
+                setExpandAllOn(shouldExpand);
+                setHeroCollapsed(!shouldExpand);
+                window.dispatchEvent(new CustomEvent('section-card:toggle-all', { detail: { expand: shouldExpand } }));
+              }}
+            >
+              {expandAllOn ? 'Collapse all' : 'Expand all'}
+            </Button>
           </div>
 
           <div className="mb-4 rounded-xl border-2 border-success/30 bg-gradient-to-br from-success/10 via-background to-background shadow-md overflow-hidden">

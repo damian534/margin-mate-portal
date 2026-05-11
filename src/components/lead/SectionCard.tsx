@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp, LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -36,6 +36,18 @@ export function SectionCard({
     if (controlled === undefined) setInternal(next);
     onToggle?.(next);
   };
+
+  // Listen for global expand/collapse-all broadcasts
+  useEffect(() => {
+    if (controlled !== undefined) return;
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ expand: boolean }>).detail;
+      if (!detail) return;
+      setInternal(!detail.expand);
+    };
+    window.addEventListener('section-card:toggle-all', handler as EventListener);
+    return () => window.removeEventListener('section-card:toggle-all', handler as EventListener);
+  }, [controlled]);
 
   const cardClasses = cn(
     'rounded-xl border-2 shadow-md overflow-hidden mb-3',
