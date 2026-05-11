@@ -86,7 +86,6 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
     setSelectedReferrerId('');
     setSelectedContactId('');
     setSelectedClientId('');
-    setPortalMode('both');
     setShowNewContact(false);
     setNewContactFirst('');
     setNewContactLast('');
