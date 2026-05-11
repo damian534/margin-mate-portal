@@ -386,13 +386,32 @@ export function LeadDetailSheet({
     }
     const insertData: any = { lead_id: lead.id, author_id: user.id, content: noteContent.trim(), notify_partner: notifyPartner };
     if (taskId) insertData.task_id = taskId;
-    const { error } = await supabase.from('notes').insert(insertData);
-    if (error) { toast.error('Failed to add note'); return; }
+    const { data: inserted, error } = await supabase.from('notes').insert(insertData).select('id').single();
+    if (error || !inserted) { toast.error('Failed to add note'); return; }
+
+    // Upload any staged attachments (only for the main timeline form, not task notes)
+    if (!taskId && noteFiles.length > 0) {
+      for (const file of noteFiles) {
+        const safeName = file.name.replace(/[^A-Za-z0-9._-]/g, '_');
+        const path = `${lead.id}/${inserted.id}/${Date.now()}-${safeName}`;
+        const { error: upErr } = await supabase.storage.from('note-attachments').upload(path, file, { upsert: false });
+        if (upErr) { toast.error(`Upload failed: ${file.name}`); continue; }
+        await (supabase as any).from('note_attachments').insert({
+          note_id: inserted.id,
+          lead_id: lead.id,
+          file_path: path,
+          file_name: file.name,
+          file_size: file.size,
+          mime_type: file.type || null,
+          uploaded_by: user.id,
+        });
+      }
+    }
     if (notifyPartner && lead.referral_partner_id) {
       notifyPartnerNote(lead, noteContent.trim()).catch(err => console.error('Email notification failed:', err));
     }
     toast.success(notifyPartner ? 'Note added & partner notified' : 'Note added');
-    if (!taskId) { setNewNote(''); setNotifyPartner(false); }
+    if (!taskId) { setNewNote(''); setNotifyPartner(false); setNoteFiles([]); }
     fetchNotes(lead.id);
   };
 
