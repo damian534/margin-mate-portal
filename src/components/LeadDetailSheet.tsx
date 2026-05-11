@@ -1503,6 +1503,21 @@ export function LeadDetailSheet({
                               </span>
                             )}
                             <p className="text-sm whitespace-pre-wrap">{note.content}</p>
+                            {note.attachments && note.attachments.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 mt-2">
+                                {note.attachments.map(att => (
+                                  <button
+                                    key={att.id}
+                                    onClick={() => downloadAttachment(att)}
+                                    className="inline-flex items-center gap-1 text-xs bg-background border rounded px-2 py-1 hover:bg-muted"
+                                    title={att.file_name}
+                                  >
+                                    <Download className="w-3 h-3" />
+                                    <span className="max-w-[180px] truncate">{att.file_name}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                             <div className="flex items-center gap-2 mt-1">
                               <p className="text-xs text-muted-foreground">{format(new Date(note.created_at), 'dd MMM yyyy, HH:mm')}</p>
                               {note.notify_partner && <span className="text-xs bg-accent/20 text-accent-foreground px-1.5 py-0.5 rounded">Partner notified</span>}
