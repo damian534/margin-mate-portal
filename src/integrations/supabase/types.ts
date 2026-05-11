@@ -1147,6 +1147,8 @@ export type Database = {
           lender: string | null
           loan_purpose: string | null
           security_address: string | null
+          settled: boolean
+          settled_date: string | null
           updated_at: string
         }
         Insert: {
@@ -1159,6 +1161,8 @@ export type Database = {
           lender?: string | null
           loan_purpose?: string | null
           security_address?: string | null
+          settled?: boolean
+          settled_date?: string | null
           updated_at?: string
         }
         Update: {
@@ -1171,6 +1175,8 @@ export type Database = {
           lender?: string | null
           loan_purpose?: string | null
           security_address?: string | null
+          settled?: boolean
+          settled_date?: string | null
           updated_at?: string
         }
         Relationships: []
