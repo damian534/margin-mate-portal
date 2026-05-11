@@ -1487,6 +1487,7 @@ export function LeadDetailSheet({
                   if (error) { toast.error('Failed to update assistant'); return; }
                 }
                 toast.success(userId ? 'Assistant updated' : 'Assistant cleared');
+                import('@/lib/leadAudit').then(m => m.logAudit(lead.id, userId ? `🔄 Assistant assigned` : `🔄 Assistant cleared`, { isPreview: isPreviewMode }));
               }}
             />
             <p className="text-[10px] text-muted-foreground mt-1">
@@ -1518,10 +1519,12 @@ export function LeadDetailSheet({
                 value={lead.loan_purpose ?? ''}
                 onValueChange={async (val) => {
                   const purpose = val || null;
+                  const prev = lead.loan_purpose || 'none';
                   onLeadChange?.({ ...lead, loan_purpose: purpose });
                   if (!isPreviewMode) {
                     await supabase.from('leads').update({ loan_purpose: purpose } as any).eq('id', lead.id);
                   }
+                  import('@/lib/leadAudit').then(m => m.logAudit(lead.id, `⚙️ Transaction type changed: ${prev} → ${purpose || 'none'}`, { isPreview: isPreviewMode }));
                 }}
               >
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Select transaction" /></SelectTrigger>
@@ -1565,9 +1568,13 @@ export function LeadDetailSheet({
                     value={(lead as any)[key] ?? ''}
                     onChange={async (e) => {
                       const val = e.target.value || null;
+                      const prev = (lead as any)[key] ?? null;
                       onLeadChange?.({ ...lead, [key]: val } as any);
                       if (!isPreviewMode) {
                         await supabase.from('leads').update({ [key]: val } as any).eq('id', lead.id);
+                      }
+                      if (prev !== val) {
+                        import('@/lib/leadAudit').then(m => m.logAudit(lead.id, `🔄 ${label} date ${val ? (prev ? `changed: ${prev} → ${val}` : `set to ${val}`) : 'cleared'}`, { isPreview: isPreviewMode }));
                       }
                     }}
                   />
