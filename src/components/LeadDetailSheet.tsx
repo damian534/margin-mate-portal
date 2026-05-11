@@ -1590,6 +1590,9 @@ export function LeadDetailSheet({
             isPreviewMode={isPreviewMode}
             settled={lead.status === 'settled' || !!(lead as any).settled_date}
             settledDate={(lead as any).settled_date ?? null}
+            onSettlementStateChange={(isSettled, settledDate) => {
+              onLeadChange?.({ ...lead, status: isSettled ? 'settled' : 'approved', settled_date: settledDate } as any);
+            }}
             onTotalChange={async (total) => {
               const val = total > 0 ? total : null;
               if (val !== lead.loan_amount) {
