@@ -116,7 +116,7 @@ export default function AdminCRM() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = usePersistedState<string>('crm.leads.statusFilter', 'all');
-  const [assigneeFilter, setAssigneeFilter] = usePersistedState<string>('crm.leads.assigneeFilter', 'all');
+  const [assigneeFilter, setAssigneeFilter] = usePersistedState<string[]>('crm.leads.assigneeFilterMulti', []);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [leadsView, setLeadsView] = usePersistedState<'table' | 'kanban'>('crm.leads.view', 'kanban');
@@ -201,12 +201,13 @@ export default function AdminCRM() {
     if (statusFilter !== 'all') {
       result = result.filter(l => l.status === statusFilter);
     }
-    if (assigneeFilter !== 'all') {
-      if (assigneeFilter === 'unassigned') {
-        result = result.filter(l => !(l as any).assigned_to);
-      } else {
-        result = result.filter(l => (l as any).assigned_to === assigneeFilter);
-      }
+    if (assigneeFilter.length > 0) {
+      const wantUnassigned = assigneeFilter.includes('__unassigned__');
+      result = result.filter(l => {
+        const a = (l as any).assigned_to as string | null | undefined;
+        if (!a) return wantUnassigned;
+        return assigneeFilter.includes(a);
+      });
     }
     if (taskDueFilter !== 'all_leads') {
       result = result.filter(l => getLeadTaskDueCategory(l.id, tasksByLead) === taskDueFilter);
