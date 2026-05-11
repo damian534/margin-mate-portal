@@ -884,6 +884,10 @@ export function LeadDetailSheet({
       return sameEmail || samePhone || sameName;
     });
 
+  const coApplicantContact = lead.co_applicant_contact_id
+    ? contactsList.find(c => c.id === lead.co_applicant_contact_id) ?? null
+    : null;
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-3xl overflow-y-auto p-0">
