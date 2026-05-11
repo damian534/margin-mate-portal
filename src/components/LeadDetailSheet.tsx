@@ -905,7 +905,7 @@ export function LeadDetailSheet({
     });
 
   const coApplicantContact = lead.co_applicant_contact_id
-    ? contactsList.find(c => c.id === lead.co_applicant_contact_id) ?? null
+    ? mergedContactsList.find(c => c.id === lead.co_applicant_contact_id) ?? null
     : null;
 
   return (
@@ -1139,7 +1139,7 @@ export function LeadDetailSheet({
               </div>
             </div>
             <CoApplicantPicker
-              contacts={contactsList}
+              contacts={mergedContactsList}
               value={lead.co_applicant_contact_id ?? null}
               excludeIds={[
                 lead.source_contact_id,
@@ -1149,7 +1149,8 @@ export function LeadDetailSheet({
               isPreviewMode={isPreviewMode}
               onOpenContact={onOpenContact}
               hideHeader
-              onChange={async (newId) => {
+              onChange={async (newId, newContact) => {
+                if (newContact) setExtraContacts(prev => [...prev.filter(c => c.id !== newContact.id), newContact]);
                 onLeadChange?.({ ...lead, co_applicant_contact_id: newId });
                 if (!isPreviewMode) {
                   await supabase.from('leads').update({ co_applicant_contact_id: newId } as any).eq('id', lead.id);
@@ -1157,7 +1158,7 @@ export function LeadDetailSheet({
               }}
             />
             <CoApplicantPicker
-              contacts={contactsList}
+              contacts={mergedContactsList}
               value={lead.co_applicant_contact_id_2 ?? null}
               excludeIds={[
                 lead.source_contact_id,
@@ -1167,7 +1168,8 @@ export function LeadDetailSheet({
               isPreviewMode={isPreviewMode}
               onOpenContact={onOpenContact}
               hideHeader
-              onChange={async (newId) => {
+              onChange={async (newId, newContact) => {
+                if (newContact) setExtraContacts(prev => [...prev.filter(c => c.id !== newContact.id), newContact]);
                 onLeadChange?.({ ...lead, co_applicant_contact_id_2: newId });
                 if (!isPreviewMode) {
                   await supabase.from('leads').update({ co_applicant_contact_id_2: newId } as any).eq('id', lead.id);
@@ -1175,7 +1177,7 @@ export function LeadDetailSheet({
               }}
             />
             <CoApplicantPicker
-              contacts={contactsList}
+              contacts={mergedContactsList}
               value={lead.co_applicant_contact_id_3 ?? null}
               excludeIds={[
                 lead.source_contact_id,
@@ -1185,7 +1187,8 @@ export function LeadDetailSheet({
               isPreviewMode={isPreviewMode}
               onOpenContact={onOpenContact}
               hideHeader
-              onChange={async (newId) => {
+              onChange={async (newId, newContact) => {
+                if (newContact) setExtraContacts(prev => [...prev.filter(c => c.id !== newContact.id), newContact]);
                 onLeadChange?.({ ...lead, co_applicant_contact_id_3: newId });
                 if (!isPreviewMode) {
                   await supabase.from('leads').update({ co_applicant_contact_id_3: newId } as any).eq('id', lead.id);
