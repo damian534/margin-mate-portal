@@ -926,6 +926,7 @@ export default function AdminCRM() {
             </div>
             <WIPDashboard
               leads={leads}
+              externalSearch={search}
               leadStatuses={statuses}
               isPreviewMode={isPreviewMode}
               onOpenLead={(lead) => openLead(lead as Lead)}

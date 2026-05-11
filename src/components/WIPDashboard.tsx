@@ -56,6 +56,8 @@ interface WIPLead {
   referral_partner_id?: string | null;
   source_contact_id?: string | null;
   created_at?: string | null;
+  email?: string | null;
+  phone?: string | null;
 }
 
 interface LeadSource {
@@ -76,9 +78,10 @@ interface WIPDashboardProps {
   getReferrerName?: (partnerId: string | null) => string | null;
   getReferrerCompany?: (partnerId: string | null) => string | null;
   getContactName?: (contactId: string | null) => string | null;
+  externalSearch?: string;
 }
 
-export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead, docsByLead, onDownloadDocs, leadSources = [], getReferrerName, getReferrerCompany, getContactName }: WIPDashboardProps) {
+export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead, docsByLead, onDownloadDocs, leadSources = [], getReferrerName, getReferrerCompany, getContactName, externalSearch }: WIPDashboardProps) {
   const [assigneeFilter, setAssigneeFilter] = usePersistedState<string>('crm.wip.assigneeFilter', 'all');
   const [collapsedColumns, setCollapsedColumns] = usePersistedStringSet('crm.wip.collapsedColumns', []);
   const [search, setSearch] = usePersistedState<string>('crm.wip.search', '');
@@ -100,16 +103,20 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
     let result = leads;
     if (assigneeFilter === 'unassigned') result = result.filter(l => !l.assigned_to);
     else if (assigneeFilter !== 'all') result = result.filter(l => l.assigned_to === assigneeFilter);
-    const q = search.trim().toLowerCase();
+    const effective = (externalSearch ?? search) || '';
+    const q = effective.trim().toLowerCase();
     if (q) {
       result = result.filter(l =>
         `${l.first_name} ${l.last_name}`.toLowerCase().includes(q) ||
         (l.opportunity_name || '').toLowerCase().includes(q) ||
-        String(l.loan_amount || '').includes(q)
+        String(l.loan_amount || '').includes(q) ||
+        (l.email || '').toLowerCase().includes(q) ||
+        (l.phone || '').includes(q) ||
+        (getReferrerName?.(l.referral_partner_id ?? null) || '').toLowerCase().includes(q)
       );
     }
     return result;
-  }, [leads, assigneeFilter, search]);
+  }, [leads, assigneeFilter, search, externalSearch, getReferrerName]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, WIPLead[]>();
