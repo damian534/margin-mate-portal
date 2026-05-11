@@ -102,13 +102,18 @@ export function ProfessionalContactsSection({
       .insert({ lead_id: leadId, contact_id: contactId, role } as any)
       .select('id, lead_id, contact_id, role')
       .maybeSingle();
-    if (error || !data) {
-      if ((error as any)?.code === '23505') { toast.info('Already linked to this deal'); return; }
+    if (error) {
+      if ((error as any).code === '23505') { toast.info('Already linked to this deal'); return; }
       console.error('lead_professional_contacts insert failed', error);
-      toast.error(`Failed to add: ${(error as any)?.message || 'unknown error'}`);
+      toast.error(`Failed to add: ${error.message}`);
       return;
     }
-    setRows(rs => [...rs, data as any]);
+    if (data) {
+      setRows(rs => [...rs, data as any]);
+    } else {
+      // Insert succeeded but SELECT was hidden by RLS — refetch.
+      await load();
+    }
     toast.success(`${roleLabel(role)} added`);
   };
 
