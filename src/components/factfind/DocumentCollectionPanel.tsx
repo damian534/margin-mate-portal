@@ -122,6 +122,35 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
     fetchTemplates();
   }, [leadId, primaryName, primaryEmail, primaryPhone]);
 
+  // Sync from deal card → docs panel: when a co-applicant contact is linked on the lead,
+  // ensure a lead_applicants row at display_order=1 mirroring that contact's details.
+  useEffect(() => {
+    if (isPreviewMode || !coApplicantContact || isLoading) return;
+    const fullName = `${coApplicantContact.first_name ?? ''} ${coApplicantContact.last_name ?? ''}`.trim();
+    if (!fullName) return;
+    const email = coApplicantContact.email ?? null;
+    const phone = coApplicantContact.phone ?? null;
+    const existing = applicants.find(a => a.display_order === 1);
+    (async () => {
+      if (!existing) {
+        const { data, error } = await supabase.from('lead_applicants').insert({
+          lead_id: leadId, name: fullName, employment_type: 'PAYG', display_order: 1, email, phone,
+        } as any).select().single();
+        if (!error && data) {
+          setApplicants(prev => [...prev, data as Applicant]);
+        }
+      } else if (existing.name !== fullName || (existing.email ?? null) !== email || (existing.phone ?? null) !== phone) {
+        const { data, error } = await supabase.from('lead_applicants')
+          .update({ name: fullName, email, phone } as any)
+          .eq('id', existing.id).select().single();
+        if (!error && data) {
+          setApplicants(prev => prev.map(a => a.id === existing.id ? (data as Applicant) : a));
+        }
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coApplicantContact?.id, coApplicantContact?.first_name, coApplicantContact?.last_name, coApplicantContact?.email, coApplicantContact?.phone, isLoading]);
+
   const fetchTemplates = async () => {
     if (isPreviewMode) return;
     const { data } = await (supabase as any)
