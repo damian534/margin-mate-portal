@@ -200,6 +200,7 @@ export function LeadDetailSheet({
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
   const [newTaskDescription, setNewTaskDescription] = useState('');
+  const [newTaskAssignee, setNewTaskAssignee] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('timeline');
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<{ id: string; title: string; dueDate: string } | null>(null);
@@ -393,12 +394,13 @@ export function LeadDetailSheet({
         description: newTaskDescription.trim() || null,
         due_date: newTaskDueDate ? new Date(newTaskDueDate).toISOString() : null,
         created_by: user.id,
+        assigned_to: newTaskAssignee,
       });
       if (error) { toast.error('Failed to create task'); return; }
       toast.success('Task created');
       fetchTasks(lead.id);
     }
-    setNewTaskTitle(''); setNewTaskDueDate(''); setNewTaskDescription(''); setShowTaskForm(false);
+    setNewTaskTitle(''); setNewTaskDueDate(''); setNewTaskDescription(''); setNewTaskAssignee(null); setShowTaskForm(false);
   };
 
   const updateTask = async (taskId: string) => {
@@ -1264,8 +1266,12 @@ export function LeadDetailSheet({
                           className="h-9 text-sm"
                         />
                       </div>
+                      <div className="flex-1">
+                        <Label className="text-[11px] text-muted-foreground">Assign to</Label>
+                        <AssigneePicker value={newTaskAssignee} onChange={setNewTaskAssignee} size="sm" />
+                      </div>
                       <div className="flex gap-2 self-end">
-                        <Button variant="ghost" size="sm" onClick={() => { setShowTaskForm(false); setNewTaskTitle(''); setNewTaskDueDate(''); setNewTaskDescription(''); }}>Cancel</Button>
+                        <Button variant="ghost" size="sm" onClick={() => { setShowTaskForm(false); setNewTaskTitle(''); setNewTaskDueDate(''); setNewTaskDescription(''); setNewTaskAssignee(null); }}>Cancel</Button>
                         <Button size="sm" onClick={createTask} disabled={!newTaskTitle.trim()}>Create task</Button>
                       </div>
                     </div>
