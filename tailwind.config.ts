@@ -10,9 +10,17 @@ export default {
       padding: "2rem",
       screens: {
         "2xl": "1400px",
+        "3xl": "1700px",
+        "4xl": "2000px",
+        "5xl": "2300px",
       },
     },
     extend: {
+      screens: {
+        "3xl": "1700px",
+        "4xl": "2000px",
+        "5xl": "2300px",
+      },
       fontFamily: {
         heading: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
         body: ['"DM Sans"', 'system-ui', 'sans-serif'],
