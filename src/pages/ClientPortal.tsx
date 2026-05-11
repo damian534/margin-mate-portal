@@ -61,6 +61,7 @@ export default function ClientPortal() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [leadName, setLeadName] = useState('');
+  const [applicantName, setApplicantName] = useState<string | null>(null);
   const [leadId, setLeadId] = useState<string | null>(null);
   const [leadEmail, setLeadEmail] = useState('');
   const [leadPhone, setLeadPhone] = useState('');
@@ -77,9 +78,10 @@ export default function ClientPortal() {
   const validateAndLoad = async () => {
     if (!token) { setError('Invalid link'); setLoading(false); return; }
 
-    const res = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/client-portal?token=${encodeURIComponent(token)}`
-    );
+    const urlParams = new URLSearchParams(window.location.search);
+    const applicantId = urlParams.get('applicant');
+    const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/client-portal?token=${encodeURIComponent(token)}${applicantId ? `&applicant=${encodeURIComponent(applicantId)}` : ''}`;
+    const res = await fetch(apiUrl);
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
@@ -91,6 +93,7 @@ export default function ClientPortal() {
     const data = await res.json();
     setLeadId(data.lead_id);
     setLeadName(data.lead_name);
+    setApplicantName(data.applicant_name || null);
     setLeadEmail(data.lead_email || '');
     setLeadPhone(data.lead_phone || '');
     // Split lead_name into first/last
