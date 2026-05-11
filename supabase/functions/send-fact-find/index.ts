@@ -20,6 +20,8 @@ interface SendFactFindRequest {
   /** Optional override used when requesting docs from a second applicant. */
   recipient_email?: string;
   recipient_name?: string;
+  /** Optional: when sending docs to a specific applicant, scope the portal link to their docs only. */
+  applicant_id?: string | null;
 }
 
 const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 255;
@@ -231,7 +233,7 @@ Deno.serve(async (req) => {
     }
     const userId = claimsData.claims.sub as string;
 
-    const { lead_id, app_url, mode = 'factfind', document_names = [], document_groups, recipient_email, recipient_name } = (await req.json()) as SendFactFindRequest;
+    const { lead_id, app_url, mode = 'factfind', document_names = [], document_groups, recipient_email, recipient_name, applicant_id } = (await req.json()) as SendFactFindRequest;
 
     if (!lead_id || !app_url) {
       return new Response(
@@ -308,8 +310,11 @@ Deno.serve(async (req) => {
       brokerName = brokerProfile?.full_name || "";
     }
 
-    // Build portal URL (append ?view=documents for documents-only mode)
-    const portalUrl = `${app_url.replace(/\/$/, "")}/client-portal/${encodeURIComponent(portalToken)}${mode === 'documents' ? '?view=documents' : ''}`;
+    // Build portal URL (append ?view=documents for documents-only mode, scope by applicant if provided)
+    const qs: string[] = [];
+    if (mode === 'documents') qs.push('view=documents');
+    if (applicant_id) qs.push(`applicant=${encodeURIComponent(applicant_id)}`);
+    const portalUrl = `${app_url.replace(/\/$/, "")}/client-portal/${encodeURIComponent(portalToken)}${qs.length ? `?${qs.join('&')}` : ''}`;
 
     // Build and send email
     const clientName = cleanText(recipient_name, `${lead.first_name} ${lead.last_name || ""}`.trim());

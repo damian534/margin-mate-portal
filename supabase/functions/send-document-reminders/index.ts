@@ -198,7 +198,7 @@ Deno.serve(async (req) => {
       const portalToken = tokenByLead.get(lead.id);
       if (!portalToken) { summary.skipped++; continue; }
 
-      const portalUrl = `${APP_URL}/client-portal/${encodeURIComponent(portalToken)}?view=documents`;
+      const basePortalUrl = `${APP_URL}/client-portal/${encodeURIComponent(portalToken)}?view=documents`;
       const unsubscribeUrl = `${SUPABASE_URL}/functions/v1/unsubscribe-doc-reminders?token=${encodeURIComponent(portalToken)}`;
       const brokerName = brokerNameById.get(lead.broker_id || "") || "";
 
@@ -210,13 +210,13 @@ Deno.serve(async (req) => {
       const primaryName = `${lead.first_name || ""} ${lead.last_name || ""}`.trim() || (primaryApp?.name ?? "there");
       const primaryEmail = lead.email || primaryApp?.email || null;
 
-      type Bucket = { name: string; email: string; docs: PendingDoc[] };
+      type Bucket = { name: string; email: string; docs: PendingDoc[]; applicantId: string | null };
       const buckets = new Map<string, Bucket>(); // key = lowercase email
-      const ensure = (name: string, email: string | null | undefined): Bucket | null => {
+      const ensure = (name: string, email: string | null | undefined, applicantId: string | null): Bucket | null => {
         if (!email || !isValidEmail(email)) return null;
         const key = email.toLowerCase();
         let b = buckets.get(key);
-        if (!b) { b = { name: cleanText(name, "there") || "there", email, docs: [] }; buckets.set(key, b); }
+        if (!b) { b = { name: cleanText(name, "there") || "there", email, docs: [], applicantId }; buckets.set(key, b); }
         return b;
       };
 
@@ -225,11 +225,11 @@ Deno.serve(async (req) => {
         let target: Bucket | null = null;
         if (doc.applicant_id) {
           const app = leadApps.find(a => a.id === doc.applicant_id);
-          if (app) target = ensure(app.name, app.email || (app.display_order === 0 ? primaryEmail : null));
+          if (app) target = ensure(app.name, app.email || (app.display_order === 0 ? primaryEmail : null), app.id);
         }
         if (!target) {
           // Fallback to primary applicant / lead email
-          target = ensure(primaryName, primaryEmail);
+          target = ensure(primaryName, primaryEmail, primaryApp?.id ?? null);
         }
         if (target) target.docs.push(doc);
       }
@@ -251,6 +251,9 @@ Deno.serve(async (req) => {
         }
         const outstandingGroups = Array.from(groupsMap.entries()).map(([section, names]) => ({ section, names }));
 
+        const portalUrl = rcpt.applicantId
+          ? `${basePortalUrl}&applicant=${encodeURIComponent(rcpt.applicantId)}`
+          : basePortalUrl;
         const html = buildReminderHtml({
           clientName: rcpt.name,
           brokerName,

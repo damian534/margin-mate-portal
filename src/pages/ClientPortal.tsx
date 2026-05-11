@@ -44,6 +44,7 @@ interface DocumentRequest {
   status: string;
   file_name: string | null;
   rejection_reason: string | null;
+  section?: string | null;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -53,11 +54,14 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
   rejected: { label: 'Resubmit', color: 'bg-red-100 text-red-700', icon: <XCircle className="w-3 h-3" /> },
 };
 
+const SECTION_ORDER = ['Identity', 'Income', 'Bank Statements', 'Tax Returns', 'Additional', 'Other'];
+
 export default function ClientPortal() {
   const { token } = useParams<{ token: string }>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [leadName, setLeadName] = useState('');
+  const [applicantName, setApplicantName] = useState<string | null>(null);
   const [leadId, setLeadId] = useState<string | null>(null);
   const [leadEmail, setLeadEmail] = useState('');
   const [leadPhone, setLeadPhone] = useState('');
@@ -74,9 +78,10 @@ export default function ClientPortal() {
   const validateAndLoad = async () => {
     if (!token) { setError('Invalid link'); setLoading(false); return; }
 
-    const res = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/client-portal?token=${encodeURIComponent(token)}`
-    );
+    const urlParams = new URLSearchParams(window.location.search);
+    const applicantId = urlParams.get('applicant');
+    const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/client-portal?token=${encodeURIComponent(token)}${applicantId ? `&applicant=${encodeURIComponent(applicantId)}` : ''}`;
+    const res = await fetch(apiUrl);
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
@@ -88,6 +93,7 @@ export default function ClientPortal() {
     const data = await res.json();
     setLeadId(data.lead_id);
     setLeadName(data.lead_name);
+    setApplicantName(data.applicant_name || null);
     setLeadEmail(data.lead_email || '');
     setLeadPhone(data.lead_phone || '');
     // Split lead_name into first/last
@@ -172,7 +178,7 @@ export default function ClientPortal() {
         <Sonner />
         <div className="max-w-2xl mx-auto p-4 py-8 space-y-6">
           <div className="text-center space-y-2">
-            <h1 className="text-2xl font-semibold">Welcome, {leadName}</h1>
+            <h1 className="text-2xl font-semibold">Welcome, {applicantName || leadName}</h1>
             <p className="text-sm text-muted-foreground">Please upload the requested documents below.</p>
           </div>
 
@@ -184,8 +190,23 @@ export default function ClientPortal() {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-3">
-              {documents.map(doc => {
+            (() => {
+              const grouped = documents.reduce<Record<string, DocumentRequest[]>>((acc, d) => {
+                const sec = d.section || 'Other';
+                (acc[sec] ||= []).push(d);
+                return acc;
+              }, {});
+              const orderedSections = [
+                ...SECTION_ORDER.filter(s => grouped[s]),
+                ...Object.keys(grouped).filter(s => !SECTION_ORDER.includes(s)),
+              ];
+              return (
+                <div className="space-y-6">
+                  {orderedSections.map(section => (
+                    <div key={section} className="space-y-3">
+                      <h2 className="text-sm font-semibold uppercase tracking-wider text-primary px-1">{section}</h2>
+                      <div className="space-y-3">
+                        {grouped[section].map(doc => {
                 const statusCfg = STATUS_CONFIG[doc.status] || STATUS_CONFIG.pending;
                 return (
                   <Card key={doc.id}>
@@ -253,8 +274,13 @@ export default function ClientPortal() {
                     </CardContent>
                   </Card>
                 );
-              })}
-            </div>
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()
           )}
 
           <p className="text-xs text-center text-muted-foreground pt-4">
