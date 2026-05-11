@@ -47,6 +47,12 @@ interface DocumentCollectionPanelProps {
   primaryApplicantEmail?: string | null;
   primaryApplicantPhone?: string | null;
   actionsSlot?: React.ReactNode;
+  /** Co-applicant contact linked on the deal card. When provided, applicant #2 is auto-synced to mirror this contact. */
+  coApplicantContact?: { id: string; first_name: string; last_name: string; email?: string | null; phone?: string | null } | null;
+  /** Called when a second applicant is added inside the documents panel. Should create a contact and link it to the lead, returning the new contact id. */
+  onCoApplicantAdded?: (data: { firstName: string; lastName: string; email: string; phone: string }) => Promise<string | null>;
+  /** Called when the second applicant is removed inside the documents panel. Should unlink the co-applicant contact from the lead. */
+  onCoApplicantRemoved?: () => Promise<void> | void;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
