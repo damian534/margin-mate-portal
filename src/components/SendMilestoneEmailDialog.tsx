@@ -27,7 +27,7 @@ interface Props {
 
 function applyVars(text: string, vars: Record<string, string>) {
   return Object.entries(vars).reduce(
-    (acc, [k, v]) => acc.replaceAll(`{${k}}`, v ?? ''),
+    (acc, [k, v]) => acc.split(`{${k}}`).join(v ?? ''),
     text || ''
   );
 }
