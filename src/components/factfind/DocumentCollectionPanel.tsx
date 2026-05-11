@@ -276,6 +276,19 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       // auto-load template for this applicant (match by name)
       const tpl = templates.find(t => t.name === newApplicantType);
       if (tpl) await loadTemplate(tpl, (data as Applicant).id);
+      // Sync to deal card: if this is the second applicant and no co-applicant is linked yet, create the contact and link it.
+      if (order === 1 && onCoApplicantAdded && !coApplicantContact) {
+        try {
+          await onCoApplicantAdded({
+            firstName: parsed.data.firstName,
+            lastName: parsed.data.lastName,
+            email: parsed.data.email,
+            phone: parsed.data.phone,
+          });
+        } catch (e) {
+          console.warn('Co-applicant sync to deal card failed', e);
+        }
+      }
     }
     toast.success('Applicant added');
     setNewApplicantFirstName('');
