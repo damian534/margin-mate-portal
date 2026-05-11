@@ -66,6 +66,8 @@ interface Lead {
   source: string | null;
   source_contact_id: string | null;
   co_applicant_contact_id?: string | null;
+  co_applicant_contact_id_2?: string | null;
+  co_applicant_contact_id_3?: string | null;
   portal_mode?: 'both' | 'fact_find' | 'documents' | null;
   wip_status?: string | null;
   lodged_date?: string | null;
