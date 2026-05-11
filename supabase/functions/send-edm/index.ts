@@ -147,13 +147,29 @@ async function collectRecipients(admin: any, brokerId: string, sources: string[]
   const seen = new Set<string>();
   const tagFilter = (t: string[] | null) => tags.length === 0 ? true : (t || []).some((x) => tags.includes(x));
 
+  async function fetchAll(builder: () => any) {
+    const all: any[] = [];
+    const pageSize = 1000;
+    let from = 0;
+    while (true) {
+      const { data, error } = await builder().range(from, from + pageSize - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      all.push(...data);
+      if (data.length < pageSize) break;
+      from += pageSize;
+    }
+    return all;
+  }
+
   if (sources.includes("contacts")) {
-    const { data } = await admin
+    const data = await fetchAll(() => admin
       .from("contacts")
       .select("id, first_name, last_name, email, audience_tags, email_opt_out")
       .eq("created_by", brokerId)
       .not("email", "is", null)
-      .eq("email_opt_out", false);
+      .eq("email_opt_out", false)
+      .order("id", { ascending: true }));
     for (const c of data || []) {
       if (!c.email || seen.has(c.email.toLowerCase())) continue;
       if (!tagFilter(c.audience_tags)) continue;
@@ -162,12 +178,13 @@ async function collectRecipients(admin: any, brokerId: string, sources: string[]
     }
   }
   if (sources.includes("partners")) {
-    const { data } = await admin
+    const data = await fetchAll(() => admin
       .from("profiles")
       .select("id, full_name, email, audience_tags, email_opt_out")
       .eq("broker_id", brokerId)
       .not("email", "is", null)
-      .eq("email_opt_out", false);
+      .eq("email_opt_out", false)
+      .order("id", { ascending: true }));
     for (const p of data || []) {
       if (!p.email || seen.has(p.email.toLowerCase())) continue;
       if (!tagFilter(p.audience_tags)) continue;
