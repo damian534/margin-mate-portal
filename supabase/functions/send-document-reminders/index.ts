@@ -101,21 +101,23 @@ Deno.serve(async (req) => {
     // Pull all pending document requests grouped by lead
     const { data: pending, error: pendingErr } = await admin
       .from("document_requests")
-      .select("lead_id, name, status, requested_at")
+      .select("lead_id, name, status, requested_at, section, applicant_id")
       .eq("status", "pending")
       .not("requested_at", "is", null);
 
     if (pendingErr) throw pendingErr;
 
-    const byLead = new Map<string, { earliest: Date; names: string[] }>();
+    type PendingDoc = { name: string; section: string | null; applicant_id: string | null };
+    const byLead = new Map<string, { earliest: Date; docs: PendingDoc[] }>();
     for (const row of pending || []) {
       if (!row.lead_id || !row.requested_at) continue;
       const reqAt = new Date(row.requested_at);
       const cur = byLead.get(row.lead_id);
-      if (!cur) byLead.set(row.lead_id, { earliest: reqAt, names: [row.name] });
+      const doc: PendingDoc = { name: row.name, section: (row as any).section ?? null, applicant_id: (row as any).applicant_id ?? null };
+      if (!cur) byLead.set(row.lead_id, { earliest: reqAt, docs: [doc] });
       else {
         if (reqAt < cur.earliest) cur.earliest = reqAt;
-        cur.names.push(row.name);
+        cur.docs.push(doc);
       }
     }
 
@@ -142,12 +144,13 @@ Deno.serve(async (req) => {
 
     const { data: applicants } = await admin
       .from("lead_applicants")
-      .select("lead_id, name, email")
+      .select("id, lead_id, name, email, display_order")
       .in("lead_id", leadIds);
-    const applicantsByLead = new Map<string, { name: string; email: string | null }[]>();
+    type LeadApplicant = { id: string; name: string; email: string | null; display_order: number };
+    const applicantsByLead = new Map<string, LeadApplicant[]>();
     for (const a of applicants || []) {
       if (!applicantsByLead.has(a.lead_id)) applicantsByLead.set(a.lead_id, []);
-      applicantsByLead.get(a.lead_id)!.push({ name: a.name, email: a.email });
+      applicantsByLead.get(a.lead_id)!.push({ id: a.id, name: a.name, email: a.email, display_order: a.display_order ?? 0 });
     }
 
     // Active portal token per lead
@@ -199,31 +202,61 @@ Deno.serve(async (req) => {
       const unsubscribeUrl = `${SUPABASE_URL}/functions/v1/unsubscribe-doc-reminders?token=${encodeURIComponent(portalToken)}`;
       const brokerName = brokerNameById.get(lead.broker_id || "") || "";
 
-      // Build recipient list — primary + co-applicant + lead_applicants entries (deduped)
-      const recipients: { name: string; email: string }[] = [];
-      const seen = new Set<string>();
-      const pushIf = (name: string, email: string | null | undefined) => {
-        if (!email || !isValidEmail(email)) return;
-        const key = email.toLowerCase();
-        if (seen.has(key)) return;
-        seen.add(key);
-        recipients.push({ name: cleanText(name, "there") || "there", email });
-      };
-      pushIf(`${lead.first_name || ""} ${lead.last_name || ""}`.trim(), lead.email);
+      // Build per-recipient buckets: each applicant gets ONLY their own outstanding docs.
+      // Docs without applicant_id go to the primary applicant (display_order 0 / lead).
+      const leadApps = (applicantsByLead.get(lead.id) || []).slice().sort((a, b) => a.display_order - b.display_order);
+      const primaryApp = leadApps.find(a => a.display_order === 0) || leadApps[0] || null;
       const co = lead.co_applicant_contact_id ? coById.get(lead.co_applicant_contact_id) : null;
-      if (co && !co.email_opt_out) pushIf(`${co.first_name || ""} ${co.last_name || ""}`.trim(), co.email);
-      for (const a of applicantsByLead.get(lead.id) || []) pushIf(a.name, a.email);
+      const primaryName = `${lead.first_name || ""} ${lead.last_name || ""}`.trim() || (primaryApp?.name ?? "there");
+      const primaryEmail = lead.email || primaryApp?.email || null;
 
-      for (const rcpt of recipients) {
+      type Bucket = { name: string; email: string; docs: PendingDoc[] };
+      const buckets = new Map<string, Bucket>(); // key = lowercase email
+      const ensure = (name: string, email: string | null | undefined): Bucket | null => {
+        if (!email || !isValidEmail(email)) return null;
+        const key = email.toLowerCase();
+        let b = buckets.get(key);
+        if (!b) { b = { name: cleanText(name, "there") || "there", email, docs: [] }; buckets.set(key, b); }
+        return b;
+      };
+
+      // Match each pending doc to its applicant's bucket
+      for (const doc of meta.docs) {
+        let target: Bucket | null = null;
+        if (doc.applicant_id) {
+          const app = leadApps.find(a => a.id === doc.applicant_id);
+          if (app) target = ensure(app.name, app.email || (app.display_order === 0 ? primaryEmail : null));
+        }
+        if (!target) {
+          // Fallback to primary applicant / lead email
+          target = ensure(primaryName, primaryEmail);
+        }
+        if (target) target.docs.push(doc);
+      }
+
+      // Also ensure co-applicant contact gets a bucket if they have no docs explicitly assigned
+      // (skipped — co-applicants only receive emails when docs are assigned to them).
+
+      for (const rcpt of buckets.values()) {
+        if (rcpt.docs.length === 0) continue;
         const key = `${lead.id}::${rcpt.email.toLowerCase()}::${dayOffset}`;
         if (sentKeys.has(key)) { summary.skipped++; continue; }
+
+        // Group this recipient's docs by section
+        const groupsMap = new Map<string, string[]>();
+        for (const d of rcpt.docs.slice(0, 50)) {
+          const sec = d.section || 'Other';
+          if (!groupsMap.has(sec)) groupsMap.set(sec, []);
+          groupsMap.get(sec)!.push(d.name);
+        }
+        const outstandingGroups = Array.from(groupsMap.entries()).map(([section, names]) => ({ section, names }));
 
         const html = buildReminderHtml({
           clientName: rcpt.name,
           brokerName,
           portalUrl,
           unsubscribeUrl,
-          outstandingDocs: meta.names.slice(0, 30),
+          outstandingGroups,
           dayOffset,
         });
         const subject = `Reminder: documents still outstanding for your Margin Finance application`;
