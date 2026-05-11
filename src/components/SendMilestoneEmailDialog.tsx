@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { logAudit } from '@/lib/leadAudit';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -33,7 +34,7 @@ function applyVars(text: string, vars: Record<string, string>) {
 }
 
 export function SendMilestoneEmailDialog({ lead }: Props) {
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const [open, setOpen] = useState(false);
   const [milestone, setMilestone] = useState<string>('lodged');
   const [subject, setSubject] = useState('');
@@ -96,13 +97,12 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
       setSending(false);
       return;
     }
-    // Audit note
+    // Audit note → deal timeline
     const m = MILESTONES.find((x) => x.key === milestone);
-    await supabase.from('notes').insert({
-      lead_id: lead.id,
-      content: `📧 Milestone email sent (${m?.label}) to ${to}${bcc ? ` · BCC ${bcc}` : ''}`,
-      author_id: user?.id ?? null,
-    } as any);
+    await logAudit(
+      lead.id,
+      `📧 Milestone email sent (${m?.label}) to ${to}${bcc ? ` · BCC ${bcc}` : ''} · Subject: "${subject}"`,
+    );
     toast.success('Email sent');
     setSending(false);
     setOpen(false);
