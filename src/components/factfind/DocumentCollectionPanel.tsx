@@ -474,6 +474,8 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   const requestedCount = documents.filter(d => !!d.requested_at).length;
   const unrequestedDocs = documents.filter(d => !d.requested_at && d.status === 'pending');
   const outstandingRequestedDocs = documents.filter(d => !!d.requested_at && (d.status === 'pending' || d.status === 'rejected'));
+  // All outstanding docs (never-requested + previously-requested-but-still-pending/rejected). Approved/uploaded are excluded.
+  const allOutstandingDocs = documents.filter(d => d.status === 'pending' || d.status === 'rejected');
   const pendingCount = visibleDocs.filter(d => d.status === 'pending').length;
   const uploadedCount = visibleDocs.filter(d => d.status === 'uploaded').length;
   const approvedCount = visibleDocs.filter(d => d.status === 'approved').length;
