@@ -108,7 +108,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
         return assigneeFilter.includes(l.assigned_to);
       });
     }
-    const effective = (externalSearch ?? search) || '';
+    const effective = (externalSearch && externalSearch.trim()) ? externalSearch : search;
     const q = effective.trim().toLowerCase();
     if (q) {
       result = result.filter(l =>
