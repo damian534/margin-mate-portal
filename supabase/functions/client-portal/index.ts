@@ -21,6 +21,7 @@ serve(async (req) => {
     if (req.method === "GET") {
       const url = new URL(req.url);
       const token = url.searchParams.get("token");
+      const applicantParam = url.searchParams.get("applicant");
       if (!token) {
         return new Response(JSON.stringify({ error: "Missing token" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -66,12 +67,27 @@ serve(async (req) => {
         .eq("lead_id", tokenData.lead_id);
 
       // Get document requests
-      const { data: documents } = await supabase
+      let docsQuery = supabase
         .from("document_requests")
-        .select("id, name, description, status, file_name, rejection_reason")
+        .select("id, name, description, status, file_name, rejection_reason, section, applicant_id")
         .eq("lead_id", tokenData.lead_id)
         .not("requested_at", "is", null)
         .order("created_at", { ascending: true });
+      if (applicantParam) {
+        docsQuery = docsQuery.eq("applicant_id", applicantParam);
+      }
+      const { data: documents } = await docsQuery;
+
+      // Get applicant info to display the recipient's name when scoped
+      let applicantName: string | null = null;
+      if (applicantParam) {
+        const { data: app } = await supabase
+          .from("lead_applicants")
+          .select("name")
+          .eq("id", applicantParam)
+          .maybeSingle();
+        applicantName = app?.name || null;
+      }
 
       return new Response(JSON.stringify({
         lead_id: tokenData.lead_id,
