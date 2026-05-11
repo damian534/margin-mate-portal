@@ -415,6 +415,12 @@ export function LeadDetailSheet({
     fetchNotes(lead.id);
   };
 
+  const downloadAttachment = async (att: NoteAttachment) => {
+    const { data, error } = await supabase.storage.from('note-attachments').createSignedUrl(att.file_path, 60);
+    if (error || !data?.signedUrl) { toast.error('Could not open file'); return; }
+    window.open(data.signedUrl, '_blank');
+  };
+
   const addTaskNote = async (taskId: string) => {
     if (!taskNoteText.trim() || !lead || !user) return;
     const task = tasks.find(t => t.id === taskId);
