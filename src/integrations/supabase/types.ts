@@ -693,6 +693,36 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_professional_contacts: {
+        Row: {
+          contact_id: string
+          created_at: string
+          id: string
+          lead_id: string
+          notes: string | null
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          id?: string
+          lead_id: string
+          notes?: string | null
+          role: string
+          updated_at?: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          id?: string
+          lead_id?: string
+          notes?: string | null
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lead_referrals: {
         Row: {
           created_at: string
