@@ -913,9 +913,7 @@ export function LeadDetailSheet({
               { id: 'sec-status', label: 'Status', icon: CheckCircle },
               { id: 'sec-tabs', label: 'Tasks', icon: Clock, tab: 'timeline' },
               { id: 'sec-activity', label: 'Timeline', icon: Activity, tab: 'timeline' },
-              ...((lead.portal_mode || 'both') !== 'fact_find'
-                ? [{ id: 'sec-tabs', label: 'Documents', icon: FileText, tab: 'documents' }]
-                : []),
+              { id: 'sec-tabs', label: 'Documents', icon: FileText, tab: 'documents' },
               { id: 'sec-tabs', label: 'Commission', icon: DollarSign, tab: 'commission' },
             ].map((link) => {
               const Icon = link.icon;
@@ -1649,18 +1647,16 @@ export function LeadDetailSheet({
           {/* Tabs: Timeline (Tasks + Activity), Commission */}
           <div id="sec-tabs" className="scroll-mt-16" />
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className={cn("w-full grid", (lead.portal_mode || 'both') === 'fact_find' ? 'grid-cols-2' : 'grid-cols-3')}>
+            <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="timeline" className="gap-1 text-xs px-1.5">
                 <Activity className="w-3.5 h-3.5" /> Timeline
                 {pendingTasks.length > 0 && (
                   <span className="ml-0.5 bg-primary/10 text-primary text-[10px] px-1 py-0.5 rounded-full">{pendingTasks.length}</span>
                 )}
               </TabsTrigger>
-              {(lead.portal_mode || 'both') !== 'fact_find' && (
-                <TabsTrigger value="documents" className="gap-1 text-xs px-1.5">
-                  <FileText className="w-3.5 h-3.5" /> Docs
-                </TabsTrigger>
-              )}
+              <TabsTrigger value="documents" className="gap-1 text-xs px-1.5">
+                <FileText className="w-3.5 h-3.5" /> Docs
+              </TabsTrigger>
               <TabsTrigger value="commission" className="gap-1 text-xs px-1.5">
                 <DollarSign className="w-3.5 h-3.5" /> Commission
               </TabsTrigger>
