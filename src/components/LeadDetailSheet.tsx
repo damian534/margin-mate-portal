@@ -1266,8 +1266,12 @@ export function LeadDetailSheet({
                           className="h-9 text-sm"
                         />
                       </div>
+                      <div className="flex-1">
+                        <Label className="text-[11px] text-muted-foreground">Assign to</Label>
+                        <AssigneePicker value={newTaskAssignee} onChange={setNewTaskAssignee} size="sm" />
+                      </div>
                       <div className="flex gap-2 self-end">
-                        <Button variant="ghost" size="sm" onClick={() => { setShowTaskForm(false); setNewTaskTitle(''); setNewTaskDueDate(''); setNewTaskDescription(''); }}>Cancel</Button>
+                        <Button variant="ghost" size="sm" onClick={() => { setShowTaskForm(false); setNewTaskTitle(''); setNewTaskDueDate(''); setNewTaskDescription(''); setNewTaskAssignee(null); }}>Cancel</Button>
                         <Button size="sm" onClick={createTask} disabled={!newTaskTitle.trim()}>Create task</Button>
                       </div>
                     </div>
