@@ -47,6 +47,12 @@ interface DocumentCollectionPanelProps {
   primaryApplicantEmail?: string | null;
   primaryApplicantPhone?: string | null;
   actionsSlot?: React.ReactNode;
+  /** Co-applicant contact linked on the deal card. When provided, applicant #2 is auto-synced to mirror this contact. */
+  coApplicantContact?: { id: string; first_name: string; last_name: string; email?: string | null; phone?: string | null } | null;
+  /** Called when a second applicant is added inside the documents panel. Should create a contact and link it to the lead, returning the new contact id. */
+  onCoApplicantAdded?: (data: { firstName: string; lastName: string; email: string; phone: string }) => Promise<string | null>;
+  /** Called when the second applicant is removed inside the documents panel. Should unlink the co-applicant contact from the lead. */
+  onCoApplicantRemoved?: () => Promise<void> | void;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -79,7 +85,7 @@ const applicantSchema = z.object({
   phone: z.string().trim().min(8, 'Mobile is required').max(20, 'Mobile is too long').regex(/^[+\d\s()-]+$/, 'Please enter a valid mobile'),
 });
 
-export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplicantName, primaryApplicantEmail, primaryApplicantPhone, actionsSlot }: DocumentCollectionPanelProps) {
+export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplicantName, primaryApplicantEmail, primaryApplicantPhone, actionsSlot, coApplicantContact, onCoApplicantAdded, onCoApplicantRemoved }: DocumentCollectionPanelProps) {
   const [documents, setDocuments] = useState<DocumentRequest[]>([]);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [templates, setTemplates] = useState<Template[]>(FALLBACK_TEMPLATES);
@@ -115,6 +121,35 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
     fetchAll();
     fetchTemplates();
   }, [leadId, primaryName, primaryEmail, primaryPhone]);
+
+  // Sync from deal card → docs panel: when a co-applicant contact is linked on the lead,
+  // ensure a lead_applicants row at display_order=1 mirroring that contact's details.
+  useEffect(() => {
+    if (isPreviewMode || !coApplicantContact || isLoading) return;
+    const fullName = `${coApplicantContact.first_name ?? ''} ${coApplicantContact.last_name ?? ''}`.trim();
+    if (!fullName) return;
+    const email = coApplicantContact.email ?? null;
+    const phone = coApplicantContact.phone ?? null;
+    const existing = applicants.find(a => a.display_order === 1);
+    (async () => {
+      if (!existing) {
+        const { data, error } = await supabase.from('lead_applicants').insert({
+          lead_id: leadId, name: fullName, employment_type: 'PAYG', display_order: 1, email, phone,
+        } as any).select().single();
+        if (!error && data) {
+          setApplicants(prev => [...prev, data as Applicant]);
+        }
+      } else if (existing.name !== fullName || (existing.email ?? null) !== email || (existing.phone ?? null) !== phone) {
+        const { data, error } = await supabase.from('lead_applicants')
+          .update({ name: fullName, email, phone } as any)
+          .eq('id', existing.id).select().single();
+        if (!error && data) {
+          setApplicants(prev => prev.map(a => a.id === existing.id ? (data as Applicant) : a));
+        }
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coApplicantContact?.id, coApplicantContact?.first_name, coApplicantContact?.last_name, coApplicantContact?.email, coApplicantContact?.phone, isLoading]);
 
   const fetchTemplates = async () => {
     if (isPreviewMode) return;
@@ -241,6 +276,19 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       // auto-load template for this applicant (match by name)
       const tpl = templates.find(t => t.name === newApplicantType);
       if (tpl) await loadTemplate(tpl, (data as Applicant).id);
+      // Sync to deal card: if this is the second applicant and no co-applicant is linked yet, create the contact and link it.
+      if (order === 1 && onCoApplicantAdded && !coApplicantContact) {
+        try {
+          await onCoApplicantAdded({
+            firstName: parsed.data.firstName,
+            lastName: parsed.data.lastName,
+            email: parsed.data.email,
+            phone: parsed.data.phone,
+          });
+        } catch (e) {
+          console.warn('Co-applicant sync to deal card failed', e);
+        }
+      }
     }
     toast.success('Applicant added');
     setNewApplicantFirstName('');
@@ -268,6 +316,10 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
     setApplicants(prev => prev.filter(a => a.id !== id));
     setDocuments(prev => prev.filter(d => d.applicant_id !== id));
     if (activeApplicantId === id) setActiveApplicantId('all');
+    // Sync to deal card: if removing applicant 2, also unlink the co-applicant contact from the lead.
+    if (applicant?.display_order === 1 && onCoApplicantRemoved) {
+      try { await onCoApplicantRemoved(); } catch (e) { console.warn('Co-applicant unlink failed', e); }
+    }
     toast.success('Applicant removed');
   };
 

@@ -884,6 +884,10 @@ export function LeadDetailSheet({
       return sameEmail || samePhone || sameName;
     });
 
+  const coApplicantContact = lead.co_applicant_contact_id
+    ? contactsList.find(c => c.id === lead.co_applicant_contact_id) ?? null
+    : null;
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-3xl overflow-y-auto p-0">
@@ -1709,6 +1713,31 @@ export function LeadDetailSheet({
                 primaryApplicantName={`${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim() || 'Primary Applicant'}
                 primaryApplicantEmail={lead.email}
                 primaryApplicantPhone={lead.phone}
+                coApplicantContact={coApplicantContact ? {
+                  id: coApplicantContact.id,
+                  first_name: coApplicantContact.first_name,
+                  last_name: coApplicantContact.last_name,
+                  email: coApplicantContact.email,
+                  phone: coApplicantContact.phone,
+                } : null}
+                onCoApplicantAdded={async ({ firstName, lastName, email, phone }) => {
+                  if (isPreviewMode) return null;
+                  const { data, error } = await supabase.from('contacts').insert({
+                    first_name: firstName, last_name: lastName,
+                    email: email || null, phone: phone || null,
+                    type: 'client', created_by: user?.id,
+                  } as any).select().single();
+                  if (error || !data) { toast.error('Could not link co-applicant on deal card'); return null; }
+                  const newId = (data as any).id as string;
+                  await supabase.from('leads').update({ co_applicant_contact_id: newId } as any).eq('id', lead.id);
+                  onLeadChange?.({ ...lead, co_applicant_contact_id: newId });
+                  return newId;
+                }}
+                onCoApplicantRemoved={async () => {
+                  if (isPreviewMode) return;
+                  await supabase.from('leads').update({ co_applicant_contact_id: null } as any).eq('id', lead.id);
+                  onLeadChange?.({ ...lead, co_applicant_contact_id: null });
+                }}
               />
             </TabsContent>
 
