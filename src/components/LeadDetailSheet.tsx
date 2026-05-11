@@ -1157,7 +1157,7 @@ export function LeadDetailSheet({
                 }
               }}
             />
-            {(lead.co_applicant_contact_id || !lead.co_applicant_contact_id) && (
+            {lead.co_applicant_contact_id && (
             <CoApplicantPicker
               contacts={mergedContactsList}
               value={lead.co_applicant_contact_id_2 ?? null}
