@@ -20,6 +20,8 @@ interface SendFactFindRequest {
   /** Optional override used when requesting docs from a second applicant. */
   recipient_email?: string;
   recipient_name?: string;
+  /** Optional: when sending docs to a specific applicant, scope the portal link to their docs only. */
+  applicant_id?: string | null;
 }
 
 const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 255;
