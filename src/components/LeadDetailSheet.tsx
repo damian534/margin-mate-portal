@@ -35,6 +35,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { CoApplicantPicker } from '@/components/CoApplicantPicker';
 import { ProfessionalContactsSection } from '@/components/ProfessionalContactsSection';
 import { SubjectToFinanceSection } from '@/components/SubjectToFinanceSection';
+import { PreApprovalSection } from '@/components/PreApprovalSection';
 import { LoanSplitsEditor } from '@/components/LoanSplitsEditor';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -75,6 +76,10 @@ interface Lead {
   doc_reminders_paused?: boolean | null;
   subject_to_finance?: boolean | null;
   finance_due_date?: string | null;
+  pre_approval_purchase_price?: number | null;
+  pre_approval_loan_amount?: number | null;
+  pre_approval_expiry_date?: string | null;
+  pre_approval_ftc?: number | null;
 }
 
 interface Note {
