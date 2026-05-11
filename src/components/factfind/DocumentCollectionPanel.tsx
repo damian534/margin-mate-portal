@@ -973,6 +973,9 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
                               <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => fileInputRefs.current[doc.id]?.click()}>
                                 <Upload className="w-3 h-3" /> {doc.status === 'rejected' ? 'Re-upload' : 'Upload'}
                               </Button>
+                              <Button variant="outline" size="sm" className="h-7 text-xs gap-1 text-emerald-700 border-emerald-200 hover:bg-emerald-50" onClick={() => updateStatus(doc.id, 'approved')}>
+                                <CheckCircle2 className="w-3 h-3" /> Mark Provided
+                              </Button>
                             </>
                           )}
                           {doc.status === 'uploaded' && (
@@ -986,6 +989,11 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
                                 <XCircle className="w-3 h-3" /> Reject
                               </Button>
                             </>
+                          )}
+                          {doc.status === 'approved' && !doc.file_path && (
+                            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => updateStatus(doc.id, 'pending')}>
+                              Undo
+                            </Button>
                           )}
                           <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-destructive hover:text-destructive ml-auto" onClick={() => deleteDocumentRequest(doc.id)}>
                             <Trash2 className="w-3 h-3" />
