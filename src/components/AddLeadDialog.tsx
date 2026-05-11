@@ -417,8 +417,8 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
               <Input type="number" value={loanAmount} onChange={e => setLoanAmount(e.target.value)} placeholder="0" min={0} max={999999999} />
             </div>
             <div className="space-y-1.5">
-              <Label>Loan Purpose</Label>
-              <Input value={loanPurpose} onChange={e => setLoanPurpose(e.target.value)} placeholder="e.g. Home Purchase" />
+              <Label>Transaction</Label>
+              <Input value={loanPurpose} onChange={e => setLoanPurpose(e.target.value)} placeholder="e.g. Purchase" />
             </div>
           </div>
 

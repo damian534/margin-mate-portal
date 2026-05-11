@@ -101,10 +101,13 @@ interface LeadSource {
 }
 
 const LOAN_PURPOSE_OPTIONS = [
-  { value: 'first_home', label: 'First Home' },
   { value: 'refinance', label: 'Refinance' },
-  { value: 'next_home', label: 'Next Home' },
-  { value: 'investment', label: 'Investment' },
+  { value: 'pre_approval', label: 'Pre Approval' },
+  { value: 'construction', label: 'Construction' },
+  { value: 'top_up', label: 'Top Up' },
+  { value: 'variation', label: 'Variation' },
+  { value: 'discharge', label: 'Discharge' },
+  { value: 'purchase', label: 'Purchase' },
 ];
 
 interface ContactOption {
@@ -1476,7 +1479,7 @@ export function LeadDetailSheet({
               <p className="text-[10px] text-muted-foreground mt-1">Sum of all loan splits below.</p>
             </div>
             <div className="flex-1">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Loan Purpose</Label>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Transaction</Label>
               <Select
                 value={lead.loan_purpose ?? ''}
                 onValueChange={async (val) => {
@@ -1487,7 +1490,7 @@ export function LeadDetailSheet({
                   }
                 }}
               >
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Select purpose" /></SelectTrigger>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Select transaction" /></SelectTrigger>
                 <SelectContent>
                   {LOAN_PURPOSE_OPTIONS.map(opt => (
                     <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
