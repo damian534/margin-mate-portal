@@ -747,6 +747,36 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_pre_approval_conditions: {
+        Row: {
+          completed: boolean
+          created_at: string
+          display_order: number
+          id: string
+          label: string
+          lead_id: string
+          updated_at: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          display_order?: number
+          id?: string
+          label: string
+          lead_id: string
+          updated_at?: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          display_order?: number
+          id?: string
+          label?: string
+          lead_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lead_professional_contacts: {
         Row: {
           contact_id: string
@@ -892,6 +922,10 @@ export type Database = {
           original_broker_id: string | null
           phone: string | null
           portal_mode: string
+          pre_approval_expiry_date: string | null
+          pre_approval_ftc: number | null
+          pre_approval_loan_amount: number | null
+          pre_approval_purchase_price: number | null
           referral_partner_id: string | null
           referrer_commission: number | null
           referrer_commission_paid: boolean | null
@@ -928,6 +962,10 @@ export type Database = {
           original_broker_id?: string | null
           phone?: string | null
           portal_mode?: string
+          pre_approval_expiry_date?: string | null
+          pre_approval_ftc?: number | null
+          pre_approval_loan_amount?: number | null
+          pre_approval_purchase_price?: number | null
           referral_partner_id?: string | null
           referrer_commission?: number | null
           referrer_commission_paid?: boolean | null
@@ -964,6 +1002,10 @@ export type Database = {
           original_broker_id?: string | null
           phone?: string | null
           portal_mode?: string
+          pre_approval_expiry_date?: string | null
+          pre_approval_ftc?: number | null
+          pre_approval_loan_amount?: number | null
+          pre_approval_purchase_price?: number | null
           referral_partner_id?: string | null
           referrer_commission?: number | null
           referrer_commission_paid?: boolean | null
