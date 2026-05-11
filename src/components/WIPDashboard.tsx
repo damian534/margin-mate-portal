@@ -14,6 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { Users } from 'lucide-react';
+import { HorizontalScrollWithTopBar } from '@/components/HorizontalScrollWithTopBar';
 
 export const WIP_STATUSES = [
   { name: 'onboarding', label: 'Onboarding', color: '#94a3b8' },
@@ -348,8 +349,8 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
           </div>
         )
       ) : (
-      <div className="min-w-0 overflow-hidden">
-        <div className="flex gap-3 pb-4 overflow-x-auto" style={{ minHeight: '60vh', minWidth: 0 }}>
+      <HorizontalScrollWithTopBar style={{ minHeight: '60vh' }}>
+        <div className="flex gap-3 pb-4" style={{ minWidth: 'max-content' }}>
           {WIP_STATUSES.map(stage => {
             const stageLeads = grouped.get(stage.name) || [];
             const t = totals.get(stage.name)!;
@@ -542,7 +543,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
             );
           })}
         </div>
-      </div>
+      </HorizontalScrollWithTopBar>
       )}
     </div>
   );
