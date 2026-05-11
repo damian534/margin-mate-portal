@@ -81,6 +81,13 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, settled
     setSplits(next); recomputeTotal(next);
     if (isPreviewMode || id.startsWith('preview-')) return;
     await supabase.from('loan_splits').update(patch as any).eq('id', id);
+    // When a split is marked settled, propagate to the lead status.
+    if (patch.settled === true) {
+      await supabase.from('leads').update({
+        status: 'settled',
+        settled_date: format(new Date(), 'yyyy-MM-dd'),
+      } as any).eq('id', leadId);
+    }
   };
 
   const deleteSplit = async (id: string) => {
@@ -161,6 +168,16 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, settled
                 )}
               </div>
               <span className="text-sm font-bold tabular-nums">${(s.amount || 0).toLocaleString()}</span>
+              <div className="flex items-center gap-2 pl-2 border-l border-border">
+                <Label htmlFor={`settled-toggle-${s.id}`} className={cn('text-[11px] cursor-pointer', s.settled ? 'text-success font-semibold' : 'text-muted-foreground')}>
+                  {s.settled ? 'Settled' : 'Mark settled'}
+                </Label>
+                <Switch
+                  id={`settled-toggle-${s.id}`}
+                  checked={!!s.settled}
+                  onCheckedChange={(v) => updateSplit(s.id, { settled: v, settled_date: v ? format(new Date(), 'yyyy-MM-dd') : null } as any)}
+                />
+              </div>
             </div>
           ))}
         </div>
