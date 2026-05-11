@@ -17,6 +17,8 @@ interface SendFactFindRequest {
   document_names?: string[];
   /** When mode='documents', preferred grouped doc list. Each section becomes a labelled group in the email. */
   document_groups?: { section: string; names: string[] }[];
+  /** When mode='documents', list of previously-rejected docs that need to be re-uploaded, with reasons. */
+  rejected_documents?: { name: string; reason?: string | null; section?: string | null }[];
   /** Optional override used when requesting docs from a second applicant. */
   recipient_email?: string;
   recipient_name?: string;
@@ -132,6 +134,7 @@ function buildDocumentsEmailHtml(
   portalUrl: string,
   brokerName: string,
   groups: { section: string; names: string[] }[],
+  rejected: { name: string; reason: string }[] = [],
 ): string {
   const orderedGroups = [...groups]
     .filter(g => g.names.length > 0)
@@ -147,6 +150,20 @@ function buildDocumentsEmailHtml(
           <ul class="doc-list">${g.names.map(n => `<li>${n.replace(/</g, '&lt;')}</li>`).join('')}</ul>
         </div>`).join('')
     : '<p class="body-text">Your broker will list the required documents inside the portal.</p>';
+  const rejectedHtml = rejected.length
+    ? `
+      <div class="doc-section" style="background:#fef2f2; border-color:#fecaca;">
+        <h3 style="color:#b91c1c;">⚠️ Action required — please re-upload</h3>
+        <p class="body-text" style="margin:0 0 12px;">The following document${rejected.length === 1 ? '' : 's'} could not be accepted. Please review the reason and upload a replacement via the portal.</p>
+        <ul class="doc-list" style="list-style:none; padding:0;">
+          ${rejected.map(r => `
+            <li style="margin:0 0 12px; padding:12px 14px; background:#fff; border:1px solid #fecaca; border-radius:6px;">
+              <div style="font-weight:600; color:#1a1a1a; font-size:14px;">${r.name.replace(/</g, '&lt;')}</div>
+              ${r.reason ? `<div style="font-size:13px; color:#b91c1c; margin-top:4px;"><strong>Reason:</strong> ${r.reason.replace(/</g, '&lt;')}</div>` : ''}
+            </li>`).join('')}
+        </ul>
+      </div>`
+    : '';
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -187,6 +204,7 @@ function buildDocumentsEmailHtml(
       <div class="cta-container">
         <a href="${portalUrl}" class="cta-btn">Upload My Documents</a>
       </div>
+      ${rejectedHtml}
       <div class="doc-section">
         <h3>📄 Documents requested:</h3>
         ${groupedHtml}
@@ -233,7 +251,7 @@ Deno.serve(async (req) => {
     }
     const userId = claimsData.claims.sub as string;
 
-    const { lead_id, app_url, mode = 'factfind', document_names = [], document_groups, recipient_email, recipient_name, applicant_id } = (await req.json()) as SendFactFindRequest;
+    const { lead_id, app_url, mode = 'factfind', document_names = [], document_groups, rejected_documents = [], recipient_email, recipient_name, applicant_id } = (await req.json()) as SendFactFindRequest;
 
     if (!lead_id || !app_url) {
       return new Response(
@@ -326,11 +344,16 @@ Deno.serve(async (req) => {
       : (document_names.length
           ? [{ section: 'Other', names: document_names.map(n => cleanText(n, 'Requested document')) }]
           : []);
+    const rejected = (rejected_documents || [])
+      .map(r => ({ name: cleanText(r.name, 'Document'), reason: cleanText(r.reason, '') }))
+      .filter(r => r.name);
     const html = mode === 'documents'
-      ? buildDocumentsEmailHtml(clientName, portalUrl, brokerName, groups)
+      ? buildDocumentsEmailHtml(clientName, portalUrl, brokerName, groups, rejected)
       : buildEmailHtml(clientName, portalUrl, brokerName);
     const subject = mode === 'documents'
-      ? `${clientName} — Documents requested by Margin Finance`
+      ? (rejected.length
+          ? `${clientName} — Action required: ${rejected.length} document${rejected.length === 1 ? '' : 's'} need re-uploading`
+          : `${clientName} — Documents requested by Margin Finance`)
       : `${clientName} — Your Margin Finance Fact Find is ready`;
 
     const emailRes = await fetch("https://api.resend.com/emails", {
