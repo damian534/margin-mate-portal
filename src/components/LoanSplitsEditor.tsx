@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, DollarSign, Layers } from 'lucide-react';
+import { Plus, Trash2, DollarSign, Layers, CheckCircle2, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { SectionCard } from '@/components/lead/SectionCard';
 
 export interface LoanSplit {
   id: string;
@@ -22,9 +23,13 @@ interface Props {
   leadId: string;
   isPreviewMode?: boolean;
   onTotalChange?: (total: number) => void;
+  /** When true, the section presents as the Settlement record (loan splits become settled). */
+  settled?: boolean;
+  /** Optional settlement date to surface in the header. */
+  settledDate?: string | null;
 }
 
-export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange }: Props) {
+export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, settled = false, settledDate = null }: Props) {
   const [splits, setSplits] = useState<LoanSplit[]>([]);
   const [lenders, setLenders] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,17 +87,28 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange }: Props
 
   const total = splits.reduce((sum, x) => sum + (x.amount || 0), 0);
 
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <Label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-          <Layers className="w-3.5 h-3.5" /> Loan Splits
-        </Label>
-        <span className="text-xs text-muted-foreground">
-          Total: <span className="font-bold text-foreground">${total.toLocaleString()}</span>
-        </span>
-      </div>
+  const lenders_summary = Array.from(new Set(splits.map(s => s.lender).filter(Boolean) as string[]));
+  const subtitle = settled
+    ? <span>
+        <span className="text-success font-semibold">Settled</span>
+        {settledDate && <> · {new Date(settledDate).toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' })}</>}
+        {splits.length > 0 && <> · {splits.length} split{splits.length === 1 ? '' : 's'} · ${total.toLocaleString()}</>}
+        {lenders_summary.length > 0 && <> · {lenders_summary.join(', ')}</>}
+      </span>
+    : <span>
+        {splits.length === 0
+          ? 'No splits added yet'
+          : <>{splits.length} split{splits.length === 1 ? '' : 's'} · Total <span className="font-semibold text-foreground">${total.toLocaleString()}</span></>}
+      </span>;
 
+  return (
+    <SectionCard
+      icon={settled ? CheckCircle2 : Layers}
+      title={settled ? 'Settlement' : 'Loan Splits'}
+      tone={settled ? 'success' : 'neutral'}
+      subtitle={subtitle}
+      defaultCollapsed={settled || splits.length > 0}
+    >
       {loading ? (
         <p className="text-xs text-muted-foreground">Loading…</p>
       ) : splits.length === 0 ? (
@@ -101,6 +117,37 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange }: Props
           <Button size="sm" variant="outline" onClick={addSplit}>
             <Plus className="w-3.5 h-3.5 mr-1" /> Add first split
           </Button>
+        </div>
+      ) : settled ? (
+        <div className="space-y-2">
+          <div className="rounded-md border border-success/30 bg-success/5 p-3 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm">
+              <CheckCircle2 className="w-4 h-4 text-success" />
+              <span className="font-semibold">Total Settled</span>
+            </div>
+            <span className="text-base font-bold text-success">${total.toLocaleString()}</span>
+          </div>
+          {splits.map((s, i) => (
+            <div key={s.id} className="rounded-md border border-border bg-background px-3 py-2 flex items-center gap-3">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-success bg-success/10 px-1.5 py-0.5 rounded shrink-0">
+                Split #{i + 1}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate flex items-center gap-1.5">
+                  {s.lender ? (<><Building2 className="w-3 h-3 text-muted-foreground" />{s.lender}</>) : <span className="text-muted-foreground italic">No lender</span>}
+                  {s.loan_purpose && <span className="text-[11px] text-muted-foreground font-normal">· {s.loan_purpose}</span>}
+                </p>
+                {(s.security_address || s.application_id) && (
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    {s.security_address}
+                    {s.security_address && s.application_id && ' · '}
+                    {s.application_id && <>App: {s.application_id}</>}
+                  </p>
+                )}
+              </div>
+              <span className="text-sm font-bold tabular-nums">${(s.amount || 0).toLocaleString()}</span>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="space-y-2">
@@ -169,6 +216,6 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange }: Props
           </Button>
         </div>
       )}
-    </div>
+    </SectionCard>
   );
 }
