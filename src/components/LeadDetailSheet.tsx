@@ -35,6 +35,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { CoApplicantPicker } from '@/components/CoApplicantPicker';
 import { ProfessionalContactsSection } from '@/components/ProfessionalContactsSection';
 import { SubjectToFinanceSection } from '@/components/SubjectToFinanceSection';
+import { PreApprovalSection } from '@/components/PreApprovalSection';
 import { LoanSplitsEditor } from '@/components/LoanSplitsEditor';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -75,6 +76,10 @@ interface Lead {
   doc_reminders_paused?: boolean | null;
   subject_to_finance?: boolean | null;
   finance_due_date?: string | null;
+  pre_approval_purchase_price?: number | null;
+  pre_approval_loan_amount?: number | null;
+  pre_approval_expiry_date?: string | null;
+  pre_approval_ftc?: number | null;
 }
 
 interface Note {
@@ -1059,6 +1064,19 @@ export function LeadDetailSheet({
             isPreviewMode={isPreviewMode}
             onChange={(updates) => onLeadChange?.({ ...lead, ...updates })}
           />
+
+          {/* Pre-Approval — only for Pre Approval transaction type */}
+          {lead.loan_purpose === 'pre_approval' && (
+            <PreApprovalSection
+              leadId={lead.id}
+              purchasePrice={lead.pre_approval_purchase_price ?? null}
+              loanAmount={lead.pre_approval_loan_amount ?? null}
+              expiryDate={lead.pre_approval_expiry_date ?? null}
+              ftc={lead.pre_approval_ftc ?? null}
+              isPreviewMode={isPreviewMode}
+              onChange={(updates) => onLeadChange?.({ ...lead, ...updates })}
+            />
+          )}
 
           <div className="mb-4 rounded-xl border-2 border-success/30 bg-gradient-to-br from-success/10 via-background to-background shadow-md overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 bg-success/10 border-b border-success/20">
