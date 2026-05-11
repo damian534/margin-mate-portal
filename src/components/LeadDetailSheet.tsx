@@ -209,6 +209,7 @@ export function LeadDetailSheet({
   const [addingSource, setAddingSource] = useState(false);
   const [newSourceLabel, setNewSourceLabel] = useState('');
   const [heroCollapsed, setHeroCollapsed] = usePersistedState<boolean>('crm.deal.tasksHero.collapsed', false);
+  const [expandAllOn, setExpandAllOn] = useState(false);
   const [heroNoteFor, setHeroNoteFor] = useState<string | null>(null);
   const [heroNoteText, setHeroNoteText] = useState('');
   const [openHeroTaskId, setOpenHeroTaskId] = useState<string | null>(null);
