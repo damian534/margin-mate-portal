@@ -135,6 +135,8 @@ function CampaignComposer({ open, onOpenChange, campaign, brokerId, isPreviewMod
   const [body, setBody] = useState('');
   const [fromName, setFromName] = useState('Margin Connect');
   const [fromEmail, setFromEmail] = useState('onboarding@resend.dev');
+  const [testEmail, setTestEmail] = useState('');
+  const [sendingTest, setSendingTest] = useState(false);
   const [sources, setSources] = useState<string[]>(['contacts', 'partners']);
   const tags: string[] = [];
   const [audienceCount, setAudienceCount] = useState<number | null>(null);
@@ -152,6 +154,10 @@ function CampaignComposer({ open, onOpenChange, campaign, brokerId, isPreviewMod
       setFromEmail(campaign?.from_email || 'onboarding@resend.dev');
       setSources(campaign?.audience_sources || ['contacts', 'partners']);
       setAudienceCount(null);
+      // Default test address to the logged-in user's email
+      supabase.auth.getUser().then(({ data }) => {
+        if (data.user?.email) setTestEmail(prev => prev || data.user!.email!);
+      });
     }
   }, [open, campaign]);
 
@@ -244,7 +250,10 @@ function CampaignComposer({ open, onOpenChange, campaign, brokerId, isPreviewMod
               <div><Label>From name</Label><Input value={fromName} onChange={e => setFromName(e.target.value)} disabled={isReadonly} /></div>
               <div><Label>From email</Label><Input value={fromEmail} onChange={e => setFromEmail(e.target.value)} disabled={isReadonly} /></div>
             </div>
-            <p className="text-xs text-muted-foreground">Note: until you verify your own domain, use <code>onboarding@resend.dev</code>.</p>
+            <p className="text-xs text-muted-foreground">
+              To send from <strong>your own address</strong> (e.g. <code>damian@margin.com.au</code>),
+              your domain must first be verified in Resend. Until then the safest default is <code>onboarding@resend.dev</code>.
+            </p>
             <div><Label>Subject</Label><Input value={subject} onChange={e => setSubject(e.target.value)} disabled={isReadonly} placeholder="Hi {{first_name}}, your monthly update" /></div>
             <div>
               <Label>Body (HTML allowed)</Label>
@@ -280,6 +289,41 @@ function CampaignComposer({ open, onOpenChange, campaign, brokerId, isPreviewMod
               <div className="border-t pt-4 prose prose-sm max-w-none" dangerouslySetInnerHTML={{
                 __html: body.replace(/\{\{first_name\}\}/g, 'John').replace(/\{\{last_name\}\}/g, 'Smith').replace(/\{\{full_name\}\}/g, 'John Smith').replace(/\{\{email\}\}/g, 'john@example.com') || '<em style="color:#888">No body</em>',
               }} />
+            </div>
+            <div className="mt-4 p-3 border rounded-md bg-background">
+              <Label className="text-sm">Send a test to your inbox</Label>
+              <div className="flex gap-2 mt-2">
+                <Input
+                  type="email"
+                  placeholder="you@example.com"
+                  value={testEmail}
+                  onChange={e => setTestEmail(e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  variant="outline"
+                  disabled={sendingTest || !testEmail.trim() || !subject.trim() || !body.trim() || isPreviewMode}
+                  onClick={async () => {
+                    setSendingTest(true);
+                    const { data, error } = await supabase.functions.invoke('send-edm', {
+                      body: {
+                        action: 'send_test',
+                        test_email: testEmail.trim(),
+                        subject, body_html: body,
+                        from_name: fromName, from_email: fromEmail,
+                      },
+                    });
+                    setSendingTest(false);
+                    if (error || data?.error) { toast.error(data?.error || 'Test send failed'); return; }
+                    toast.success(`Test sent to ${testEmail}`);
+                  }}
+                >
+                  <Send className="w-4 h-4 mr-2" /> {sendingTest ? 'Sending...' : 'Send test'}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Test emails use sample merge values (John Smith) and are prefixed with <code>[TEST]</code>.
+              </p>
             </div>
           </TabsContent>
         </Tabs>
