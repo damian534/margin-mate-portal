@@ -1135,7 +1135,11 @@ export function LeadDetailSheet({
             <CoApplicantPicker
               contacts={contactsList}
               value={lead.co_applicant_contact_id ?? null}
-              excludeIds={lead.source_contact_id ? [lead.source_contact_id] : []}
+              excludeIds={[
+                lead.source_contact_id,
+                lead.co_applicant_contact_id_2,
+                lead.co_applicant_contact_id_3,
+              ].filter(Boolean) as string[]}
               isPreviewMode={isPreviewMode}
               onOpenContact={onOpenContact}
               hideHeader
@@ -1143,6 +1147,42 @@ export function LeadDetailSheet({
                 onLeadChange?.({ ...lead, co_applicant_contact_id: newId });
                 if (!isPreviewMode) {
                   await supabase.from('leads').update({ co_applicant_contact_id: newId } as any).eq('id', lead.id);
+                }
+              }}
+            />
+            <CoApplicantPicker
+              contacts={contactsList}
+              value={lead.co_applicant_contact_id_2 ?? null}
+              excludeIds={[
+                lead.source_contact_id,
+                lead.co_applicant_contact_id,
+                lead.co_applicant_contact_id_3,
+              ].filter(Boolean) as string[]}
+              isPreviewMode={isPreviewMode}
+              onOpenContact={onOpenContact}
+              hideHeader
+              onChange={async (newId) => {
+                onLeadChange?.({ ...lead, co_applicant_contact_id_2: newId });
+                if (!isPreviewMode) {
+                  await supabase.from('leads').update({ co_applicant_contact_id_2: newId } as any).eq('id', lead.id);
+                }
+              }}
+            />
+            <CoApplicantPicker
+              contacts={contactsList}
+              value={lead.co_applicant_contact_id_3 ?? null}
+              excludeIds={[
+                lead.source_contact_id,
+                lead.co_applicant_contact_id,
+                lead.co_applicant_contact_id_2,
+              ].filter(Boolean) as string[]}
+              isPreviewMode={isPreviewMode}
+              onOpenContact={onOpenContact}
+              hideHeader
+              onChange={async (newId) => {
+                onLeadChange?.({ ...lead, co_applicant_contact_id_3: newId });
+                if (!isPreviewMode) {
+                  await supabase.from('leads').update({ co_applicant_contact_id_3: newId } as any).eq('id', lead.id);
                 }
               }}
             />
