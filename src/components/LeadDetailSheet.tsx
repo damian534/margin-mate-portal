@@ -217,6 +217,12 @@ export function LeadDetailSheet({
   const [heroNoteText, setHeroNoteText] = useState('');
   const [openHeroTaskId, setOpenHeroTaskId] = useState<string | null>(null);
   const [activeNavKey, setActiveNavKey] = useState<string | null>(null);
+  const [extraContacts, setExtraContacts] = useState<any[]>([]);
+  const mergedContactsList = (() => {
+    if (extraContacts.length === 0) return contactsList;
+    const ids = new Set(contactsList.map((c: any) => c.id));
+    return [...contactsList, ...extraContacts.filter(c => !ids.has(c.id))];
+  })();
 
   const handleAddSource = async () => {
     const label = newSourceLabel.trim();
