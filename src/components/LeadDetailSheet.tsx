@@ -1434,10 +1434,39 @@ export function LeadDetailSheet({
               {/* Add note form */}
               <div className="space-y-2">
                 <Textarea value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder="Log a note, call summary, or update..." rows={2} maxLength={2000} />
+                {noteFiles.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {noteFiles.map((f, i) => (
+                      <span key={i} className="inline-flex items-center gap-1 text-xs bg-muted px-2 py-1 rounded">
+                        <FileText className="w-3 h-3" />
+                        <span className="max-w-[160px] truncate">{f.name}</span>
+                        <button onClick={() => setNoteFiles(prev => prev.filter((_, j) => j !== i))} className="hover:text-destructive">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <Checkbox id="notify-detail" checked={notifyPartner} onCheckedChange={(v) => setNotifyPartner(v === true)} />
                     <Label htmlFor="notify-detail" className="text-xs cursor-pointer">Notify partner</Label>
+                    <input
+                      ref={noteFileInputRef}
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        const valid = files.filter(f => f.size <= 25 * 1024 * 1024);
+                        if (valid.length < files.length) toast.error('Some files exceeded 25MB and were skipped');
+                        setNoteFiles(prev => [...prev, ...valid]);
+                        if (noteFileInputRef.current) noteFileInputRef.current.value = '';
+                      }}
+                    />
+                    <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => noteFileInputRef.current?.click()}>
+                      <Paperclip className="w-3.5 h-3.5" /> Attach
+                    </Button>
                   </div>
                   <Button onClick={() => addNote(newNote)} disabled={!newNote.trim()} size="sm" className="gap-1.5">
                     <Send className="w-3.5 h-3.5" /> Log
