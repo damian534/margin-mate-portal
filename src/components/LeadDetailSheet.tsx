@@ -26,7 +26,7 @@ import {
   Mail, Phone, Send, Trash2, Users, Building2, DollarSign,
   Calendar, Plus, CheckCircle, Clock, AlertTriangle,
   MessageSquare, Activity, ChevronDown, ChevronRight, Pencil, X, Save,
-  Search, ExternalLink, FileText, Copy
+  Search, ExternalLink, FileText, Copy, Flag
 } from 'lucide-react';
 import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectionPanel';
 import { ReferLeadDialog } from '@/components/ReferLeadDialog';
@@ -37,6 +37,7 @@ import { ProfessionalContactsSection } from '@/components/ProfessionalContactsSe
 import { SubjectToFinanceSection } from '@/components/SubjectToFinanceSection';
 import { PreApprovalSection } from '@/components/PreApprovalSection';
 import { LoanSplitsEditor } from '@/components/LoanSplitsEditor';
+import { SectionCard } from '@/components/lead/SectionCard';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
@@ -1215,6 +1216,86 @@ export function LeadDetailSheet({
             )}
           </div>
 
+          {/* Loan Splits — moved to sit directly under Tasks */}
+          <LoanSplitsEditor
+            leadId={lead.id}
+            isPreviewMode={isPreviewMode}
+            settled={lead.status === 'settled' || !!(lead as any).settled_date}
+            settledDate={(lead as any).settled_date ?? null}
+            onTotalChange={async (total) => {
+              const val = total > 0 ? total : null;
+              if (val !== lead.loan_amount) {
+                onLeadChange?.({ ...lead, loan_amount: val });
+                if (!isPreviewMode) {
+                  await supabase.from('leads').update({ loan_amount: val } as any).eq('id', lead.id);
+                }
+              }
+            }}
+          />
+
+          {/* Deal Milestones — collapsible, mirrors Loan Splits styling */}
+          {(() => {
+            const milestones = [
+              { key: 'lodged_date' as const, label: 'Lodged' },
+              { key: 'approved_date' as const, label: 'Approved' },
+              { key: 'settled_date' as const, label: 'Settled' },
+            ];
+            const setCount = milestones.filter(m => (lead as any)[m.key]).length;
+            const est = (lead as any).estimated_settlement_date;
+            const subtitle = setCount === 0 && !est
+              ? 'No milestones set yet'
+              : <>{setCount} of {milestones.length} milestones set{est && !((lead as any).settled_date) ? <> · Est. settlement {format(new Date(est), 'dd MMM yyyy')}</> : null}</>;
+            return (
+              <SectionCard
+                icon={Flag}
+                title="Deal Milestones"
+                tone={setCount === milestones.length ? 'success' : setCount > 0 ? 'ok' : 'neutral'}
+                subtitle={subtitle}
+                defaultCollapsed={setCount === 0}
+              >
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {milestones.map(({ key, label }) => (
+                    <div key={key}>
+                      <Label className="text-[11px] text-muted-foreground">{label}</Label>
+                      <Input
+                        type="date"
+                        value={(lead as any)[key] ?? ''}
+                        onChange={async (e) => {
+                          const val = e.target.value || null;
+                          const prev = (lead as any)[key] ?? null;
+                          onLeadChange?.({ ...lead, [key]: val } as any);
+                          if (!isPreviewMode) {
+                            await supabase.from('leads').update({ [key]: val } as any).eq('id', lead.id);
+                          }
+                          if (prev !== val) {
+                            import('@/lib/leadAudit').then(m => m.logAudit(lead.id, `🔄 ${label} date ${val ? (prev ? `changed: ${prev} → ${val}` : `set to ${val}`) : 'cleared'}`, { isPreview: isPreviewMode }));
+                          }
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3">
+                  <Label className="text-[11px] text-muted-foreground">Estimated Settlement Date</Label>
+                  <Input
+                    type="date"
+                    value={(lead as any).estimated_settlement_date ?? ''}
+                    onChange={async (e) => {
+                      const val = e.target.value || null;
+                      onLeadChange?.({ ...lead, estimated_settlement_date: val } as any);
+                      if (!isPreviewMode) {
+                        await supabase.from('leads').update({ estimated_settlement_date: val } as any).eq('id', lead.id);
+                      }
+                    }}
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Shown as "Estimated" in the Settlements dashboard until the deal is actually settled.
+                  </p>
+                </div>
+              </SectionCard>
+            );
+          })()}
+
           {/* Read-only info */}
           <div className="grid grid-cols-2 gap-3 text-sm mt-2">
             {lead.loan_amount && (
@@ -1552,71 +1633,6 @@ export function LeadDetailSheet({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-          </div>
-
-          {/* Loan Splits */}
-          <LoanSplitsEditor
-            leadId={lead.id}
-            isPreviewMode={isPreviewMode}
-            settled={lead.status === 'settled' || !!(lead as any).settled_date}
-            settledDate={(lead as any).settled_date ?? null}
-            onTotalChange={async (total) => {
-              const val = total > 0 ? total : null;
-              if (val !== lead.loan_amount) {
-                onLeadChange?.({ ...lead, loan_amount: val });
-                if (!isPreviewMode) {
-                  await supabase.from('leads').update({ loan_amount: val } as any).eq('id', lead.id);
-                }
-              }
-            }}
-          />
-
-          {/* Deal Milestone Dates — used for monthly KPIs in WIP */}
-          <div>
-            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Deal Milestones</Label>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-1">
-              {([
-                { key: 'lodged_date', label: 'Lodged' },
-                { key: 'approved_date', label: 'Approved' },
-                { key: 'settled_date', label: 'Settled' },
-              ] as const).map(({ key, label }) => (
-                <div key={key}>
-                  <Label className="text-[11px] text-muted-foreground">{label}</Label>
-                  <Input
-                    type="date"
-                    value={(lead as any)[key] ?? ''}
-                    onChange={async (e) => {
-                      const val = e.target.value || null;
-                      const prev = (lead as any)[key] ?? null;
-                      onLeadChange?.({ ...lead, [key]: val } as any);
-                      if (!isPreviewMode) {
-                        await supabase.from('leads').update({ [key]: val } as any).eq('id', lead.id);
-                      }
-                      if (prev !== val) {
-                        import('@/lib/leadAudit').then(m => m.logAudit(lead.id, `🔄 ${label} date ${val ? (prev ? `changed: ${prev} → ${val}` : `set to ${val}`) : 'cleared'}`, { isPreview: isPreviewMode }));
-                      }
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="mt-3">
-              <Label className="text-[11px] text-muted-foreground">Estimated Settlement Date</Label>
-              <Input
-                type="date"
-                value={(lead as any).estimated_settlement_date ?? ''}
-                onChange={async (e) => {
-                  const val = e.target.value || null;
-                  onLeadChange?.({ ...lead, estimated_settlement_date: val } as any);
-                  if (!isPreviewMode) {
-                    await supabase.from('leads').update({ estimated_settlement_date: val } as any).eq('id', lead.id);
-                  }
-                }}
-              />
-              <p className="text-[10px] text-muted-foreground mt-1">
-                Shown as "Estimated" in the Settlements dashboard until the deal is actually settled.
-              </p>
             </div>
           </div>
 
