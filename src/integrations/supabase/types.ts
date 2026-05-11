@@ -86,6 +86,27 @@ export type Database = {
         }
         Relationships: []
       }
+      broker_email_settings: {
+        Row: {
+          broker_id: string
+          created_at: string
+          milestone_bcc_email: string | null
+          updated_at: string
+        }
+        Insert: {
+          broker_id: string
+          created_at?: string
+          milestone_bcc_email?: string | null
+          updated_at?: string
+        }
+        Update: {
+          broker_id?: string
+          created_at?: string
+          milestone_bcc_email?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       client_portal_tokens: {
         Row: {
           created_at: string
@@ -1183,6 +1204,39 @@ export type Database = {
           security_address?: string | null
           settled?: boolean
           settled_date?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      milestone_email_templates: {
+        Row: {
+          body: string
+          broker_id: string
+          created_at: string
+          enabled: boolean
+          id: string
+          milestone: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string
+          broker_id: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          milestone: string
+          subject?: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          broker_id?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          milestone?: string
+          subject?: string
           updated_at?: string
         }
         Relationships: []

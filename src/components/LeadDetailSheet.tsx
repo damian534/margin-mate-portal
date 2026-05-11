@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectionPanel';
 import { ReferLeadDialog } from '@/components/ReferLeadDialog';
+import { SendMilestoneEmailDialog } from '@/components/SendMilestoneEmailDialog';
 import { StatusBadge } from '@/components/StatusBadge';
 import { CoApplicantPicker } from '@/components/CoApplicantPicker';
 import { ProfessionalContactsSection } from '@/components/ProfessionalContactsSection';
@@ -1022,6 +1023,11 @@ export function LeadDetailSheet({
                   leadId={lead.id}
                   leadName={`${lead.first_name} ${lead.last_name}`}
                 />
+              </div>
+            )}
+            {!isPreviewMode && lead.email && (
+              <div className="shrink-0">
+                <SendMilestoneEmailDialog lead={lead as any} />
               </div>
             )}
             <div className="flex-1 min-w-0">

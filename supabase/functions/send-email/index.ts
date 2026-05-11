@@ -10,6 +10,9 @@ interface EmailRequest {
   subject: string;
   html: string;
   from?: string;
+  bcc?: string | string[];
+  cc?: string | string[];
+  reply_to?: string | string[];
 }
 
 Deno.serve(async (req) => {
@@ -37,7 +40,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { to, subject, html, from } = (await req.json()) as EmailRequest;
+    const { to, subject, html, from, bcc, cc, reply_to } = (await req.json()) as EmailRequest;
 
     if (!to || !subject || !html) {
       return new Response(
@@ -57,6 +60,9 @@ Deno.serve(async (req) => {
         to: Array.isArray(to) ? to : [to],
         subject,
         html,
+        ...(bcc ? { bcc: Array.isArray(bcc) ? bcc : [bcc] } : {}),
+        ...(cc ? { cc: Array.isArray(cc) ? cc : [cc] } : {}),
+        ...(reply_to ? { reply_to: Array.isArray(reply_to) ? reply_to : [reply_to] } : {}),
       }),
     });
 
