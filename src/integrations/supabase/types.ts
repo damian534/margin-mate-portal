@@ -1619,6 +1619,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _audit_actor: { Args: never; Returns: string }
       accept_lead_referral: {
         Args: { _referral_id: string }
         Returns: undefined
