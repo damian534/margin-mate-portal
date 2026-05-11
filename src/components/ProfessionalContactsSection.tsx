@@ -47,10 +47,13 @@ interface Props {
   onOpenContact?: (contactId: string) => void;
   /** Notify parent when contacts list changes (new contact created). */
   onContactsChanged?: () => void;
+  /** Pass the freshly created contact back to the parent so it can merge it
+   * into its contacts list immediately (avoids "Contact not found" flash). */
+  onContactCreated?: (contact: ProContact) => void;
 }
 
 export function ProfessionalContactsSection({
-  leadId, contacts, isPreviewMode = false, onOpenContact, onContactsChanged,
+  leadId, contacts, isPreviewMode = false, onOpenContact, onContactsChanged, onContactCreated,
 }: Props) {
   const { effectiveBrokerId } = useAuth();
   const [rows, setRows] = useState<LinkedRow[]>([]);
@@ -179,6 +182,7 @@ export function ProfessionalContactsSection({
       setSaving(false); return;
     }
     await linkContact((c as any).id, pendingRole);
+    onContactCreated?.(c as any);
     onContactsChanged?.();
     setSaving(false); resetCreate(); setCreateOpen(false); setAdding(false);
   };
