@@ -1043,6 +1043,25 @@ export function LeadDetailSheet({
             />
           </div>
 
+          {/* Expand / Collapse all sections */}
+          <div className="flex justify-end mb-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 gap-1 text-xs"
+              onClick={() => {
+                const expand = heroCollapsed || true;
+                // Toggle: if hero is collapsed OR any section is likely collapsed, expand all; otherwise collapse all
+                const shouldExpand = !expandAllOn;
+                setExpandAllOn(shouldExpand);
+                setHeroCollapsed(!shouldExpand);
+                window.dispatchEvent(new CustomEvent('section-card:toggle-all', { detail: { expand: shouldExpand } }));
+              }}
+            >
+              {expandAllOn ? 'Collapse all' : 'Expand all'}
+            </Button>
+          </div>
+
           <div className="mb-4 rounded-xl border-2 border-success/30 bg-gradient-to-br from-success/10 via-background to-background shadow-md overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 bg-success/10 border-b border-success/20">
               <div className="flex items-center gap-2 min-w-0">
