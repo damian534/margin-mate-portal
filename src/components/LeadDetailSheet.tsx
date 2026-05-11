@@ -1380,12 +1380,18 @@ export function LeadDetailSheet({
               <Select
                 value={lead.wip_status ? `wip:${lead.wip_status}` : `lead:${lead.status}`}
                 onValueChange={(v) => {
+                  const prev = lead.wip_status ? `WIP · ${lead.wip_status}` : (statuses.find(s => s.name === lead.status)?.label || lead.status);
                   if (v.startsWith('wip:')) {
-                    onUpdateWipStatus?.(lead.id, v.slice(4));
+                    const next = v.slice(4);
+                    onUpdateWipStatus?.(lead.id, next);
+                    const nextLabel = WIP_STATUSES.find(s => s.name === next)?.label || next;
+                    import('@/lib/leadAudit').then(m => m.logAudit(lead.id, `🔄 Status changed: ${prev} → WIP · ${nextLabel}`, { isPreview: isPreviewMode }));
                   } else {
                     const next = v.slice(5);
                     onUpdateStatus(lead.id, next);
                     if (lead.wip_status) onUpdateWipStatus?.(lead.id, null);
+                    const nextLabel = statuses.find(s => s.name === next)?.label || next;
+                    import('@/lib/leadAudit').then(m => m.logAudit(lead.id, `🔄 Status changed: ${prev} → ${nextLabel}`, { isPreview: isPreviewMode }));
                   }
                 }}
               >
@@ -1481,6 +1487,7 @@ export function LeadDetailSheet({
                   if (error) { toast.error('Failed to update assistant'); return; }
                 }
                 toast.success(userId ? 'Assistant updated' : 'Assistant cleared');
+                import('@/lib/leadAudit').then(m => m.logAudit(lead.id, userId ? `🔄 Assistant assigned` : `🔄 Assistant cleared`, { isPreview: isPreviewMode }));
               }}
             />
             <p className="text-[10px] text-muted-foreground mt-1">
@@ -1512,10 +1519,12 @@ export function LeadDetailSheet({
                 value={lead.loan_purpose ?? ''}
                 onValueChange={async (val) => {
                   const purpose = val || null;
+                  const prev = lead.loan_purpose || 'none';
                   onLeadChange?.({ ...lead, loan_purpose: purpose });
                   if (!isPreviewMode) {
                     await supabase.from('leads').update({ loan_purpose: purpose } as any).eq('id', lead.id);
                   }
+                  import('@/lib/leadAudit').then(m => m.logAudit(lead.id, `⚙️ Transaction type changed: ${prev} → ${purpose || 'none'}`, { isPreview: isPreviewMode }));
                 }}
               >
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Select transaction" /></SelectTrigger>
@@ -1559,9 +1568,13 @@ export function LeadDetailSheet({
                     value={(lead as any)[key] ?? ''}
                     onChange={async (e) => {
                       const val = e.target.value || null;
+                      const prev = (lead as any)[key] ?? null;
                       onLeadChange?.({ ...lead, [key]: val } as any);
                       if (!isPreviewMode) {
                         await supabase.from('leads').update({ [key]: val } as any).eq('id', lead.id);
+                      }
+                      if (prev !== val) {
+                        import('@/lib/leadAudit').then(m => m.logAudit(lead.id, `🔄 ${label} date ${val ? (prev ? `changed: ${prev} → ${val}` : `set to ${val}`) : 'cleared'}`, { isPreview: isPreviewMode }));
                       }
                     }}
                   />
@@ -1684,10 +1697,14 @@ export function LeadDetailSheet({
                         const isTaskNote = note.content.startsWith('📋');
                         const isDocReq = note.content.startsWith('📄');
                         const isMir = note.content.startsWith('📨');
+                        const isFinance = note.content.startsWith('💰');
+                        const isContact = note.content.startsWith('👤');
+                        const isStatus = note.content.startsWith('🔄');
+                        const isSystem = note.content.startsWith('⚙️');
                         return (
                           <div key={note.id} className="relative pb-3">
                             <div className={`absolute -left-[14px] top-1.5 w-3 h-3 rounded-full border-2 border-background ${
-                              isMir ? 'bg-orange-500' : isEmail ? 'bg-blue-500' : isCall ? 'bg-green-500' : isTaskNote ? 'bg-amber-500' : isDocReq ? 'bg-purple-500' : 'bg-muted-foreground/40'
+                              isMir ? 'bg-orange-500' : isEmail ? 'bg-blue-500' : isCall ? 'bg-green-500' : isTaskNote ? 'bg-amber-500' : isDocReq ? 'bg-purple-500' : isFinance ? 'bg-rose-500' : isContact ? 'bg-indigo-500' : isStatus ? 'bg-cyan-500' : isSystem ? 'bg-slate-500' : 'bg-muted-foreground/40'
                             }`} />
                             <div className={`rounded-lg p-2.5 ${isMir ? 'bg-orange-50 border border-orange-200' : 'bg-muted/50'}`}>
                               {isMir && (

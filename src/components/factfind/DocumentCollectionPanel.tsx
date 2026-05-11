@@ -9,6 +9,7 @@ import { Plus, Upload, FileText, CheckCircle2, XCircle, Clock, Trash2, Download,
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
 import { RequestMirDialog } from './RequestMirDialog';
+import { logAudit } from '@/lib/leadAudit';
 
 interface DocumentRequest {
   id: string;
@@ -344,6 +345,8 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       const { error } = await supabase.from('document_requests').insert(rows);
       if (error) { toast.error('Template failed: ' + error.message); return; }
       fetchAll();
+      const applicant = applicants.find(a => a.id === persistedApplicantId);
+      await logAudit(leadId, `📄 Loaded "${template.name}" checklist (${tpl.length} doc${tpl.length === 1 ? '' : 's'})${applicant ? ` for ${applicant.name}` : ''}`, { isPreview: isPreviewMode });
     }
     toast.success(`${template.name} checklist added`);
   };
@@ -369,6 +372,8 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       });
       if (error) { toast.error('Failed'); return; }
       fetchAll();
+      const applicant = applicants.find(a => a.id === applicantId);
+      await logAudit(leadId, `📄 Added document request: "${newDocName.trim()}"${section ? ` (${section})` : ''}${applicant ? ` for ${applicant.name}` : ''}`, { isPreview: isPreviewMode });
     }
     toast.success('Document added');
     setNewDocName(''); setNewDocDescription(''); setAddingTo(null);
@@ -382,6 +387,10 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
     const doc = documents.find(d => d.id === id);
     if (doc?.file_path) await supabase.storage.from('client-documents').remove([doc.file_path]);
     await supabase.from('document_requests').delete().eq('id', id);
+    if (doc) {
+      const applicant = applicants.find(a => a.id === doc.applicant_id);
+      await logAudit(leadId, `📄 Removed document: "${doc.name}"${applicant ? ` (${applicant.name})` : ''}`, { isPreview: isPreviewMode });
+    }
     fetchAll();
   };
 
@@ -399,6 +408,9 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       file_path: filePath, file_name: file.name, file_size: file.size,
       status: 'uploaded', uploaded_at: new Date().toISOString(),
     }).eq('id', docId);
+    const doc = documents.find(d => d.id === docId);
+    const applicant = doc ? applicants.find(a => a.id === doc.applicant_id) : null;
+    await logAudit(leadId, `📄 Uploaded "${doc?.name || file.name}"${applicant ? ` for ${applicant.name}` : ''} (${file.name})`, { isPreview: isPreviewMode });
     toast.success('Uploaded');
     fetchAll();
   };
@@ -416,6 +428,12 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       updates.reviewed_at = new Date().toISOString();
     }
     await supabase.from('document_requests').update(updates).eq('id', docId);
+    const doc = documents.find(d => d.id === docId);
+    if (doc && (status === 'approved' || status === 'rejected')) {
+      const applicant = applicants.find(a => a.id === doc.applicant_id);
+      const verb = status === 'approved' ? 'Approved' : 'Rejected';
+      await logAudit(leadId, `📄 ${verb} "${doc.name}"${applicant ? ` (${applicant.name})` : ''}${rejectionReason ? `\nReason: ${rejectionReason}` : ''}`, { isPreview: isPreviewMode });
+    }
     fetchAll();
   };
 
