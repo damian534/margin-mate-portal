@@ -63,7 +63,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
   const [showCompleted, setShowCompleted] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
   const [dueFilter, setDueFilter] = useState<DueFilter>('all');
-  const [assigneeFilter, setAssigneeFilter] = usePersistedState<string>('crm.tasks.assigneeFilter', 'all');
+  const [assigneeFilter, setAssigneeFilter] = usePersistedState<string[]>('crm.tasks.assigneeFilterMulti', []);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const [newTitle, setNewTitle] = useState('');
@@ -199,10 +199,12 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
         return getTaskDueCategory(t) === dueFilter;
       });
     }
-    if (assigneeFilter === 'unassigned') {
-      result = result.filter(t => !t.assigned_to);
-    } else if (assigneeFilter !== 'all') {
-      result = result.filter(t => t.assigned_to === assigneeFilter);
+    if (assigneeFilter.length > 0) {
+      const wantUnassigned = assigneeFilter.includes('__unassigned__');
+      result = result.filter(t => {
+        if (!t.assigned_to) return wantUnassigned;
+        return assigneeFilter.includes(t.assigned_to);
+      });
     }
     return result;
   }, [tasks, showCompleted, dueFilter, assigneeFilter]);
