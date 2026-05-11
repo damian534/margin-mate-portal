@@ -9,13 +9,14 @@ import { TaskTemplatesManagement } from '@/components/TaskTemplatesManagement';
 import { LeadSourcesManagement } from '@/components/LeadSourcesManagement';
 import { LendersManagement } from '@/components/LendersManagement';
 import { FactFindToggle } from '@/components/FactFindToggle';
+import { MilestoneEmailsManagement } from '@/components/MilestoneEmailsManagement';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
-import { KeyRound, UserCog, Settings2, FileText, ListChecks, Tag, Building2, ClipboardList } from 'lucide-react';
+import { KeyRound, UserCog, Settings2, FileText, ListChecks, Tag, Building2, ClipboardList, Mail } from 'lucide-react';
 
 export default function AdminSettings() {
-  const { isPreviewMode } = useAuth();
+  const { isPreviewMode, role } = useAuth();
   const [activeSection, setActiveSection] = useState('invites');
   const [companies, setCompanies] = useState<Company[]>([]);
 
@@ -42,6 +43,9 @@ export default function AdminSettings() {
     { value: 'lead-sources', label: 'Lead Sources', icon: Tag },
     { value: 'lenders', label: 'Lenders', icon: Building2 },
     { value: 'fact-find', label: 'Fact Find', icon: ClipboardList },
+    ...(role !== 'broker_staff'
+      ? [{ value: 'milestone-emails', label: 'Milestone Emails', icon: Mail }]
+      : []),
   ];
 
   return (
@@ -83,6 +87,7 @@ export default function AdminSettings() {
         {activeSection === 'lead-sources' && <LeadSourcesManagement />}
         {activeSection === 'lenders' && <LendersManagement />}
         {activeSection === 'fact-find' && <FactFindToggle />}
+        {activeSection === 'milestone-emails' && role !== 'broker_staff' && <MilestoneEmailsManagement />}
       </main>
     </div>
   );
