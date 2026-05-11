@@ -1559,6 +1559,8 @@ export function LeadDetailSheet({
           <LoanSplitsEditor
             leadId={lead.id}
             isPreviewMode={isPreviewMode}
+            settled={lead.status === 'settled' || !!(lead as any).settled_date}
+            settledDate={(lead as any).settled_date ?? null}
             onTotalChange={async (total) => {
               const val = total > 0 ? total : null;
               if (val !== lead.loan_amount) {
