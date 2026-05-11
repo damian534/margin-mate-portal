@@ -48,10 +48,11 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
   useEffect(() => {
     if (!open || !lead.broker_id) return;
     (async () => {
-      const [{ data: tpls }, { data: settings }, { data: brokerProfile }] = await Promise.all([
+      const [{ data: tpls }, { data: settings }, { data: brokerProfile }, { data: applicants }] = await Promise.all([
         supabase.from('milestone_email_templates').select('*').eq('broker_id', lead.broker_id),
         supabase.from('broker_email_settings').select('*').eq('broker_id', lead.broker_id).maybeSingle(),
         supabase.from('profiles').select('full_name,email').eq('user_id', lead.broker_id).maybeSingle(),
+        supabase.from('lead_applicants').select('email,name').eq('lead_id', lead.id),
       ]);
       const bName = brokerProfile?.full_name || 'Your Broker';
       const bEmail = brokerProfile?.email || '';
@@ -71,20 +72,26 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
       const defaultBody = `Hi {first_name},\n\nYour loan has reached the ${m?.label} stage.\n\nKind regards,\n{broker_name}`;
       setSubject(applyVars(tpl?.subject || defaultSubject, vars));
       setBody(applyVars(tpl?.body || defaultBody, vars));
-      setTo(lead.email || '');
+      const emails = new Set<string>();
+      if (lead.email) emails.add(lead.email.trim());
+      (applicants || []).forEach((a: any) => {
+        if (a.email && a.email.trim()) emails.add(a.email.trim());
+      });
+      setTo(Array.from(emails).join(', '));
     })();
-  }, [open, milestone, lead.broker_id, lead.email, lead.first_name, lead.last_name, lead.opportunity_name, lead.loan_amount]);
+  }, [open, milestone, lead.id, lead.broker_id, lead.email, lead.first_name, lead.last_name, lead.opportunity_name, lead.loan_amount]);
 
   const send = async () => {
     if (!to.trim()) { toast.error('Recipient email required'); return; }
     setSending(true);
+    const recipients = to.split(',').map((s) => s.trim()).filter(Boolean);
     const html = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;color:#111;white-space:pre-wrap">${
       body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     }</div>`;
     const fromName = brokerName || 'Margin Finance';
     const { error } = await supabase.functions.invoke('send-email', {
       body: {
-        to: to.trim(),
+        to: recipients,
         subject,
         html,
         from: `${fromName} <notifications@margin.com.au>`,
@@ -101,7 +108,7 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
     const m = MILESTONES.find((x) => x.key === milestone);
     await logAudit(
       lead.id,
-      `📧 Milestone email sent (${m?.label}) to ${to}${bcc ? ` · BCC ${bcc}` : ''} · Subject: "${subject}"`,
+      `📧 Milestone email sent (${m?.label}) to ${recipients.join(', ')}${bcc ? ` · BCC ${bcc}` : ''} · Subject: "${subject}"`,
     );
     toast.success('Email sent');
     setSending(false);
@@ -134,7 +141,7 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
             </div>
             <div className="space-y-1.5">
               <Label>To</Label>
-              <Input value={to} onChange={(e) => setTo(e.target.value)} type="email" />
+              <Input value={to} onChange={(e) => setTo(e.target.value)} placeholder="comma-separated emails" />
             </div>
           </div>
           <div className="space-y-1.5">
