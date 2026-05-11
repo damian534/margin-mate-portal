@@ -88,6 +88,7 @@ export type Database = {
       }
       broker_email_settings: {
         Row: {
+          auto_suppress_bounces: boolean
           broker_id: string
           claude_default_prompt: string | null
           claude_webhook_enabled: boolean
@@ -98,6 +99,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auto_suppress_bounces?: boolean
           broker_id: string
           claude_default_prompt?: string | null
           claude_webhook_enabled?: boolean
@@ -108,6 +110,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auto_suppress_bounces?: boolean
           broker_id?: string
           claude_default_prompt?: string | null
           claude_webhook_enabled?: boolean
@@ -421,8 +424,10 @@ export type Database = {
           recipient_id: string | null
           recipient_name: string | null
           recipient_type: string
+          resend_id: string | null
           sent_at: string | null
           status: string
+          unsubscribe_token: string | null
         }
         Insert: {
           broker_id: string
@@ -434,8 +439,10 @@ export type Database = {
           recipient_id?: string | null
           recipient_name?: string | null
           recipient_type: string
+          resend_id?: string | null
           sent_at?: string | null
           status?: string
+          unsubscribe_token?: string | null
         }
         Update: {
           broker_id?: string
@@ -447,8 +454,10 @@ export type Database = {
           recipient_id?: string | null
           recipient_name?: string | null
           recipient_type?: string
+          resend_id?: string | null
           sent_at?: string | null
           status?: string
+          unsubscribe_token?: string | null
         }
         Relationships: [
           {
@@ -517,6 +526,89 @@ export type Database = {
           subject?: string
           total_recipients?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      email_events: {
+        Row: {
+          broker_id: string
+          campaign_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          ip_address: string | null
+          link_url: string | null
+          metadata: Json | null
+          occurred_at: string
+          recipient_email: string
+          send_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          broker_id: string
+          campaign_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          link_url?: string | null
+          metadata?: Json | null
+          occurred_at?: string
+          recipient_email: string
+          send_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          broker_id?: string
+          campaign_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          link_url?: string | null
+          metadata?: Json | null
+          occurred_at?: string
+          recipient_email?: string
+          send_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_events_send_id_fkey"
+            columns: ["send_id"]
+            isOneToOne: false
+            referencedRelation: "email_campaign_sends"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_suppressions: {
+        Row: {
+          broker_id: string
+          created_at: string
+          email: string
+          id: string
+          notes: string | null
+          reason: string
+          source_campaign_id: string | null
+        }
+        Insert: {
+          broker_id: string
+          created_at?: string
+          email: string
+          id?: string
+          notes?: string | null
+          reason: string
+          source_campaign_id?: string | null
+        }
+        Update: {
+          broker_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          notes?: string | null
+          reason?: string
+          source_campaign_id?: string | null
         }
         Relationships: []
       }
