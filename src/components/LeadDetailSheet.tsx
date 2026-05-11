@@ -30,7 +30,6 @@ import {
 } from 'lucide-react';
 import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectionPanel';
 import { ReferLeadDialog } from '@/components/ReferLeadDialog';
-import { FinancialSnapshot } from '@/components/lead/FinancialSnapshot';
 import { StatusBadge } from '@/components/StatusBadge';
 import { CoApplicantPicker } from '@/components/CoApplicantPicker';
 import { ProfessionalContactsSection } from '@/components/ProfessionalContactsSection';
@@ -1314,23 +1313,6 @@ export function LeadDetailSheet({
                 <span className="text-muted-foreground">Source: {leadSources.find(s => s.name === lead.source)?.label || lead.source}</span>
               </div>
             )}
-          </div>
-
-          {/* Financial snapshot */}
-          <div id="sec-loan" className="scroll-mt-16 mt-4">
-            <FinancialSnapshot
-              leadId={lead.id}
-              loanAmount={lead.loan_amount}
-              referrerCommission={lead.referrer_commission}
-              isPreviewMode={isPreviewMode}
-              onSendFactFind={() => setActiveTab('documents')}
-              prefill={{
-                email: lead.email || undefined,
-                phone: lead.phone || undefined,
-                firstName: lead.first_name,
-                lastName: lead.last_name,
-              }}
-            />
           </div>
 
           {/* Client portal scope */}
