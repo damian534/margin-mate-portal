@@ -635,6 +635,10 @@ export function LeadDetailSheet({
   const renderHeroTaskRow = (task: Task, tone: 'destructive' | 'success' | 'muted') => {
     const taskNotes = getTaskNotes(task.id);
     const due = task.due_date ? new Date(task.due_date) : null;
+    const assignee = task.assigned_to ? teamMembers.find(m => m.user_id === task.assigned_to) : null;
+    const initials = assignee?.name
+      ? assignee.name.split(/\s+/).map(p => p[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
+      : null;
     return (
       <div
         key={task.id}
@@ -649,6 +653,15 @@ export function LeadDetailSheet({
           checked={task.completed}
           onCheckedChange={() => toggleTaskComplete(task)}
         />
+        <div
+          title={assignee?.name ? `Assigned to ${assignee.name}` : 'Unassigned'}
+          className={cn(
+            "shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold border",
+            initials ? 'bg-primary/10 text-primary border-primary/20' : 'bg-muted text-muted-foreground border-dashed border-border'
+          )}
+        >
+          {initials || '?'}
+        </div>
         <button
           type="button"
           onClick={() => { setExpandedTaskId(task.id); setOpenHeroTaskId(task.id); }}
