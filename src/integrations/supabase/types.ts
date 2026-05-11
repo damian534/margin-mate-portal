@@ -933,6 +933,8 @@ export type Database = {
           assigned_to: string | null
           broker_id: string | null
           co_applicant_contact_id: string | null
+          co_applicant_contact_id_2: string | null
+          co_applicant_contact_id_3: string | null
           company_commission: number | null
           company_commission_paid: boolean | null
           company_commission_type: string | null
@@ -973,6 +975,8 @@ export type Database = {
           assigned_to?: string | null
           broker_id?: string | null
           co_applicant_contact_id?: string | null
+          co_applicant_contact_id_2?: string | null
+          co_applicant_contact_id_3?: string | null
           company_commission?: number | null
           company_commission_paid?: boolean | null
           company_commission_type?: string | null
@@ -1013,6 +1017,8 @@ export type Database = {
           assigned_to?: string | null
           broker_id?: string | null
           co_applicant_contact_id?: string | null
+          co_applicant_contact_id_2?: string | null
+          co_applicant_contact_id_3?: string | null
           company_commission?: number | null
           company_commission_paid?: boolean | null
           company_commission_type?: string | null
