@@ -561,21 +561,21 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   };
 
   const resendDocumentsLink = async () => {
-    if (outstandingRequestedDocs.length === 0) {
-      toast.info('No outstanding documents to resend');
+    if (allOutstandingDocs.length === 0) {
+      toast.info('No outstanding documents to request');
       return;
     }
     setIsRequesting(true);
     try {
       if (isPreviewMode) {
-        toast.success('Resent documents link (preview)');
+        toast.success('Requested documents (preview)');
         return;
       }
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData?.session?.access_token;
       if (!accessToken) { toast.error('Not authenticated'); return; }
 
-      const docsByApplicant = outstandingRequestedDocs.reduce<Record<string, DocumentRequest[]>>((acc, doc) => {
+      const docsByApplicant = allOutstandingDocs.reduce<Record<string, DocumentRequest[]>>((acc, doc) => {
         const key = doc.applicant_id || PRIMARY_APPLICANT_FALLBACK_ID;
         acc[key] = [...(acc[key] || []), doc];
         return acc;
@@ -612,7 +612,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
 
       // Update requested_at timestamp on all resent documents
       try {
-        const ids = outstandingRequestedDocs.map(d => d.id);
+        const ids = allOutstandingDocs.map(d => d.id);
         await supabase.from('document_requests').update({ requested_at: new Date().toISOString() } as any).in('id', ids);
         await fetchAll();
       } catch {}
@@ -620,12 +620,12 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       // Log to timeline
       try {
         const { data: userData } = await supabase.auth.getUser();
-        const content = `📄 Resent documents link (${outstandingRequestedDocs.length} outstanding document${outstandingRequestedDocs.length === 1 ? '' : 's'})`;
+        const content = `📄 Requested ${allOutstandingDocs.length} outstanding document${allOutstandingDocs.length === 1 ? '' : 's'}`;
         await supabase.from('notes').insert({ lead_id: leadId, content, author_id: userData?.user?.id ?? null } as any);
       } catch {}
 
-      if (sent === 0) toast.error('No applicant emails on file to resend to');
-      else toast.success(`Resent documents link to ${sent} applicant${sent === 1 ? '' : 's'}`);
+      if (sent === 0) toast.error('No applicant emails on file to send to');
+      else toast.success(`Requested documents from ${sent} applicant${sent === 1 ? '' : 's'}`);
     } finally {
       setIsRequesting(false);
     }
@@ -709,13 +709,9 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
           >
             <AlertTriangle className="w-3.5 h-3.5" /> Request MIR
           </Button>
-          {unrequestedDocs.length > 0 ? (
-            <Button size="sm" className="h-8 text-xs gap-1.5 bg-foreground text-background hover:bg-foreground/90" onClick={requestDocuments} disabled={isRequesting}>
-              <Send className="w-3.5 h-3.5" /> {isRequesting ? 'Requesting…' : `Request Documents (${unrequestedDocs.length})`}
-            </Button>
-          ) : outstandingRequestedDocs.length > 0 ? (
+          {allOutstandingDocs.length > 0 ? (
             <Button size="sm" className="h-8 text-xs gap-1.5 bg-foreground text-background hover:bg-foreground/90" onClick={resendDocumentsLink} disabled={isRequesting}>
-              <Mail className="w-3.5 h-3.5" /> {isRequesting ? 'Sending…' : 'Resend Link'}
+              <Send className="w-3.5 h-3.5" /> {isRequesting ? 'Sending…' : `Request Documents (${allOutstandingDocs.length})`}
             </Button>
           ) : (
             <Button size="sm" className="h-8 text-xs gap-1.5" disabled>
@@ -1042,17 +1038,13 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
             <p className="text-muted-foreground">Documents are only visible to the client once you click Request.</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {unrequestedDocs.length > 0 ? (
-              <Button size="sm" className="h-8 text-xs gap-1.5" onClick={requestDocuments} disabled={isRequesting}>
-                <Send className="w-3.5 h-3.5" /> {isRequesting ? 'Requesting…' : 'Request'}
-              </Button>
-            ) : outstandingRequestedDocs.length > 0 ? (
+            {allOutstandingDocs.length > 0 ? (
               <Button size="sm" className="h-8 text-xs gap-1.5" onClick={resendDocumentsLink} disabled={isRequesting}>
-                <Send className="w-3.5 h-3.5" /> {isRequesting ? 'Sending…' : 'Resend link'}
+                <Send className="w-3.5 h-3.5" /> {isRequesting ? 'Sending…' : `Request Documents (${allOutstandingDocs.length})`}
               </Button>
             ) : (
-              <Button size="sm" className="h-8 text-xs gap-1.5" onClick={requestDocuments} disabled>
-                <Send className="w-3.5 h-3.5" /> Request
+              <Button size="sm" className="h-8 text-xs gap-1.5" disabled>
+                <Send className="w-3.5 h-3.5" /> Request Documents
               </Button>
             )}
           </div>
