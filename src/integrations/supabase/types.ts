@@ -1629,6 +1629,7 @@ export type Database = {
       }
       get_director_company_id: { Args: { _user_id: string }; Returns: string }
       get_my_broker_id: { Args: { _user_id: string }; Returns: string }
+      get_user_tenant_broker_id: { Args: { _user_id: string }; Returns: string }
       has_any_super_admin: { Args: never; Returns: boolean }
       has_role: {
         Args: {
