@@ -13,7 +13,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Plus, Send, Mail, Users, Trash2 } from 'lucide-react';
+import { Plus, Send, Mail, Users, Trash2, BarChart3, Settings, ShieldOff } from 'lucide-react';
+import { CampaignAnalytics } from './CampaignAnalytics';
+import { Switch } from '@/components/ui/switch';
 
 export const AUDIENCE_TAGS = [
   { value: 'investor', label: 'Investor' },
@@ -43,16 +45,58 @@ export function EDMPlatform({ isPreviewMode }: { isPreviewMode: boolean }) {
   const [loading, setLoading] = useState(true);
   const [composerOpen, setComposerOpen] = useState(false);
   const [editing, setEditing] = useState<Campaign | null>(null);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
+  const [analyticsCampaign, setAnalyticsCampaign] = useState<Campaign | null>(null);
+  const [stats, setStats] = useState<Record<string, { opens: number; clicks: number; bounces: number; unsubs: number }>>({});
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [suppressionsOpen, setSuppressionsOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
     if (isPreviewMode) { setCampaigns([]); setLoading(false); return; }
     const { data } = await supabase.from('email_campaigns').select('*').order('created_at', { ascending: false });
-    setCampaigns((data || []) as any);
+    const list = (data || []) as any as Campaign[];
+    setCampaigns(list);
+    // Load aggregate event counts per campaign in one query
+    if (list.length > 0) {
+      const ids = list.map(c => c.id);
+      const { data: ev } = await supabase
+        .from('email_events')
+        .select('campaign_id, event_type, recipient_email')
+        .in('campaign_id', ids)
+        .range(0, 49999);
+      const agg: Record<string, { opens: Set<string>; clicks: Set<string>; bounces: Set<string>; unsubs: Set<string> }> = {};
+      (ev || []).forEach((e: any) => {
+        if (!agg[e.campaign_id]) agg[e.campaign_id] = { opens: new Set(), clicks: new Set(), bounces: new Set(), unsubs: new Set() };
+        const a = agg[e.campaign_id];
+        const k = (e.recipient_email || '').toLowerCase();
+        if (e.event_type === 'opened') a.opens.add(k);
+        if (e.event_type === 'clicked') a.clicks.add(k);
+        if (e.event_type === 'bounced') a.bounces.add(k);
+        if (e.event_type === 'unsubscribed') a.unsubs.add(k);
+      });
+      const out: Record<string, { opens: number; clicks: number; bounces: number; unsubs: number }> = {};
+      Object.entries(agg).forEach(([cid, v]) => {
+        out[cid] = { opens: v.opens.size, clicks: v.clicks.size, bounces: v.bounces.size, unsubs: v.unsubs.size };
+      });
+      setStats(out);
+    }
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
+
+  const openCampaign = (c: Campaign) => {
+    if (c.status === 'sent') {
+      setAnalyticsCampaign(c);
+      setAnalyticsOpen(true);
+    } else {
+      setEditing(c);
+      setComposerOpen(true);
+    }
+  };
+
+  const pct = (n: number, d: number) => d ? `${((n / d) * 100).toFixed(0)}%` : '—';
 
   return (
     <div className="space-y-4">
@@ -61,9 +105,17 @@ export function EDMPlatform({ isPreviewMode }: { isPreviewMode: boolean }) {
           <h2 className="text-lg font-heading font-semibold">Email Campaigns</h2>
           <p className="text-xs text-muted-foreground">Broadcasts go to all your contacts and referral partners (excluding anyone opted out).</p>
         </div>
-        <Button size="sm" onClick={() => { setEditing(null); setComposerOpen(true); }}>
-          <Plus className="w-4 h-4 mr-2" /> New Campaign
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setSuppressionsOpen(true)}>
+            <ShieldOff className="w-4 h-4 mr-2" /> Suppressions
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setSettingsOpen(true)}>
+            <Settings className="w-4 h-4 mr-2" /> Settings
+          </Button>
+          <Button size="sm" onClick={() => { setEditing(null); setComposerOpen(true); }}>
+            <Plus className="w-4 h-4 mr-2" /> New Campaign
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -79,36 +131,46 @@ export function EDMPlatform({ isPreviewMode }: { isPreviewMode: boolean }) {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Audience</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Sent</TableHead>
+                <TableHead className="text-right">Opens</TableHead>
+                <TableHead className="text-right">Clicks</TableHead>
+                <TableHead className="text-right">Bounces</TableHead>
+                <TableHead className="text-right">Unsubs</TableHead>
                 <TableHead>Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {campaigns.map(c => (
-                <TableRow key={c.id} className="cursor-pointer hover:bg-primary/5" onClick={() => { setEditing(c); setComposerOpen(true); }}>
-                  <TableCell className="font-medium">{c.name}</TableCell>
-                  <TableCell className="text-xs">
-                    <span className="text-muted-foreground">
-                      {(c.audience_sources || []).includes('contacts') && (c.audience_sources || []).includes('partners')
-                        ? 'Contacts + Partners'
-                        : (c.audience_sources || []).includes('contacts') ? 'Contacts'
-                        : (c.audience_sources || []).includes('partners') ? 'Partners' : '—'}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={c.status === 'sent' ? 'default' : c.status === 'failed' ? 'destructive' : 'outline'}>{c.status}</Badge>
-                  </TableCell>
-                  <TableCell className="text-sm tabular-nums">
-                    {c.status === 'sent' ? `${c.sent_count}/${c.total_recipients}` : '—'}
-                    {c.failed_count > 0 && <span className="text-destructive ml-1">({c.failed_count} failed)</span>}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {c.sent_at ? format(new Date(c.sent_at), 'dd MMM yyyy HH:mm') : format(new Date(c.created_at), 'dd MMM yyyy')}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {campaigns.map(c => {
+                const s = stats[c.id] || { opens: 0, clicks: 0, bounces: 0, unsubs: 0 };
+                const sentTotal = c.sent_count || 0;
+                return (
+                  <TableRow key={c.id} className="cursor-pointer hover:bg-primary/5" onClick={() => openCampaign(c)}>
+                    <TableCell>
+                      <div className="font-medium">{c.name}</div>
+                      <div className="text-xs text-muted-foreground truncate max-w-xs">{c.subject}</div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={c.status === 'sent' ? 'default' : c.status === 'failed' ? 'destructive' : 'outline'}>{c.status}</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm tabular-nums">
+                      {c.status === 'sent' ? `${c.sent_count}/${c.total_recipients}` : '—'}
+                      {c.failed_count > 0 && <span className="text-destructive ml-1">({c.failed_count} failed)</span>}
+                    </TableCell>
+                    <TableCell className="text-right text-sm tabular-nums">
+                      {c.status === 'sent' ? <span><span className="font-medium">{s.opens}</span> <span className="text-xs text-muted-foreground">{pct(s.opens, sentTotal)}</span></span> : '—'}
+                    </TableCell>
+                    <TableCell className="text-right text-sm tabular-nums">
+                      {c.status === 'sent' ? <span><span className="font-medium">{s.clicks}</span> <span className="text-xs text-muted-foreground">{pct(s.clicks, sentTotal)}</span></span> : '—'}
+                    </TableCell>
+                    <TableCell className="text-right text-sm tabular-nums text-red-600">{c.status === 'sent' ? s.bounces : '—'}</TableCell>
+                    <TableCell className="text-right text-sm tabular-nums text-amber-600">{c.status === 'sent' ? s.unsubs : '—'}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {c.sent_at ? format(new Date(c.sent_at), 'dd MMM yyyy HH:mm') : format(new Date(c.created_at), 'dd MMM yyyy')}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent></Card>
@@ -122,7 +184,116 @@ export function EDMPlatform({ isPreviewMode }: { isPreviewMode: boolean }) {
         isPreviewMode={isPreviewMode}
         onSaved={load}
       />
+      <CampaignAnalytics
+        open={analyticsOpen}
+        onOpenChange={setAnalyticsOpen}
+        campaign={analyticsCampaign as any}
+      />
+      <EmailSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} brokerId={effectiveBrokerId} />
+      <SuppressionsDialog open={suppressionsOpen} onOpenChange={setSuppressionsOpen} brokerId={effectiveBrokerId} />
     </div>
+  );
+}
+
+function EmailSettingsDialog({ open, onOpenChange, brokerId }: { open: boolean; onOpenChange: (v: boolean) => void; brokerId: string | null }) {
+  const [autoSuppress, setAutoSuppress] = useState(true);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open || !brokerId) return;
+    supabase.from('broker_email_settings').select('auto_suppress_bounces').eq('broker_id', brokerId).maybeSingle()
+      .then(({ data }) => setAutoSuppress(data?.auto_suppress_bounces ?? true));
+  }, [open, brokerId]);
+
+  const save = async (next: boolean) => {
+    if (!brokerId) return;
+    setAutoSuppress(next);
+    setLoading(true);
+    const { data: existing } = await supabase.from('broker_email_settings').select('broker_id').eq('broker_id', brokerId).maybeSingle();
+    if (existing) {
+      await supabase.from('broker_email_settings').update({ auto_suppress_bounces: next }).eq('broker_id', brokerId);
+    } else {
+      await supabase.from('broker_email_settings').insert({ broker_id: brokerId, auto_suppress_bounces: next } as any);
+    }
+    setLoading(false);
+    toast.success('Settings saved');
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>Email settings</DialogTitle></DialogHeader>
+        <div className="space-y-4 mt-2">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <Label>Auto-suppress bounces, complaints &amp; unsubscribes</Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                When on, addresses that bounce, mark you as spam, or unsubscribe are automatically excluded from future campaigns. Turn off if you want to manage suppressions manually.
+              </p>
+            </div>
+            <Switch checked={autoSuppress} onCheckedChange={save} disabled={loading} />
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SuppressionsDialog({ open, onOpenChange, brokerId }: { open: boolean; onOpenChange: (v: boolean) => void; brokerId: string | null }) {
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const load = () => {
+    if (!brokerId) return;
+    setLoading(true);
+    supabase.from('email_suppressions').select('*').eq('broker_id', brokerId).order('created_at', { ascending: false }).range(0, 999)
+      .then(({ data }) => { setItems(data || []); setLoading(false); });
+  };
+
+  useEffect(() => { if (open) load(); /* eslint-disable-next-line */ }, [open, brokerId]);
+
+  const remove = async (id: string) => {
+    await supabase.from('email_suppressions').delete().eq('id', id);
+    toast.success('Removed from suppression list');
+    load();
+  };
+
+  const filtered = items.filter(i => !search || i.email.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Suppression list ({items.length})</DialogTitle>
+          <p className="text-xs text-muted-foreground">These addresses are skipped on every campaign send.</p>
+        </DialogHeader>
+        <Input placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)} className="mb-3" />
+        {loading ? <p className="text-center text-sm text-muted-foreground py-8">Loading...</p>
+          : filtered.length === 0 ? <p className="text-center text-sm text-muted-foreground py-8">No suppressed addresses.</p>
+          : (
+            <Table>
+              <TableHeader><TableRow>
+                <TableHead>Email</TableHead>
+                <TableHead>Reason</TableHead>
+                <TableHead>Added</TableHead>
+                <TableHead></TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {filtered.map((s: any) => (
+                  <TableRow key={s.id}>
+                    <TableCell className="text-sm">{s.email}</TableCell>
+                    <TableCell><Badge variant="outline">{s.reason}</Badge></TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{format(new Date(s.created_at), 'dd MMM yyyy')}</TableCell>
+                    <TableCell><Button size="sm" variant="ghost" onClick={() => remove(s.id)}><Trash2 className="w-3 h-3" /></Button></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )
+        }
+      </DialogContent>
+    </Dialog>
   );
 }
 
