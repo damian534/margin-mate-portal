@@ -15,6 +15,8 @@ interface SendFactFindRequest {
   mode?: 'factfind' | 'documents';
   /** When mode='documents', list of document names to include in the email body. */
   document_names?: string[];
+  /** When mode='documents', preferred grouped doc list. Each section becomes a labelled group in the email. */
+  document_groups?: { section: string; names: string[] }[];
   /** Optional override used when requesting docs from a second applicant. */
   recipient_email?: string;
   recipient_name?: string;
@@ -121,10 +123,28 @@ function buildEmailHtml(clientName: string, portalUrl: string, brokerName: strin
 </html>`;
 }
 
-function buildDocumentsEmailHtml(clientName: string, portalUrl: string, brokerName: string, documentNames: string[]): string {
-  const docList = documentNames.length
-    ? documentNames.map(n => `<li>${n.replace(/</g, '&lt;')}</li>`).join('')
-    : '<li>Your broker will list the required documents inside the portal.</li>';
+const SECTION_ORDER = ['Identity', 'Income', 'Bank Statements', 'Tax Returns', 'Additional', 'Other'];
+
+function buildDocumentsEmailHtml(
+  clientName: string,
+  portalUrl: string,
+  brokerName: string,
+  groups: { section: string; names: string[] }[],
+): string {
+  const orderedGroups = [...groups]
+    .filter(g => g.names.length > 0)
+    .sort((a, b) => {
+      const ai = SECTION_ORDER.indexOf(a.section);
+      const bi = SECTION_ORDER.indexOf(b.section);
+      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+    });
+  const groupedHtml = orderedGroups.length
+    ? orderedGroups.map(g => `
+        <div class="doc-group">
+          <h4 class="doc-group-title">${g.section.replace(/</g, '&lt;')}</h4>
+          <ul class="doc-list">${g.names.map(n => `<li>${n.replace(/</g, '&lt;')}</li>`).join('')}</ul>
+        </div>`).join('')
+    : '<p class="body-text">Your broker will list the required documents inside the portal.</p>';
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -142,6 +162,9 @@ function buildDocumentsEmailHtml(clientName: string, portalUrl: string, brokerNa
     .cta-btn { display:inline-block; background:#e63946; color:#fff !important; padding:14px 40px; border-radius:8px; text-decoration:none; font-size:16px; font-weight:600; }
     .doc-section { background:#fafafa; border-radius:8px; padding:20px 24px; margin:24px 0; border:1px solid #eee; }
     .doc-section h3 { margin:0 0 12px; font-size:15px; font-weight:600; color:#1a1a1a; }
+    .doc-group { margin:0 0 16px; }
+    .doc-group:last-child { margin-bottom:0; }
+    .doc-group-title { margin:0 0 6px; font-size:13px; font-weight:600; color:#e63946; text-transform:uppercase; letter-spacing:0.4px; }
     .doc-list { margin:0; padding:0 0 0 20px; }
     .doc-list li { font-size:14px; line-height:1.8; color:#4a4a4a; }
     .footer { padding:24px 40px; text-align:center; border-top:1px solid #eee; }
@@ -164,7 +187,7 @@ function buildDocumentsEmailHtml(clientName: string, portalUrl: string, brokerNa
       </div>
       <div class="doc-section">
         <h3>📄 Documents requested:</h3>
-        <ul class="doc-list">${docList}</ul>
+        ${groupedHtml}
       </div>
       <p class="body-text">If you have any questions, please reply to this email or contact your broker${brokerName ? `, ${brokerName}` : ''} directly.</p>
       <p class="body-text">This link is unique to you — please do not share it.</p>
@@ -208,7 +231,7 @@ Deno.serve(async (req) => {
     }
     const userId = claimsData.claims.sub as string;
 
-    const { lead_id, app_url, mode = 'factfind', document_names = [], recipient_email, recipient_name } = (await req.json()) as SendFactFindRequest;
+    const { lead_id, app_url, mode = 'factfind', document_names = [], document_groups, recipient_email, recipient_name } = (await req.json()) as SendFactFindRequest;
 
     if (!lead_id || !app_url) {
       return new Response(
@@ -290,8 +313,16 @@ Deno.serve(async (req) => {
 
     // Build and send email
     const clientName = cleanText(recipient_name, `${lead.first_name} ${lead.last_name || ""}`.trim());
+    const groups: { section: string; names: string[] }[] = document_groups && document_groups.length
+      ? document_groups.map(g => ({
+          section: cleanText(g.section, 'Other') || 'Other',
+          names: (g.names || []).map(n => cleanText(n, 'Requested document')).filter(Boolean),
+        })).filter(g => g.names.length > 0)
+      : (document_names.length
+          ? [{ section: 'Other', names: document_names.map(n => cleanText(n, 'Requested document')) }]
+          : []);
     const html = mode === 'documents'
-      ? buildDocumentsEmailHtml(clientName, portalUrl, brokerName, document_names.map(name => cleanText(name, 'Requested document')))
+      ? buildDocumentsEmailHtml(clientName, portalUrl, brokerName, groups)
       : buildEmailHtml(clientName, portalUrl, brokerName);
     const subject = mode === 'documents'
       ? `${clientName} — Documents requested by Margin Finance`
