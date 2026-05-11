@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Plus, Trash2, FileText, Save } from 'lucide-react';
+import { Plus, Trash2, FileText, Save, ArrowUp, ArrowDown } from 'lucide-react';
 
 const SECTIONS = ['Identity', 'Income', 'Bank Statements', 'Tax Returns', 'Additional', 'Other'];
 
@@ -89,6 +89,17 @@ export function DocumentTemplatesManagement() {
       : t));
   };
 
+  const moveItem = (tplId: string, idx: number, dir: -1 | 1) => {
+    setTemplates(prev => prev.map(t => {
+      if (t.id !== tplId) return t;
+      const next = idx + dir;
+      if (next < 0 || next >= t.items.length) return t;
+      const items = [...t.items];
+      [items[idx], items[next]] = [items[next], items[idx]];
+      return { ...t, items };
+    }));
+  };
+
   if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>;
 
   return (
@@ -128,16 +139,24 @@ export function DocumentTemplatesManagement() {
             {tpl.items.map((item, idx) => (
               <div key={idx} className="grid grid-cols-12 gap-2 items-start">
                 <Select value={item.section} onValueChange={v => updateItem(tpl.id, idx, { section: v })}>
-                  <SelectTrigger className="col-span-3 h-9"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="col-span-2 h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {SECTIONS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <Input className="col-span-4 h-9" placeholder="Document name" value={item.name} onChange={e => updateItem(tpl.id, idx, { name: e.target.value })} />
                 <Input className="col-span-4 h-9" placeholder="Description (optional)" value={item.description || ''} onChange={e => updateItem(tpl.id, idx, { description: e.target.value })} />
-                <Button variant="ghost" size="sm" className="col-span-1 text-destructive" onClick={() => removeItem(tpl.id, idx)}>
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
+                <div className="col-span-2 flex items-center gap-1 justify-end">
+                  <Button variant="ghost" size="sm" className="h-9 w-9 p-0" disabled={idx === 0} onClick={() => moveItem(tpl.id, idx, -1)} title="Move up">
+                    <ArrowUp className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-9 w-9 p-0" disabled={idx === tpl.items.length - 1} onClick={() => moveItem(tpl.id, idx, 1)} title="Move down">
+                    <ArrowDown className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-destructive" onClick={() => removeItem(tpl.id, idx)} title="Remove">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
               </div>
             ))}
             <Button variant="outline" size="sm" onClick={() => addItem(tpl.id)}>
