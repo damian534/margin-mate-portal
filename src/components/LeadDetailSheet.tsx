@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { LeadStatus } from '@/hooks/useLeadStatuses';
@@ -23,7 +23,7 @@ import { notifyPartnerNote } from '@/lib/notifications';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { useTeamMembers } from '@/hooks/useTeamMembers';
 import {
-  Mail, Phone, Send, Trash2, Users, Building2, DollarSign,
+  Mail, Phone, Send, Trash2, Users, Building2, DollarSign, Paperclip, Download,
   Calendar, Plus, CheckCircle, Clock, AlertTriangle,
   MessageSquare, Activity, ChevronDown, ChevronRight, Pencil, X, Save,
   Search, ExternalLink, FileText, Copy, Flag, Settings as SettingsIcon
@@ -91,6 +91,16 @@ interface Note {
   created_at: string;
   author_id: string | null;
   task_id?: string | null;
+  attachments?: NoteAttachment[];
+}
+
+interface NoteAttachment {
+  id: string;
+  note_id: string;
+  file_path: string;
+  file_name: string;
+  file_size: number | null;
+  mime_type: string | null;
 }
 
 interface Task {
@@ -198,6 +208,8 @@ export function LeadDetailSheet({
   const [taskTemplates, setTaskTemplates] = useState<{ id: string; name: string; task_title: string; due_in_days: number | null; checklist_items: { text: string }[] }[]>([]);
   const [newNote, setNewNote] = useState('');
   const [notifyPartner, setNotifyPartner] = useState(!!lead?.referral_partner_id);
+  const [noteFiles, setNoteFiles] = useState<File[]>([]);
+  const noteFileInputRef = useRef<HTMLInputElement>(null);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
@@ -286,7 +298,17 @@ export function LeadDetailSheet({
       return;
     }
     const { data } = await supabase.from('notes').select('*').eq('lead_id', leadId).order('created_at', { ascending: false });
-    setNotes((data as Note[]) || []);
+    const notesArr = (data as Note[]) || [];
+    if (notesArr.length) {
+      const ids = notesArr.map(n => n.id);
+      const { data: atts } = await (supabase as any).from('note_attachments').select('*').in('note_id', ids);
+      const byNote: Record<string, NoteAttachment[]> = {};
+      ((atts as NoteAttachment[]) || []).forEach(a => {
+        (byNote[a.note_id] = byNote[a.note_id] || []).push(a);
+      });
+      notesArr.forEach(n => { n.attachments = byNote[n.id] || []; });
+    }
+    setNotes(notesArr);
   };
 
   const fetchTasks = async (leadId: string) => {
@@ -364,14 +386,39 @@ export function LeadDetailSheet({
     }
     const insertData: any = { lead_id: lead.id, author_id: user.id, content: noteContent.trim(), notify_partner: notifyPartner };
     if (taskId) insertData.task_id = taskId;
-    const { error } = await supabase.from('notes').insert(insertData);
-    if (error) { toast.error('Failed to add note'); return; }
+    const { data: inserted, error } = await supabase.from('notes').insert(insertData).select('id').single();
+    if (error || !inserted) { toast.error('Failed to add note'); return; }
+
+    // Upload any staged attachments (only for the main timeline form, not task notes)
+    if (!taskId && noteFiles.length > 0) {
+      for (const file of noteFiles) {
+        const safeName = file.name.replace(/[^A-Za-z0-9._-]/g, '_');
+        const path = `${lead.id}/${inserted.id}/${Date.now()}-${safeName}`;
+        const { error: upErr } = await supabase.storage.from('note-attachments').upload(path, file, { upsert: false });
+        if (upErr) { toast.error(`Upload failed: ${file.name}`); continue; }
+        await (supabase as any).from('note_attachments').insert({
+          note_id: inserted.id,
+          lead_id: lead.id,
+          file_path: path,
+          file_name: file.name,
+          file_size: file.size,
+          mime_type: file.type || null,
+          uploaded_by: user.id,
+        });
+      }
+    }
     if (notifyPartner && lead.referral_partner_id) {
       notifyPartnerNote(lead, noteContent.trim()).catch(err => console.error('Email notification failed:', err));
     }
     toast.success(notifyPartner ? 'Note added & partner notified' : 'Note added');
-    if (!taskId) { setNewNote(''); setNotifyPartner(false); }
+    if (!taskId) { setNewNote(''); setNotifyPartner(false); setNoteFiles([]); }
     fetchNotes(lead.id);
+  };
+
+  const downloadAttachment = async (att: NoteAttachment) => {
+    const { data, error } = await supabase.storage.from('note-attachments').createSignedUrl(att.file_path, 60);
+    if (error || !data?.signedUrl) { toast.error('Could not open file'); return; }
+    window.open(data.signedUrl, '_blank');
   };
 
   const addTaskNote = async (taskId: string) => {
@@ -1387,10 +1434,39 @@ export function LeadDetailSheet({
               {/* Add note form */}
               <div className="space-y-2">
                 <Textarea value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder="Log a note, call summary, or update..." rows={2} maxLength={2000} />
+                {noteFiles.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {noteFiles.map((f, i) => (
+                      <span key={i} className="inline-flex items-center gap-1 text-xs bg-muted px-2 py-1 rounded">
+                        <FileText className="w-3 h-3" />
+                        <span className="max-w-[160px] truncate">{f.name}</span>
+                        <button onClick={() => setNoteFiles(prev => prev.filter((_, j) => j !== i))} className="hover:text-destructive">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <Checkbox id="notify-detail" checked={notifyPartner} onCheckedChange={(v) => setNotifyPartner(v === true)} />
                     <Label htmlFor="notify-detail" className="text-xs cursor-pointer">Notify partner</Label>
+                    <input
+                      ref={noteFileInputRef}
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        const valid = files.filter(f => f.size <= 25 * 1024 * 1024);
+                        if (valid.length < files.length) toast.error('Some files exceeded 25MB and were skipped');
+                        setNoteFiles(prev => [...prev, ...valid]);
+                        if (noteFileInputRef.current) noteFileInputRef.current.value = '';
+                      }}
+                    />
+                    <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => noteFileInputRef.current?.click()}>
+                      <Paperclip className="w-3.5 h-3.5" /> Attach
+                    </Button>
                   </div>
                   <Button onClick={() => addNote(newNote)} disabled={!newNote.trim()} size="sm" className="gap-1.5">
                     <Send className="w-3.5 h-3.5" /> Log
@@ -1427,6 +1503,21 @@ export function LeadDetailSheet({
                               </span>
                             )}
                             <p className="text-sm whitespace-pre-wrap">{note.content}</p>
+                            {note.attachments && note.attachments.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 mt-2">
+                                {note.attachments.map(att => (
+                                  <button
+                                    key={att.id}
+                                    onClick={() => downloadAttachment(att)}
+                                    className="inline-flex items-center gap-1 text-xs bg-background border rounded px-2 py-1 hover:bg-muted"
+                                    title={att.file_name}
+                                  >
+                                    <Download className="w-3 h-3" />
+                                    <span className="max-w-[180px] truncate">{att.file_name}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                             <div className="flex items-center gap-2 mt-1">
                               <p className="text-xs text-muted-foreground">{format(new Date(note.created_at), 'dd MMM yyyy, HH:mm')}</p>
                               {note.notify_partner && <span className="text-xs bg-accent/20 text-accent-foreground px-1.5 py-0.5 rounded">Partner notified</span>}
