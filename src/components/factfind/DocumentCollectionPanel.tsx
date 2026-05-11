@@ -472,6 +472,12 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
             const applicant = applicants.find(a => a.id === applicantId || (isPrimaryFallback(applicantId) && a.display_order === 0));
             const recipientEmail = applicant?.email || (applicant?.display_order === 0 ? primaryEmail : null);
             if (!recipientEmail) return;
+            const groupsMap = docs.reduce<Record<string, string[]>>((acc, d) => {
+              const sec = d.section || 'Other';
+              acc[sec] = [...(acc[sec] || []), d.name];
+              return acc;
+            }, {});
+            const document_groups = Object.entries(groupsMap).map(([section, names]) => ({ section, names }));
             await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-fact-find`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
@@ -482,6 +488,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
                 recipient_email: recipientEmail,
                 recipient_name: applicant?.name,
                 document_names: docs.map(d => d.name),
+                document_groups,
               }),
             }).catch(() => {});
           }));
@@ -522,6 +529,12 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
         const applicant = applicants.find(a => a.id === applicantId || (isPrimaryFallback(applicantId) && a.display_order === 0));
         const recipientEmail = applicant?.email || (applicant?.display_order === 0 ? primaryEmail : null);
         if (!recipientEmail) return;
+        const groupsMap = docs.reduce<Record<string, string[]>>((acc, d) => {
+          const sec = d.section || 'Other';
+          acc[sec] = [...(acc[sec] || []), d.name];
+          return acc;
+        }, {});
+        const document_groups = Object.entries(groupsMap).map(([section, names]) => ({ section, names }));
         const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-fact-find`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
@@ -532,6 +545,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
             recipient_email: recipientEmail,
             recipient_name: applicant?.name,
             document_names: docs.map(d => d.name),
+            document_groups,
           }),
         }).catch(() => null);
         if (res && res.ok) sent += 1;
