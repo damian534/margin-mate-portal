@@ -394,12 +394,13 @@ export function LeadDetailSheet({
         description: newTaskDescription.trim() || null,
         due_date: newTaskDueDate ? new Date(newTaskDueDate).toISOString() : null,
         created_by: user.id,
+        assigned_to: newTaskAssignee,
       });
       if (error) { toast.error('Failed to create task'); return; }
       toast.success('Task created');
       fetchTasks(lead.id);
     }
-    setNewTaskTitle(''); setNewTaskDueDate(''); setNewTaskDescription(''); setShowTaskForm(false);
+    setNewTaskTitle(''); setNewTaskDueDate(''); setNewTaskDescription(''); setNewTaskAssignee(null); setShowTaskForm(false);
   };
 
   const updateTask = async (taskId: string) => {
