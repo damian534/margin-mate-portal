@@ -1445,9 +1445,10 @@ export function LeadDetailSheet({
           <div className="mb-3">
             <ProfessionalContactsSection
               leadId={lead.id}
-              contacts={contactsList as any}
+              contacts={mergedContactsList as any}
               isPreviewMode={isPreviewMode}
               onOpenContact={onOpenContact}
+              onContactCreated={(c) => setExtraContacts(prev => [...prev, c])}
             />
           </div>
 
