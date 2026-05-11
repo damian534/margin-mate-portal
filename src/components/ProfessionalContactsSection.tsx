@@ -101,10 +101,12 @@ export function ProfessionalContactsSection({
       .from('lead_professional_contacts' as any)
       .insert({ lead_id: leadId, contact_id: contactId, role } as any)
       .select('id, lead_id, contact_id, role')
-      .single();
+      .maybeSingle();
     if (error || !data) {
       if ((error as any)?.code === '23505') { toast.info('Already linked to this deal'); return; }
-      toast.error('Failed to add'); return;
+      console.error('lead_professional_contacts insert failed', error);
+      toast.error(`Failed to add: ${(error as any)?.message || 'unknown error'}`);
+      return;
     }
     setRows(rs => [...rs, data as any]);
     toast.success(`${roleLabel(role)} added`);
@@ -135,13 +137,31 @@ export function ProfessionalContactsSection({
       setSaving(false); resetCreate(); setCreateOpen(false); setAdding(false);
       return;
     }
-    const { data: c, error: cErr } = await supabase.from('contacts').insert({
+    // Use auth.uid() as created_by — this satisfies the broker RLS policy.
+    // Staff users insert via the staff RLS policy which requires created_by = broker id;
+    // we attempt auth.uid() first, then fall back to effectiveBrokerId for staff.
+    const { data: userRes } = await supabase.auth.getUser();
+    const myUid = userRes?.user?.id || null;
+    let { data: c, error: cErr } = await supabase.from('contacts').insert({
       first_name: first.trim(), last_name: last.trim(),
       email: email.trim() || null, phone: phone.trim() || null,
       company: company.trim() || null,
-      type: pendingRole, created_by: effectiveBrokerId,
-    } as any).select().single();
-    if (cErr || !c) { toast.error('Failed to create contact'); setSaving(false); return; }
+      type: pendingRole, created_by: myUid,
+    } as any).select().maybeSingle();
+    if ((cErr || !c) && effectiveBrokerId && effectiveBrokerId !== myUid) {
+      const retry = await supabase.from('contacts').insert({
+        first_name: first.trim(), last_name: last.trim(),
+        email: email.trim() || null, phone: phone.trim() || null,
+        company: company.trim() || null,
+        type: pendingRole, created_by: effectiveBrokerId,
+      } as any).select().maybeSingle();
+      c = retry.data as any; cErr = retry.error as any;
+    }
+    if (cErr || !c) {
+      console.error('contacts insert failed', cErr);
+      toast.error(`Failed to create contact: ${(cErr as any)?.message || 'unknown error'}`);
+      setSaving(false); return;
+    }
     await linkContact((c as any).id, pendingRole);
     onContactsChanged?.();
     setSaving(false); resetCreate(); setCreateOpen(false); setAdding(false);
