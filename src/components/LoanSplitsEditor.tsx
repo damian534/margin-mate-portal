@@ -56,6 +56,10 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, onSettl
     ]);
     const list = (s as LoanSplit[]) || [];
     setSplits(list);
+    if (settled && !list.some(split => split.settled)) {
+      await supabase.from('leads').update({ status: 'approved', settled_date: null } as any).eq('id', leadId);
+      onSettlementStateChange?.(false, null);
+    }
     const names = Array.from(new Set(((l as { name: string }[]) || []).map(x => x.name)));
     setLenders(names);
     onTotalChange?.(list.reduce((sum, x) => sum + (x.amount || 0), 0));
@@ -64,6 +68,25 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, onSettl
 
   const recomputeTotal = (list: LoanSplit[]) => {
     onTotalChange?.(list.reduce((sum, x) => sum + (x.amount || 0), 0));
+  };
+
+  const markMatchingSettlementsBooked = async () => {
+    const { data: lead } = await supabase
+      .from('leads')
+      .select('first_name, last_name, broker_id')
+      .eq('id', leadId)
+      .maybeSingle();
+    if (!lead) return;
+    const first = (lead as any).first_name?.trim();
+    const last = (lead as any).last_name?.trim();
+    const names = Array.from(new Set([
+      [first, last].filter(Boolean).join(' '),
+      [last, first].filter(Boolean).join(', '),
+    ].filter(Boolean)));
+    if (!names.length) return;
+    let query = supabase.from('settlements').update({ status: 'booked' } as any).eq('status', 'settled').in('client_name', names);
+    if ((lead as any).broker_id) query = query.eq('broker_id', (lead as any).broker_id);
+    await query;
   };
 
   const addSplit = async () => {
@@ -99,6 +122,7 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, onSettl
           status: 'approved',
           settled_date: null,
         } as any).eq('id', leadId);
+        await markMatchingSettlementsBooked();
         onSettlementStateChange?.(false, null);
       }
     }
@@ -111,6 +135,7 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, onSettl
     await supabase.from('loan_splits').delete().eq('id', id);
     if (!next.some(s => s.settled)) {
       await supabase.from('leads').update({ status: 'approved', settled_date: null } as any).eq('id', leadId);
+      await markMatchingSettlementsBooked();
       onSettlementStateChange?.(false, null);
     }
   };
@@ -119,7 +144,7 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, onSettl
   const settledCount = splits.filter(s => s.settled).length;
   const settledSum = splits.filter(s => s.settled).reduce((s, x) => s + (x.amount || 0), 0);
   const allSettled = splits.length > 0 && settledCount === splits.length;
-  const showSettledView = settled || allSettled;
+  const showSettledView = allSettled || (settled && settledCount > 0);
 
   const lenders_summary = Array.from(new Set(splits.map(s => s.lender).filter(Boolean) as string[]));
   const subtitle = showSettledView
