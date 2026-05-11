@@ -44,6 +44,7 @@ interface DocumentRequest {
   status: string;
   file_name: string | null;
   rejection_reason: string | null;
+  section?: string | null;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -52,6 +53,8 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
   approved: { label: 'Approved', color: 'bg-green-100 text-green-700', icon: <CheckCircle2 className="w-3 h-3" /> },
   rejected: { label: 'Resubmit', color: 'bg-red-100 text-red-700', icon: <XCircle className="w-3 h-3" /> },
 };
+
+const SECTION_ORDER = ['Identity', 'Income', 'Bank Statements', 'Tax Returns', 'Additional', 'Other'];
 
 export default function ClientPortal() {
   const { token } = useParams<{ token: string }>();
