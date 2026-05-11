@@ -1213,6 +1213,182 @@ export function LeadDetailSheet({
             )}
           </div>
 
+          {/* Deal Setup — moved above Loan Splits, directly below Tasks */}
+          <div id="sec-status" className="scroll-mt-16" />
+          <SectionCard
+            icon={SettingsIcon}
+            title="Deal Setup"
+            tone="neutral"
+            subtitle={<>
+              {(statuses.find(s => s.name === lead.status)?.label || lead.status)}
+              {lead.loan_purpose && <> · {LOAN_PURPOSE_OPTIONS.find(o => o.value === lead.loan_purpose)?.label || lead.loan_purpose}</>}
+              {lead.loan_amount ? <> · ${lead.loan_amount.toLocaleString()}</> : null}
+            </>}
+            defaultCollapsed
+          >
+          <div className="space-y-5">
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Status</Label>
+              <Select
+                value={lead.wip_status ? `wip:${lead.wip_status}` : `lead:${lead.status}`}
+                onValueChange={(v) => {
+                  const prev = lead.wip_status ? `WIP · ${lead.wip_status}` : (statuses.find(s => s.name === lead.status)?.label || lead.status);
+                  if (v.startsWith('wip:')) {
+                    const next = v.slice(4);
+                    onUpdateWipStatus?.(lead.id, next);
+                    const nextLabel = WIP_STATUSES.find(s => s.name === next)?.label || next;
+                    import('@/lib/leadAudit').then(m => m.logAudit(lead.id, `🔄 Status changed: ${prev} → WIP · ${nextLabel}`, { isPreview: isPreviewMode }));
+                  } else {
+                    const next = v.slice(5);
+                    onUpdateStatus(lead.id, next);
+                    if (lead.wip_status) onUpdateWipStatus?.(lead.id, null);
+                    const nextLabel = statuses.find(s => s.name === next)?.label || next;
+                    import('@/lib/leadAudit').then(m => m.logAudit(lead.id, `🔄 Status changed: ${prev} → ${nextLabel}`, { isPreview: isPreviewMode }));
+                  }
+                }}
+              >
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <div className="px-2 py-1 text-[10px] font-semibold uppercase text-muted-foreground">Lead Status</div>
+                  {statuses.map(s => (
+                    <SelectItem key={`lead-${s.name}`} value={`lead:${s.name}`}>
+                      <span className="inline-flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
+                        {s.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                  <div className="px-2 py-1 mt-1 text-[10px] font-semibold uppercase text-muted-foreground border-t">WIP Stage</div>
+                  {WIP_STATUSES.map(s => (
+                    <SelectItem key={`wip-${s.name}`} value={`wip:${s.name}`}>
+                      <span className="inline-flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
+                        {s.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Next Task</Label>
+              <div className="mt-1 h-10 flex items-center">
+                {nextTask ? (
+                  <div className={`text-sm flex items-center gap-1.5 ${
+                    overdueTasks.some(t => t.id === nextTask.id) ? 'text-destructive' :
+                    nextTask.due_date && isToday(new Date(nextTask.due_date)) ? 'text-primary' : 'text-muted-foreground'
+                  }`}>
+                    {overdueTasks.some(t => t.id === nextTask.id) ? (
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                    ) : (
+                      <Clock className="w-3.5 h-3.5" />
+                    )}
+                    <span className="truncate">{nextTask.title}</span>
+                    {nextTask.due_date && (
+                      <span className="text-xs whitespace-nowrap">
+                        ({format(new Date(nextTask.due_date), 'dd MMM')})
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-sm text-muted-foreground">No upcoming tasks</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {isSuperAdmin && brokerOptions.length > 0 && (
+            <div>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Assigned Broker</Label>
+              <Select
+                value={lead.broker_id ?? ''}
+                onValueChange={async (val) => {
+                  const newBrokerId = val || null;
+                  onLeadChange?.({ ...lead, broker_id: newBrokerId });
+                  if (!isPreviewMode) {
+                    const { error } = await supabase.from('leads').update({ broker_id: newBrokerId } as any).eq('id', lead.id);
+                    if (error) { toast.error('Failed to reassign lead'); return; }
+                  }
+                  const brokerName = brokerOptions.find(b => b.id === val)?.name || 'Unknown';
+                  toast.success(`Lead reassigned to ${brokerName}`);
+                  addNote(`🔄 Lead reassigned to ${brokerName}`, 'note');
+                }}
+              >
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Select broker" /></SelectTrigger>
+                <SelectContent>
+                  {brokerOptions.map(b => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.name}{b.email ? ` (${b.email})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div>
+            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Assistant</Label>
+            <AssigneePicker
+              value={(lead as any).assigned_to ?? null}
+              onChange={async (userId) => {
+                onLeadChange?.({ ...lead, assigned_to: userId } as any);
+                if (!isPreviewMode) {
+                  const { error } = await supabase.from('leads').update({ assigned_to: userId } as any).eq('id', lead.id);
+                  if (error) { toast.error('Failed to update assistant'); return; }
+                }
+                toast.success(userId ? 'Assistant updated' : 'Assistant cleared');
+                import('@/lib/leadAudit').then(m => m.logAudit(lead.id, userId ? `🔄 Assistant assigned` : `🔄 Assistant cleared`, { isPreview: isPreviewMode }));
+              }}
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Allocate this file to a specific assistant or team member.
+            </p>
+          </div>
+
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Loan Amount (Total)</Label>
+              <div className="relative mt-1">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  className="pl-8 bg-muted/30"
+                  placeholder="Auto-summed from splits"
+                  readOnly
+                  value={lead.loan_amount ? lead.loan_amount.toLocaleString() : ''}
+                  onChange={() => { /* auto-summed from splits */ }}
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">Sum of all loan splits below.</p>
+            </div>
+            <div className="flex-1">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Transaction</Label>
+              <Select
+                value={lead.loan_purpose ?? ''}
+                onValueChange={async (val) => {
+                  const purpose = val || null;
+                  const prev = lead.loan_purpose || 'none';
+                  onLeadChange?.({ ...lead, loan_purpose: purpose });
+                  if (!isPreviewMode) {
+                    await supabase.from('leads').update({ loan_purpose: purpose } as any).eq('id', lead.id);
+                  }
+                  import('@/lib/leadAudit').then(m => m.logAudit(lead.id, `⚙️ Transaction type changed: ${prev} → ${purpose || 'none'}`, { isPreview: isPreviewMode }));
+                }}
+              >
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Select transaction" /></SelectTrigger>
+                <SelectContent>
+                  {LOAN_PURPOSE_OPTIONS.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          </div>
+          </SectionCard>
+
           {/* Loan Splits — moved to sit directly under Tasks */}
           <LoanSplitsEditor
             leadId={lead.id}
