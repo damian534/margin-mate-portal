@@ -1043,39 +1043,6 @@ export function LeadDetailSheet({
             />
           </div>
 
-          {/* Professional Contacts (solicitor / conveyancer / accountant) */}
-          <div className="mb-3">
-            <ProfessionalContactsSection
-              leadId={lead.id}
-              contacts={contactsList as any}
-              isPreviewMode={isPreviewMode}
-              onOpenContact={onOpenContact}
-            />
-          </div>
-
-          {/* Subject to Finance — highlighted */}
-          <SubjectToFinanceSection
-            leadId={lead.id}
-            subjectToFinance={!!lead.subject_to_finance}
-            financeDueDate={lead.finance_due_date ?? null}
-            contacts={contactsList as any}
-            isPreviewMode={isPreviewMode}
-            onChange={(updates) => onLeadChange?.({ ...lead, ...updates })}
-          />
-
-          {/* Pre-Approval — only for Pre Approval transaction type */}
-          {lead.loan_purpose === 'pre_approval' && (
-            <PreApprovalSection
-              leadId={lead.id}
-              purchasePrice={lead.pre_approval_purchase_price ?? null}
-              loanAmount={lead.pre_approval_loan_amount ?? null}
-              expiryDate={lead.pre_approval_expiry_date ?? null}
-              ftc={lead.pre_approval_ftc ?? null}
-              isPreviewMode={isPreviewMode}
-              onChange={(updates) => onLeadChange?.({ ...lead, ...updates })}
-            />
-          )}
-
           <div className="mb-4 rounded-xl border-2 border-success/30 bg-gradient-to-br from-success/10 via-background to-background shadow-md overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 bg-success/10 border-b border-success/20">
               <div className="flex items-center gap-2 min-w-0">
@@ -1212,6 +1179,39 @@ export function LeadDetailSheet({
               </div>
             )}
           </div>
+
+          {/* Professional Contacts (solicitor / conveyancer / accountant) */}
+          <div className="mb-3">
+            <ProfessionalContactsSection
+              leadId={lead.id}
+              contacts={contactsList as any}
+              isPreviewMode={isPreviewMode}
+              onOpenContact={onOpenContact}
+            />
+          </div>
+
+          {/* Subject to Finance — highlighted */}
+          <SubjectToFinanceSection
+            leadId={lead.id}
+            subjectToFinance={!!lead.subject_to_finance}
+            financeDueDate={lead.finance_due_date ?? null}
+            contacts={contactsList as any}
+            isPreviewMode={isPreviewMode}
+            onChange={(updates) => onLeadChange?.({ ...lead, ...updates })}
+          />
+
+          {/* Pre-Approval — only for Pre Approval transaction type */}
+          {lead.loan_purpose === 'pre_approval' && (
+            <PreApprovalSection
+              leadId={lead.id}
+              purchasePrice={lead.pre_approval_purchase_price ?? null}
+              loanAmount={lead.pre_approval_loan_amount ?? null}
+              expiryDate={lead.pre_approval_expiry_date ?? null}
+              ftc={lead.pre_approval_ftc ?? null}
+              isPreviewMode={isPreviewMode}
+              onChange={(updates) => onLeadChange?.({ ...lead, ...updates })}
+            />
+          )}
 
           {/* Deal Setup — moved above Loan Splits, directly below Tasks */}
           <div id="sec-status" className="scroll-mt-16" />
