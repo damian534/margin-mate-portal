@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { LeadStatus } from '@/hooks/useLeadStatuses';
@@ -23,7 +23,7 @@ import { notifyPartnerNote } from '@/lib/notifications';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { useTeamMembers } from '@/hooks/useTeamMembers';
 import {
-  Mail, Phone, Send, Trash2, Users, Building2, DollarSign,
+  Mail, Phone, Send, Trash2, Users, Building2, DollarSign, Paperclip, Download,
   Calendar, Plus, CheckCircle, Clock, AlertTriangle,
   MessageSquare, Activity, ChevronDown, ChevronRight, Pencil, X, Save,
   Search, ExternalLink, FileText, Copy, Flag, Settings as SettingsIcon
@@ -91,6 +91,16 @@ interface Note {
   created_at: string;
   author_id: string | null;
   task_id?: string | null;
+  attachments?: NoteAttachment[];
+}
+
+interface NoteAttachment {
+  id: string;
+  note_id: string;
+  file_path: string;
+  file_name: string;
+  file_size: number | null;
+  mime_type: string | null;
 }
 
 interface Task {
@@ -198,6 +208,8 @@ export function LeadDetailSheet({
   const [taskTemplates, setTaskTemplates] = useState<{ id: string; name: string; task_title: string; due_in_days: number | null; checklist_items: { text: string }[] }[]>([]);
   const [newNote, setNewNote] = useState('');
   const [notifyPartner, setNotifyPartner] = useState(!!lead?.referral_partner_id);
+  const [noteFiles, setNoteFiles] = useState<File[]>([]);
+  const noteFileInputRef = useRef<HTMLInputElement>(null);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
