@@ -8,6 +8,7 @@ import { ChevronDown, ChevronRight, DollarSign, Users, ChevronsDownUp, ChevronsU
 import { AssigneeBadge } from '@/components/AssigneePicker';
 import { usePersistedState, usePersistedStringSet } from '@/hooks/usePersistedState';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { HorizontalScrollWithTopBar } from '@/components/HorizontalScrollWithTopBar';
 
 interface Lead {
   id: string;
@@ -144,7 +145,8 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
         </Button>
       </div>
 
-      <div className="flex gap-3 pb-4 overflow-x-auto" style={{ minHeight: '60vh', minWidth: 0 }}>
+      <HorizontalScrollWithTopBar style={{ minHeight: '60vh' }}>
+        <div className="flex gap-3 pb-4" style={{ minWidth: 'max-content' }}>
         {statuses.map(status => {
           const columnLeads = leads.filter(l => l.status === status.name);
           const totalAmount = columnLeads.reduce((sum, l) => sum + (l.loan_amount || 0), 0);
