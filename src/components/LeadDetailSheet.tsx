@@ -33,6 +33,7 @@ import { ReferLeadDialog } from '@/components/ReferLeadDialog';
 import { FinancialSnapshot } from '@/components/lead/FinancialSnapshot';
 import { StatusBadge } from '@/components/StatusBadge';
 import { CoApplicantPicker } from '@/components/CoApplicantPicker';
+import { ProfessionalContactsSection } from '@/components/ProfessionalContactsSection';
 import { LoanSplitsEditor } from '@/components/LoanSplitsEditor';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -1033,6 +1034,16 @@ export function LeadDetailSheet({
                   await supabase.from('leads').update({ co_applicant_contact_id: newId } as any).eq('id', lead.id);
                 }
               }}
+            />
+          </div>
+
+          {/* Professional Contacts (solicitor / conveyancer / accountant) */}
+          <div className="mb-3">
+            <ProfessionalContactsSection
+              leadId={lead.id}
+              contacts={contactsList as any}
+              isPreviewMode={isPreviewMode}
+              onOpenContact={onOpenContact}
             />
           </div>
 
