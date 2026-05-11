@@ -22,6 +22,7 @@ serve(async (req) => {
       const url = new URL(req.url);
       const token = url.searchParams.get("token");
       const applicantParam = url.searchParams.get("applicant");
+      const normalisedApplicantParam = applicantParam?.trim() || null;
       if (!token) {
         return new Response(JSON.stringify({ error: "Missing token" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -73,18 +74,19 @@ serve(async (req) => {
         .eq("lead_id", tokenData.lead_id)
         .not("requested_at", "is", null)
         .order("created_at", { ascending: true });
-      if (applicantParam) {
-        docsQuery = docsQuery.eq("applicant_id", applicantParam);
+      if (normalisedApplicantParam) {
+        docsQuery = docsQuery.eq("applicant_id", normalisedApplicantParam);
       }
       const { data: documents } = await docsQuery;
 
       // Get applicant info to display the recipient's name when scoped
       let applicantName: string | null = null;
-      if (applicantParam) {
+      if (normalisedApplicantParam) {
         const { data: app } = await supabase
           .from("lead_applicants")
           .select("name")
-          .eq("id", applicantParam)
+          .eq("id", normalisedApplicantParam)
+          .eq("lead_id", tokenData.lead_id)
           .maybeSingle();
         applicantName = app?.name || null;
       }
