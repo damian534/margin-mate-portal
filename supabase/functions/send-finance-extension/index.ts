@@ -176,6 +176,23 @@ Deno.serve(async (req) => {
       resend_id: emailData.id || null,
     } as any);
 
+    // Audit log on the lead timeline.
+    try {
+      const noteLines = [
+        `💰 Finance extension request emailed — ${requested_days} day${requested_days === 1 ? "" : "s"} → ${recipient_name || recipient_email}${recipient_role ? ` (${recipient_role})` : ""}`,
+      ];
+      if (current_due_date) noteLines.push(`Current due: ${fmtDate(current_due_date)}`);
+      if (proposed_new_date) noteLines.push(`Proposed new date: ${fmtDate(proposed_new_date)}`);
+      if (message) noteLines.push(`\n"${String(message).slice(0, 280)}"`);
+      await supabaseAdmin.from("notes").insert({
+        lead_id,
+        author_id: claimsData.claims.sub,
+        content: noteLines.join("\n"),
+      } as any);
+    } catch (logErr) {
+      console.warn("Audit log insert failed:", logErr);
+    }
+
     return new Response(JSON.stringify({ success: true, email_id: emailData.id }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
