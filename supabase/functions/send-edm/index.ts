@@ -48,6 +48,39 @@ Deno.serve(async (req) => {
       return json({ count: recips.length, sample: recips.slice(0, 25) });
     }
 
+    if (action === "send_test") {
+      const { test_email, subject, body_html, from_name, from_email } = body;
+      if (!test_email || !subject || !body_html) {
+        return json({ error: "test_email, subject and body_html required" }, 400);
+      }
+      const RESEND_KEY = Deno.env.get("RESEND_API_KEY");
+      const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!RESEND_KEY || !LOVABLE_KEY) return json({ error: "Email service not configured" }, 500);
+
+      // Fallback sample merge values for preview
+      const vars = {
+        first_name: "John",
+        last_name: "Smith",
+        full_name: "John Smith",
+        email: test_email,
+      };
+      const fromHeader = `${from_name || "Margin Connect"} <${from_email || "onboarding@resend.dev"}>`;
+      const renderedSubject = "[TEST] " + applyMergeTags(subject, vars);
+      const renderedHtml = applyMergeTags(body_html, vars);
+      const resp = await fetch(RESEND_GATEWAY, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${LOVABLE_KEY}`,
+          "X-Connection-Api-Key": RESEND_KEY,
+        },
+        body: JSON.stringify({ from: fromHeader, to: [test_email], subject: renderedSubject, html: renderedHtml }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) return json({ error: data?.message || JSON.stringify(data) }, 400);
+      return json({ ok: true });
+    }
+
     if (action === "send") {
       const { campaign_id } = body;
       if (!campaign_id) return json({ error: "campaign_id required" }, 400);
