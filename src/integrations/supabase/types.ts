@@ -777,6 +777,36 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_pre_approval_documents: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          lead_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          lead_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          lead_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       lead_professional_contacts: {
         Row: {
           contact_id: string
