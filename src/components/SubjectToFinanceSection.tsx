@@ -198,7 +198,7 @@ export function SubjectToFinanceSection({
       return;
     }
     toast.success(`Extension request emailed to ${name || email}`);
-    await logAudit(leadId, `💰 Finance extension request sent — ${days} day${days === 1 ? '' : 's'} → ${name || email}${link?.row.role ? ` (${ROLE_LABEL[link.row.role] || link.row.role})` : ''}${proposedNewDate ? `\nProposed new date: ${format(proposedNewDate, 'dd MMM yyyy')}` : ''}${message.trim() ? `\n\n"${message.trim().slice(0, 280)}"` : ''}`, { isPreview: isPreviewLead });
+    // Audit log is written server-side by the send-finance-extension edge function.
     setDialogOpen(false);
     setMessage('');
     loadLinks();
