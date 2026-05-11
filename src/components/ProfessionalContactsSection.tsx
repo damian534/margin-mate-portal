@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Briefcase, Mail, Phone, Search, UserPlus, X, ExternalLink, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { logAudit } from '@/lib/leadAudit';
+import { SectionCard } from '@/components/lead/SectionCard';
 
 export interface ProContact {
   id: string;
@@ -183,18 +184,22 @@ export function ProfessionalContactsSection({
   };
 
   return (
-    <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <Label className="text-xs flex items-center gap-1.5 mb-0">
-          <Briefcase className="w-3 h-3" /> Professional Contacts
-        </Label>
-        {!adding && (
-          <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={() => setAdding(true)}>
-            <Plus className="w-3 h-3" /> Add
-          </Button>
-        )}
-      </div>
-
+    <SectionCard
+      icon={Briefcase}
+      title="Professional Contacts"
+      tone="neutral"
+      defaultCollapsed={linked.length === 0}
+      subtitle={
+        linked.length === 0
+          ? 'No solicitor, conveyancer or accountant added'
+          : `${linked.length} linked${linked.map(l => l.contact ? ` · ${roleLabel(l.row.role)}` : '').slice(0, 3).join('')}`
+      }
+      rightSlot={!adding ? (
+        <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={(e) => { e.stopPropagation(); setAdding(true); }}>
+          <Plus className="w-3 h-3" /> Add
+        </Button>
+      ) : null}
+    >
       {loading ? (
         <p className="text-xs text-muted-foreground">Loading…</p>
       ) : linked.length === 0 && !adding ? (
@@ -336,6 +341,6 @@ export function ProfessionalContactsSection({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </SectionCard>
   );
 }
