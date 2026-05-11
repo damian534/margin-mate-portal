@@ -56,6 +56,8 @@ interface WIPLead {
   referral_partner_id?: string | null;
   source_contact_id?: string | null;
   created_at?: string | null;
+  email?: string | null;
+  phone?: string | null;
 }
 
 interface LeadSource {
