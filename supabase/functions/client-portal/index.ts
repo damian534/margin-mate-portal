@@ -96,6 +96,7 @@ serve(async (req) => {
         lead_phone: lead?.phone || "",
         fact_find: factFind || [],
         documents: documents || [],
+        applicant_name: applicantName,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
