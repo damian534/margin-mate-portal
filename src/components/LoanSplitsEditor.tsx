@@ -7,6 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Trash2, DollarSign, Layers, CheckCircle2, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SectionCard } from '@/components/lead/SectionCard';
+import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 export interface LoanSplit {
   id: string;
@@ -17,6 +20,8 @@ export interface LoanSplit {
   application_id: string | null;
   display_order: number;
   loan_purpose: string | null;
+  settled?: boolean;
+  settled_date?: string | null;
 }
 
 interface Props {
@@ -86,9 +91,13 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, settled
   };
 
   const total = splits.reduce((sum, x) => sum + (x.amount || 0), 0);
+  const settledCount = splits.filter(s => s.settled).length;
+  const settledSum = splits.filter(s => s.settled).reduce((s, x) => s + (x.amount || 0), 0);
+  const allSettled = splits.length > 0 && settledCount === splits.length;
+  const showSettledView = settled || allSettled;
 
   const lenders_summary = Array.from(new Set(splits.map(s => s.lender).filter(Boolean) as string[]));
-  const subtitle = settled
+  const subtitle = showSettledView
     ? <span>
         <span className="text-success font-semibold">Settled</span>
         {settledDate && <> · {new Date(settledDate).toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' })}</>}
@@ -98,16 +107,19 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, settled
     : <span>
         {splits.length === 0
           ? 'No splits added yet'
-          : <>{splits.length} split{splits.length === 1 ? '' : 's'} · Total <span className="font-semibold text-foreground">${total.toLocaleString()}</span></>}
+          : <>
+              {splits.length} split{splits.length === 1 ? '' : 's'} · Total <span className="font-semibold text-foreground">${total.toLocaleString()}</span>
+              {settledCount > 0 && <> · <span className="text-success font-semibold">{settledCount} settled (${settledSum.toLocaleString()})</span></>}
+            </>}
       </span>;
 
   return (
     <SectionCard
-      icon={settled ? CheckCircle2 : Layers}
-      title={settled ? 'Settlement' : 'Loan Splits'}
-      tone={settled ? 'success' : 'neutral'}
+      icon={showSettledView ? CheckCircle2 : Layers}
+      title={showSettledView ? 'Settlement' : 'Loan Splits'}
+      tone={showSettledView ? 'success' : settledCount > 0 ? 'ok' : 'neutral'}
       subtitle={subtitle}
-      defaultCollapsed={settled || splits.length > 0}
+      defaultCollapsed={showSettledView || splits.length > 0}
     >
       {loading ? (
         <p className="text-xs text-muted-foreground">Loading…</p>
@@ -118,7 +130,7 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, settled
             <Plus className="w-3.5 h-3.5 mr-1" /> Add first split
           </Button>
         </div>
-      ) : settled ? (
+      ) : showSettledView ? (
         <div className="space-y-2">
           <div className="rounded-md border border-success/30 bg-success/5 p-3 flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm">
@@ -144,6 +156,9 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, settled
                     {s.application_id && <>App: {s.application_id}</>}
                   </p>
                 )}
+                {s.settled_date && (
+                  <p className="text-[10px] text-success">Settled {format(new Date(s.settled_date), 'dd MMM yyyy')}</p>
+                )}
               </div>
               <span className="text-sm font-bold tabular-nums">${(s.amount || 0).toLocaleString()}</span>
             </div>
@@ -152,12 +167,25 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, settled
       ) : (
         <div className="space-y-2">
           {splits.map((s, i) => (
-            <div key={s.id} className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-muted-foreground">Split #{i + 1}</span>
-                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive" onClick={() => deleteSplit(s.id)}>
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
+            <div key={s.id} className={cn('rounded-lg border p-3 space-y-2', s.settled ? 'border-success/40 bg-success/5' : 'border-border bg-muted/20')}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-muted-foreground flex items-center gap-2">
+                  Split #{i + 1}
+                  {s.settled && <span className="text-[9px] uppercase tracking-wide text-success bg-success/10 px-1.5 py-0.5 rounded">Settled</span>}
+                </span>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor={`split-settled-${s.id}`} className={cn('text-[11px] cursor-pointer', s.settled ? 'text-success font-semibold' : 'text-muted-foreground')}>
+                    {s.settled ? 'Settled' : 'Mark settled'}
+                  </Label>
+                  <Switch
+                    id={`split-settled-${s.id}`}
+                    checked={!!s.settled}
+                    onCheckedChange={(v) => updateSplit(s.id, { settled: v, settled_date: v ? format(new Date(), 'yyyy-MM-dd') : null } as any)}
+                  />
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive" onClick={() => deleteSplit(s.id)}>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
