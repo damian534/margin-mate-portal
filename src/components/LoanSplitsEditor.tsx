@@ -15,6 +15,7 @@ export interface LoanSplit {
   lender: string | null;
   application_id: string | null;
   display_order: number;
+  loan_purpose: string | null;
 }
 
 interface Props {
@@ -136,6 +137,16 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange }: Props
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              <div>
+                <Label className="text-[10px] text-muted-foreground">Loan Purpose</Label>
+                <Select value={s.loan_purpose ?? ''} onValueChange={(v) => updateSplit(s.id, { loan_purpose: v || null })}>
+                  <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select purpose" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Owner Occupied">Owner Occupied</SelectItem>
+                    <SelectItem value="Investment">Investment</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label className="text-[10px] text-muted-foreground">Security Address</Label>
