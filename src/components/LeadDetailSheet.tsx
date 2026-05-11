@@ -1647,6 +1647,8 @@ export function LeadDetailSheet({
               </Select>
             </div>
           </div>
+          </div>
+          </SectionCard>
 
           {/* Lead Source */}
           <div className="flex gap-3">
