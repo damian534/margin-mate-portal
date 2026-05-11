@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ShieldAlert, CalendarIcon, MailPlus, Clock, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { logAudit } from '@/lib/leadAudit';
 
 interface ProContact {
   id: string;
@@ -142,12 +143,16 @@ export function SubjectToFinanceSection({
 
   const toggle = async (val: boolean) => {
     await updateLead({ subject_to_finance: val });
+    await logAudit(leadId, val ? '💰 Marked deal as Subject to Finance' : '💰 Removed Subject to Finance flag', { isPreview: isPreviewLead });
   };
 
   const setDate = async (d: Date | undefined) => {
     setSavingDate(true);
     setDatePickerOpen(false);
+    const prev = financeDueDate ? format(parseISO(financeDueDate), 'dd MMM yyyy') : 'none';
+    const nextLabel = d ? format(d, 'dd MMM yyyy') : 'cleared';
     await updateLead({ finance_due_date: d ? format(d, 'yyyy-MM-dd') : null });
+    await logAudit(leadId, `💰 Finance due date ${prev === 'none' ? 'set to' : 'changed:'} ${prev} → ${nextLabel}`, { isPreview: isPreviewLead });
     setSavingDate(false);
   };
 
@@ -193,6 +198,7 @@ export function SubjectToFinanceSection({
       return;
     }
     toast.success(`Extension request emailed to ${name || email}`);
+    await logAudit(leadId, `💰 Finance extension request sent — ${days} day${days === 1 ? '' : 's'} → ${name || email}${link?.row.role ? ` (${ROLE_LABEL[link.row.role] || link.row.role})` : ''}${proposedNewDate ? `\nProposed new date: ${format(proposedNewDate, 'dd MMM yyyy')}` : ''}${message.trim() ? `\n\n"${message.trim().slice(0, 280)}"` : ''}`, { isPreview: isPreviewLead });
     setDialogOpen(false);
     setMessage('');
     loadLinks();
