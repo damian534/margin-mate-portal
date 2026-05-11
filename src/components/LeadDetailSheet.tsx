@@ -1050,6 +1050,16 @@ export function LeadDetailSheet({
             />
           </div>
 
+          {/* Subject to Finance — highlighted */}
+          <SubjectToFinanceSection
+            leadId={lead.id}
+            subjectToFinance={!!lead.subject_to_finance}
+            financeDueDate={lead.finance_due_date ?? null}
+            contacts={contactsList as any}
+            isPreviewMode={isPreviewMode}
+            onChange={(updates) => onLeadChange?.({ ...lead, ...updates })}
+          />
+
           <div className="mb-4 rounded-xl border-2 border-success/30 bg-gradient-to-br from-success/10 via-background to-background shadow-md overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 bg-success/10 border-b border-success/20">
               <div className="flex items-center gap-2 min-w-0">
