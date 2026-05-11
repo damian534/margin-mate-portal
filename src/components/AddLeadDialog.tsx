@@ -60,7 +60,7 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
   const [selectedContactId, setSelectedContactId] = useState('');
   const [selectedClientId, setSelectedClientId] = useState('');
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
-  const [portalMode, setPortalMode] = useState<'both' | 'fact_find' | 'documents'>('both');
+  const [portalMode] = useState<'both' | 'fact_find' | 'documents'>('documents');
   const [referrerOpen, setReferrerOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
   const [saving, setSaving] = useState(false);
