@@ -1380,12 +1380,18 @@ export function LeadDetailSheet({
               <Select
                 value={lead.wip_status ? `wip:${lead.wip_status}` : `lead:${lead.status}`}
                 onValueChange={(v) => {
+                  const prev = lead.wip_status ? `WIP · ${lead.wip_status}` : (statuses.find(s => s.name === lead.status)?.label || lead.status);
                   if (v.startsWith('wip:')) {
-                    onUpdateWipStatus?.(lead.id, v.slice(4));
+                    const next = v.slice(4);
+                    onUpdateWipStatus?.(lead.id, next);
+                    const nextLabel = WIP_STATUSES.find(s => s.name === next)?.label || next;
+                    import('@/lib/leadAudit').then(m => m.logAudit(lead.id, `🔄 Status changed: ${prev} → WIP · ${nextLabel}`, { isPreview: isPreviewMode }));
                   } else {
                     const next = v.slice(5);
                     onUpdateStatus(lead.id, next);
                     if (lead.wip_status) onUpdateWipStatus?.(lead.id, null);
+                    const nextLabel = statuses.find(s => s.name === next)?.label || next;
+                    import('@/lib/leadAudit').then(m => m.logAudit(lead.id, `🔄 Status changed: ${prev} → ${nextLabel}`, { isPreview: isPreviewMode }));
                   }
                 }}
               >
