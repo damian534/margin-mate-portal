@@ -145,6 +145,8 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange }: Props
                   <SelectContent>
                     <SelectItem value="Owner Occupied">Owner Occupied</SelectItem>
                     <SelectItem value="Investment">Investment</SelectItem>
+                    <SelectItem value="SMSF">SMSF</SelectItem>
+                    <SelectItem value="Commercial">Commercial</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
