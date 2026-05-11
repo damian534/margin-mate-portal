@@ -590,6 +590,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
           return acc;
         }, {});
         const document_groups = Object.entries(groupsMap).map(([section, names]) => ({ section, names }));
+        const scopedApplicantId = (applicant && !isPrimaryFallback(applicant.id)) ? applicant.id : (docs.find(d => d.applicant_id)?.applicant_id || null);
         const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-fact-find`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
@@ -601,6 +602,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
             recipient_name: applicant?.name,
             document_names: docs.map(d => d.name),
             document_groups,
+            applicant_id: scopedApplicantId,
           }),
         }).catch(() => null);
         if (res && res.ok) sent += 1;
