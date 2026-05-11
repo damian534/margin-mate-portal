@@ -26,7 +26,7 @@ import {
   Mail, Phone, Send, Trash2, Users, Building2, DollarSign,
   Calendar, Plus, CheckCircle, Clock, AlertTriangle,
   MessageSquare, Activity, ChevronDown, ChevronRight, Pencil, X, Save,
-  Search, ExternalLink, FileText, Copy, Flag
+  Search, ExternalLink, FileText, Copy, Flag, Settings as SettingsIcon
 } from 'lucide-react';
 import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectionPanel';
 import { ReferLeadDialog } from '@/components/ReferLeadDialog';
@@ -1471,8 +1471,20 @@ export function LeadDetailSheet({
         </div>
 
         <div className="p-6 space-y-5">
-          {/* Status + Next Task Row */}
+          {/* Deal Setup — Status, assignment, loan basics (collapsible) */}
           <div id="sec-status" className="scroll-mt-16" />
+          <SectionCard
+            icon={SettingsIcon}
+            title="Deal Setup"
+            tone="neutral"
+            subtitle={<>
+              {(statuses.find(s => s.name === lead.status)?.label || lead.status)}
+              {lead.loan_purpose && <> · {LOAN_PURPOSE_OPTIONS.find(o => o.value === lead.loan_purpose)?.label || lead.loan_purpose}</>}
+              {lead.loan_amount ? <> · ${lead.loan_amount.toLocaleString()}</> : null}
+            </>}
+            defaultCollapsed
+          >
+          <div className="space-y-5">
           <div className="flex gap-3">
             <div className="flex-1">
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">Status</Label>
@@ -1635,6 +1647,8 @@ export function LeadDetailSheet({
               </Select>
             </div>
           </div>
+          </div>
+          </SectionCard>
 
           {/* Lead Source */}
           <div className="flex gap-3">
