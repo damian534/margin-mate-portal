@@ -19,18 +19,31 @@ const cleanText = (value: unknown, fallback = "") =>
 const isValidEmail = (email: string) =>
   typeof email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 255;
 
+const SECTION_ORDER = ['Identity', 'Income', 'Bank Statements', 'Tax Returns', 'Additional', 'Other'];
+
 function buildReminderHtml(opts: {
   clientName: string;
   brokerName: string;
   portalUrl: string;
   unsubscribeUrl: string;
-  outstandingDocs: string[];
+  outstandingGroups: { section: string; names: string[] }[];
   dayOffset: number;
 }): string {
-  const { clientName, brokerName, portalUrl, unsubscribeUrl, outstandingDocs, dayOffset } = opts;
-  const docList = outstandingDocs.length
-    ? outstandingDocs.map(n => `<li>${n.replace(/</g, "&lt;")}</li>`).join("")
-    : "<li>Please open the portal to see what's still outstanding.</li>";
+  const { clientName, brokerName, portalUrl, unsubscribeUrl, outstandingGroups, dayOffset } = opts;
+  const ordered = [...outstandingGroups]
+    .filter(g => g.names.length > 0)
+    .sort((a, b) => {
+      const ai = SECTION_ORDER.indexOf(a.section);
+      const bi = SECTION_ORDER.indexOf(b.section);
+      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+    });
+  const groupedHtml = ordered.length
+    ? ordered.map(g => `
+        <div class="doc-group">
+          <h4 class="doc-group-title">${g.section.replace(/</g, '&lt;')}</h4>
+          <ul class="doc-list">${g.names.map(n => `<li>${n.replace(/</g, '&lt;')}</li>`).join('')}</ul>
+        </div>`).join('')
+    : "<p class=\"body-text\">Please open the portal to see what's still outstanding.</p>";
 
   const intro = dayOffset <= 4
     ? "Just a quick reminder — we're still waiting on a few documents to keep your application moving."
@@ -52,6 +65,9 @@ function buildReminderHtml(opts: {
   .cta-btn { display:inline-block; background:#e63946; color:#fff !important; padding:14px 40px; border-radius:8px; text-decoration:none; font-size:16px; font-weight:600; }
   .doc-section { background:#fafafa; border-radius:8px; padding:20px 24px; margin:24px 0; border:1px solid #eee; }
   .doc-section h3 { margin:0 0 12px; font-size:15px; font-weight:600; color:#1a1a1a; }
+  .doc-group { margin:0 0 16px; }
+  .doc-group:last-child { margin-bottom:0; }
+  .doc-group-title { margin:0 0 6px; font-size:13px; font-weight:600; color:#e63946; text-transform:uppercase; letter-spacing:0.4px; }
   .doc-list { margin:0; padding:0 0 0 20px; }
   .doc-list li { font-size:14px; line-height:1.8; color:#4a4a4a; }
   .footer { padding:24px 40px; text-align:center; border-top:1px solid #eee; }
@@ -64,7 +80,7 @@ function buildReminderHtml(opts: {
     <p class="greeting">Hi ${clientName},</p>
     <p class="body-text">${intro}</p>
     <div class="cta-container"><a href="${portalUrl}" class="cta-btn">Upload My Documents</a></div>
-    <div class="doc-section"><h3>📄 Still outstanding:</h3><ul class="doc-list">${docList}</ul></div>
+    <div class="doc-section"><h3>📄 Still outstanding:</h3>${groupedHtml}</div>
     <p class="body-text">If you've already sent these through another channel, just reply to this email and let ${brokerName || "your broker"} know — we'll mark them off.</p>
   </div>
   <div class="footer">
