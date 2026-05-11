@@ -26,7 +26,7 @@ import {
   Mail, Phone, Send, Trash2, Users, Building2, DollarSign,
   Calendar, Plus, CheckCircle, Clock, AlertTriangle,
   MessageSquare, Activity, ChevronDown, ChevronRight, Pencil, X, Save,
-  Search, ExternalLink, FileText, Copy
+  Search, ExternalLink, FileText, Copy, Flag
 } from 'lucide-react';
 import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectionPanel';
 import { ReferLeadDialog } from '@/components/ReferLeadDialog';
@@ -37,6 +37,7 @@ import { ProfessionalContactsSection } from '@/components/ProfessionalContactsSe
 import { SubjectToFinanceSection } from '@/components/SubjectToFinanceSection';
 import { PreApprovalSection } from '@/components/PreApprovalSection';
 import { LoanSplitsEditor } from '@/components/LoanSplitsEditor';
+import { SectionCard } from '@/components/lead/SectionCard';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
