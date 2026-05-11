@@ -1684,10 +1684,14 @@ export function LeadDetailSheet({
                         const isTaskNote = note.content.startsWith('📋');
                         const isDocReq = note.content.startsWith('📄');
                         const isMir = note.content.startsWith('📨');
+                        const isFinance = note.content.startsWith('💰');
+                        const isContact = note.content.startsWith('👤');
+                        const isStatus = note.content.startsWith('🔄');
+                        const isSystem = note.content.startsWith('⚙️');
                         return (
                           <div key={note.id} className="relative pb-3">
                             <div className={`absolute -left-[14px] top-1.5 w-3 h-3 rounded-full border-2 border-background ${
-                              isMir ? 'bg-orange-500' : isEmail ? 'bg-blue-500' : isCall ? 'bg-green-500' : isTaskNote ? 'bg-amber-500' : isDocReq ? 'bg-purple-500' : 'bg-muted-foreground/40'
+                              isMir ? 'bg-orange-500' : isEmail ? 'bg-blue-500' : isCall ? 'bg-green-500' : isTaskNote ? 'bg-amber-500' : isDocReq ? 'bg-purple-500' : isFinance ? 'bg-rose-500' : isContact ? 'bg-indigo-500' : isStatus ? 'bg-cyan-500' : isSystem ? 'bg-slate-500' : 'bg-muted-foreground/40'
                             }`} />
                             <div className={`rounded-lg p-2.5 ${isMir ? 'bg-orange-50 border border-orange-200' : 'bg-muted/50'}`}>
                               {isMir && (
