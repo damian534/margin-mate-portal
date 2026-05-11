@@ -88,6 +88,16 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, settled
         settled_date: format(new Date(), 'yyyy-MM-dd'),
       } as any).eq('id', leadId);
     }
+    // When a split is un-toggled and no splits remain settled, revert the lead status.
+    if (patch.settled === false) {
+      const anyStillSettled = next.some(s => s.settled);
+      if (!anyStillSettled) {
+        await supabase.from('leads').update({
+          status: 'approved',
+          settled_date: null,
+        } as any).eq('id', leadId);
+      }
+    }
   };
 
   const deleteSplit = async (id: string) => {
