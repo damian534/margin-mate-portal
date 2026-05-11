@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Plus, Send, Mail, Users, Trash2, BarChart3, Settings, ShieldOff } from 'lucide-react';
+import { Plus, Send, Mail, Users, Trash2, Settings, ShieldOff } from 'lucide-react';
 import { CampaignAnalytics } from './CampaignAnalytics';
 import { Switch } from '@/components/ui/switch';
 
