@@ -58,7 +58,7 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange }: Props
   const addSplit = async () => {
     const nextOrder = splits.length ? Math.max(...splits.map(s => s.display_order)) + 1 : 0;
     if (isPreviewMode) {
-      const fake: LoanSplit = { id: `preview-${Date.now()}`, lead_id: leadId, amount: null, security_address: null, lender: null, application_id: null, display_order: nextOrder };
+      const fake: LoanSplit = { id: `preview-${Date.now()}`, lead_id: leadId, amount: null, security_address: null, lender: null, application_id: null, display_order: nextOrder, loan_purpose: null };
       const next = [...splits, fake]; setSplits(next); recomputeTotal(next); return;
     }
     const { data, error } = await supabase.from('loan_splits').insert({ lead_id: leadId, display_order: nextOrder } as any).select().single();
