@@ -1069,10 +1069,11 @@ export function LeadDetailSheet({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-8 w-8 p-0"
+                  className="h-8 px-2 gap-1 text-xs"
                   onClick={() => setHeroCollapsed(c => !c)}
                   title={heroCollapsed ? 'Expand' : 'Collapse'}
                 >
+                  {heroCollapsed ? 'Expand' : 'Collapse'}
                   {heroCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4 rotate-90" />}
                 </Button>
               </div>
