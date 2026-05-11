@@ -9,6 +9,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Briefcase, Mail, Phone, Search, UserPlus, X, ExternalLink, Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { logAudit } from '@/lib/leadAudit';
 
 export interface ProContact {
   id: string;
@@ -114,6 +115,9 @@ export function ProfessionalContactsSection({
       // Insert succeeded but SELECT was hidden by RLS — refetch.
       await load();
     }
+    const c = contacts.find(x => x.id === contactId);
+    const who = c ? `${c.first_name} ${c.last_name}${c.company ? ` (${c.company})` : ''}` : 'contact';
+    await logAudit(leadId, `👤 Linked ${roleLabel(role)}: ${who}`, { isPreview: isPreviewMode });
     toast.success(`${roleLabel(role)} added`);
   };
 
@@ -123,9 +127,15 @@ export function ProfessionalContactsSection({
       toast.success('Removed');
       return;
     }
+    const row = rows.find(r => r.id === rowId);
+    const c = row ? contacts.find(x => x.id === row.contact_id) : null;
     const { error } = await supabase.from('lead_professional_contacts' as any).delete().eq('id', rowId);
     if (error) { toast.error('Failed to remove'); return; }
     setRows(rs => rs.filter(r => r.id !== rowId));
+    if (row) {
+      const who = c ? `${c.first_name} ${c.last_name}` : 'contact';
+      await logAudit(leadId, `👤 Removed ${roleLabel(row.role)}: ${who}`, { isPreview: isPreviewMode });
+    }
     toast.success('Removed');
   };
 
