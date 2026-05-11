@@ -1,0 +1,1 @@
+ALTER TABLE public.loan_splits ADD COLUMN IF NOT EXISTS loan_purpose TEXT;

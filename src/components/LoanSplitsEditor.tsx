@@ -15,6 +15,7 @@ export interface LoanSplit {
   lender: string | null;
   application_id: string | null;
   display_order: number;
+  loan_purpose: string | null;
 }
 
 interface Props {
@@ -57,7 +58,7 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange }: Props
   const addSplit = async () => {
     const nextOrder = splits.length ? Math.max(...splits.map(s => s.display_order)) + 1 : 0;
     if (isPreviewMode) {
-      const fake: LoanSplit = { id: `preview-${Date.now()}`, lead_id: leadId, amount: null, security_address: null, lender: null, application_id: null, display_order: nextOrder };
+      const fake: LoanSplit = { id: `preview-${Date.now()}`, lead_id: leadId, amount: null, security_address: null, lender: null, application_id: null, display_order: nextOrder, loan_purpose: null };
       const next = [...splits, fake]; setSplits(next); recomputeTotal(next); return;
     }
     const { data, error } = await supabase.from('loan_splits').insert({ lead_id: leadId, display_order: nextOrder } as any).select().single();
@@ -136,6 +137,16 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange }: Props
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              <div>
+                <Label className="text-[10px] text-muted-foreground">Loan Purpose</Label>
+                <Select value={s.loan_purpose ?? ''} onValueChange={(v) => updateSplit(s.id, { loan_purpose: v || null })}>
+                  <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select purpose" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Owner Occupied">Owner Occupied</SelectItem>
+                    <SelectItem value="Investment">Investment</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label className="text-[10px] text-muted-foreground">Security Address</Label>

@@ -983,6 +983,7 @@ export type Database = {
           id: string
           lead_id: string
           lender: string | null
+          loan_purpose: string | null
           security_address: string | null
           updated_at: string
         }
@@ -994,6 +995,7 @@ export type Database = {
           id?: string
           lead_id: string
           lender?: string | null
+          loan_purpose?: string | null
           security_address?: string | null
           updated_at?: string
         }
@@ -1005,6 +1007,7 @@ export type Database = {
           id?: string
           lead_id?: string
           lender?: string | null
+          loan_purpose?: string | null
           security_address?: string | null
           updated_at?: string
         }
