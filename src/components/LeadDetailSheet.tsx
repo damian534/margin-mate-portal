@@ -1641,92 +1641,82 @@ export function LeadDetailSheet({
 
           <Separator />
 
-          {/* Tabs: Timeline (Tasks + Activity), Commission */}
+          {/* Timeline */}
           <div id="sec-tabs" className="scroll-mt-16" />
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full grid grid-cols-3">
-              <TabsTrigger value="timeline" className="gap-1 text-xs px-1.5">
-                <Activity className="w-3.5 h-3.5" /> Timeline
-                {pendingTasks.length > 0 && (
-                  <span className="ml-0.5 bg-primary/10 text-primary text-[10px] px-1 py-0.5 rounded-full">{pendingTasks.length}</span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="documents" className="gap-1 text-xs px-1.5">
-                <FileText className="w-3.5 h-3.5" /> Docs
-              </TabsTrigger>
-              <TabsTrigger value="commission" className="gap-1 text-xs px-1.5">
-                <DollarSign className="w-3.5 h-3.5" /> Commission
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Timeline Tab — Tasks stacked above Activity */}
-            <TabsContent value="timeline" className="mt-4 space-y-4">
-              {/* Activity Section */}
-              <div id="sec-activity" className="space-y-2 scroll-mt-16">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <MessageSquare className="w-3.5 h-3.5" /> Activity
-                </h4>
-
-                {/* Add note form */}
-                <div className="space-y-2">
-                  <Textarea value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder="Log a note, call summary, or update..." rows={2} maxLength={2000} />
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Checkbox id="notify-detail" checked={notifyPartner} onCheckedChange={(v) => setNotifyPartner(v === true)} />
-                      <Label htmlFor="notify-detail" className="text-xs cursor-pointer">Notify partner</Label>
-                    </div>
-                    <Button onClick={() => addNote(newNote)} disabled={!newNote.trim()} size="sm" className="gap-1.5">
-                      <Send className="w-3.5 h-3.5" /> Log
-                    </Button>
+          <div id="sec-activity" className="scroll-mt-16" />
+          <SectionCard
+            icon={Activity}
+            title="Timeline"
+            tone="neutral"
+            subtitle={notes.length > 0 ? `${notes.length} ${notes.length === 1 ? 'entry' : 'entries'}` : 'No activity yet'}
+            defaultCollapsed
+          >
+            <div className="space-y-2">
+              {/* Add note form */}
+              <div className="space-y-2">
+                <Textarea value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder="Log a note, call summary, or update..." rows={2} maxLength={2000} />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Checkbox id="notify-detail" checked={notifyPartner} onCheckedChange={(v) => setNotifyPartner(v === true)} />
+                    <Label htmlFor="notify-detail" className="text-xs cursor-pointer">Notify partner</Label>
                   </div>
+                  <Button onClick={() => addNote(newNote)} disabled={!newNote.trim()} size="sm" className="gap-1.5">
+                    <Send className="w-3.5 h-3.5" /> Log
+                  </Button>
                 </div>
+              </div>
 
-                {/* Activity timeline */}
-                <ScrollArea className="h-56">
-                  {notes.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-6">No activity yet</p>
-                  ) : (
-                    <div className="relative pl-6 space-y-0">
-                      <div className="absolute left-2 top-2 bottom-2 w-px bg-border" />
-                      {notes.map((note) => {
-                        const isEmail = note.content.startsWith('📧');
-                        const isCall = note.content.startsWith('📞');
-                        const isTaskNote = note.content.startsWith('📋');
-                        const isDocReq = note.content.startsWith('📄');
-                        const isMir = note.content.startsWith('📨');
-                        const isFinance = note.content.startsWith('💰');
-                        const isContact = note.content.startsWith('👤');
-                        const isStatus = note.content.startsWith('🔄');
-                        const isSystem = note.content.startsWith('⚙️');
-                        return (
-                          <div key={note.id} className="relative pb-3">
-                            <div className={`absolute -left-[14px] top-1.5 w-3 h-3 rounded-full border-2 border-background ${
-                              isMir ? 'bg-orange-500' : isEmail ? 'bg-blue-500' : isCall ? 'bg-green-500' : isTaskNote ? 'bg-amber-500' : isDocReq ? 'bg-purple-500' : isFinance ? 'bg-rose-500' : isContact ? 'bg-indigo-500' : isStatus ? 'bg-cyan-500' : isSystem ? 'bg-slate-500' : 'bg-muted-foreground/40'
-                            }`} />
-                            <div className={`rounded-lg p-2.5 ${isMir ? 'bg-orange-50 border border-orange-200' : 'bg-muted/50'}`}>
-                              {isMir && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-800 text-[10px] font-semibold uppercase tracking-wide mb-1">
-                                  MIR
-                                </span>
-                              )}
-                              <p className="text-sm whitespace-pre-wrap">{note.content}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <p className="text-xs text-muted-foreground">{format(new Date(note.created_at), 'dd MMM yyyy, HH:mm')}</p>
-                                {note.notify_partner && <span className="text-xs bg-accent/20 text-accent-foreground px-1.5 py-0.5 rounded">Partner notified</span>}
-                              </div>
+              {/* Activity timeline */}
+              <ScrollArea className="h-56">
+                {notes.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">No activity yet</p>
+                ) : (
+                  <div className="relative pl-6 space-y-0">
+                    <div className="absolute left-2 top-2 bottom-2 w-px bg-border" />
+                    {notes.map((note) => {
+                      const isEmail = note.content.startsWith('📧');
+                      const isCall = note.content.startsWith('📞');
+                      const isTaskNote = note.content.startsWith('📋');
+                      const isDocReq = note.content.startsWith('📄');
+                      const isMir = note.content.startsWith('📨');
+                      const isFinance = note.content.startsWith('💰');
+                      const isContact = note.content.startsWith('👤');
+                      const isStatus = note.content.startsWith('🔄');
+                      const isSystem = note.content.startsWith('⚙️');
+                      return (
+                        <div key={note.id} className="relative pb-3">
+                          <div className={`absolute -left-[14px] top-1.5 w-3 h-3 rounded-full border-2 border-background ${
+                            isMir ? 'bg-orange-500' : isEmail ? 'bg-blue-500' : isCall ? 'bg-green-500' : isTaskNote ? 'bg-amber-500' : isDocReq ? 'bg-purple-500' : isFinance ? 'bg-rose-500' : isContact ? 'bg-indigo-500' : isStatus ? 'bg-cyan-500' : isSystem ? 'bg-slate-500' : 'bg-muted-foreground/40'
+                          }`} />
+                          <div className={`rounded-lg p-2.5 ${isMir ? 'bg-orange-50 border border-orange-200' : 'bg-muted/50'}`}>
+                            {isMir && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-800 text-[10px] font-semibold uppercase tracking-wide mb-1">
+                                MIR
+                              </span>
+                            )}
+                            <p className="text-sm whitespace-pre-wrap">{note.content}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <p className="text-xs text-muted-foreground">{format(new Date(note.created_at), 'dd MMM yyyy, HH:mm')}</p>
+                              {note.notify_partner && <span className="text-xs bg-accent/20 text-accent-foreground px-1.5 py-0.5 rounded">Partner notified</span>}
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </ScrollArea>
-              </div>
-            </TabsContent>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </ScrollArea>
+            </div>
+          </SectionCard>
 
-            {/* Documents Tab */}
-            <TabsContent value="documents" className="mt-4">
-              <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/30 px-3 py-2 mb-3">
+          {/* Documents */}
+          <SectionCard
+            icon={FileText}
+            title="Documents"
+            tone="neutral"
+            defaultCollapsed
+          >
+            <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/30 px-3 py-2 mb-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium">Automatic reminder emails</p>
                   <p className="text-xs text-muted-foreground">
@@ -1777,10 +1767,16 @@ export function LeadDetailSheet({
                   onLeadChange?.({ ...lead, co_applicant_contact_id: null });
                 }}
               />
-            </TabsContent>
+          </SectionCard>
 
-            {/* Commission Tab */}
-            <TabsContent value="commission" className="mt-4 space-y-3">
+          {/* Commission */}
+          <SectionCard
+            icon={DollarSign}
+            title="Commission"
+            tone="neutral"
+            defaultCollapsed
+          >
+            <div className="space-y-3">
               <div className="bg-muted/50 rounded-lg p-3 space-y-2">
                 <p className="text-xs font-medium text-muted-foreground">Referrer Commission</p>
                 <div className="grid grid-cols-2 gap-2">
@@ -1857,8 +1853,8 @@ export function LeadDetailSheet({
                   <Label htmlFor="co-paid-detail" className="text-xs cursor-pointer">Paid</Label>
                 </div>
               </div>
-            </TabsContent>
-          </Tabs>
+            </div>
+          </SectionCard>
 
           <Separator />
 
