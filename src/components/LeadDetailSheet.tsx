@@ -298,7 +298,17 @@ export function LeadDetailSheet({
       return;
     }
     const { data } = await supabase.from('notes').select('*').eq('lead_id', leadId).order('created_at', { ascending: false });
-    setNotes((data as Note[]) || []);
+    const notesArr = (data as Note[]) || [];
+    if (notesArr.length) {
+      const ids = notesArr.map(n => n.id);
+      const { data: atts } = await (supabase as any).from('note_attachments').select('*').in('note_id', ids);
+      const byNote: Record<string, NoteAttachment[]> = {};
+      ((atts as NoteAttachment[]) || []).forEach(a => {
+        (byNote[a.note_id] = byNote[a.note_id] || []).push(a);
+      });
+      notesArr.forEach(n => { n.attachments = byNote[n.id] || []; });
+    }
+    setNotes(notesArr);
   };
 
   const fetchTasks = async (leadId: string) => {
