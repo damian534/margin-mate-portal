@@ -886,7 +886,21 @@ export function LeadDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-3xl overflow-y-auto p-0">
+      <SheetContent
+        className="w-full sm:max-w-3xl overflow-y-auto p-0"
+        onPointerDownOutside={(e) => {
+          // Always close on outside click — bypass any child component
+          // that may have prevented the default behaviour.
+          const target = e.target as HTMLElement | null;
+          // Ignore clicks inside any portalled radix layer (popover/select/dialog)
+          if (target?.closest('[data-radix-popper-content-wrapper]')) return;
+          if (target?.closest('[role="dialog"]')) {
+            // Click was inside another dialog stacked above — let it handle.
+            return;
+          }
+          onOpenChange(false);
+        }}
+      >
         {/* Sticky section navigator — pinned to top of sheet, always visible while scrolling */}
         <nav
           className="sticky top-0 z-40 px-4 py-2 bg-background/95 backdrop-blur border-b border-border overflow-x-auto"
