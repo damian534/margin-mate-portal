@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { format, differenceInCalendarDays, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CheckCircle2, CalendarIcon, Plus, Trash2, FileCheck } from 'lucide-react';
+import { CheckCircle2, CalendarIcon, Plus, Trash2, FileCheck, ChevronDown, ChevronUp, Upload, FileText, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { logAudit } from '@/lib/leadAudit';
@@ -17,6 +17,14 @@ interface Condition {
   label: string;
   completed: boolean;
   display_order: number;
+}
+
+interface PreApprovalDoc {
+  id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number | null;
+  created_at: string;
 }
 
 interface Props {
@@ -53,6 +61,10 @@ export function PreApprovalSection({
   const [pp, setPp] = useState(fmtMoney(purchasePrice));
   const [la, setLa] = useState(fmtMoney(loanAmount));
   const [ftcStr, setFtcStr] = useState(fmtMoney(ftc));
+  const [collapsed, setCollapsed] = useState(false);
+  const [docs, setDocs] = useState<PreApprovalDoc[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => setPp(fmtMoney(purchasePrice)), [purchasePrice]);
   useEffect(() => setLa(fmtMoney(loanAmount)), [loanAmount]);
@@ -69,7 +81,17 @@ export function PreApprovalSection({
     setConditions((data as any) || []);
   };
 
-  useEffect(() => { loadConditions(); /* eslint-disable-next-line */ }, [leadId]);
+  const loadDocs = async () => {
+    if (isPreviewLead) { setDocs([]); return; }
+    const { data } = await supabase
+      .from('lead_pre_approval_documents' as any)
+      .select('id,file_name,file_path,file_size,created_at')
+      .eq('lead_id', leadId)
+      .order('created_at', { ascending: false });
+    setDocs((data as any) || []);
+  };
+
+  useEffect(() => { loadConditions(); loadDocs(); /* eslint-disable-next-line */ }, [leadId]);
 
   const expiryObj = expiryDate ? parseISO(expiryDate) : null;
   const daysToExpiry = expiryObj ? differenceInCalendarDays(expiryObj, new Date()) : null;
@@ -176,6 +198,44 @@ export function PreApprovalSection({
     await logAudit(leadId, `📋 Removed pre-approval condition: ${c.label}`, { isPreview: isPreviewLead });
   };
 
+  const handleUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    if (isPreviewLead) { toast.info('Upload disabled in preview mode'); return; }
+    setUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const path = `${leadId}/pre-approval/${Date.now()}-${safe}`;
+        const { error: upErr } = await supabase.storage.from('client-documents').upload(path, file, { upsert: true });
+        if (upErr) { toast.error(`Upload failed: ${upErr.message}`); continue; }
+        const { error: insErr } = await supabase.from('lead_pre_approval_documents' as any).insert({
+          lead_id: leadId, file_name: file.name, file_path: path, file_size: file.size,
+        } as any);
+        if (insErr) { toast.error(`Save failed: ${insErr.message}`); continue; }
+        await logAudit(leadId, `📋 Uploaded pre-approval document: ${file.name}`, { isPreview: isPreviewLead });
+      }
+      await loadDocs();
+      toast.success('Document(s) uploaded');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const downloadDoc = async (d: PreApprovalDoc) => {
+    const { data, error } = await supabase.storage.from('client-documents').createSignedUrl(d.file_path, 60);
+    if (error || !data) { toast.error('Could not generate link'); return; }
+    window.open(data.signedUrl, '_blank');
+  };
+
+  const deleteDoc = async (d: PreApprovalDoc) => {
+    setDocs(prev => prev.filter(x => x.id !== d.id));
+    if (isPreviewLead) return;
+    await supabase.storage.from('client-documents').remove([d.file_path]);
+    await supabase.from('lead_pre_approval_documents' as any).delete().eq('id', d.id);
+    await logAudit(leadId, `📋 Removed pre-approval document: ${d.file_name}`, { isPreview: isPreviewLead });
+  };
+
   const completedCount = conditions.filter(c => c.completed).length;
 
   return (
@@ -191,12 +251,16 @@ export function PreApprovalSection({
                 <span>{daysToExpiry} day{daysToExpiry === 1 ? '' : 's'} until expiry · {format(expiryObj, 'dd MMM yyyy')}</span>
               ) : 'No expiry date set'}
               {conditions.length > 0 && <span> · {completedCount}/{conditions.length} conditions met</span>}
+              {docs.length > 0 && <span> · {docs.length} doc{docs.length === 1 ? '' : 's'}</span>}
             </p>
           </div>
         </div>
+        <Button variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => setCollapsed(c => !c)}>
+          {collapsed ? <><ChevronDown className="w-4 h-4" /> Expand</> : <><ChevronUp className="w-4 h-4" /> Collapse</>}
+        </Button>
       </div>
 
-      <div className="p-3 space-y-3">
+      {!collapsed && <div className="p-3 space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label className="text-xs">Purchase Price</Label>
@@ -284,7 +348,35 @@ export function PreApprovalSection({
             </Button>
           </div>
         </div>
-      </div>
+
+        <div className="rounded-md border border-border bg-background/60 p-2.5 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold flex items-center gap-1.5">
+              <FileText className="w-3 h-3" /> Documents ({docs.length})
+            </div>
+            <Button variant="outline" size="sm" className="h-7 gap-1" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+              <Upload className="w-3.5 h-3.5" /> {uploading ? 'Uploading…' : 'Upload'}
+            </Button>
+            <input ref={fileInputRef} type="file" multiple className="hidden" onChange={e => handleUpload(e.target.files)} />
+          </div>
+          {docs.length === 0 && <p className="text-xs text-muted-foreground italic">No documents uploaded yet.</p>}
+          <div className="space-y-1.5">
+            {docs.map(d => (
+              <div key={d.id} className="flex items-center gap-2 group rounded border border-border/60 bg-background px-2 py-1.5">
+                <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <span className="text-sm flex-1 truncate">{d.file_name}</span>
+                {d.file_size != null && <span className="text-[10px] text-muted-foreground">{(d.file_size / 1024).toFixed(0)} KB</span>}
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => downloadDoc(d)}>
+                  <Download className="w-3.5 h-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => deleteDoc(d)}>
+                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>}
     </div>
   );
 }
