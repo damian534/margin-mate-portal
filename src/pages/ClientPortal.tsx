@@ -178,7 +178,7 @@ export default function ClientPortal() {
         <Sonner />
         <div className="max-w-2xl mx-auto p-4 py-8 space-y-6">
           <div className="text-center space-y-2">
-            <h1 className="text-2xl font-semibold">Welcome, {leadName}</h1>
+            <h1 className="text-2xl font-semibold">Welcome, {applicantName || leadName}</h1>
             <p className="text-sm text-muted-foreground">Please upload the requested documents below.</p>
           </div>
 
@@ -190,8 +190,23 @@ export default function ClientPortal() {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-3">
-              {documents.map(doc => {
+            (() => {
+              const grouped = documents.reduce<Record<string, DocumentRequest[]>>((acc, d) => {
+                const sec = d.section || 'Other';
+                (acc[sec] ||= []).push(d);
+                return acc;
+              }, {});
+              const orderedSections = [
+                ...SECTION_ORDER.filter(s => grouped[s]),
+                ...Object.keys(grouped).filter(s => !SECTION_ORDER.includes(s)),
+              ];
+              return (
+                <div className="space-y-6">
+                  {orderedSections.map(section => (
+                    <div key={section} className="space-y-3">
+                      <h2 className="text-sm font-semibold uppercase tracking-wider text-primary px-1">{section}</h2>
+                      <div className="space-y-3">
+                        {grouped[section].map(doc => {
                 const statusCfg = STATUS_CONFIG[doc.status] || STATUS_CONFIG.pending;
                 return (
                   <Card key={doc.id}>
@@ -259,8 +274,13 @@ export default function ClientPortal() {
                     </CardContent>
                   </Card>
                 );
-              })}
-            </div>
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()
           )}
 
           <p className="text-xs text-center text-muted-foreground pt-4">
