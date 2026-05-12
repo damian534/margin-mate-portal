@@ -300,8 +300,27 @@ export default function AdminCRM() {
   };
 
   const fetchContacts = async () => {
-    const { data: contactsData } = await supabase.from('contacts').select('*').order('created_at', { ascending: false });
-    const contactsList = (contactsData as unknown as Contact[]) || [];
+    // Fetch ALL contacts in batches (Supabase default limit is 1000)
+    const PAGE = 1000;
+    let from = 0;
+    const contactsList: Contact[] = [];
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(from, from + PAGE - 1);
+      if (error) {
+        console.error('fetchContacts error:', error);
+        break;
+      }
+      const batch = (data as unknown as Contact[]) || [];
+      contactsList.push(...batch);
+      if (batch.length < PAGE) break;
+      from += PAGE;
+      if (from > 100000) break; // safety
+    }
 
     // Also include referral partners from profiles as contacts
     if (!isPreviewMode) {
