@@ -70,7 +70,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
   const [newDesc, setNewDesc] = useState('');
   const [newLeadId, setNewLeadId] = useState('');
   const [newDueDate, setNewDueDate] = useState('');
-  const [newAssignee, setNewAssignee] = useState<string | null>(null);
+  const [newAssignee, setNewAssignee] = useState<string | null>(user?.id ?? null);
   const [leadSearchOpen, setLeadSearchOpen] = useState(false);
   const [customClientName, setCustomClientName] = useState('');
   const [useCustomClient, setUseCustomClient] = useState(false);
@@ -174,7 +174,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
     }
     setNewTitle(''); setNewDesc(''); setNewLeadId(''); setNewDueDate('');
     setCustomClientName(''); setUseCustomClient(false);
-    setNewAssignee(null);
+    setNewAssignee(user?.id ?? null);
     setDialogOpen(false);
   };
 
@@ -238,7 +238,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
             <Checkbox checked={showCompleted} onCheckedChange={(v) => setShowCompleted(v === true)} />
             Completed
           </label>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (o && !newAssignee) setNewAssignee(user?.id ?? null); }}>
             <DialogTrigger asChild>
               <Button size="sm"><Plus className="w-4 h-4 mr-1" /> New Task</Button>
             </DialogTrigger>
