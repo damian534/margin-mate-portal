@@ -1434,7 +1434,6 @@ export function LeadDetailSheet({
             title="Timeline"
             tone="neutral"
             subtitle={notes.length > 0 ? `${notes.length} ${notes.length === 1 ? 'entry' : 'entries'}` : 'No activity yet'}
-            defaultCollapsed
           >
             <div className="space-y-2">
               {/* Add note form */}
