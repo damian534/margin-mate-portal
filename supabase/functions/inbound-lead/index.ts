@@ -124,7 +124,18 @@ If the email was forwarded, the actual lead's details are in the forwarded conte
 
     const brokerId = brokerRole?.user_id || null;
 
-    // Insert the lead
+    // Create the contact record first so we can link the lead to it
+    const { data: newContact } = await supabase.from("contacts").insert({
+      first_name: lead.first_name || "Unknown",
+      last_name: lead.last_name || "",
+      email: lead.email || null,
+      phone: lead.phone || null,
+      type: "client",
+      notes: lead.notes || null,
+      created_by: brokerId,
+    }).select("id").maybeSingle();
+
+    // Insert the lead, linked to the contact so the card can open it
     const { data: newLead, error: leadError } = await supabase.from("leads").insert({
       first_name: lead.first_name || "Unknown",
       last_name: lead.last_name || "",
@@ -135,23 +146,13 @@ If the email was forwarded, the actual lead's details are in the forwarded conte
       source: "website",
       status: "new",
       broker_id: brokerId,
+      source_contact_id: newContact?.id || null,
     }).select("id").single();
 
     if (leadError) {
       console.error("Failed to create lead:", leadError);
       throw new Error(`Database error: ${leadError.message}`);
     }
-
-    // Also create a contact record
-    await supabase.from("contacts").insert({
-      first_name: lead.first_name || "Unknown",
-      last_name: lead.last_name || "",
-      email: lead.email || null,
-      phone: lead.phone || null,
-      type: "client",
-      notes: lead.notes || null,
-      created_by: brokerId,
-    });
 
     // Add a note with the original email content
     if (newLead?.id) {
