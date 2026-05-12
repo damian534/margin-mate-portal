@@ -61,6 +61,7 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
   const [body, setBody] = useState('');
   const [to, setTo] = useState(lead.email || '');
   const [bcc, setBcc] = useState('');
+  const [cc, setCc] = useState('');
   const [sending, setSending] = useState(false);
   const [brokerName, setBrokerName] = useState('');
   const [brokerEmail, setBrokerEmail] = useState('');
@@ -123,6 +124,7 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
         html,
         from: `${fromName} <notifications@margin.com.au>`,
         bcc: bcc.trim() || undefined,
+        cc: cc.trim() ? cc.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
         reply_to: replyTo,
         attachments: attachments.length
           ? attachments.map((a) => ({ filename: a.filename, content: a.content, content_type: a.content_type }))
@@ -139,11 +141,12 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
     const attachNote = attachments.length ? ` · ${attachments.length} attachment(s): ${attachments.map(a => a.filename).join(', ')}` : '';
     await logAudit(
       lead.id,
-      `📧 Milestone email sent (${m?.label}) to ${recipients.join(', ')}${bcc ? ` · BCC ${bcc}` : ''} · Subject: "${subject}"${attachNote}`,
+      `📧 Milestone email sent (${m?.label}) to ${recipients.join(', ')}${cc ? ` · CC ${cc}` : ''}${bcc ? ` · BCC ${bcc}` : ''} · Subject: "${subject}"${attachNote}`,
     );
     toast.success('Email sent');
     setSending(false);
     setAttachments([]);
+    setCc('');
     setOpen(false);
   };
 
@@ -200,6 +203,10 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
           <div className="space-y-1.5">
             <Label>BCC</Label>
             <Input value={bcc} onChange={(e) => setBcc(e.target.value)} type="email" placeholder="aggregator compliance" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>CC</Label>
+            <Input value={cc} onChange={(e) => setCc(e.target.value)} placeholder="comma-separated emails" />
           </div>
           <div className="space-y-1.5">
             <Label>Subject</Label>
