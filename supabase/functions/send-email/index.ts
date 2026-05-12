@@ -13,7 +13,20 @@ interface EmailRequest {
   bcc?: string | string[];
   cc?: string | string[];
   reply_to?: string | string[];
+  replyTo?: string | string[];
   attachments?: Array<{ filename: string; content: string; content_type?: string }>;
+}
+
+const DEFAULT_FROM = "Margin Notifications <notifications@margin.com.au>";
+const VERIFIED_FROM_DOMAIN = "margin.com.au";
+
+function extractEmail(value?: string) {
+  return value?.match(/<([^>]+)>/)?.[1]?.trim() || value?.trim() || "";
+}
+
+function fromUsesVerifiedDomain(value?: string) {
+  const email = extractEmail(value).toLowerCase();
+  return email.endsWith(`@${VERIFIED_FROM_DOMAIN}`);
 }
 
 Deno.serve(async (req) => {
@@ -41,7 +54,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { to, subject, html, from, bcc, cc, reply_to, attachments } = (await req.json()) as EmailRequest;
+    const { to, subject, html, from, bcc, cc, reply_to, replyTo, attachments } = (await req.json()) as EmailRequest;
 
     if (!to || !subject || !html) {
       return new Response(
@@ -50,6 +63,9 @@ Deno.serve(async (req) => {
       );
     }
 
+    const finalFrom = fromUsesVerifiedDomain(from) ? from : DEFAULT_FROM;
+    const finalReplyTo = reply_to || replyTo || (fromUsesVerifiedDomain(from) ? extractEmail(from) : undefined);
+
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -57,13 +73,13 @@ Deno.serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: from || "Margin Notifications <notifications@margin.com.au>",
+        from: finalFrom,
         to: Array.isArray(to) ? to : [to],
         subject,
         html,
         ...(bcc ? { bcc: Array.isArray(bcc) ? bcc : [bcc] } : {}),
         ...(cc ? { cc: Array.isArray(cc) ? cc : [cc] } : {}),
-        ...(reply_to ? { reply_to: Array.isArray(reply_to) ? reply_to : [reply_to] } : {}),
+        ...(finalReplyTo ? { reply_to: Array.isArray(finalReplyTo) ? finalReplyTo : [finalReplyTo] } : {}),
         ...(attachments && attachments.length
           ? { attachments: attachments.map((a) => ({ filename: a.filename, content: a.content, content_type: a.content_type })) }
           : {}),
