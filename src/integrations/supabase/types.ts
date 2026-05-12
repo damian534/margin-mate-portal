@@ -1496,6 +1496,7 @@ export type Database = {
           date_of_birth: string | null
           email: string | null
           email_opt_out: boolean
+          email_signature: string | null
           full_name: string | null
           id: string
           interests: string | null
@@ -1518,6 +1519,7 @@ export type Database = {
           date_of_birth?: string | null
           email?: string | null
           email_opt_out?: boolean
+          email_signature?: string | null
           full_name?: string | null
           id?: string
           interests?: string | null
@@ -1540,6 +1542,7 @@ export type Database = {
           date_of_birth?: string | null
           email?: string | null
           email_opt_out?: boolean
+          email_signature?: string | null
           full_name?: string | null
           id?: string
           interests?: string | null
