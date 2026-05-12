@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Mail, Send } from 'lucide-react';
+import { Mail, Send, Paperclip, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { MILESTONES } from './MilestoneEmailsManagement';
 
@@ -33,6 +33,26 @@ function applyVars(text: string, vars: Record<string, string>) {
   );
 }
 
+interface Attachment {
+  filename: string;
+  content: string; // base64
+  content_type: string;
+  size: number;
+}
+
+const MAX_TOTAL_BYTES = 20 * 1024 * 1024; // 20MB Resend limit
+
+async function fileToBase64(file: File): Promise<string> {
+  const buf = await file.arrayBuffer();
+  let binary = '';
+  const bytes = new Uint8Array(buf);
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
 export function SendMilestoneEmailDialog({ lead }: Props) {
   const { user: _user } = useAuth();
   const [open, setOpen] = useState(false);
@@ -44,6 +64,7 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
   const [sending, setSending] = useState(false);
   const [brokerName, setBrokerName] = useState('');
   const [brokerEmail, setBrokerEmail] = useState('');
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   useEffect(() => {
     if (!open || !lead.broker_id) return;
@@ -97,6 +118,9 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
         from: `${fromName} <notifications@margin.com.au>`,
         bcc: bcc.trim() || undefined,
         reply_to: brokerEmail || undefined,
+        attachments: attachments.length
+          ? attachments.map((a) => ({ filename: a.filename, content: a.content, content_type: a.content_type }))
+          : undefined,
       },
     });
     if (error) {
@@ -106,13 +130,36 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
     }
     // Audit note → deal timeline
     const m = MILESTONES.find((x) => x.key === milestone);
+    const attachNote = attachments.length ? ` · ${attachments.length} attachment(s): ${attachments.map(a => a.filename).join(', ')}` : '';
     await logAudit(
       lead.id,
-      `📧 Milestone email sent (${m?.label}) to ${recipients.join(', ')}${bcc ? ` · BCC ${bcc}` : ''} · Subject: "${subject}"`,
+      `📧 Milestone email sent (${m?.label}) to ${recipients.join(', ')}${bcc ? ` · BCC ${bcc}` : ''} · Subject: "${subject}"${attachNote}`,
     );
     toast.success('Email sent');
     setSending(false);
+    setAttachments([]);
     setOpen(false);
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    const next = [...attachments];
+    let total = next.reduce((s, a) => s + a.size, 0);
+    for (const file of files) {
+      if (total + file.size > MAX_TOTAL_BYTES) {
+        toast.error(`Skipped ${file.name} — total attachments exceed 20MB`);
+        continue;
+      }
+      try {
+        const content = await fileToBase64(file);
+        next.push({ filename: file.name, content, content_type: file.type || 'application/octet-stream', size: file.size });
+        total += file.size;
+      } catch {
+        toast.error(`Failed to read ${file.name}`);
+      }
+    }
+    setAttachments(next);
   };
 
   return (
@@ -155,6 +202,30 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
           <div className="space-y-1.5">
             <Label>Body</Label>
             <Textarea rows={12} value={body} onChange={(e) => setBody(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Attachments</Label>
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="outline" size="sm" asChild>
+                <label className="cursor-pointer">
+                  <Paperclip className="w-4 h-4 mr-1.5" /> Add files
+                  <input type="file" multiple className="hidden" onChange={handleFileSelect} />
+                </label>
+              </Button>
+              <span className="text-xs text-muted-foreground">Max 20MB total</span>
+            </div>
+            {attachments.length > 0 && (
+              <ul className="space-y-1 mt-2">
+                {attachments.map((a, i) => (
+                  <li key={i} className="flex items-center justify-between text-sm bg-muted/50 rounded px-2 py-1">
+                    <span className="truncate">{a.filename} <span className="text-xs text-muted-foreground">({(a.size / 1024).toFixed(1)} KB)</span></span>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setAttachments(attachments.filter((_, j) => j !== i))}>
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
         <DialogFooter>
