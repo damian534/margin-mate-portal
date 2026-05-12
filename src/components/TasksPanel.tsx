@@ -238,7 +238,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
             <Checkbox checked={showCompleted} onCheckedChange={(v) => setShowCompleted(v === true)} />
             Completed
           </label>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (o && !newAssignee) setNewAssignee(user?.id ?? null); }}>
             <DialogTrigger asChild>
               <Button size="sm"><Plus className="w-4 h-4 mr-1" /> New Task</Button>
             </DialogTrigger>
