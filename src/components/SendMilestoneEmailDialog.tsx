@@ -54,7 +54,7 @@ async function fileToBase64(file: File): Promise<string> {
 }
 
 export function SendMilestoneEmailDialog({ lead }: Props) {
-  const { user: _user } = useAuth();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [milestone, setMilestone] = useState<string>('lodged');
   const [subject, setSubject] = useState('');
@@ -64,21 +64,26 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
   const [sending, setSending] = useState(false);
   const [brokerName, setBrokerName] = useState('');
   const [brokerEmail, setBrokerEmail] = useState('');
+  const [senderName, setSenderName] = useState('');
+  const [senderEmail, setSenderEmail] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   useEffect(() => {
     if (!open || !lead.broker_id) return;
     (async () => {
-      const [{ data: tpls }, { data: settings }, { data: brokerProfile }, { data: applicants }] = await Promise.all([
+      const [{ data: tpls }, { data: settings }, { data: brokerProfile }, { data: applicants }, { data: senderProfile }] = await Promise.all([
         supabase.from('milestone_email_templates').select('*').eq('broker_id', lead.broker_id),
         supabase.from('broker_email_settings').select('*').eq('broker_id', lead.broker_id).maybeSingle(),
         supabase.from('profiles').select('full_name,email').eq('user_id', lead.broker_id).maybeSingle(),
         supabase.from('lead_applicants').select('email,name').eq('lead_id', lead.id),
+        user?.id ? supabase.from('profiles').select('full_name,email').eq('user_id', user.id).maybeSingle() : Promise.resolve({ data: null }),
       ]);
       const bName = brokerProfile?.full_name || 'Your Broker';
       const bEmail = brokerProfile?.email || '';
       setBrokerName(bName);
       setBrokerEmail(bEmail);
+      setSenderName(senderProfile?.full_name || bName);
+      setSenderEmail(senderProfile?.email || user?.email || bEmail);
       setBcc(settings?.milestone_bcc_email || '');
       const vars = {
         first_name: lead.first_name || '',
@@ -109,7 +114,8 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
     const html = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;color:#111;white-space:pre-wrap">${
       body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     }</div>`;
-    const fromName = brokerName || 'Margin Finance';
+    const fromName = senderName || brokerName || 'Margin Finance';
+    const replyTo = senderEmail || brokerEmail || undefined;
     const { error } = await supabase.functions.invoke('send-email', {
       body: {
         to: recipients,
@@ -117,7 +123,7 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
         html,
         from: `${fromName} <notifications@margin.com.au>`,
         bcc: bcc.trim() || undefined,
-        reply_to: brokerEmail || undefined,
+        reply_to: replyTo,
         attachments: attachments.length
           ? attachments.map((a) => ({ filename: a.filename, content: a.content, content_type: a.content_type }))
           : undefined,
