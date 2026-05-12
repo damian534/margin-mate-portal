@@ -106,7 +106,7 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
       });
       setTo(Array.from(emails).join(', '));
     })();
-  }, [open, milestone, lead.id, lead.broker_id, lead.email, lead.first_name, lead.last_name, lead.opportunity_name, lead.loan_amount]);
+  }, [open, milestone, lead.id, lead.broker_id, lead.email, lead.first_name, lead.last_name, lead.opportunity_name, lead.loan_amount, user?.id, user?.email]);
 
   const send = async () => {
     if (!to.trim()) { toast.error('Recipient email required'); return; }
@@ -115,14 +115,15 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
     const html = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;color:#111;white-space:pre-wrap">${
       body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     }</div>`;
-    const fromName = senderName || brokerName || 'Margin Finance';
-    const replyTo = senderEmail || brokerEmail || undefined;
+    const fromName = (senderName || brokerName || 'Margin Finance').replace(/[<>]/g, '').trim();
+    const replyTo = (senderEmail || brokerEmail || '').trim() || undefined;
+    const fromEmail = replyTo?.toLowerCase().endsWith('@margin.com.au') ? replyTo : 'notifications@margin.com.au';
     const { error } = await supabase.functions.invoke('send-email', {
       body: {
         to: recipients,
         subject,
         html,
-        from: `${fromName} <notifications@margin.com.au>`,
+        from: `${fromName} <${fromEmail}>`,
         bcc: bcc.trim() || undefined,
         cc: cc.trim() ? cc.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
         reply_to: replyTo,
