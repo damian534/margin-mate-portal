@@ -8,6 +8,33 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { toast } from 'sonner';
 import { PenLine, Upload, X } from 'lucide-react';
 
+async function resizeImage(file: File, maxW = 600, maxH = 200, quality = 0.85): Promise<Blob> {
+  const dataUrl = await new Promise<string>((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result as string);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+  const img = await new Promise<HTMLImageElement>((res, rej) => {
+    const i = new Image();
+    i.onload = () => res(i);
+    i.onerror = rej;
+    i.src = dataUrl;
+  });
+  const ratio = Math.min(maxW / img.width, maxH / img.height, 1);
+  const w = Math.round(img.width * ratio);
+  const h = Math.round(img.height * ratio);
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d')!;
+  ctx.drawImage(img, 0, 0, w, h);
+  const isPng = file.type === 'image/png';
+  return await new Promise<Blob>((res, rej) =>
+    canvas.toBlob((b) => (b ? res(b) : rej(new Error('Resize failed'))), isPng ? 'image/png' : 'image/jpeg', quality)
+  );
+}
+
 export function EmailSignatureSettings() {
   const { user } = useAuth();
   const [signature, setSignature] = useState('');
@@ -46,16 +73,25 @@ export function EmailSignatureSettings() {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file || !user?.id) return;
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('Image must be under 2MB');
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('Image must be under 15MB');
       return;
     }
     setUploading(true);
-    const ext = file.name.split('.').pop() || 'png';
+    let blob: Blob = file;
+    let contentType = file.type || 'image/png';
+    let ext = file.name.split('.').pop() || 'png';
+    try {
+      blob = await resizeImage(file);
+      contentType = blob.type;
+      ext = contentType === 'image/png' ? 'png' : 'jpg';
+    } catch {
+      // fall back to original if resize fails
+    }
     const path = `${user.id}/signature-${Date.now()}.${ext}`;
     const { error: upErr } = await supabase.storage
       .from('signature-images')
-      .upload(path, file, { upsert: true, contentType: file.type });
+      .upload(path, blob, { upsert: true, contentType });
     if (upErr) {
       setUploading(false);
       toast.error(upErr.message);
@@ -64,7 +100,7 @@ export function EmailSignatureSettings() {
     const { data } = supabase.storage.from('signature-images').getPublicUrl(path);
     setImageUrl(data.publicUrl);
     setUploading(false);
-    toast.success('Image uploaded — click Save signature');
+    toast.success(`Image uploaded (${(blob.size / 1024).toFixed(0)} KB) — click Save signature`);
   };
 
   return (
@@ -95,7 +131,7 @@ export function EmailSignatureSettings() {
               </label>
             </Button>
           )}
-          <p className="text-xs text-muted-foreground">PNG/JPG, under 2MB. Appears above your signature text.</p>
+          <p className="text-xs text-muted-foreground">PNG/JPG. Auto-resized to max 600×200px. Appears above your signature text.</p>
         </div>
         <Label>Signature</Label>
         <Textarea
