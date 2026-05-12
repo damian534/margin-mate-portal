@@ -1607,7 +1607,6 @@ export function LeadDetailSheet({
               {lead.loan_purpose && <> · {LOAN_PURPOSE_OPTIONS.find(o => o.value === lead.loan_purpose)?.label || lead.loan_purpose}</>}
               {lead.loan_amount ? <> · ${lead.loan_amount.toLocaleString()}</> : null}
             </>}
-            defaultCollapsed
           >
           <div className="space-y-5">
           <div className="flex gap-3">
@@ -1810,7 +1809,6 @@ export function LeadDetailSheet({
                 title="Deal Milestones"
                 tone={setCount === milestones.length ? 'success' : setCount > 0 ? 'ok' : 'neutral'}
                 subtitle={subtitle}
-                defaultCollapsed={setCount === 0}
               >
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {milestones.map(({ key, label }) => (
@@ -1883,7 +1881,6 @@ export function LeadDetailSheet({
             icon={FileText}
             title="Documents"
             tone="neutral"
-            defaultCollapsed
           >
             <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/30 px-3 py-2 mb-3">
                 <div className="min-w-0">
@@ -1943,7 +1940,6 @@ export function LeadDetailSheet({
             icon={DollarSign}
             title="Commission"
             tone="neutral"
-            defaultCollapsed
           >
             <div className="space-y-3">
               <div className="bg-muted/50 rounded-lg p-3 space-y-2">
