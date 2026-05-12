@@ -119,13 +119,13 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
     const escape = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const hasSig = senderSignature.trim() || senderSignatureImage;
     const sigImg = senderSignatureImage
-      ? `<div style="margin-bottom:8px"><img src="${senderSignatureImage}" alt="" style="max-height:80px;max-width:300px;display:block" /></div>`
+      ? `<div style="margin-top:8px"><img src="${senderSignatureImage}" alt="" style="max-height:80px;max-width:300px;display:block" /></div>`
       : '';
     const sigText = senderSignature.trim()
       ? `<div style="white-space:pre-wrap">${escape(senderSignature)}</div>`
       : '';
     const sigBlock = hasSig
-      ? `<div style="margin-top:24px;padding-top:12px;border-top:1px solid #e5e7eb;color:#374151">${sigImg}${sigText}</div>`
+      ? `<div style="margin-top:24px;padding-top:12px;border-top:1px solid #e5e7eb;color:#374151">${sigText}${sigImg}</div>`
       : '';
     const html = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;color:#111"><div style="white-space:pre-wrap">${escape(body)}</div>${sigBlock}</div>`;
     const fromName = (senderName || brokerName || 'Margin Finance').replace(/[<>]/g, '').trim();
