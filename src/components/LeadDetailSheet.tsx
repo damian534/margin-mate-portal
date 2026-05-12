@@ -25,7 +25,7 @@ import { useTeamMembers } from '@/hooks/useTeamMembers';
 import {
   Mail, Phone, Send, Trash2, Users, Building2, DollarSign, Paperclip, Download,
   Calendar, Plus, CheckCircle, Clock, AlertTriangle,
-  MessageSquare, Activity, ChevronDown, ChevronRight, Pencil, X, Save,
+  MessageSquare, Activity, ChevronDown, ChevronRight, Pencil, X, Save, FileDown,
   Search, ExternalLink, FileText, Copy, Flag, Settings as SettingsIcon
 } from 'lucide-react';
 import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectionPanel';
@@ -1472,6 +1472,31 @@ export function LeadDetailSheet({
                     />
                     <Button type="button" variant="ghost" size="sm" className="h-7 px-2 gap-1" onClick={() => noteFileInputRef.current?.click()}>
                       <Paperclip className="w-3.5 h-3.5" /> Attach
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 gap-1"
+                      onClick={async () => {
+                        if (isPreviewMode) { toast.info('Preview mode — not imported'); return; }
+                        const url = window.prompt('Paste the Google Doc URL (must be shared with the connected Google account):');
+                        if (!url) return;
+                        const t = toast.loading('Importing Google Doc…');
+                        const { data, error } = await supabase.functions.invoke('import-google-doc', {
+                          body: { lead_id: lead.id, url, label: 'Meeting summary' },
+                        });
+                        toast.dismiss(t);
+                        if (error || (data as any)?.error) {
+                          toast.error((data as any)?.error || error?.message || 'Import failed');
+                          return;
+                        }
+                        toast.success(`Imported "${(data as any)?.title || 'doc'}"`);
+                        fetchNotes(lead.id);
+                      }}
+                      title="Import a Google Doc into the timeline"
+                    >
+                      <FileDown className="w-3.5 h-3.5" /> Import Google Doc
                     </Button>
                   </div>
                   <Button onClick={() => addNote(newNote)} disabled={!newNote.trim()} size="sm" className="gap-1.5">
