@@ -68,6 +68,7 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
   const [senderName, setSenderName] = useState('');
   const [senderEmail, setSenderEmail] = useState('');
   const [senderSignature, setSenderSignature] = useState('');
+  const [senderSignatureImage, setSenderSignatureImage] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   useEffect(() => {
@@ -78,7 +79,7 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
         supabase.from('broker_email_settings').select('*').eq('broker_id', lead.broker_id).maybeSingle(),
         supabase.from('profiles').select('full_name,email').eq('user_id', lead.broker_id).maybeSingle(),
         supabase.from('lead_applicants').select('email,name').eq('lead_id', lead.id),
-        user?.id ? supabase.from('profiles').select('full_name,email,email_signature').eq('user_id', user.id).maybeSingle() : Promise.resolve({ data: null }),
+        user?.id ? supabase.from('profiles').select('full_name,email,email_signature,email_signature_image_url').eq('user_id', user.id).maybeSingle() : Promise.resolve({ data: null }),
       ]);
       const bName = brokerProfile?.full_name || 'Your Broker';
       const bEmail = brokerProfile?.email || '';
@@ -87,6 +88,7 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
       setSenderName(senderProfile?.full_name || bName);
       setSenderEmail(senderProfile?.email || user?.email || bEmail);
       setSenderSignature((senderProfile as any)?.email_signature || '');
+      setSenderSignatureImage((senderProfile as any)?.email_signature_image_url || null);
       setBcc(settings?.milestone_bcc_email || '');
       const vars = {
         first_name: lead.first_name || '',
@@ -115,8 +117,15 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
     setSending(true);
     const recipients = to.split(',').map((s) => s.trim()).filter(Boolean);
     const escape = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const sigBlock = senderSignature.trim()
-      ? `<div style="margin-top:24px;padding-top:12px;border-top:1px solid #e5e7eb;color:#374151;white-space:pre-wrap">${escape(senderSignature)}</div>`
+    const hasSig = senderSignature.trim() || senderSignatureImage;
+    const sigImg = senderSignatureImage
+      ? `<div style="margin-bottom:8px"><img src="${senderSignatureImage}" alt="" style="max-height:80px;max-width:300px;display:block" /></div>`
+      : '';
+    const sigText = senderSignature.trim()
+      ? `<div style="white-space:pre-wrap">${escape(senderSignature)}</div>`
+      : '';
+    const sigBlock = hasSig
+      ? `<div style="margin-top:24px;padding-top:12px;border-top:1px solid #e5e7eb;color:#374151">${sigImg}${sigText}</div>`
       : '';
     const html = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;color:#111"><div style="white-space:pre-wrap">${escape(body)}</div>${sigBlock}</div>`;
     const fromName = (senderName || brokerName || 'Margin Finance').replace(/[<>]/g, '').trim();
