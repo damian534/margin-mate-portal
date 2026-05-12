@@ -1497,6 +1497,7 @@ export type Database = {
           email: string | null
           email_opt_out: boolean
           email_signature: string | null
+          email_signature_image_url: string | null
           full_name: string | null
           id: string
           interests: string | null
@@ -1520,6 +1521,7 @@ export type Database = {
           email?: string | null
           email_opt_out?: boolean
           email_signature?: string | null
+          email_signature_image_url?: string | null
           full_name?: string | null
           id?: string
           interests?: string | null
@@ -1543,6 +1545,7 @@ export type Database = {
           email?: string | null
           email_opt_out?: boolean
           email_signature?: string | null
+          email_signature_image_url?: string | null
           full_name?: string | null
           id?: string
           interests?: string | null
