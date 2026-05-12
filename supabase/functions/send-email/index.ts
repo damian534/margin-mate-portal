@@ -66,6 +66,13 @@ Deno.serve(async (req) => {
     const finalFrom = fromUsesVerifiedDomain(from) ? from : DEFAULT_FROM;
     const finalReplyTo = reply_to || replyTo || (fromUsesVerifiedDomain(from) ? extractEmail(from) : undefined);
 
+    const ccArr = cc ? (Array.isArray(cc) ? cc : [cc]).filter(Boolean) : undefined;
+    const bccArr = bcc ? (Array.isArray(bcc) ? bcc : [bcc]).filter(Boolean) : undefined;
+
+    console.log("send-email payload:", JSON.stringify({
+      to, cc: ccArr, bcc: bccArr, from: finalFrom, reply_to: finalReplyTo, subject,
+    }));
+
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -77,8 +84,8 @@ Deno.serve(async (req) => {
         to: Array.isArray(to) ? to : [to],
         subject,
         html,
-        ...(bcc ? { bcc: Array.isArray(bcc) ? bcc : [bcc] } : {}),
-        ...(cc ? { cc: Array.isArray(cc) ? cc : [cc] } : {}),
+        ...(bccArr && bccArr.length ? { bcc: bccArr } : {}),
+        ...(ccArr && ccArr.length ? { cc: ccArr } : {}),
         ...(finalReplyTo ? { reply_to: Array.isArray(finalReplyTo) ? finalReplyTo : [finalReplyTo] } : {}),
         ...(attachments && attachments.length
           ? { attachments: attachments.map((a) => ({ filename: a.filename, content: a.content, content_type: a.content_type })) }
