@@ -131,7 +131,7 @@ export function EmailSignatureSettings() {
               </label>
             </Button>
           )}
-          <p className="text-xs text-muted-foreground">PNG/JPG. Auto-resized to max 600×200px. Appears above your signature text.</p>
+          <p className="text-xs text-muted-foreground">PNG/JPG. Auto-resized to max 600×200px. Appears below your signature text.</p>
         </div>
         <Label>Signature</Label>
         <Textarea
