@@ -13,6 +13,37 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { cn } from '@/lib/utils';
+
+// Circular tick checkbox used for tasks
+const TaskCircleCheck = ({
+  checked,
+  onCheckedChange,
+  className,
+}: {
+  checked: boolean;
+  onCheckedChange: () => void;
+  className?: string;
+}) => (
+  <button
+    type="button"
+    role="checkbox"
+    aria-checked={checked}
+    onClick={(e) => {
+      e.stopPropagation();
+      onCheckedChange();
+    }}
+    className={cn(
+      'shrink-0 h-5 w-5 rounded-full border flex items-center justify-center transition-colors',
+      checked
+        ? 'bg-success border-success text-white'
+        : 'border-muted-foreground/40 hover:border-primary bg-background',
+      className,
+    )}
+  >
+    {checked && <Check className="h-3 w-3" strokeWidth={3} />}
+  </button>
+);
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
