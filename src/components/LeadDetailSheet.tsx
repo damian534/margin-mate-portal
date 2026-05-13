@@ -232,6 +232,7 @@ export function LeadDetailSheet({
   const [heroNoteFor, setHeroNoteFor] = useState<string | null>(null);
   const [heroNoteText, setHeroNoteText] = useState('');
   const [openHeroTaskId, setOpenHeroTaskId] = useState<string | null>(null);
+  const [openHeroTaskSnapshot, setOpenHeroTaskSnapshot] = useState<Task | null>(null);
   const [activeNavKey, setActiveNavKey] = useState<string | null>(null);
   const [extraContacts, setExtraContacts] = useState<any[]>([]);
   const mergedContactsList = (() => {
@@ -594,7 +595,7 @@ export function LeadDetailSheet({
         <div className="flex-1 min-w-0">
           <button
             type="button"
-            onClick={() => { setExpandedTaskId(task.id); setOpenHeroTaskId(task.id); }}
+            onClick={() => { setExpandedTaskId(task.id); setOpenHeroTaskId(task.id); setOpenHeroTaskSnapshot(task); }}
             className="text-left text-xs font-medium leading-snug break-words hover:underline w-full"
           >
             {task.title}
@@ -716,7 +717,7 @@ export function LeadDetailSheet({
         </div>
         <button
           type="button"
-          onClick={() => { setExpandedTaskId(task.id); setOpenHeroTaskId(task.id); }}
+          onClick={() => { setExpandedTaskId(task.id); setOpenHeroTaskId(task.id); setOpenHeroTaskSnapshot(task); }}
           className="flex-1 min-w-0 text-left text-sm font-medium leading-snug truncate hover:underline"
         >
           {task.title}
@@ -2111,14 +2112,14 @@ export function LeadDetailSheet({
       </SheetContent>
       <Dialog
         open={!!openHeroTaskId}
-        onOpenChange={(o) => { if (!o) setOpenHeroTaskId(null); }}
+        onOpenChange={(o) => { if (!o) { setOpenHeroTaskId(null); setOpenHeroTaskSnapshot(null); } }}
       >
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Task</DialogTitle>
           </DialogHeader>
           {(() => {
-            const t = tasks.find(x => x.id === openHeroTaskId);
+            const t = tasks.find(x => x.id === openHeroTaskId) || openHeroTaskSnapshot;
             if (!t) return <p className="text-sm text-muted-foreground">Task not found.</p>;
             return renderTaskItem(t);
           })()}
