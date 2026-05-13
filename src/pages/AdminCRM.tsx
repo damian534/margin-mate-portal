@@ -694,7 +694,14 @@ export default function AdminCRM() {
                     : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground'
                   }`}
               >
-                <tab.icon className="w-5 h-5" />
+                <div className="relative">
+                  <tab.icon className="w-5 h-5" />
+                  {tab.value === 'broker_referrals' && pendingReferralsCount > 0 && (
+                    <span className="absolute -top-2 -right-3 min-w-[18px] h-[18px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                      {pendingReferralsCount}
+                    </span>
+                  )}
+                </div>
                 <span className="text-xs">{tab.label}</span>
               </button>
             ))}
