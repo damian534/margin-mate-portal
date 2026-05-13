@@ -637,7 +637,7 @@ export function LeadDetailSheet({
         <div className="w-px h-4 bg-border mx-1" />
         <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" title="Bullet list" onClick={() => linePrefix('• ')}><List className="w-3.5 h-3.5" /></Button>
         <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" title="Numbered list" onClick={() => linePrefix((i) => `${i + 1}. `)}><ListOrdered className="w-3.5 h-3.5" /></Button>
-        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" title="To-do list" onClick={() => linePrefix('[ ] ')}><ListChecks className="w-3.5 h-3.5" /></Button>
+        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" title="To-do list" onClick={() => linePrefix('◯ ')}><ListChecks className="w-3.5 h-3.5" /></Button>
       </div>
     );
   };
