@@ -985,20 +985,50 @@ export function LeadDetailSheet({
                 </>
               )}
 
-              {checklist.length > 0 && (
-                <div className="space-y-1">
-                  {checklist.map((item, idx) => (
-                    <label key={idx} className="flex items-start gap-2 text-xs cursor-pointer">
-                      <TaskCircleCheck
-                        checked={item.done}
-                        onCheckedChange={() => toggleChecklistItem(task.id, idx)}
-                        className="mt-0.5 h-4 w-4"
-                      />
-                      <span className={item.done ? 'line-through text-muted-foreground' : ''}>{item.text}</span>
-                    </label>
-                  ))}
-                </div>
-              )}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Checklist</Label>
+                {checklist.length > 0 && (
+                  <div className="space-y-1">
+                    {checklist.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-2 group">
+                        <TaskCircleCheck
+                          checked={item.done}
+                          onCheckedChange={() => toggleChecklistItem(task.id, idx)}
+                          className="h-4 w-4 shrink-0"
+                        />
+                        <Input
+                          value={item.text}
+                          onChange={(e) => updateChecklistItemText(task.id, idx, e.target.value)}
+                          placeholder="List item..."
+                          className={cn(
+                            "h-7 text-xs border-0 border-b rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary",
+                            item.done && 'line-through text-muted-foreground'
+                          )}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
+                          onClick={() => removeChecklistItem(task.id, idx)}
+                          title="Remove item"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs gap-1 px-1"
+                  onClick={() => addChecklistItem(task.id)}
+                >
+                  <Plus className="h-3 w-3" /> Add item
+                </Button>
+              </div>
               {taskNotes.length > 0 && (
                 <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                   {taskNotes.map(n => (
