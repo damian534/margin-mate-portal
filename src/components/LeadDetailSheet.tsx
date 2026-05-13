@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type RefObject } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { LeadStatus } from '@/hooks/useLeadStatuses';
@@ -214,6 +214,7 @@ export function LeadDetailSheet({
   const noteFileInputRef = useRef<HTMLInputElement>(null);
   const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
   const taskDescTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const taskNoteTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
@@ -567,6 +568,49 @@ export function LeadDetailSheet({
   );
 
   const getTaskNotes = (taskId: string) => notes.filter(n => n.task_id === taskId);
+
+  const applyTextFormat = (
+    textareaRef: RefObject<HTMLTextAreaElement>,
+    setValue: (value: string) => void,
+    formatter: (value: string, start: number, end: number) => { value: string; cursor: number }
+  ) => {
+    const el = textareaRef.current;
+    if (!el) return;
+    const { value, cursor } = formatter(el.value, el.selectionStart ?? 0, el.selectionEnd ?? 0);
+    setValue(value);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(cursor, cursor);
+    });
+  };
+
+  const renderFormattingToolbar = (textareaRef: RefObject<HTMLTextAreaElement>, setValue: (value: string) => void) => {
+    const wrap = (left: string, right = left) => applyTextFormat(textareaRef, setValue, (v, s, e) => {
+      const selected = v.slice(s, e) || 'text';
+      const next = v.slice(0, s) + left + selected + right + v.slice(e);
+      return { value: next, cursor: s + left.length + selected.length + right.length };
+    });
+    const linePrefix = (prefix: string | ((i: number) => string)) => applyTextFormat(textareaRef, setValue, (v, s, e) => {
+      const lineStart = v.lastIndexOf('\n', s - 1) + 1;
+      const lineEnd = v.indexOf('\n', e);
+      const end = lineEnd === -1 ? v.length : lineEnd;
+      const block = v.slice(lineStart, end) || '';
+      const lines = block.split('\n').map((line, i) => (typeof prefix === 'string' ? prefix : prefix(i)) + line);
+      const next = v.slice(0, lineStart) + lines.join('\n') + v.slice(end);
+      return { value: next, cursor: next.length - (v.length - end) };
+    });
+
+    return (
+      <div className="flex items-center gap-0.5 px-1.5 py-1 border-b bg-muted/40">
+        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" title="Bold" onClick={() => wrap('**')}><Bold className="w-3.5 h-3.5" /></Button>
+        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" title="Italic" onClick={() => wrap('_')}><Italic className="w-3.5 h-3.5" /></Button>
+        <div className="w-px h-4 bg-border mx-1" />
+        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" title="Bullet list" onClick={() => linePrefix('• ')}><List className="w-3.5 h-3.5" /></Button>
+        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" title="Numbered list" onClick={() => linePrefix((i) => `${i + 1}. `)}><ListOrdered className="w-3.5 h-3.5" /></Button>
+        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" title="To-do list" onClick={() => linePrefix('[ ] ')}><ListChecks className="w-3.5 h-3.5" /></Button>
+      </div>
+    );
+  };
 
   const formatDatetimeLocalFromIso = (iso: string | null) => {
     if (!iso) return '';
@@ -924,14 +968,18 @@ export function LeadDetailSheet({
               )}
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Notes</Label>
-                <Textarea
-                  placeholder="Add a note to this task..."
-                  value={taskNoteText}
-                  onChange={e => setTaskNoteText(e.target.value)}
-                  rows={5}
-                  className="text-sm resize-y min-h-[120px]"
-                  onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) addTaskNote(task.id); }}
-                />
+                <div className="rounded-md border bg-background">
+                  {renderFormattingToolbar(taskNoteTextareaRef, setTaskNoteText)}
+                  <Textarea
+                    ref={taskNoteTextareaRef}
+                    placeholder="Add a note to this task..."
+                    value={taskNoteText}
+                    onChange={e => setTaskNoteText(e.target.value)}
+                    rows={6}
+                    className="text-sm resize-y min-h-[150px] border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) addTaskNote(task.id); }}
+                  />
+                </div>
                 <div className="flex justify-end">
                   <Button size="sm" disabled={!taskNoteText.trim()} onClick={() => addTaskNote(task.id)}>
                     <Send className="w-3.5 h-3.5 mr-1.5" /> Add note
