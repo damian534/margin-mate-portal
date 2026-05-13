@@ -1839,6 +1839,14 @@ export type Database = {
         Args: { _referral_id: string }
         Returns: undefined
       }
+      can_view_referrer_profile_for_referred_lead: {
+        Args: {
+          _profile_id: string
+          _profile_user_id: string
+          _viewer_id: string
+        }
+        Returns: boolean
+      }
       decline_lead_referral: {
         Args: { _referral_id: string }
         Returns: undefined
