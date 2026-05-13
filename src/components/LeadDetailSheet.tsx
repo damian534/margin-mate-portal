@@ -968,14 +968,18 @@ export function LeadDetailSheet({
               )}
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Notes</Label>
-                <Textarea
-                  placeholder="Add a note to this task..."
-                  value={taskNoteText}
-                  onChange={e => setTaskNoteText(e.target.value)}
-                  rows={5}
-                  className="text-sm resize-y min-h-[120px]"
-                  onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) addTaskNote(task.id); }}
-                />
+                <div className="rounded-md border bg-background">
+                  {renderFormattingToolbar(taskNoteTextareaRef, setTaskNoteText)}
+                  <Textarea
+                    ref={taskNoteTextareaRef}
+                    placeholder="Add a note to this task..."
+                    value={taskNoteText}
+                    onChange={e => setTaskNoteText(e.target.value)}
+                    rows={6}
+                    className="text-sm resize-y min-h-[150px] border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) addTaskNote(task.id); }}
+                  />
+                </div>
                 <div className="flex justify-end">
                   <Button size="sm" disabled={!taskNoteText.trim()} onClick={() => addTaskNote(task.id)}>
                     <Send className="w-3.5 h-3.5 mr-1.5" /> Add note
