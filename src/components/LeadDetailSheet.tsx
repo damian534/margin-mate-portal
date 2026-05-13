@@ -1437,7 +1437,7 @@ export function LeadDetailSheet({
             <div className="space-y-2">
               {/* Add note form */}
               <div className="space-y-2">
-                <Textarea value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder="Log a note, call summary, or update..." rows={2} maxLength={2000} />
+                <Textarea value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder="Log a note, call summary, or update..." rows={5} maxLength={2000} className="min-h-[140px] text-sm" />
                 {noteFiles.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {noteFiles.map((f, i) => (
@@ -1504,7 +1504,7 @@ export function LeadDetailSheet({
               </div>
 
               {/* Activity timeline */}
-              <ScrollArea className="h-56">
+              <ScrollArea className="h-[480px]">
                 {notes.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-6">No activity yet</p>
                 ) : (
