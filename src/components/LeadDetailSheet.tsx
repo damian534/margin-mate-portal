@@ -31,6 +31,7 @@ import {
 import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectionPanel';
 import { ReferLeadDialog } from '@/components/ReferLeadDialog';
 import { SendMilestoneEmailDialog } from '@/components/SendMilestoneEmailDialog';
+import { WorkingNotesPanel } from '@/components/WorkingNotesPanel';
 import { StatusBadge } from '@/components/StatusBadge';
 import { CoApplicantPicker } from '@/components/CoApplicantPicker';
 import { ProfessionalContactsSection } from '@/components/ProfessionalContactsSection';
