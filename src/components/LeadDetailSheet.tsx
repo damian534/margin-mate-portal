@@ -810,52 +810,26 @@ export function LeadDetailSheet({
     const checklist = task.checklist_items || [];
     const checklistDone = checklist.filter(c => c.done).length;
 
+    const openTask = () => {
+      if (isExpanded) {
+        setExpandedTaskId(null);
+        setEditingTask(null);
+      } else {
+        setExpandedTaskId(task.id);
+        setEditingTask({
+          id: task.id,
+          title: task.title,
+          dueDate: task.due_date ? formatDatetimeLocal(new Date(task.due_date)) : '',
+        });
+      }
+    };
+
     return (
       <div key={task.id} className={`rounded-lg border transition-all ${isOverdue ? 'border-destructive/30 bg-destructive/5' : task.completed ? 'opacity-60' : 'bg-background'}`}>
-        {isEditing && editingTask ? (
-          /* Edit mode — full width form, stop all event propagation */
-          <div className="p-3 space-y-2.5" onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
-            <div>
-              <Label className="text-xs text-muted-foreground">Task Title</Label>
-              <Input 
-                value={editingTask.title} 
-                onChange={e => setEditingTask({ ...editingTask, title: e.target.value })} 
-                className="h-9 text-sm mt-1" 
-                onFocus={e => e.target.select()}
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Quick follow-up</Label>
-              <div className="flex flex-wrap gap-1.5">
-                {FOLLOW_UP_OPTIONS.map(opt => {
-                  const targetDate = getFollowUpDate(opt);
-                  const formatted = formatDatetimeLocal(targetDate);
-                  const isSelected = editingTask.dueDate === formatted;
-                  return (
-                    <Button key={opt.label} type="button" variant={isSelected ? 'default' : 'outline'} size="sm" className="h-7 text-xs px-2.5"
-                      onClick={() => setEditingTask({ ...editingTask, dueDate: formatted })}>
-                      {opt.label}
-                    </Button>
-                  );
-                })}
-              </div>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Custom Date & Time</Label>
-              <Input type="datetime-local" value={editingTask.dueDate} onChange={e => setEditingTask({ ...editingTask, dueDate: e.target.value })} className="h-9 text-sm mt-1" />
-            </div>
-            <div className="flex gap-2 pt-1">
-              <Button size="sm" className="h-8 text-xs px-4 flex-1" onClick={() => updateTask(task.id)} disabled={!editingTask.title.trim()}>
-                <Save className="w-3.5 h-3.5 mr-1.5" /> Save Changes
-              </Button>
-              <Button variant="outline" size="sm" className="h-8 text-xs px-3" onClick={() => setEditingTask(null)}>Cancel</Button>
-            </div>
-          </div>
-        ) : (
-          /* View mode */
-          <div className="flex items-start gap-2 p-2.5">
+        {/* Header row — always shown */}
+        <div className="flex items-start gap-2 p-2.5">
             <Checkbox checked={task.completed} onCheckedChange={() => toggleTaskComplete(task)} className="mt-0.5" />
-            <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}>
+            <div className="flex-1 min-w-0 cursor-pointer" onClick={openTask}>
               <p className={`text-sm font-medium ${task.completed ? 'line-through text-muted-foreground' : ''}`}>{task.title}</p>
               <div className="flex items-center gap-2 mt-0.5">
                 {task.due_date && (
@@ -878,26 +852,50 @@ export function LeadDetailSheet({
                 {isExpanded ? <ChevronDown className="w-3 h-3 text-muted-foreground" /> : <ChevronRight className="w-3 h-3 text-muted-foreground" />}
               </div>
             </div>
-            {!task.completed && (
-              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={(e) => {
-                e.stopPropagation();
-                setExpandedTaskId(task.id);
-                setEditingTask({
-                  id: task.id,
-                  title: task.title,
-                  dueDate: task.due_date ? formatDatetimeLocal(new Date(task.due_date)) : '',
-                });
-              }}>
-                <Pencil className="w-3 h-3" />
-              </Button>
-            )}
-          </div>
-        )}
+        </div>
 
-        {/* Expanded: task notes + add note */}
+        {/* Expanded: edit form + notes */}
         {isExpanded && (
           <div className="px-3 pb-3 pt-0 border-t mx-2.5 mt-0">
-            <div className="pt-2 space-y-2">
+            <div className="pt-3 space-y-3" onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
+              {!task.completed && editingTask && (
+                <div className="space-y-2.5">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Task Title</Label>
+                    <Input
+                      value={editingTask.title}
+                      onChange={e => setEditingTask({ ...editingTask, title: e.target.value })}
+                      className="h-9 text-sm mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1.5 block">Quick follow-up</Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {FOLLOW_UP_OPTIONS.map(opt => {
+                        const targetDate = getFollowUpDate(opt);
+                        const formatted = formatDatetimeLocal(targetDate);
+                        const isSelected = editingTask.dueDate === formatted;
+                        return (
+                          <Button key={opt.label} type="button" variant={isSelected ? 'default' : 'outline'} size="sm" className="h-7 text-xs px-2.5"
+                            onClick={() => setEditingTask({ ...editingTask, dueDate: formatted })}>
+                            {opt.label}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Custom Date & Time</Label>
+                    <Input type="datetime-local" value={editingTask.dueDate} onChange={e => setEditingTask({ ...editingTask, dueDate: e.target.value })} className="h-9 text-sm mt-1" />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" className="h-8 text-xs px-4 flex-1" onClick={() => updateTask(task.id)} disabled={!editingTask.title.trim()}>
+                      <Save className="w-3.5 h-3.5 mr-1.5" /> Save Changes
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {checklist.length > 0 && (
                 <div className="space-y-1">
                   {checklist.map((item, idx) => (
