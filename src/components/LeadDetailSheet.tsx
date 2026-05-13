@@ -31,7 +31,6 @@ import {
 import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectionPanel';
 import { ReferLeadDialog } from '@/components/ReferLeadDialog';
 import { SendMilestoneEmailDialog } from '@/components/SendMilestoneEmailDialog';
-import { WorkingNotesPanel } from '@/components/WorkingNotesPanel';
 import { StatusBadge } from '@/components/StatusBadge';
 import { CoApplicantPicker } from '@/components/CoApplicantPicker';
 import { ProfessionalContactsSection } from '@/components/ProfessionalContactsSection';
@@ -549,8 +548,7 @@ export function LeadDetailSheet({
   if (!lead) return null;
 
   const nextTask = tasks.find(t => !t.completed && t.due_date);
-  // Hide the pinned "Working Notes" task — it's surfaced via WorkingNotesPanel above the list.
-  const visibleTasks = tasks.filter(t => t.title !== '📝 Working Notes');
+  const visibleTasks = tasks;
   const overdueTasks = visibleTasks.filter(t => !t.completed && t.due_date && isPast(new Date(t.due_date)) && !isToday(new Date(t.due_date)));
   const pendingTasks = visibleTasks.filter(t => !t.completed);
   const completedTasks = visibleTasks.filter(t => t.completed);
@@ -1323,14 +1321,6 @@ export function LeadDetailSheet({
 
             {!heroCollapsed && (
               <div className="p-3 space-y-3">
-                {/* Pinned per-lead Working Notes — running log with [] checkbox syntax */}
-                <WorkingNotesPanel
-                  leadId={lead.id}
-                  userId={user?.id ?? null}
-                  isPreviewMode={isPreviewMode}
-                  leadName={lead.opportunity_name || `${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim() || undefined}
-                />
-
                 {taskTemplates.length > 0 && (
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[11px] text-muted-foreground">Apply template:</span>
