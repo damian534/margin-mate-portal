@@ -463,6 +463,21 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
     }
   };
 
+  const updateDocumentDescription = (docId: string, value: string) => {
+    setDocuments(prev => prev.map(d => d.id === docId ? { ...d, description: value } : d));
+  };
+
+  const saveDocumentDescription = async (docId: string) => {
+    const current = documents.find(d => d.id === docId);
+    const value = (current?.description ?? '').trim();
+    if (isPreviewMode) return;
+    const { error } = await supabase
+      .from('document_requests')
+      .update({ description: value || null })
+      .eq('id', docId);
+    if (error) toast.error('Could not save note');
+  };
+
   // Filter docs by active applicant tab
   const visibleDocs = activeApplicantId === 'all'
     ? documents
