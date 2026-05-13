@@ -142,6 +142,33 @@ export default function AdminCRM() {
   const [openContactId, setOpenContactId] = useState<string | null>(null);
   const [selectedCompanyCRM, setSelectedCompanyCRM] = useState<Company | null>(null);
   const [docsByLead, setDocsByLead] = useState<Map<string, { requested: number; completed: number; files: { path: string; name: string }[] }>>(new Map());
+  const [pendingReferralsCount, setPendingReferralsCount] = useState(0);
+
+  useEffect(() => {
+    if (!user || isPreviewMode) return;
+    let lastCount = 0;
+    const fetchCount = async () => {
+      const { count } = await supabase
+        .from('lead_referrals')
+        .select('id', { count: 'exact', head: true })
+        .eq('to_broker_id', user.id)
+        .eq('status', 'pending');
+      const next = count || 0;
+      if (next > lastCount && lastCount !== 0) {
+        toast.info(`You have ${next - lastCount} new lead referral${next - lastCount > 1 ? 's' : ''} waiting`, {
+          action: { label: 'View', onClick: () => setActiveTab('broker_referrals') },
+        });
+      }
+      lastCount = next;
+      setPendingReferralsCount(next);
+    };
+    fetchCount();
+    const channel = supabase
+      .channel('lead_referrals_in_app')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lead_referrals', filter: `to_broker_id=eq.${user.id}` }, () => fetchCount())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, isPreviewMode, setActiveTab]);
 
   const defaultSources: LeadSource[] = [
     { id: 's1', name: 'referral_partner', label: 'Referral Partner', display_order: 1 },
