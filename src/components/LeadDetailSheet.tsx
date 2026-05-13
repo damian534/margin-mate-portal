@@ -213,6 +213,7 @@ export function LeadDetailSheet({
   const [noteFiles, setNoteFiles] = useState<File[]>([]);
   const noteFileInputRef = useRef<HTMLInputElement>(null);
   const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const taskDescTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
