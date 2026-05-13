@@ -1322,6 +1322,13 @@ export function LeadDetailSheet({
 
             {!heroCollapsed && (
               <div className="p-3 space-y-3">
+                {/* Pinned per-lead Working Notes — running log with [] checkbox syntax */}
+                <WorkingNotesPanel
+                  leadId={lead.id}
+                  userId={user?.id ?? null}
+                  isPreviewMode={isPreviewMode}
+                />
+
                 {taskTemplates.length > 0 && (
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[11px] text-muted-foreground">Apply template:</span>
