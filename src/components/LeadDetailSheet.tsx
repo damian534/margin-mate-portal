@@ -902,44 +902,20 @@ export function LeadDetailSheet({
 
         {/* Expanded: edit form + notes */}
         {isExpanded && (
-          <div className="px-3 pb-3 pt-0 border-t mx-2.5 mt-0">
-            <div className="pt-3 space-y-3" onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
+          <div className="border-t mx-2.5">
+            <div className="bg-background rounded-lg p-4 space-y-4" onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
               {!task.completed && editingTask && (
-                <div className="space-y-2.5">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Task Title</Label>
+                <>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Task title</Label>
                     <Input
+                      placeholder="Enter a task title"
                       value={editingTask.title}
                       onChange={e => setEditingTask({ ...editingTask, title: e.target.value })}
-                      className="h-9 text-sm mt-1"
+                      className="h-11 text-base font-medium border-0 border-b rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary"
                     />
                   </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground mb-1.5 block">Quick follow-up</Label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {FOLLOW_UP_OPTIONS.map(opt => {
-                        const targetDate = getFollowUpDate(opt);
-                        const formatted = formatDatetimeLocal(targetDate);
-                        const isSelected = editingTask.dueDate === formatted;
-                        return (
-                          <Button key={opt.label} type="button" variant={isSelected ? 'default' : 'outline'} size="sm" className="h-7 text-xs px-2.5"
-                            onClick={() => setEditingTask({ ...editingTask, dueDate: formatted })}>
-                            {opt.label}
-                          </Button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Custom Date & Time</Label>
-                    <Input type="datetime-local" value={editingTask.dueDate} onChange={e => setEditingTask({ ...editingTask, dueDate: e.target.value })} className="h-9 text-sm mt-1" />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" className="h-8 text-xs px-4 flex-1" onClick={() => updateTask(task.id)} disabled={!editingTask.title.trim()}>
-                      <Save className="w-3.5 h-3.5 mr-1.5" /> Save Changes
-                    </Button>
-                  </div>
-                </div>
+                </>
               )}
 
               {checklist.length > 0 && (
@@ -966,7 +942,7 @@ export function LeadDetailSheet({
                   ))}
                 </div>
               )}
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Notes</Label>
                 <div className="rounded-md border bg-background">
                   {renderFormattingToolbar(taskNoteTextareaRef, setTaskNoteText)}
@@ -976,28 +952,71 @@ export function LeadDetailSheet({
                     value={taskNoteText}
                     onChange={e => setTaskNoteText(e.target.value)}
                     rows={6}
-                    className="text-sm resize-y min-h-[150px] border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="text-sm resize-y min-h-[140px] border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                     onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) addTaskNote(task.id); }}
                   />
                 </div>
-                <div className="flex justify-end">
+                <div className="flex justify-end pt-1">
                   <Button size="sm" disabled={!taskNoteText.trim()} onClick={() => addTaskNote(task.id)}>
                     <Send className="w-3.5 h-3.5 mr-1.5" /> Add note
                   </Button>
                 </div>
               </div>
+
+              {!task.completed && editingTask && (
+                <div>
+                  <p className="text-[11px] text-muted-foreground mb-1.5">Quick follow-up</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {FOLLOW_UP_OPTIONS.map(opt => {
+                      const targetDate = getFollowUpDate(opt);
+                      const formatted = formatDatetimeLocal(targetDate);
+                      const isSelected = editingTask.dueDate === formatted;
+                      return (
+                        <Button key={opt.label} type="button" variant={isSelected ? 'default' : 'outline'} size="sm" className="h-7 text-xs px-2.5"
+                          onClick={() => setEditingTask({ ...editingTask, dueDate: formatted })}>
+                          {opt.label}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {!task.completed && editingTask && (
+                <div className="flex items-center gap-2 pt-1 border-t">
+                  <div className="flex-1">
+                    <Label className="text-[11px] text-muted-foreground">Due date</Label>
+                    <Input
+                      type="date"
+                      value={editingTask.dueDate ? editingTask.dueDate.slice(0, 10) : ''}
+                      onChange={e => setEditingTask({ ...editingTask, dueDate: e.target.value ? `${e.target.value}T09:00` : '' })}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Label className="text-[11px] text-muted-foreground">Assign to</Label>
+                    <AssigneePicker value={task.assigned_to ?? null} onChange={(uid) => reassignTask(task.id, uid)} size="sm" />
+                  </div>
+                  <div className="self-end">
+                    <Button size="sm" onClick={() => updateTask(task.id)} disabled={!editingTask.title.trim()}>
+                      <Save className="w-3.5 h-3.5 mr-1.5" /> Save changes
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center justify-between gap-2 pt-2 border-t">
                 <Button
                   variant={task.completed ? 'outline' : 'default'}
                   size="sm"
-                  className="h-7 text-xs px-3"
+                  className="h-8 text-xs px-3"
                   onClick={() => toggleTaskComplete(task)}
                 >
-                  <CheckCircle className="w-3 h-3 mr-1" />
+                  <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
                   {task.completed ? 'Reopen task' : 'Mark complete'}
                 </Button>
-                <Button variant="ghost" size="sm" className="h-6 text-xs text-destructive hover:text-destructive px-2" onClick={() => deleteTask(task.id)}>
-                  <Trash2 className="w-3 h-3 mr-1" /> Delete task
+                <Button variant="ghost" size="sm" className="h-8 text-xs text-destructive hover:text-destructive px-2" onClick={() => deleteTask(task.id)}>
+                  <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete task
                 </Button>
               </div>
             </div>
