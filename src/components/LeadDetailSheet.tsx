@@ -639,7 +639,12 @@ export function LeadDetailSheet({
         <div className="flex-1 min-w-0">
           <button
             type="button"
-            onClick={() => { setExpandedTaskId(task.id); setOpenHeroTaskId(task.id); setOpenHeroTaskSnapshot(task); }}
+            onClick={() => {
+              setExpandedTaskId(task.id);
+              setOpenHeroTaskId(task.id);
+              setOpenHeroTaskSnapshot(task);
+              setEditingTask({ id: task.id, title: task.title, dueDate: task.due_date ? formatDatetimeLocal(new Date(task.due_date)) : '' });
+            }}
             className="text-left text-xs font-medium leading-snug break-words hover:underline w-full"
           >
             {task.title}
@@ -761,7 +766,12 @@ export function LeadDetailSheet({
         </div>
         <button
           type="button"
-          onClick={() => { setExpandedTaskId(task.id); setOpenHeroTaskId(task.id); setOpenHeroTaskSnapshot(task); }}
+          onClick={() => {
+            setExpandedTaskId(task.id);
+            setOpenHeroTaskId(task.id);
+            setOpenHeroTaskSnapshot(task);
+            setEditingTask({ id: task.id, title: task.title, dueDate: task.due_date ? formatDatetimeLocal(new Date(task.due_date)) : '' });
+          }}
           className="flex-1 min-w-0 text-left text-sm font-medium leading-snug truncate hover:underline"
         >
           {task.title}
