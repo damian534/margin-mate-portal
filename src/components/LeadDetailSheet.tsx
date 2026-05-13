@@ -13,7 +13,6 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { cn } from '@/lib/utils';
 
 // Circular tick checkbox used for tasks
 const TaskCircleCheck = ({
@@ -41,7 +40,7 @@ const TaskCircleCheck = ({
       className,
     )}
   >
-    {checked && <Check className="h-3 w-3" strokeWidth={3} />}
+    {checked && <CheckCircle className="h-3 w-3" strokeWidth={3} />}
   </button>
 );
 import { ScrollArea } from '@/components/ui/scroll-area';
