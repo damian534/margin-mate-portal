@@ -2112,14 +2112,14 @@ export function LeadDetailSheet({
       </SheetContent>
       <Dialog
         open={!!openHeroTaskId}
-        onOpenChange={(o) => { if (!o) setOpenHeroTaskId(null); }}
+        onOpenChange={(o) => { if (!o) { setOpenHeroTaskId(null); setOpenHeroTaskSnapshot(null); } }}
       >
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Task</DialogTitle>
           </DialogHeader>
           {(() => {
-            const t = tasks.find(x => x.id === openHeroTaskId);
+            const t = tasks.find(x => x.id === openHeroTaskId) || openHeroTaskSnapshot;
             if (!t) return <p className="text-sm text-muted-foreground">Task not found.</p>;
             return renderTaskItem(t);
           })()}
