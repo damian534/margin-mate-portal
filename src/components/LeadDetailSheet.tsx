@@ -1330,6 +1330,7 @@ export function LeadDetailSheet({
                   leadId={lead.id}
                   userId={user?.id ?? null}
                   isPreviewMode={isPreviewMode}
+                  leadName={lead.opportunity_name || `${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim() || undefined}
                 />
 
                 {taskTemplates.length > 0 && (
