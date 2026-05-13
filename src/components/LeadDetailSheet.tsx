@@ -405,6 +405,33 @@ export function LeadDetailSheet({
     await (supabase as any).from('tasks').update({ checklist_items: items }).eq('id', taskId);
   };
 
+  const persistChecklist = async (taskId: string, items: { text: string; done: boolean }[]) => {
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, checklist_items: items } : t));
+    if (isPreviewMode) return;
+    await (supabase as any).from('tasks').update({ checklist_items: items }).eq('id', taskId);
+  };
+
+  const updateChecklistItemText = (taskId: string, idx: number, text: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    const items = (task.checklist_items || []).map((it, i) => i === idx ? { ...it, text } : it);
+    persistChecklist(taskId, items);
+  };
+
+  const removeChecklistItem = (taskId: string, idx: number) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    const items = (task.checklist_items || []).filter((_, i) => i !== idx);
+    persistChecklist(taskId, items);
+  };
+
+  const addChecklistItem = (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    const items = [...(task.checklist_items || []), { text: '', done: false }];
+    persistChecklist(taskId, items);
+  };
+
   const addNote = async (content: string, type: 'note' | 'email' | 'call' = 'note', taskId?: string) => {
     if (!content.trim() || !lead || !user) return;
     const noteContent = type === 'email'
