@@ -12,6 +12,8 @@ interface Props {
   leadId: string;
   userId: string | null;
   isPreviewMode: boolean;
+  /** Optional context used when notifying mentioned colleagues */
+  leadName?: string;
 }
 
 /**
@@ -21,13 +23,14 @@ interface Props {
  * with `-`) render as toggleable checkboxes; click any other line to edit.
  * Container is scrollable with the top pinned, so old notes stay visible.
  */
-export function WorkingNotesPanel({ leadId, userId, isPreviewMode }: Props) {
+export function WorkingNotesPanel({ leadId, userId, isPreviewMode, leadName }: Props) {
   const [taskId, setTaskId] = useState<string | null>(null);
   const [body, setBody] = useState<string>('');
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
   const initialised = useRef(false);
+  const lastBodyRef = useRef<string>('');
 
   // Load (or lazily create) the working-notes task for this lead.
   useEffect(() => {
@@ -52,6 +55,7 @@ export function WorkingNotesPanel({ leadId, userId, isPreviewMode }: Props) {
       if (data && data.length > 0) {
         setTaskId(data[0].id);
         setBody(data[0].description || '');
+        lastBodyRef.current = data[0].description || '';
       }
       initialised.current = true;
     })();
@@ -79,6 +83,7 @@ export function WorkingNotesPanel({ leadId, userId, isPreviewMode }: Props) {
   };
 
   const persist = async (next: string) => {
+    const previous = lastBodyRef.current;
     setBody(next);
     if (isPreviewMode) return;
     setSaving(true);
@@ -88,7 +93,69 @@ export function WorkingNotesPanel({ leadId, userId, isPreviewMode }: Props) {
       .from('tasks')
       .update({ description: next })
       .eq('id', id);
+    lastBodyRef.current = next;
     setSaving(false);
+    // Fire-and-forget mention notifications for newly-added @handles
+    notifyNewMentions(previous, next).catch(() => {});
+  };
+
+  const extractMentions = (text: string): string[] => {
+    const set = new Set<string>();
+    const re = /(?:^|\s)@([a-zA-Z][a-zA-Z0-9._-]{1,40})/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text))) set.add(m[1].toLowerCase());
+    return Array.from(set);
+  };
+
+  const notifyNewMentions = async (prev: string, next: string) => {
+    if (!userId) return;
+    const before = new Set(extractMentions(prev));
+    const newOnes = extractMentions(next).filter((h) => !before.has(h));
+    if (newOnes.length === 0) return;
+
+    // Resolve current user's tenant (broker_id) to scope colleague lookup
+    const { data: me } = await supabase
+      .from('profiles')
+      .select('broker_id, full_name')
+      .eq('user_id', userId)
+      .maybeSingle();
+    const tenantId = (me as any)?.broker_id || userId;
+    const senderName = (me as any)?.full_name || 'A colleague';
+
+    // Pull tenant colleagues once
+    const { data: peers } = await supabase
+      .from('profiles')
+      .select('email, full_name')
+      .or(`broker_id.eq.${tenantId},user_id.eq.${tenantId}`);
+    if (!peers || peers.length === 0) return;
+
+    const matches: { email: string; name: string }[] = [];
+    for (const handle of newOnes) {
+      const target = handle.replace(/[._-]+/g, ' ');
+      const hit = peers.find((p: any) => {
+        if (!p.email || !p.full_name) return false;
+        const fn = p.full_name.toLowerCase();
+        const first = fn.split(/\s+/)[0];
+        return fn === target || first === target || fn.replace(/\s+/g, '') === handle;
+      });
+      if (hit) matches.push({ email: (hit as any).email, name: (hit as any).full_name });
+    }
+    if (matches.length === 0) return;
+
+    const subject = `${senderName} mentioned you${leadName ? ` on ${leadName}` : ''}`;
+    const snippet = next.slice(0, 600).replace(/</g, '&lt;');
+    const html = `
+      <div style="font-family:Arial,sans-serif;color:#111;max-width:560px">
+        <p>${senderName} mentioned you in working notes${leadName ? ` for <strong>${leadName}</strong>` : ''}.</p>
+        <pre style="white-space:pre-wrap;background:#f6f6f6;border:1px solid #e5e5e5;border-radius:8px;padding:12px;font-family:inherit;font-size:13px">${snippet}</pre>
+        <p style="color:#666;font-size:12px">Open Margin Connect to reply.</p>
+      </div>`;
+
+    await Promise.all(matches.map(({ email, name }) =>
+      supabase.functions.invoke('send-email', { body: { to: email, subject, html } })
+        .then(() => toast.success(`Notified ${name.split(' ')[0]}`))
+        .catch(() => {})
+    ));
   };
 
   const startEditing = () => {
@@ -126,7 +193,7 @@ export function WorkingNotesPanel({ leadId, userId, isPreviewMode }: Props) {
         </div>
         <div className="flex items-center gap-1">
           <span className="text-[10px] text-muted-foreground hidden sm:inline">
-            Tip: type <code className="bg-background/80 px-1 rounded">[]</code> for a checkbox
+            Tip: <code className="bg-background/80 px-1 rounded">[]</code> = checkbox · <code className="bg-background/80 px-1 rounded">@name</code> emails a colleague
           </span>
           {!editing ? (
             <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={startEditing}>
