@@ -1495,7 +1495,7 @@ export function LeadDetailSheet({
                                 <div className="w-px h-4 bg-border mx-1" />
                                 <Btn title="Bullet list" onClick={() => linePrefix('• ')}><List className="w-3.5 h-3.5" /></Btn>
                                 <Btn title="Numbered list" onClick={() => linePrefix((i) => `${i + 1}. `)}><ListOrdered className="w-3.5 h-3.5" /></Btn>
-                                <Btn title="To-do list" onClick={() => linePrefix('[ ] ')}><ListChecks className="w-3.5 h-3.5" /></Btn>
+                                <Btn title="To-do list" onClick={() => linePrefix('◯ ')}><ListChecks className="w-3.5 h-3.5" /></Btn>
                               </>
                             );
                           })()}
