@@ -662,9 +662,9 @@ export function LeadDetailSheet({
       const end = lineEnd === -1 ? v.length : lineEnd;
       const block = v.slice(lineStart, end) || '';
       const lines = block.split('\n').map(line => {
-        if (line.startsWith('⬤ ')) return line.slice(2);            // checked → none
-        if (line.startsWith('◯ ')) return '⬤ ' + line.slice(2);     // unchecked → checked
-        return '◯ ' + line;                                          // none → unchecked
+        if (line.startsWith('✅ ')) return line.slice(2);            // checked → none
+        if (line.startsWith('⭕ ')) return '✅ ' + line.slice(2);     // unchecked → checked
+        return '⭕ ' + line;                                          // none → unchecked
       });
       const next = v.slice(0, lineStart) + lines.join('\n') + v.slice(end);
       return { value: next, cursor: next.length - (v.length - end) };
@@ -1560,9 +1560,9 @@ export function LeadDetailSheet({
                               const lineEnd = v.indexOf('\n', e); const end = lineEnd === -1 ? v.length : lineEnd;
                               const block = v.slice(lineStart, end);
                               const lines = block.split('\n').map(ln => {
-                                if (ln.startsWith('⬤ ')) return ln.slice(2);
-                                if (ln.startsWith('◯ ')) return '⬤ ' + ln.slice(2);
-                                return '◯ ' + ln;
+                                if (ln.startsWith('✅ ')) return ln.slice(2);
+                                if (ln.startsWith('⭕ ')) return '✅ ' + ln.slice(2);
+                                return '⭕ ' + ln;
                               });
                               const next = v.slice(0, lineStart) + lines.join('\n') + v.slice(end);
                               return { value: next, cursor: next.length - (v.length - end) };
