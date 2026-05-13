@@ -1555,6 +1555,18 @@ export function LeadDetailSheet({
                               const next = v.slice(0, lineStart) + lines.join('\n') + v.slice(end);
                               return { value: next, cursor: next.length - (v.length - end) };
                             });
+                            const toggleTodo = () => apply((v, s, e) => {
+                              const lineStart = v.lastIndexOf('\n', s - 1) + 1;
+                              const lineEnd = v.indexOf('\n', e); const end = lineEnd === -1 ? v.length : lineEnd;
+                              const block = v.slice(lineStart, end);
+                              const lines = block.split('\n').map(ln => {
+                                if (ln.startsWith('⬤ ')) return ln.slice(2);
+                                if (ln.startsWith('◯ ')) return '⬤ ' + ln.slice(2);
+                                return '◯ ' + ln;
+                              });
+                              const next = v.slice(0, lineStart) + lines.join('\n') + v.slice(end);
+                              return { value: next, cursor: next.length - (v.length - end) };
+                            });
                             const Btn = ({ onClick, title, children }: any) => (
                               <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" title={title} onClick={onClick}>{children}</Button>
                             );
@@ -1565,7 +1577,7 @@ export function LeadDetailSheet({
                                 <div className="w-px h-4 bg-border mx-1" />
                                 <Btn title="Bullet list" onClick={() => linePrefix('• ')}><List className="w-3.5 h-3.5" /></Btn>
                                 <Btn title="Numbered list" onClick={() => linePrefix((i) => `${i + 1}. `)}><ListOrdered className="w-3.5 h-3.5" /></Btn>
-                                <Btn title="To-do list" onClick={() => linePrefix('◯ ')}><ListChecks className="w-3.5 h-3.5" /></Btn>
+                                <Btn title="To-do (click to tick / untick on current line)" onClick={toggleTodo}><ListChecks className="w-3.5 h-3.5" /></Btn>
                               </>
                             );
                           })()}
