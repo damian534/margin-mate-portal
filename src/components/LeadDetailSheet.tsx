@@ -31,6 +31,7 @@ import {
 import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectionPanel';
 import { ReferLeadDialog } from '@/components/ReferLeadDialog';
 import { SendMilestoneEmailDialog } from '@/components/SendMilestoneEmailDialog';
+import { WorkingNotesPanel } from '@/components/WorkingNotesPanel';
 import { StatusBadge } from '@/components/StatusBadge';
 import { CoApplicantPicker } from '@/components/CoApplicantPicker';
 import { ProfessionalContactsSection } from '@/components/ProfessionalContactsSection';
@@ -548,13 +549,15 @@ export function LeadDetailSheet({
   if (!lead) return null;
 
   const nextTask = tasks.find(t => !t.completed && t.due_date);
-  const overdueTasks = tasks.filter(t => !t.completed && t.due_date && isPast(new Date(t.due_date)) && !isToday(new Date(t.due_date)));
-  const pendingTasks = tasks.filter(t => !t.completed);
-  const completedTasks = tasks.filter(t => t.completed);
+  // Hide the pinned "Working Notes" task — it's surfaced via WorkingNotesPanel above the list.
+  const visibleTasks = tasks.filter(t => t.title !== '📝 Working Notes');
+  const overdueTasks = visibleTasks.filter(t => !t.completed && t.due_date && isPast(new Date(t.due_date)) && !isToday(new Date(t.due_date)));
+  const pendingTasks = visibleTasks.filter(t => !t.completed);
+  const completedTasks = visibleTasks.filter(t => t.completed);
 
   const overdueColTasks = overdueTasks;
-  const todayColTasks = tasks.filter(t => !t.completed && t.due_date && isToday(new Date(t.due_date)));
-  const upcomingColTasks = tasks.filter(t =>
+  const todayColTasks = visibleTasks.filter(t => !t.completed && t.due_date && isToday(new Date(t.due_date)));
+  const upcomingColTasks = visibleTasks.filter(t =>
     !t.completed && (
       !t.due_date ||
       (!isToday(new Date(t.due_date)) && !isPast(new Date(t.due_date)))
@@ -910,7 +913,7 @@ export function LeadDetailSheet({
                 </div>
               )}
               {taskNotes.length > 0 && (
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                   {taskNotes.map(n => (
                     <div key={n.id} className="bg-muted/50 rounded-md p-3 text-sm">
                       <p className="whitespace-pre-wrap leading-relaxed">{n.content.replace(/^📋 \[Task: .*?\] /, '')}</p>
@@ -1322,6 +1325,13 @@ export function LeadDetailSheet({
 
             {!heroCollapsed && (
               <div className="p-3 space-y-3">
+                {/* Pinned per-lead Working Notes — running log with [] checkbox syntax */}
+                <WorkingNotesPanel
+                  leadId={lead.id}
+                  userId={user?.id ?? null}
+                  isPreviewMode={isPreviewMode}
+                />
+
                 {taskTemplates.length > 0 && (
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[11px] text-muted-foreground">Apply template:</span>
