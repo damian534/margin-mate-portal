@@ -569,6 +569,49 @@ export function LeadDetailSheet({
 
   const getTaskNotes = (taskId: string) => notes.filter(n => n.task_id === taskId);
 
+  const applyTextFormat = (
+    textareaRef: RefObject<HTMLTextAreaElement>,
+    setValue: (value: string) => void,
+    formatter: (value: string, start: number, end: number) => { value: string; cursor: number }
+  ) => {
+    const el = textareaRef.current;
+    if (!el) return;
+    const { value, cursor } = formatter(el.value, el.selectionStart ?? 0, el.selectionEnd ?? 0);
+    setValue(value);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(cursor, cursor);
+    });
+  };
+
+  const renderFormattingToolbar = (textareaRef: RefObject<HTMLTextAreaElement>, setValue: (value: string) => void) => {
+    const wrap = (left: string, right = left) => applyTextFormat(textareaRef, setValue, (v, s, e) => {
+      const selected = v.slice(s, e) || 'text';
+      const next = v.slice(0, s) + left + selected + right + v.slice(e);
+      return { value: next, cursor: s + left.length + selected.length + right.length };
+    });
+    const linePrefix = (prefix: string | ((i: number) => string)) => applyTextFormat(textareaRef, setValue, (v, s, e) => {
+      const lineStart = v.lastIndexOf('\n', s - 1) + 1;
+      const lineEnd = v.indexOf('\n', e);
+      const end = lineEnd === -1 ? v.length : lineEnd;
+      const block = v.slice(lineStart, end) || '';
+      const lines = block.split('\n').map((line, i) => (typeof prefix === 'string' ? prefix : prefix(i)) + line);
+      const next = v.slice(0, lineStart) + lines.join('\n') + v.slice(end);
+      return { value: next, cursor: next.length - (v.length - end) };
+    });
+
+    return (
+      <div className="flex items-center gap-0.5 px-1.5 py-1 border-b bg-muted/40">
+        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" title="Bold" onClick={() => wrap('**')}><Bold className="w-3.5 h-3.5" /></Button>
+        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" title="Italic" onClick={() => wrap('_')}><Italic className="w-3.5 h-3.5" /></Button>
+        <div className="w-px h-4 bg-border mx-1" />
+        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" title="Bullet list" onClick={() => linePrefix('• ')}><List className="w-3.5 h-3.5" /></Button>
+        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" title="Numbered list" onClick={() => linePrefix((i) => `${i + 1}. `)}><ListOrdered className="w-3.5 h-3.5" /></Button>
+        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" title="To-do list" onClick={() => linePrefix('[ ] ')}><ListChecks className="w-3.5 h-3.5" /></Button>
+      </div>
+    );
+  };
+
   const formatDatetimeLocalFromIso = (iso: string | null) => {
     if (!iso) return '';
     const d = new Date(iso);
