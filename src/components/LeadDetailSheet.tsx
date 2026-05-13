@@ -26,8 +26,8 @@ import {
   Mail, Phone, Send, Trash2, Users, Building2, DollarSign, Paperclip, Download,
   Calendar, Plus, CheckCircle, Clock, AlertTriangle,
   MessageSquare, Activity, ChevronDown, ChevronRight, Pencil, X, Save, FileDown,
-  Search, ExternalLink, FileText, Copy, Flag, Settings as SettingsIcon
-  ,Bold, Italic, List, ListOrdered, ListChecks
+  Search, ExternalLink, FileText, Copy, Flag, Settings as SettingsIcon,
+  Bold, Italic, List, ListOrdered, ListChecks
 } from 'lucide-react';
 import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectionPanel';
 import { ReferLeadDialog } from '@/components/ReferLeadDialog';
