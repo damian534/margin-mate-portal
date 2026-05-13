@@ -17,7 +17,10 @@ import { Users } from 'lucide-react';
 import { HorizontalScrollWithTopBar } from '@/components/HorizontalScrollWithTopBar';
 
 export const WIP_STATUSES = [
+  { name: 'pending_fact_find', label: 'Pending Fact Find', color: '#cbd5e1' },
   { name: 'onboarding', label: 'Onboarding', color: '#94a3b8' },
+  { name: 'pending_additional_docs', label: 'Pending Additional Documents', color: '#84cc16' },
+  { name: 'sent_for_onboarding', label: 'Sent for Onboarding', color: '#7c9eb2' },
   { name: 'researching', label: 'Researching', color: '#64748b' },
   { name: 'proposal_sent', label: 'Proposal Sent', color: '#0ea5e9' },
   { name: 'new_application', label: 'New Application', color: '#3b82f6' },
