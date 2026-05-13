@@ -213,6 +213,7 @@ export function LeadDetailSheet({
   const [noteFiles, setNoteFiles] = useState<File[]>([]);
   const noteFileInputRef = useRef<HTMLInputElement>(null);
   const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const taskDescTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
@@ -1353,13 +1354,53 @@ export function LeadDetailSheet({
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs text-muted-foreground">Notes</Label>
-                      <Textarea
-                        placeholder="Add details, context, or instructions..."
-                        value={newTaskDescription}
-                        onChange={e => setNewTaskDescription(e.target.value)}
-                        rows={6}
-                        className="text-sm resize-y min-h-[140px]"
-                      />
+                      <div className="rounded-md border bg-background">
+                        <div className="flex items-center gap-0.5 px-1.5 py-1 border-b bg-muted/40">
+                          {(() => {
+                            const ta = () => taskDescTextareaRef.current;
+                            const apply = (fn: (val: string, start: number, end: number) => { value: string; cursor: number }) => {
+                              const el = ta(); if (!el) return;
+                              const { value, cursor } = fn(el.value, el.selectionStart ?? 0, el.selectionEnd ?? 0);
+                              setNewTaskDescription(value);
+                              requestAnimationFrame(() => { el.focus(); el.setSelectionRange(cursor, cursor); });
+                            };
+                            const wrap = (left: string, right = left) => apply((v, s, e) => {
+                              const sel = v.slice(s, e) || 'text';
+                              const next = v.slice(0, s) + left + sel + right + v.slice(e);
+                              return { value: next, cursor: s + left.length + sel.length + right.length };
+                            });
+                            const linePrefix = (prefix: string | ((i: number) => string)) => apply((v, s, e) => {
+                              const lineStart = v.lastIndexOf('\n', s - 1) + 1;
+                              const lineEnd = v.indexOf('\n', e); const end = lineEnd === -1 ? v.length : lineEnd;
+                              const block = v.slice(lineStart, end);
+                              const lines = block.split('\n').map((ln, i) => (typeof prefix === 'string' ? prefix : prefix(i)) + ln);
+                              const next = v.slice(0, lineStart) + lines.join('\n') + v.slice(end);
+                              return { value: next, cursor: next.length - (v.length - end) };
+                            });
+                            const Btn = ({ onClick, title, children }: any) => (
+                              <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" title={title} onClick={onClick}>{children}</Button>
+                            );
+                            return (
+                              <>
+                                <Btn title="Bold" onClick={() => wrap('**')}><Bold className="w-3.5 h-3.5" /></Btn>
+                                <Btn title="Italic" onClick={() => wrap('_')}><Italic className="w-3.5 h-3.5" /></Btn>
+                                <div className="w-px h-4 bg-border mx-1" />
+                                <Btn title="Bullet list" onClick={() => linePrefix('• ')}><List className="w-3.5 h-3.5" /></Btn>
+                                <Btn title="Numbered list" onClick={() => linePrefix((i) => `${i + 1}. `)}><ListOrdered className="w-3.5 h-3.5" /></Btn>
+                                <Btn title="To-do list" onClick={() => linePrefix('[ ] ')}><ListChecks className="w-3.5 h-3.5" /></Btn>
+                              </>
+                            );
+                          })()}
+                        </div>
+                        <Textarea
+                          ref={taskDescTextareaRef}
+                          placeholder="Add details, context, or instructions..."
+                          value={newTaskDescription}
+                          onChange={e => setNewTaskDescription(e.target.value)}
+                          rows={6}
+                          className="text-sm resize-y min-h-[140px] border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                        />
+                      </div>
                     </div>
                     <div>
                       <p className="text-[11px] text-muted-foreground mb-1.5">Quick follow-up</p>
@@ -1439,54 +1480,15 @@ export function LeadDetailSheet({
             <div className="space-y-2">
               {/* Add note form */}
               <div className="space-y-2">
-                <div className="rounded-md border bg-background">
-                  <div className="flex items-center gap-0.5 px-1.5 py-1 border-b bg-muted/40">
-                    {(() => {
-                      const ta = () => noteTextareaRef.current;
-                      const apply = (fn: (val: string, start: number, end: number) => { value: string; cursor: number }) => {
-                        const el = ta(); if (!el) return;
-                        const { value, cursor } = fn(el.value, el.selectionStart ?? 0, el.selectionEnd ?? 0);
-                        setNewNote(value);
-                        requestAnimationFrame(() => { el.focus(); el.setSelectionRange(cursor, cursor); });
-                      };
-                      const wrap = (left: string, right = left) => apply((v, s, e) => {
-                        const sel = v.slice(s, e) || 'text';
-                        const next = v.slice(0, s) + left + sel + right + v.slice(e);
-                        return { value: next, cursor: s + left.length + sel.length + right.length };
-                      });
-                      const linePrefix = (prefix: string | ((i: number) => string)) => apply((v, s, e) => {
-                        const lineStart = v.lastIndexOf('\n', s - 1) + 1;
-                        const lineEnd = v.indexOf('\n', e); const end = lineEnd === -1 ? v.length : lineEnd;
-                        const block = v.slice(lineStart, end);
-                        const lines = block.split('\n').map((ln, i) => (typeof prefix === 'string' ? prefix : prefix(i)) + ln);
-                        const next = v.slice(0, lineStart) + lines.join('\n') + v.slice(end);
-                        return { value: next, cursor: next.length - (v.length - end) };
-                      });
-                      const Btn = ({ onClick, title, children }: any) => (
-                        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" title={title} onClick={onClick}>{children}</Button>
-                      );
-                      return (
-                        <>
-                          <Btn title="Bold" onClick={() => wrap('**')}><Bold className="w-3.5 h-3.5" /></Btn>
-                          <Btn title="Italic" onClick={() => wrap('_')}><Italic className="w-3.5 h-3.5" /></Btn>
-                          <div className="w-px h-4 bg-border mx-1" />
-                          <Btn title="Bullet list" onClick={() => linePrefix('• ')}><List className="w-3.5 h-3.5" /></Btn>
-                          <Btn title="Numbered list" onClick={() => linePrefix((i) => `${i + 1}. `)}><ListOrdered className="w-3.5 h-3.5" /></Btn>
-                          <Btn title="To-do list" onClick={() => linePrefix('[ ] ')}><ListChecks className="w-3.5 h-3.5" /></Btn>
-                        </>
-                      );
-                    })()}
-                  </div>
-                  <Textarea
-                    ref={noteTextareaRef}
-                    value={newNote}
-                    onChange={(e) => setNewNote(e.target.value)}
-                    placeholder="Log a note, call summary, or update..."
-                    rows={6}
-                    maxLength={2000}
-                    className="min-h-[180px] text-sm border-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-y"
-                  />
-                </div>
+                <Textarea
+                  ref={noteTextareaRef}
+                  value={newNote}
+                  onChange={(e) => setNewNote(e.target.value)}
+                  placeholder="Log a note, call summary, or update..."
+                  rows={6}
+                  maxLength={2000}
+                  className="min-h-[180px] text-sm resize-y"
+                />
                 {noteFiles.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {noteFiles.map((f, i) => (
