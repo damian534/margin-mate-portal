@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type RefObject } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { LeadStatus } from '@/hooks/useLeadStatuses';
@@ -214,6 +214,7 @@ export function LeadDetailSheet({
   const noteFileInputRef = useRef<HTMLInputElement>(null);
   const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
   const taskDescTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const taskNoteTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
