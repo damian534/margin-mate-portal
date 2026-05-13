@@ -964,7 +964,15 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
                                 aria-label="Document name"
                                 className="h-8 text-sm font-medium border-transparent bg-transparent hover:bg-background hover:border-border focus:bg-background focus:border-border px-2 -mx-2"
                               />
-                              {doc.description && <p className="text-xs text-muted-foreground">{doc.description}</p>}
+                              <Input
+                                value={doc.description ?? ''}
+                                onChange={e => updateDocumentDescription(doc.id, e.target.value)}
+                                onBlur={() => saveDocumentDescription(doc.id)}
+                                onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                                placeholder="Add a note (e.g. John signed 12 May, Jane pending)"
+                                aria-label="Internal note"
+                                className="h-7 text-xs italic text-muted-foreground border-transparent bg-transparent hover:bg-background hover:border-border focus:bg-background focus:border-border focus:not-italic px-2 -mx-2 mt-0.5"
+                              />
                               {activeApplicantId === 'all' && applicant && (
                                 <p className="text-[10px] text-muted-foreground mt-0.5">For: {applicant.name}</p>
                               )}
