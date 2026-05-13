@@ -661,7 +661,7 @@ export function LeadDetailSheet({
           tone === 'muted' && 'border-border',
         )}
       >
-        <Checkbox
+        <TaskCircleCheck
           checked={task.completed}
           onCheckedChange={() => toggleTaskComplete(task)}
           className="mt-0.5"
@@ -781,7 +781,7 @@ export function LeadDetailSheet({
           tone === 'muted' && 'bg-muted border-border',
         )}
       >
-        <Checkbox
+        <TaskCircleCheck
           checked={task.completed}
           onCheckedChange={() => toggleTaskComplete(task)}
         />
@@ -914,7 +914,7 @@ export function LeadDetailSheet({
       <div key={task.id} className={`rounded-lg border transition-all ${isOverdue ? 'border-destructive/30 bg-destructive/5' : task.completed ? 'opacity-60' : 'bg-background'}`}>
         {/* Header row — always shown */}
         <div className="flex items-start gap-2 p-2.5">
-            <Checkbox checked={task.completed} onCheckedChange={() => toggleTaskComplete(task)} className="mt-0.5" />
+            <TaskCircleCheck checked={task.completed} onCheckedChange={() => toggleTaskComplete(task)} className="mt-0.5" />
             <div className="flex-1 min-w-0 cursor-pointer" onClick={openTask}>
               <p className={`text-sm font-medium ${task.completed ? 'line-through text-muted-foreground' : ''}`}>{task.title}</p>
               <div className="flex items-center gap-2 mt-0.5">
@@ -962,10 +962,10 @@ export function LeadDetailSheet({
                 <div className="space-y-1">
                   {checklist.map((item, idx) => (
                     <label key={idx} className="flex items-start gap-2 text-xs cursor-pointer">
-                      <Checkbox
+                      <TaskCircleCheck
                         checked={item.done}
                         onCheckedChange={() => toggleChecklistItem(task.id, idx)}
-                        className="mt-0.5"
+                        className="mt-0.5 h-4 w-4"
                       />
                       <span className={item.done ? 'line-through text-muted-foreground' : ''}>{item.text}</span>
                     </label>
