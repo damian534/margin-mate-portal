@@ -250,6 +250,13 @@ export function LeadDetailSheet({
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
   const [newTaskDescription, setNewTaskDescription] = useState('');
   const [newTaskAssignee, setNewTaskAssignee] = useState<string | null>(null);
+
+  // Default new-task assignee to the current user (creator) when the form opens.
+  useEffect(() => {
+    if (showTaskForm && !newTaskAssignee && user?.id) {
+      setNewTaskAssignee(user.id);
+    }
+  }, [showTaskForm, user?.id]);
   const [activeTab, setActiveTab] = useState('timeline');
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<{ id: string; title: string; dueDate: string } | null>(null);
@@ -389,6 +396,7 @@ export function LeadDetailSheet({
     const { error } = await (supabase as any).from('tasks').insert({
       lead_id: lead.id, title: tpl.task_title,
       due_date: dueDate, created_by: user.id,
+      assigned_to: user.id,
       checklist_items: checklist,
     });
     if (error) { toast.error('Failed to apply template'); return; }
@@ -518,7 +526,7 @@ export function LeadDetailSheet({
       toast.success('Task created');
       fetchTasks(lead.id);
     }
-    setNewTaskTitle(''); setNewTaskDueDate(''); setNewTaskDescription(''); setNewTaskAssignee(null); setShowTaskForm(false);
+    setNewTaskTitle(''); setNewTaskDueDate(''); setNewTaskDescription(''); setNewTaskAssignee(user?.id ?? null); setShowTaskForm(false);
   };
 
   const updateTask = async (taskId: string) => {
