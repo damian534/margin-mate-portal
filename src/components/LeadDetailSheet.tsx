@@ -913,7 +913,7 @@ export function LeadDetailSheet({
                 </div>
               )}
               {taskNotes.length > 0 && (
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                   {taskNotes.map(n => (
                     <div key={n.id} className="bg-muted/50 rounded-md p-3 text-sm">
                       <p className="whitespace-pre-wrap leading-relaxed">{n.content.replace(/^📋 \[Task: .*?\] /, '')}</p>
