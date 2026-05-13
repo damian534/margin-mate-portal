@@ -549,9 +549,9 @@ export function LeadDetailSheet({
   if (!lead) return null;
 
   const nextTask = tasks.find(t => !t.completed && t.due_date);
-  const overdueTasks = tasks.filter(t => !t.completed && t.due_date && isPast(new Date(t.due_date)) && !isToday(new Date(t.due_date)));
   // Hide the pinned "Working Notes" task — it's surfaced via WorkingNotesPanel above the list.
   const visibleTasks = tasks.filter(t => t.title !== '📝 Working Notes');
+  const overdueTasks = visibleTasks.filter(t => !t.completed && t.due_date && isPast(new Date(t.due_date)) && !isToday(new Date(t.due_date)));
   const pendingTasks = visibleTasks.filter(t => !t.completed);
   const completedTasks = visibleTasks.filter(t => t.completed);
 
