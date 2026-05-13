@@ -232,6 +232,7 @@ export function LeadDetailSheet({
   const [heroNoteFor, setHeroNoteFor] = useState<string | null>(null);
   const [heroNoteText, setHeroNoteText] = useState('');
   const [openHeroTaskId, setOpenHeroTaskId] = useState<string | null>(null);
+  const [openHeroTaskSnapshot, setOpenHeroTaskSnapshot] = useState<Task | null>(null);
   const [activeNavKey, setActiveNavKey] = useState<string | null>(null);
   const [extraContacts, setExtraContacts] = useState<any[]>([]);
   const mergedContactsList = (() => {
