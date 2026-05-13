@@ -2191,7 +2191,7 @@ export function LeadDetailSheet({
         open={!!openHeroTaskId}
         onOpenChange={(o) => { if (!o) { setOpenHeroTaskId(null); setOpenHeroTaskSnapshot(null); } }}
       >
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Task</DialogTitle>
           </DialogHeader>
