@@ -405,6 +405,33 @@ export function LeadDetailSheet({
     await (supabase as any).from('tasks').update({ checklist_items: items }).eq('id', taskId);
   };
 
+  const persistChecklist = async (taskId: string, items: { text: string; done: boolean }[]) => {
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, checklist_items: items } : t));
+    if (isPreviewMode) return;
+    await (supabase as any).from('tasks').update({ checklist_items: items }).eq('id', taskId);
+  };
+
+  const updateChecklistItemText = (taskId: string, idx: number, text: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    const items = (task.checklist_items || []).map((it, i) => i === idx ? { ...it, text } : it);
+    persistChecklist(taskId, items);
+  };
+
+  const removeChecklistItem = (taskId: string, idx: number) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    const items = (task.checklist_items || []).filter((_, i) => i !== idx);
+    persistChecklist(taskId, items);
+  };
+
+  const addChecklistItem = (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    const items = [...(task.checklist_items || []), { text: '', done: false }];
+    persistChecklist(taskId, items);
+  };
+
   const addNote = async (content: string, type: 'note' | 'email' | 'call' = 'note', taskId?: string) => {
     if (!content.trim() || !lead || !user) return;
     const noteContent = type === 'email'
@@ -958,20 +985,50 @@ export function LeadDetailSheet({
                 </>
               )}
 
-              {checklist.length > 0 && (
-                <div className="space-y-1">
-                  {checklist.map((item, idx) => (
-                    <label key={idx} className="flex items-start gap-2 text-xs cursor-pointer">
-                      <TaskCircleCheck
-                        checked={item.done}
-                        onCheckedChange={() => toggleChecklistItem(task.id, idx)}
-                        className="mt-0.5 h-4 w-4"
-                      />
-                      <span className={item.done ? 'line-through text-muted-foreground' : ''}>{item.text}</span>
-                    </label>
-                  ))}
-                </div>
-              )}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Checklist</Label>
+                {checklist.length > 0 && (
+                  <div className="space-y-1">
+                    {checklist.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-2 group">
+                        <TaskCircleCheck
+                          checked={item.done}
+                          onCheckedChange={() => toggleChecklistItem(task.id, idx)}
+                          className="h-4 w-4 shrink-0"
+                        />
+                        <Input
+                          value={item.text}
+                          onChange={(e) => updateChecklistItemText(task.id, idx, e.target.value)}
+                          placeholder="List item..."
+                          className={cn(
+                            "h-7 text-xs border-0 border-b rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary",
+                            item.done && 'line-through text-muted-foreground'
+                          )}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
+                          onClick={() => removeChecklistItem(task.id, idx)}
+                          title="Remove item"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs gap-1 px-1"
+                  onClick={() => addChecklistItem(task.id)}
+                >
+                  <Plus className="h-3 w-3" /> Add item
+                </Button>
+              </div>
               {taskNotes.length > 0 && (
                 <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                   {taskNotes.map(n => (
