@@ -158,18 +158,26 @@ export function PipelineReport({
           const Icon = c.icon;
           const isActive = activeMetric === m;
           return (
-            <button
+            <div
               key={m}
               onClick={() => setActiveMetric(m)}
-              className={`text-left rounded-xl border p-4 transition-all ${isActive ? 'border-primary bg-primary/5 shadow-sm' : 'border-border bg-card hover:border-primary/30'}`}
+              className={`cursor-pointer text-left rounded-xl border p-4 transition-all ${isActive ? 'border-primary bg-primary/5 shadow-sm' : 'border-border bg-card hover:border-primary/30'}`}
             >
               <div className="flex items-center justify-between">
                 <div className="text-sm font-medium text-muted-foreground">{c.label}</div>
                 <Icon className="w-4 h-4" style={{ color: c.color }} />
               </div>
-              <div className="mt-2 text-2xl font-semibold tabular-nums">{b.count}</div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDialogMetric(m);
+                }}
+                className="mt-2 text-2xl font-semibold tabular-nums hover:underline text-foreground"
+              >
+                {b.count}
+              </button>
               <div className="text-sm text-muted-foreground tabular-nums">${b.volume.toLocaleString()}</div>
-            </button>
+            </div>
           );
         })}
       </div>
