@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { FileDown, ClipboardList, CheckCircle2, DollarSign } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -86,6 +86,7 @@ export function PipelineReport({
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [activeMetric, setActiveMetric] = useState<Metric>('lodged');
+  const [dialogMetric, setDialogMetric] = useState<Metric | null>(null);
 
   const range = useMemo(() => getPeriodRange(period, customFrom, customTo), [period, customFrom, customTo]);
 
@@ -109,6 +110,9 @@ export function PipelineReport({
 
   const current = buckets[activeMetric];
   const cfg = METRIC_CONFIG[activeMetric];
+
+  const dialogData = dialogMetric ? buckets[dialogMetric] : null;
+  const dialogCfg = dialogMetric ? METRIC_CONFIG[dialogMetric] : null;
 
   return (
     <div className="space-y-6">
@@ -154,18 +158,26 @@ export function PipelineReport({
           const Icon = c.icon;
           const isActive = activeMetric === m;
           return (
-            <button
+            <div
               key={m}
               onClick={() => setActiveMetric(m)}
-              className={`text-left rounded-xl border p-4 transition-all ${isActive ? 'border-primary bg-primary/5 shadow-sm' : 'border-border bg-card hover:border-primary/30'}`}
+              className={`cursor-pointer text-left rounded-xl border p-4 transition-all ${isActive ? 'border-primary bg-primary/5 shadow-sm' : 'border-border bg-card hover:border-primary/30'}`}
             >
               <div className="flex items-center justify-between">
                 <div className="text-sm font-medium text-muted-foreground">{c.label}</div>
                 <Icon className="w-4 h-4" style={{ color: c.color }} />
               </div>
-              <div className="mt-2 text-2xl font-semibold tabular-nums">{b.count}</div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDialogMetric(m);
+                }}
+                className="mt-2 text-2xl font-semibold tabular-nums hover:underline text-foreground"
+              >
+                {b.count}
+              </button>
               <div className="text-sm text-muted-foreground tabular-nums">${b.volume.toLocaleString()}</div>
-            </button>
+            </div>
           );
         })}
       </div>
@@ -215,6 +227,55 @@ export function PipelineReport({
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog for clicking KPI number */}
+      <Dialog open={dialogMetric !== null} onOpenChange={(open) => !open && setDialogMetric(null)}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{dialogCfg?.label} deals · {range.label}</DialogTitle>
+            <DialogDescription>{dialogData?.count} deals · ${dialogData?.volume.toLocaleString()} total volume</DialogDescription>
+          </DialogHeader>
+          {dialogData && dialogCfg && dialogData.rows.length === 0 ? (
+            <p className="text-center text-sm text-muted-foreground py-12">No {dialogCfg.label.toLowerCase()} deals in this period.</p>
+          ) : dialogData && dialogCfg ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{dialogCfg.label} Date</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Opportunity</TableHead>
+                  <TableHead className="text-right">Loan Amount</TableHead>
+                  <TableHead>Referrer</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {dialogData.rows.map(l => {
+                  const d = (l as any)[dialogCfg.key] as string | null;
+                  return (
+                    <TableRow key={l.id}>
+                      <TableCell className="text-sm">{d ? format(parseISO(d), 'd MMM yyyy') : '—'}</TableCell>
+                      <TableCell className="font-medium">{l.first_name} {l.last_name}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{l.opportunity_name || '—'}</TableCell>
+                      <TableCell className="text-right tabular-nums">{l.loan_amount ? `$${l.loan_amount.toLocaleString()}` : '—'}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{getReferrerName?.(l.referral_partner_id ?? null) || '—'}</TableCell>
+                    </TableRow>
+                  );
+                })}
+                <TableRow className="bg-muted/40 font-semibold">
+                  <TableCell colSpan={3}>Total</TableCell>
+                  <TableCell className="text-right tabular-nums">${dialogData.volume.toLocaleString()}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{dialogData.count} deals</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          ) : null}
+          <div className="flex justify-end pt-4">
+            <Button variant="outline" size="sm" onClick={() => dialogMetric && exportCsv(dialogData!.rows, dialogMetric, getReferrerName)} disabled={!dialogData || dialogData.rows.length === 0}>
+              <FileDown className="w-3.5 h-3.5 mr-1.5" /> Export CSV
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
