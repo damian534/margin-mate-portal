@@ -19,6 +19,7 @@ import { AddLeadDialog } from '@/components/AddLeadDialog';
 import { ContactsManagement, Contact } from '@/components/ContactsManagement';
 import { IncomingReferralsPanel } from '@/components/IncomingReferralsPanel';
 import { WIPDashboard } from '@/components/WIPDashboard';
+import { PipelineReport } from '@/components/PipelineReport';
 import { AssigneeFilter } from '@/components/AssigneePicker';
 import JSZip from 'jszip';
 
@@ -673,7 +674,7 @@ export default function AdminCRM() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           {/* Navigation Grid */}
-          <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-10 gap-2">
             {[
               { value: 'leads', label: 'Leads', icon: TrendingUp },
               { value: 'wip', label: 'WIP', icon: Briefcase },
@@ -683,6 +684,7 @@ export default function AdminCRM() {
               { value: 'referrers', label: 'Referrers', icon: Users },
               { value: 'broker_referrals', label: 'Broker Referrals', icon: Share2 },
               { value: 'edm', label: 'Email Campaigns', icon: MailIcon },
+              { value: 'pipeline_report', label: 'Pipeline Report', icon: BarChart3 },
               { value: 'reports', label: 'Reports', icon: BarChart3 },
             ].map((tab) => (
               <button
@@ -1050,6 +1052,10 @@ export default function AdminCRM() {
               selectedReferrerId={reportReferrerId}
               leadSources={leadSources}
             />
+          </TabsContent>
+
+          <TabsContent value="pipeline_report" className="mt-4">
+            <PipelineReport leads={leads} getReferrerName={getReferrerName} />
           </TabsContent>
 
           <TabsContent value="broker_referrals" className="mt-4">
