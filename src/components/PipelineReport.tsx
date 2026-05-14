@@ -227,6 +227,55 @@ export function PipelineReport({
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog for clicking KPI number */}
+      <Dialog open={dialogMetric !== null} onOpenChange={(open) => !open && setDialogMetric(null)}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{dialogCfg?.label} deals · {range.label}</DialogTitle>
+            <DialogDescription>{dialogData?.count} deals · ${dialogData?.volume.toLocaleString()} total volume</DialogDescription>
+          </DialogHeader>
+          {dialogData && dialogCfg && dialogData.rows.length === 0 ? (
+            <p className="text-center text-sm text-muted-foreground py-12">No {dialogCfg.label.toLowerCase()} deals in this period.</p>
+          ) : dialogData && dialogCfg ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{dialogCfg.label} Date</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Opportunity</TableHead>
+                  <TableHead className="text-right">Loan Amount</TableHead>
+                  <TableHead>Referrer</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {dialogData.rows.map(l => {
+                  const d = (l as any)[dialogCfg.key] as string | null;
+                  return (
+                    <TableRow key={l.id}>
+                      <TableCell className="text-sm">{d ? format(parseISO(d), 'd MMM yyyy') : '—'}</TableCell>
+                      <TableCell className="font-medium">{l.first_name} {l.last_name}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{l.opportunity_name || '—'}</TableCell>
+                      <TableCell className="text-right tabular-nums">{l.loan_amount ? `$${l.loan_amount.toLocaleString()}` : '—'}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{getReferrerName?.(l.referral_partner_id ?? null) || '—'}</TableCell>
+                    </TableRow>
+                  );
+                })}
+                <TableRow className="bg-muted/40 font-semibold">
+                  <TableCell colSpan={3}>Total</TableCell>
+                  <TableCell className="text-right tabular-nums">${dialogData.volume.toLocaleString()}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{dialogData.count} deals</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          ) : null}
+          <div className="flex justify-end pt-4">
+            <Button variant="outline" size="sm" onClick={() => dialogMetric && exportCsv(dialogData!.rows, dialogMetric, getReferrerName)} disabled={!dialogData || dialogData.rows.length === 0}>
+              <FileDown className="w-3.5 h-3.5 mr-1.5" /> Export CSV
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
