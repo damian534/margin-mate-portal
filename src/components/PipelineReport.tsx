@@ -86,6 +86,7 @@ export function PipelineReport({
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [activeMetric, setActiveMetric] = useState<Metric>('lodged');
+  const [dialogMetric, setDialogMetric] = useState<Metric | null>(null);
 
   const range = useMemo(() => getPeriodRange(period, customFrom, customTo), [period, customFrom, customTo]);
 
