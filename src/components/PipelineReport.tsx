@@ -111,6 +111,9 @@ export function PipelineReport({
   const current = buckets[activeMetric];
   const cfg = METRIC_CONFIG[activeMetric];
 
+  const dialogData = dialogMetric ? buckets[dialogMetric] : null;
+  const dialogCfg = dialogMetric ? METRIC_CONFIG[dialogMetric] : null;
+
   return (
     <div className="space-y-6">
       {/* Filters */}
