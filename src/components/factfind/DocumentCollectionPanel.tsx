@@ -211,7 +211,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       .from('lead_applicants')
       .select('*')
       .eq('lead_id', leadId)
-      .order('display_order')
+      .eq('display_order', 0)
       .limit(1)
       .maybeSingle();
 
