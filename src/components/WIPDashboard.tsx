@@ -379,10 +379,9 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                   <div className="flex items-center gap-1.5">
                                     {lead.first_name} {lead.last_name}
                                     {hasTask && (
-                                      <ClipboardList
-                                        className="w-3.5 h-3.5 text-primary shrink-0"
-                                        title={`${activeTasks.length} active task${activeTasks.length > 1 ? 's' : ''}`}
-                                      />
+                                      <span title={`${activeTasks.length} active task${activeTasks.length > 1 ? 's' : ''}`}>
+                                        <ClipboardList className="w-3.5 h-3.5 text-primary shrink-0" />
+                                      </span>
                                     )}
                                   </div>
                                 </TableCell>
