@@ -361,7 +361,10 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {stageLeads.map(lead => (
+                            {stageLeads.map(lead => {
+                              const activeTasks = tasksByLead?.get(lead.id)?.filter(t => !t.completed) || [];
+                              const hasTask = activeTasks.length > 0;
+                              return (
                               <TableRow
                                 key={lead.id}
                                 draggable
@@ -372,7 +375,17 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                 className="cursor-grab active:cursor-grabbing hover:bg-muted/50"
                                 onClick={() => onOpenLead(lead)}
                               >
-                                <TableCell className="font-medium">{lead.first_name} {lead.last_name}</TableCell>
+                                <TableCell className="font-medium">
+                                  <div className="flex items-center gap-1.5">
+                                    {lead.first_name} {lead.last_name}
+                                    {hasTask && (
+                                      <ClipboardList
+                                        className="w-3.5 h-3.5 text-primary shrink-0"
+                                        title={`${activeTasks.length} active task${activeTasks.length > 1 ? 's' : ''}`}
+                                      />
+                                    )}
+                                  </div>
+                                </TableCell>
                                 <TableCell className="text-sm text-muted-foreground">{lead.opportunity_name || '—'}</TableCell>
                                 <TableCell className="tabular-nums">{lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '—'}</TableCell>
                                 <TableCell><AssigneeBadge userId={lead.assigned_to ?? null} /></TableCell>
@@ -418,7 +431,8 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                   </DropdownMenu>
                                 </TableCell>
                               </TableRow>
-                            ))}
+                              );
+                            })}
                           </TableBody>
                         </Table>
                       </CardContent>
