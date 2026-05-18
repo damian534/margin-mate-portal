@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { FileDown, FileText, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search, X, MoreVertical, Maximize2, Minimize2, List, Columns, CalendarClock } from 'lucide-react';
+import { FileDown, FileText, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search, X, MoreVertical, Maximize2, Minimize2, List, Columns, CalendarClock, ClipboardList } from 'lucide-react';
 import { AssigneeBadge, AssigneeFilter } from '@/components/AssigneePicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
