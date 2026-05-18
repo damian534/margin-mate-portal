@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { FileDown, FileText, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search, X, MoreVertical, Maximize2, Minimize2, List, Columns, CalendarClock } from 'lucide-react';
+import { FileDown, FileText, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search, X, MoreVertical, Maximize2, Minimize2, List, Columns, CalendarClock, ClipboardList } from 'lucide-react';
 import { AssigneeBadge, AssigneeFilter } from '@/components/AssigneePicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -361,7 +361,10 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {stageLeads.map(lead => (
+                            {stageLeads.map(lead => {
+                              const activeTasks = tasksByLead?.get(lead.id)?.filter(t => !t.completed) || [];
+                              const hasTask = activeTasks.length > 0;
+                              return (
                               <TableRow
                                 key={lead.id}
                                 draggable
@@ -372,7 +375,16 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                 className="cursor-grab active:cursor-grabbing hover:bg-muted/50"
                                 onClick={() => onOpenLead(lead)}
                               >
-                                <TableCell className="font-medium">{lead.first_name} {lead.last_name}</TableCell>
+                                <TableCell className="font-medium">
+                                  <div className="flex items-center gap-1.5">
+                                    {lead.first_name} {lead.last_name}
+                                    {hasTask && (
+                                      <span title={`${activeTasks.length} active task${activeTasks.length > 1 ? 's' : ''}`}>
+                                        <ClipboardList className="w-3.5 h-3.5 text-primary shrink-0" />
+                                      </span>
+                                    )}
+                                  </div>
+                                </TableCell>
                                 <TableCell className="text-sm text-muted-foreground">{lead.opportunity_name || '—'}</TableCell>
                                 <TableCell className="tabular-nums">{lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '—'}</TableCell>
                                 <TableCell><AssigneeBadge userId={lead.assigned_to ?? null} /></TableCell>
@@ -418,7 +430,8 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                   </DropdownMenu>
                                 </TableCell>
                               </TableRow>
-                            ))}
+                              );
+                            })}
                           </TableBody>
                         </Table>
                       </CardContent>
@@ -489,6 +502,8 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                           const displayTitle = lead.opportunity_name?.trim() || `${lead.first_name} ${lead.last_name}`;
                           const fullName = `${lead.first_name} ${lead.last_name}`;
                           const hasOpportunity = !!lead.opportunity_name?.trim();
+                          const activeTasks = tasksByLead?.get(lead.id)?.filter(t => !t.completed) || [];
+                          const hasTask = activeTasks.length > 0;
                           return (
                             <Card
                               key={lead.id}
@@ -518,6 +533,11 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                       <p className="text-[11px] text-muted-foreground truncate">{lead.loan_purpose}</p>
                                     )}
                                   </div>
+                                  {hasTask && (
+                                    <span title={`${activeTasks.length} active task${activeTasks.length > 1 ? 's' : ''}`}>
+                                      <ClipboardList className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                                    </span>
+                                  )}
                                   <AssigneeBadge userId={lead.assigned_to ?? null} />
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
