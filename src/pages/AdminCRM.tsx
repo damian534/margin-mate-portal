@@ -673,12 +673,14 @@ export default function AdminCRM() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          {/* Navigation Grid */}
-          <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-10 gap-2">
-            {[
+          {/* Navigation: primary tabs + dropdown for the rest */}
+          {(() => {
+            const primaryTabs = [
               { value: 'leads', label: 'Leads', icon: TrendingUp },
               { value: 'wip', label: 'WIP', icon: Briefcase },
               { value: 'tasks', label: 'Tasks', icon: ListTodo },
+            ];
+            const moreTabs = [
               { value: 'contacts', label: 'Contacts', icon: ContactIcon },
               { value: 'companies', label: 'Companies', icon: Building2 },
               { value: 'referrers', label: 'Referrers', icon: Users },
@@ -686,28 +688,72 @@ export default function AdminCRM() {
               { value: 'edm', label: 'Email Campaigns', icon: MailIcon },
               { value: 'pipeline_report', label: 'Pipeline Report', icon: BarChart3 },
               { value: 'reports', label: 'Reports', icon: BarChart3 },
-            ].map((tab) => (
-              <button
-                key={tab.value}
-                onClick={() => setActiveTab(tab.value)}
-                className={`flex flex-col items-center gap-1.5 rounded-xl border px-3 py-4 text-sm font-medium transition-all
-                  ${activeTab === tab.value
-                    ? 'border-primary bg-primary/5 text-primary shadow-sm'
-                    : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground'
-                  }`}
-              >
-                <div className="relative">
-                  <tab.icon className="w-5 h-5" />
-                  {tab.value === 'broker_referrals' && pendingReferralsCount > 0 && (
-                    <span className="absolute -top-2 -right-3 min-w-[18px] h-[18px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
-                      {pendingReferralsCount}
-                    </span>
-                  )}
+            ];
+            const activeMore = moreTabs.find(t => t.value === activeTab);
+            return (
+              <div className="flex flex-wrap items-stretch gap-2">
+                {primaryTabs.map((tab) => (
+                  <button
+                    key={tab.value}
+                    onClick={() => setActiveTab(tab.value)}
+                    className={`flex flex-col items-center gap-1.5 rounded-xl border px-4 py-4 text-sm font-medium transition-all flex-1 min-w-[110px]
+                      ${activeTab === tab.value
+                        ? 'border-primary bg-primary/5 text-primary shadow-sm'
+                        : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground'
+                      }`}
+                  >
+                    <tab.icon className="w-5 h-5" />
+                    <span className="text-xs">{tab.label}</span>
+                  </button>
+                ))}
+                <div className="flex-1 min-w-[200px]">
+                  <Select value={activeMore?.value ?? ''} onValueChange={setActiveTab}>
+                    <SelectTrigger
+                      className={`h-full rounded-xl border px-4 py-4 ${
+                        activeMore
+                          ? 'border-primary bg-primary/5 text-primary shadow-sm'
+                          : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 w-full">
+                        {activeMore ? (
+                          <>
+                            <activeMore.icon className="w-5 h-5" />
+                            <span className="text-sm font-medium">{activeMore.label}</span>
+                          </>
+                        ) : (
+                          <>
+                            <List className="w-5 h-5" />
+                            <span className="text-sm font-medium">More sections…</span>
+                          </>
+                        )}
+                        {pendingReferralsCount > 0 && activeTab !== 'broker_referrals' && (
+                          <span className="ml-auto min-w-[18px] h-[18px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                            {pendingReferralsCount}
+                          </span>
+                        )}
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {moreTabs.map((tab) => (
+                        <SelectItem key={tab.value} value={tab.value}>
+                          <div className="flex items-center gap-2">
+                            <tab.icon className="w-4 h-4" />
+                            <span>{tab.label}</span>
+                            {tab.value === 'broker_referrals' && pendingReferralsCount > 0 && (
+                              <span className="ml-2 min-w-[18px] h-[18px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                                {pendingReferralsCount}
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <span className="text-xs">{tab.label}</span>
-              </button>
-            ))}
-          </div>
+              </div>
+            );
+          })()}
 
           <TabsContent value="leads" className="space-y-4 mt-4">
             {/* Toolbar */}
