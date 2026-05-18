@@ -277,6 +277,44 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
         </div>
       </div>
 
+      {/* Task due date filter */}
+      <div className="flex items-center gap-1 flex-wrap">
+        <CalendarClock className="w-4 h-4 text-muted-foreground mr-1" />
+        {([
+          { value: 'all_leads' as WipTaskDueFilter, label: 'All Deals' },
+          { value: 'overdue' as WipTaskDueFilter, label: 'Overdue Tasks' },
+          { value: 'today' as WipTaskDueFilter, label: 'Due Today' },
+          { value: 'tomorrow' as WipTaskDueFilter, label: 'Due Tomorrow' },
+          { value: 'later' as WipTaskDueFilter, label: 'Due Later' },
+          { value: 'no_tasks' as WipTaskDueFilter, label: 'No Tasks' },
+        ]).map(opt => {
+          const wipLeads = leads.filter(l => l.wip_status);
+          const count = opt.value === 'all_leads'
+            ? wipLeads.length
+            : wipLeads.filter(l => getWipLeadTaskDueCategory(l.id, tasksByLead) === opt.value).length;
+          return (
+            <Button
+              key={opt.value}
+              variant={taskDueFilter === opt.value ? 'secondary' : 'ghost'}
+              size="sm"
+              className={`h-7 text-xs gap-1.5 ${opt.value === 'overdue' && count > 0 && taskDueFilter !== opt.value ? 'text-destructive' : ''}`}
+              onClick={() => setTaskDueFilter(opt.value)}
+            >
+              {opt.label}
+              {count > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                  taskDueFilter === opt.value ? 'bg-background text-foreground' :
+                  opt.value === 'overdue' && count > 0 ? 'bg-destructive/10 text-destructive' :
+                  'bg-muted text-muted-foreground'
+                }`}>
+                  {count}
+                </span>
+              )}
+            </Button>
+          );
+        })}
+      </div>
+
       {view === 'list' ? (
         visibleLeads.filter(l => l.wip_status).length === 0 ? (
           <Card><CardContent className="p-0"><p className="text-muted-foreground text-center py-12">No deals in WIP</p></CardContent></Card>
