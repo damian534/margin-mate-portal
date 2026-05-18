@@ -989,6 +989,7 @@ export default function AdminCRM() {
               docsByLead={docsByLead}
               onDownloadDocs={downloadLeadDocsZip}
               leadSources={leadSources}
+              tasksByLead={tasksByLead}
               getReferrerName={getReferrerName}
               getReferrerCompany={getReferrerCompany}
               getContactName={(contactId) => {
