@@ -5,14 +5,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { FileDown, FileText, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search, X, MoreVertical, Maximize2, Minimize2, List, Columns } from 'lucide-react';
+import { FileDown, FileText, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search, X, MoreVertical, Maximize2, Minimize2, List, Columns, CalendarClock } from 'lucide-react';
 import { AssigneeBadge, AssigneeFilter } from '@/components/AssigneePicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format } from 'date-fns';
+import { format, isPast, isToday, isTomorrow } from 'date-fns';
 import { Users } from 'lucide-react';
 import { HorizontalScrollWithTopBar } from '@/components/HorizontalScrollWithTopBar';
 
@@ -41,6 +41,29 @@ export const WIP_STATUSES = [
 ] as const;
 
 export type WIPStatusName = typeof WIP_STATUSES[number]['name'];
+
+type WipTaskDueFilter = 'all_leads' | 'overdue' | 'today' | 'tomorrow' | 'later' | 'no_tasks';
+
+interface WipLeadTask {
+  id: string;
+  lead_id: string;
+  due_date: string | null;
+  completed: boolean;
+}
+
+function getWipLeadTaskDueCategory(leadId: string, tasksByLead?: Map<string, WipLeadTask[]>): WipTaskDueFilter {
+  const tasks = tasksByLead?.get(leadId);
+  if (!tasks || tasks.length === 0) return 'no_tasks';
+  const active = tasks.filter(t => !t.completed);
+  if (active.length === 0) return 'no_tasks';
+  const withDue = active.filter(t => t.due_date).sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
+  if (withDue.length === 0) return 'later';
+  const earliest = new Date(withDue[0].due_date!);
+  if (isToday(earliest)) return 'today';
+  if (isTomorrow(earliest)) return 'tomorrow';
+  if (isPast(earliest)) return 'overdue';
+  return 'later';
+}
 
 interface WIPLead {
   id: string;
@@ -82,14 +105,16 @@ interface WIPDashboardProps {
   getReferrerCompany?: (partnerId: string | null) => string | null;
   getContactName?: (contactId: string | null) => string | null;
   externalSearch?: string;
+  tasksByLead?: Map<string, WipLeadTask[]>;
 }
 
-export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead, docsByLead, onDownloadDocs, leadSources = [], getReferrerName, getReferrerCompany, getContactName, externalSearch }: WIPDashboardProps) {
+export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead, docsByLead, onDownloadDocs, leadSources = [], getReferrerName, getReferrerCompany, getContactName, externalSearch, tasksByLead }: WIPDashboardProps) {
   const [assigneeFilter, setAssigneeFilter] = usePersistedState<string[]>('crm.wip.assigneeFilterMulti', []);
   const [collapsedColumns, setCollapsedColumns] = usePersistedStringSet('crm.wip.collapsedColumns', []);
   const [search, setSearch] = usePersistedState<string>('crm.wip.search', '');
   const [compact, setCompact] = usePersistedState<boolean>('crm.wip.compact', false);
   const [view, setView] = usePersistedState<'kanban' | 'list'>('crm.wip.view', 'kanban');
+  const [taskDueFilter, setTaskDueFilter] = usePersistedState<WipTaskDueFilter>('crm.wip.taskDueFilter', 'all_leads');
 
   const toggleCollapse = (name: string) => {
     setCollapsedColumns(prev => {
@@ -123,8 +148,11 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
         (getReferrerName?.(l.referral_partner_id ?? null) || '').toLowerCase().includes(q)
       );
     }
+    if (taskDueFilter !== 'all_leads') {
+      result = result.filter(l => getWipLeadTaskDueCategory(l.id, tasksByLead) === taskDueFilter);
+    }
     return result;
-  }, [leads, assigneeFilter, search, externalSearch, getReferrerName]);
+  }, [leads, assigneeFilter, search, externalSearch, getReferrerName, taskDueFilter, tasksByLead]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, WIPLead[]>();
@@ -247,6 +275,44 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
         </Button>
         <AssigneeFilter value={assigneeFilter} onChange={setAssigneeFilter} className="w-full sm:w-56" />
         </div>
+      </div>
+
+      {/* Task due date filter */}
+      <div className="flex items-center gap-1 flex-wrap">
+        <CalendarClock className="w-4 h-4 text-muted-foreground mr-1" />
+        {([
+          { value: 'all_leads' as WipTaskDueFilter, label: 'All Deals' },
+          { value: 'overdue' as WipTaskDueFilter, label: 'Overdue Tasks' },
+          { value: 'today' as WipTaskDueFilter, label: 'Due Today' },
+          { value: 'tomorrow' as WipTaskDueFilter, label: 'Due Tomorrow' },
+          { value: 'later' as WipTaskDueFilter, label: 'Due Later' },
+          { value: 'no_tasks' as WipTaskDueFilter, label: 'No Tasks' },
+        ]).map(opt => {
+          const wipLeads = leads.filter(l => l.wip_status);
+          const count = opt.value === 'all_leads'
+            ? wipLeads.length
+            : wipLeads.filter(l => getWipLeadTaskDueCategory(l.id, tasksByLead) === opt.value).length;
+          return (
+            <Button
+              key={opt.value}
+              variant={taskDueFilter === opt.value ? 'secondary' : 'ghost'}
+              size="sm"
+              className={`h-7 text-xs gap-1.5 ${opt.value === 'overdue' && count > 0 && taskDueFilter !== opt.value ? 'text-destructive' : ''}`}
+              onClick={() => setTaskDueFilter(opt.value)}
+            >
+              {opt.label}
+              {count > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                  taskDueFilter === opt.value ? 'bg-background text-foreground' :
+                  opt.value === 'overdue' && count > 0 ? 'bg-destructive/10 text-destructive' :
+                  'bg-muted text-muted-foreground'
+                }`}>
+                  {count}
+                </span>
+              )}
+            </Button>
+          );
+        })}
       </div>
 
       {view === 'list' ? (
