@@ -502,6 +502,8 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                           const displayTitle = lead.opportunity_name?.trim() || `${lead.first_name} ${lead.last_name}`;
                           const fullName = `${lead.first_name} ${lead.last_name}`;
                           const hasOpportunity = !!lead.opportunity_name?.trim();
+                          const activeTasks = tasksByLead?.get(lead.id)?.filter(t => !t.completed) || [];
+                          const hasTask = activeTasks.length > 0;
                           return (
                             <Card
                               key={lead.id}
@@ -531,6 +533,11 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                       <p className="text-[11px] text-muted-foreground truncate">{lead.loan_purpose}</p>
                                     )}
                                   </div>
+                                  {hasTask && (
+                                    <span title={`${activeTasks.length} active task${activeTasks.length > 1 ? 's' : ''}`}>
+                                      <ClipboardList className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                                    </span>
+                                  )}
                                   <AssigneeBadge userId={lead.assigned_to ?? null} />
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
