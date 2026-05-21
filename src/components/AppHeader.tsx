@@ -3,7 +3,7 @@ import { PreviewBanner } from './PreviewBanner';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, LayoutDashboard, Wrench, Settings2, Landmark, Calendar as CalendarIcon } from 'lucide-react';
+import { LogOut, LayoutDashboard, Wrench, Settings2, Landmark } from 'lucide-react';
 
 export function AppHeader() {
   const { user, role, signOut, isPreviewMode, isBrokerOrAdmin } = useAuth();
