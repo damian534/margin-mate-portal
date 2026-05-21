@@ -75,12 +75,35 @@ export function RequestMirDialog({ open, onOpenChange, leadId, applicants, defau
       const batchId = crypto.randomUUID();
       const requestedAt = new Date().toISOString();
 
+      // If primary applicant hasn't been persisted yet (still using the
+      // contact-card fallback id), create a real lead_applicants row first
+      // so the applicant_id we store on document_requests is a valid UUID.
+      let applicantDbId = selectedApplicant.id;
+      if (!isPreviewMode && applicantDbId === 'contact-card-primary-applicant') {
+        const { data: created, error: createErr } = await (supabase as any)
+          .from('lead_applicants')
+          .insert({
+            lead_id: leadId,
+            name: selectedApplicant.name,
+            email: selectedApplicant.email ?? null,
+            employment_type: 'PAYG',
+            display_order: 0,
+          })
+          .select('id')
+          .single();
+        if (createErr || !created?.id) {
+          toast.error('Could not create applicant record: ' + (createErr?.message || 'unknown error'));
+          return;
+        }
+        applicantDbId = created.id;
+      }
+
       // 1. Insert document_requests with MIR flags
       const rows = cleanedDocs.map(d => ({
         lead_id: leadId,
         name: d.name,
         section: d.section || 'Bank MIR',
-        applicant_id: selectedApplicant.id,
+        applicant_id: applicantDbId,
         is_mir: true,
         mir_batch_id: batchId,
         mir_requested_at: requestedAt,
