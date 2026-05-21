@@ -71,19 +71,6 @@ export function AppHeader() {
                         size="sm"
                         className={navBtn}
                         onClick={() => {
-                          const base = isBrokerOrAdmin ? '/admin' : '/dashboard';
-                          const suffix = isPreviewMode ? '?preview=true&tab=calendar' : '?tab=calendar';
-                          navigate(`${base}${suffix}`);
-                        }}
-                      >
-                        <CalendarIcon className="w-4 h-4 mr-2" />
-                        Calendar
-                      </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className={navBtn}
-                        onClick={() => {
                           const suffix = isPreviewMode ? '?preview=true' : '';
                           navigate(`/admin/settings${suffix}`);
                         }}
