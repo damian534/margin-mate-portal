@@ -37,8 +37,6 @@ import { format } from 'date-fns';
 import { notifyPartnerStatusChange } from '@/lib/notifications';
 import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign, Contact as ContactIcon, CalendarClock, Share2 } from 'lucide-react';
 import { Briefcase } from 'lucide-react';
-import { Calendar as CalendarIcon } from 'lucide-react';
-import { CalendarView } from '@/components/CalendarView';
 import { EDMPlatform } from '@/components/EDMPlatform';
 import { Mail as MailIcon } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
