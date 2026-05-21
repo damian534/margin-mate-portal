@@ -653,45 +653,6 @@ export type Database = {
           },
         ]
       }
-      google_calendar_connections: {
-        Row: {
-          access_token: string
-          calendar_id: string
-          created_at: string
-          google_email: string
-          id: string
-          refresh_token: string
-          scope: string
-          token_expires_at: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          access_token: string
-          calendar_id?: string
-          created_at?: string
-          google_email: string
-          id?: string
-          refresh_token: string
-          scope: string
-          token_expires_at: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          access_token?: string
-          calendar_id?: string
-          created_at?: string
-          google_email?: string
-          id?: string
-          refresh_token?: string
-          scope?: string
-          token_expires_at?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       invite_codes: {
         Row: {
           broker_id: string
@@ -764,57 +725,6 @@ export type Database = {
           name?: string
           phone?: string | null
           updated_at?: string
-        }
-        Relationships: []
-      }
-      lead_calendar_events: {
-        Row: {
-          attendees: Json | null
-          calendar_id: string
-          created_at: string
-          description: string | null
-          end_time: string
-          google_event_id: string
-          id: string
-          lead_id: string
-          location: string | null
-          meeting_link: string | null
-          start_time: string
-          title: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          attendees?: Json | null
-          calendar_id?: string
-          created_at?: string
-          description?: string | null
-          end_time: string
-          google_event_id: string
-          id?: string
-          lead_id: string
-          location?: string | null
-          meeting_link?: string | null
-          start_time: string
-          title: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          attendees?: Json | null
-          calendar_id?: string
-          created_at?: string
-          description?: string | null
-          end_time?: string
-          google_event_id?: string
-          id?: string
-          lead_id?: string
-          location?: string | null
-          meeting_link?: string | null
-          start_time?: string
-          title?: string
-          updated_at?: string
-          user_id?: string
         }
         Relationships: []
       }
