@@ -197,17 +197,23 @@ export function RequestMirDialog({ open, onOpenChange, leadId, applicants, defau
                 const checked = applicantIds.includes(a.id);
                 const disabled = !a.email;
                 return (
-                  <label key={a.id} className={`flex items-center gap-2 text-sm rounded px-1.5 py-1 ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-muted/50'}`}>
+                  <div
+                    key={a.id}
+                    role="button"
+                    onClick={() => !disabled && toggleApplicant(a.id)}
+                    className={`flex items-center gap-2 text-sm rounded px-1.5 py-1 select-none ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-muted/50'}`}
+                  >
                     <Checkbox
                       checked={checked}
                       disabled={disabled}
+                      onClick={(e) => e.stopPropagation()}
                       onCheckedChange={() => !disabled && toggleApplicant(a.id)}
                     />
                     <span className="flex-1">
                       <span className="font-medium">{a.name}</span>
                       {a.email ? <span className="text-muted-foreground"> — {a.email}</span> : <span className="text-muted-foreground"> (no email on file)</span>}
                     </span>
-                  </label>
+                  </div>
                 );
               })}
             </div>
