@@ -368,7 +368,19 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
             <Input value={bcc} onChange={(e) => setBcc(e.target.value)} type="email" placeholder="aggregator compliance" />
           </div>
           <div className="space-y-1.5">
-            <Label>CC</Label>
+            <div className="flex items-center justify-between">
+              <Label>CC</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={ccBroker}
+                disabled={!brokerEmail}
+              >
+                CC broker{brokerEmail ? ` (${brokerEmail})` : ''}
+              </Button>
+            </div>
             <Input value={cc} onChange={(e) => setCc(e.target.value)} placeholder="comma-separated emails" />
           </div>
           <div className="space-y-1.5">
