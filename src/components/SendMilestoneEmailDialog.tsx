@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Mail, Send, Paperclip, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { MILESTONES } from './MilestoneEmailsManagement';
@@ -31,6 +32,21 @@ function applyVars(text: string, vars: Record<string, string>) {
     (acc, [k, v]) => acc.split(`{${k}}`).join(v ?? ''),
     text || ''
   );
+}
+
+function joinNames(names: string[]): string {
+  const clean = names.map((n) => (n || '').trim()).filter(Boolean);
+  if (clean.length === 0) return '';
+  if (clean.length === 1) return clean[0];
+  if (clean.length === 2) return `${clean[0]} and ${clean[1]}`;
+  return `${clean.slice(0, -1).join(', ')} and ${clean[clean.length - 1]}`;
+}
+
+interface ApplicantOption {
+  id: string;
+  firstName: string;
+  fullName: string;
+  email: string;
 }
 
 interface Attachment {
@@ -70,6 +86,8 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
   const [senderSignature, setSenderSignature] = useState('');
   const [senderSignatureImage, setSenderSignatureImage] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [applicantOptions, setApplicantOptions] = useState<ApplicantOption[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!open || !lead.broker_id) return;
@@ -78,7 +96,7 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
         supabase.from('milestone_email_templates').select('*').eq('broker_id', lead.broker_id),
         supabase.from('broker_email_settings').select('*').eq('broker_id', lead.broker_id).maybeSingle(),
         supabase.from('profiles').select('full_name,email').eq('user_id', lead.broker_id).maybeSingle(),
-        supabase.from('lead_applicants').select('email,name').eq('lead_id', lead.id),
+        supabase.from('lead_applicants').select('id,email,name').eq('lead_id', lead.id).order('display_order', { ascending: true }),
         user?.id ? supabase.from('profiles').select('full_name,email,email_signature,email_signature_image_url').eq('user_id', user.id).maybeSingle() : Promise.resolve({ data: null }),
       ]);
       const bName = brokerProfile?.full_name || 'Your Broker';
@@ -90,8 +108,41 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
       setSenderSignature((senderProfile as any)?.email_signature || '');
       setSenderSignatureImage((senderProfile as any)?.email_signature_image_url || null);
       setBcc(settings?.milestone_bcc_email || '');
+
+      // Build applicant options: primary lead first, then co-applicants
+      const opts: ApplicantOption[] = [];
+      const seenEmails = new Set<string>();
+      const primaryEmail = (lead.email || '').trim();
+      opts.push({
+        id: 'primary',
+        firstName: lead.first_name || '',
+        fullName: `${lead.first_name || ''} ${lead.last_name || ''}`.trim(),
+        email: primaryEmail,
+      });
+      if (primaryEmail) seenEmails.add(primaryEmail.toLowerCase());
+      (applicants || []).forEach((a: any) => {
+        const em = (a.email || '').trim();
+        const key = em.toLowerCase();
+        if (em && seenEmails.has(key)) return;
+        if (em) seenEmails.add(key);
+        const first = (a.name || '').trim().split(/\s+/)[0] || '';
+        opts.push({
+          id: a.id,
+          firstName: first,
+          fullName: a.name || '',
+          email: em,
+        });
+      });
+      setApplicantOptions(opts);
+      const defaultSelected = opts.filter((o) => o.email).map((o) => o.id);
+      const initialSelected = defaultSelected.length ? defaultSelected : opts.map((o) => o.id);
+      setSelectedIds(initialSelected);
+
+      const selectedOpts = opts.filter((o) => initialSelected.includes(o.id));
+      const combinedFirst = joinNames(selectedOpts.map((o) => o.firstName)) || lead.first_name || '';
+      const combinedLast = joinNames(selectedOpts.map((o) => (o.fullName.split(/\s+/).slice(1).join(' ') || '').trim())) || lead.last_name || '';
       const vars = {
-        first_name: lead.first_name || '',
+        first_name: combinedFirst,
         last_name: lead.last_name || '',
         opportunity_name: lead.opportunity_name || '',
         loan_amount: lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '',
@@ -103,14 +154,36 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
       const defaultBody = `Hi {first_name},\n\nYour loan has reached the ${m?.label} stage.\n\nKind regards,\n{broker_name}`;
       setSubject(applyVars(tpl?.subject || defaultSubject, vars));
       setBody(applyVars(tpl?.body || defaultBody, vars));
-      const emails = new Set<string>();
-      if (lead.email) emails.add(lead.email.trim());
-      (applicants || []).forEach((a: any) => {
-        if (a.email && a.email.trim()) emails.add(a.email.trim());
-      });
-      setTo(Array.from(emails).join(', '));
+      setTo(selectedOpts.map((o) => o.email).filter(Boolean).join(', '));
     })();
   }, [open, milestone, lead.id, lead.broker_id, lead.email, lead.first_name, lead.last_name, lead.opportunity_name, lead.loan_amount, user?.id, user?.email]);
+
+  const toggleApplicant = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      const selectedOpts = applicantOptions.filter((o) => next.includes(o.id));
+      setTo(selectedOpts.map((o) => o.email).filter(Boolean).join(', '));
+      const combinedFirst = joinNames(selectedOpts.map((o) => o.firstName)) || lead.first_name || '';
+      const vars = {
+        first_name: combinedFirst,
+        last_name: lead.last_name || '',
+        opportunity_name: lead.opportunity_name || '',
+        loan_amount: lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '',
+        broker_name: brokerName,
+      };
+      // Re-apply current template to refresh first_name in body/subject
+      (async () => {
+        if (!lead.broker_id) return;
+        const { data: tpls } = await supabase.from('milestone_email_templates').select('*').eq('broker_id', lead.broker_id).eq('milestone', milestone).maybeSingle();
+        const m = MILESTONES.find((x) => x.key === milestone);
+        const defaultSubject = `Update on your loan — ${m?.label}`;
+        const defaultBody = `Hi {first_name},\n\nYour loan has reached the ${m?.label} stage.\n\nKind regards,\n{broker_name}`;
+        setSubject(applyVars((tpls as any)?.subject || defaultSubject, vars));
+        setBody(applyVars((tpls as any)?.body || defaultBody, vars));
+      })();
+      return next;
+    });
+  };
 
   const send = async () => {
     if (!to.trim()) { toast.error('Recipient email required'); return; }
@@ -214,6 +287,33 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
               <Input value={to} onChange={(e) => setTo(e.target.value)} placeholder="comma-separated emails" />
             </div>
           </div>
+          {applicantOptions.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Recipients</Label>
+              <div className="space-y-1.5 rounded-md border p-3">
+                {applicantOptions.map((o) => {
+                  const checked = selectedIds.includes(o.id);
+                  return (
+                    <div
+                      key={o.id}
+                      role="button"
+                      onClick={() => toggleApplicant(o.id)}
+                      className="flex items-center gap-2 cursor-pointer select-none text-sm"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onClick={(e) => e.stopPropagation()}
+                        onCheckedChange={() => toggleApplicant(o.id)}
+                      />
+                      <span className="font-medium">{o.fullName || '(no name)'}</span>
+                      <span className="text-muted-foreground">{o.email || '— no email'}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">First names of selected applicants are merged into the email body.</p>
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label>BCC</Label>
             <Input value={bcc} onChange={(e) => setBcc(e.target.value)} type="email" placeholder="aggregator compliance" />
