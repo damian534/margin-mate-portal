@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Trash2, Send, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,7 +27,7 @@ const FALLBACK_FROM = { email: 'apply@margin.com.au', name: 'Margin Finance' };
 
 export function RequestMirDialog({ open, onOpenChange, leadId, applicants, defaultLender, isPreviewMode, onSent }: Props) {
   const { user } = useAuth();
-  const [applicantId, setApplicantId] = useState<string>(applicants[0]?.id || '');
+  const [applicantIds, setApplicantIds] = useState<string[]>(applicants[0]?.id ? [applicants[0].id] : []);
   const [lender, setLender] = useState(defaultLender || '');
   const [message, setMessage] = useState('');
   const [docs, setDocs] = useState<{ name: string; section: string }[]>([{ name: '', section: 'Bank MIR' }]);
@@ -36,7 +37,7 @@ export function RequestMirDialog({ open, onOpenChange, leadId, applicants, defau
 
   useEffect(() => {
     if (!open) return;
-    setApplicantId(applicants[0]?.id || '');
+    setApplicantIds(applicants[0]?.id ? [applicants[0].id] : []);
     setLender(defaultLender || '');
     setMessage('');
     setDocs([{ name: '', section: 'Bank MIR' }]);
@@ -58,7 +59,8 @@ export function RequestMirDialog({ open, onOpenChange, leadId, applicants, defau
     ];
   }, [myProfile, user]);
 
-  const selectedApplicant = applicants.find(a => a.id === applicantId);
+  const selectedApplicants = applicants.filter(a => applicantIds.includes(a.id));
+  const missingEmailApplicants = selectedApplicants.filter(a => !a.email);
   const selectedFrom = fromOptions.find(f => f.value === fromOption) || fromOptions[1];
 
   const updateDoc = (i: number, key: 'name' | 'section', v: string) => setDocs(prev => prev.map((d, idx) => idx === i ? { ...d, [key]: v } : d));
@@ -66,56 +68,62 @@ export function RequestMirDialog({ open, onOpenChange, leadId, applicants, defau
   const removeDoc = (i: number) => setDocs(prev => prev.filter((_, idx) => idx !== i));
 
   const cleanedDocs = docs.map(d => ({ ...d, name: d.name.trim() })).filter(d => d.name.length > 0);
-  const canSend = !!selectedApplicant?.email && cleanedDocs.length > 0 && !!selectedFrom?.email;
+  const canSend = selectedApplicants.length > 0 && missingEmailApplicants.length === 0 && cleanedDocs.length > 0 && !!selectedFrom?.email;
+
+  const toggleApplicant = (id: string) => {
+    setApplicantIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
 
   const handleSend = async () => {
-    if (!canSend || !selectedApplicant) return;
+    if (!canSend || selectedApplicants.length === 0) return;
     setSending(true);
     try {
       const batchId = crypto.randomUUID();
       const requestedAt = new Date().toISOString();
 
-      // If primary applicant hasn't been persisted yet (still using the
-      // contact-card fallback id), create a real lead_applicants row first
-      // so the applicant_id we store on document_requests is a valid UUID.
-      let applicantDbId = selectedApplicant.id;
-      if (!isPreviewMode && applicantDbId === 'contact-card-primary-applicant') {
-        const { data: created, error: createErr } = await (supabase as any)
-          .from('lead_applicants')
-          .insert({
-            lead_id: leadId,
-            name: selectedApplicant.name,
-            email: selectedApplicant.email ?? null,
-            employment_type: 'PAYG',
-            display_order: 0,
-          })
-          .select('id')
-          .single();
-        if (createErr || !created?.id) {
-          toast.error('Could not create applicant record: ' + (createErr?.message || 'unknown error'));
-          return;
+      // Resolve each selected applicant to a real DB UUID, creating the
+      // primary applicant row if it's still the contact-card fallback.
+      const resolved: { dbId: string; name: string; email: string }[] = [];
+      for (const app of selectedApplicants) {
+        let dbId = app.id;
+        if (!isPreviewMode && dbId === 'contact-card-primary-applicant') {
+          const { data: created, error: createErr } = await (supabase as any)
+            .from('lead_applicants')
+            .insert({
+              lead_id: leadId,
+              name: app.name,
+              email: app.email ?? null,
+              employment_type: 'PAYG',
+              display_order: 0,
+            })
+            .select('id')
+            .single();
+          if (createErr || !created?.id) {
+            toast.error('Could not create applicant record: ' + (createErr?.message || 'unknown error'));
+            return;
+          }
+          dbId = created.id;
         }
-        applicantDbId = created.id;
+        resolved.push({ dbId, name: app.name, email: app.email! });
       }
 
-      // 1. Insert document_requests with MIR flags
-      const rows = cleanedDocs.map(d => ({
-        lead_id: leadId,
-        name: d.name,
-        section: d.section || 'Bank MIR',
-        applicant_id: applicantDbId,
-        is_mir: true,
-        mir_batch_id: batchId,
-        mir_requested_at: requestedAt,
-        requested_at: requestedAt,
-        status: 'pending',
-      }));
-
       if (!isPreviewMode) {
+        // 1. Insert one document_requests row per applicant per document
+        const rows = resolved.flatMap(r => cleanedDocs.map(d => ({
+          lead_id: leadId,
+          name: d.name,
+          section: d.section || 'Bank MIR',
+          applicant_id: r.dbId,
+          is_mir: true,
+          mir_batch_id: batchId,
+          mir_requested_at: requestedAt,
+          requested_at: requestedAt,
+          status: 'pending',
+        })));
         const { error: insErr } = await (supabase as any).from('document_requests').insert(rows);
         if (insErr) { toast.error('Could not create MIR docs: ' + insErr.message); return; }
 
-        // 2. Log batch
+        // 2. Log batch (single record covering all recipients)
         await (supabase as any).from('mir_requests').insert({
           id: batchId,
           lead_id: leadId,
@@ -125,40 +133,41 @@ export function RequestMirDialog({ open, onOpenChange, leadId, applicants, defau
           message: message.trim() || null,
           from_email: selectedFrom.email!,
           from_name: selectedFrom.name || null,
-          recipient_emails: [selectedApplicant.email!],
-          document_count: cleanedDocs.length,
+          recipient_emails: resolved.map(r => r.email),
+          document_count: cleanedDocs.length * resolved.length,
         });
 
-        // 3. Send email via edge function
+        // 3. Send one email per applicant
         const { data: sessionData } = await supabase.auth.getSession();
         const accessToken = sessionData?.session?.access_token;
         if (accessToken) {
-          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-mir-request`, {
+          await Promise.all(resolved.map(r => fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-mir-request`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
             body: JSON.stringify({
               lead_id: leadId,
               app_url: 'https://connect.margin.com.au',
               document_names: cleanedDocs.map(d => d.name),
-              recipient_email: selectedApplicant.email,
-              recipient_name: selectedApplicant.name,
+              recipient_email: r.email,
+              recipient_name: r.name,
               lender: lender.trim() || undefined,
               message: message.trim() || undefined,
               from_email: selectedFrom.email!,
               from_name: selectedFrom.name || undefined,
               reply_to: selectedFrom.email!,
             }),
-          });
+          })));
         }
 
         // 4. Timeline note
         try {
-          const summary = `📨 MIR sent${lender.trim() ? ` (${lender.trim()})` : ''} to ${selectedApplicant.name}\n${cleanedDocs.map(d => `• ${d.name}`).join('\n')}`;
+          const recipientList = resolved.map(r => r.name).join(' & ');
+          const summary = `📨 MIR sent${lender.trim() ? ` (${lender.trim()})` : ''} to ${recipientList}\n${cleanedDocs.map(d => `• ${d.name}`).join('\n')}`;
           await supabase.from('notes').insert({ lead_id: leadId, content: summary, author_id: user?.id ?? null } as any);
         } catch {}
       }
 
-      toast.success(`MIR sent to ${selectedApplicant.name}`);
+      toast.success(`MIR sent to ${resolved.map(r => r.name).join(' & ')}`);
       onSent();
       onOpenChange(false);
     } finally {
@@ -180,21 +189,30 @@ export function RequestMirDialog({ open, onOpenChange, leadId, applicants, defau
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Recipient */}
+          {/* Recipients */}
           <div className="space-y-1.5">
-            <Label className="text-xs">Send to applicant</Label>
-            <Select value={applicantId} onValueChange={setApplicantId}>
-              <SelectTrigger><SelectValue placeholder="Choose applicant" /></SelectTrigger>
-              <SelectContent>
-                {applicants.map(a => (
-                  <SelectItem key={a.id} value={a.id} disabled={!a.email}>
-                    {a.name}{a.email ? ` — ${a.email}` : ' (no email on file)'}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {selectedApplicant && !selectedApplicant.email && (
-              <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Add an email to this applicant before sending.</p>
+            <Label className="text-xs">Send to applicant(s)</Label>
+            <div className="space-y-1.5 border rounded-md p-2">
+              {applicants.map(a => {
+                const checked = applicantIds.includes(a.id);
+                const disabled = !a.email;
+                return (
+                  <label key={a.id} className={`flex items-center gap-2 text-sm rounded px-1.5 py-1 ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-muted/50'}`}>
+                    <Checkbox
+                      checked={checked}
+                      disabled={disabled}
+                      onCheckedChange={() => !disabled && toggleApplicant(a.id)}
+                    />
+                    <span className="flex-1">
+                      <span className="font-medium">{a.name}</span>
+                      {a.email ? <span className="text-muted-foreground"> — {a.email}</span> : <span className="text-muted-foreground"> (no email on file)</span>}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            {missingEmailApplicants.length > 0 && (
+              <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Add an email to the selected applicant before sending.</p>
             )}
           </div>
 
@@ -246,7 +264,7 @@ export function RequestMirDialog({ open, onOpenChange, leadId, applicants, defau
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={sending}>Cancel</Button>
           <Button onClick={handleSend} disabled={!canSend || sending} className="gap-1.5 bg-foreground text-background hover:bg-foreground/90">
-            <Send className="w-3.5 h-3.5" /> {sending ? 'Sending…' : `Send MIR (${cleanedDocs.length})`}
+            <Send className="w-3.5 h-3.5" /> {sending ? 'Sending…' : `Send MIR (${cleanedDocs.length}${selectedApplicants.length > 1 ? ` × ${selectedApplicants.length}` : ''})`}
           </Button>
         </div>
       </DialogContent>
