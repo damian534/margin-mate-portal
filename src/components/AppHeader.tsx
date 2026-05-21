@@ -3,7 +3,7 @@ import { PreviewBanner } from './PreviewBanner';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, LayoutDashboard, Wrench, Settings2, Landmark, Calendar as CalendarIcon } from 'lucide-react';
+import { LogOut, LayoutDashboard, Wrench, Settings2, Landmark } from 'lucide-react';
 
 export function AppHeader() {
   const { user, role, signOut, isPreviewMode, isBrokerOrAdmin } = useAuth();
@@ -66,19 +66,6 @@ export function AppHeader() {
                       <Landmark className="w-4 h-4 mr-2" />
                       Settlements
                     </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className={navBtn}
-                        onClick={() => {
-                          const base = isBrokerOrAdmin ? '/admin' : '/dashboard';
-                          const suffix = isPreviewMode ? '?preview=true&tab=calendar' : '?tab=calendar';
-                          navigate(`${base}${suffix}`);
-                        }}
-                      >
-                        <CalendarIcon className="w-4 h-4 mr-2" />
-                        Calendar
-                      </Button>
                     <Button
                         variant="outline"
                         size="sm"
