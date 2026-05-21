@@ -88,6 +88,7 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [applicantOptions, setApplicantOptions] = useState<ApplicantOption[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [combinedFirstName, setCombinedFirstName] = useState('');
 
   useEffect(() => {
     if (!open || !lead.broker_id) return;
@@ -140,6 +141,7 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
 
       const selectedOpts = opts.filter((o) => initialSelected.includes(o.id));
       const combinedFirst = joinNames(selectedOpts.map((o) => o.firstName)) || lead.first_name || '';
+      setCombinedFirstName(combinedFirst);
       const combinedLast = joinNames(selectedOpts.map((o) => (o.fullName.split(/\s+/).slice(1).join(' ') || '').trim())) || lead.last_name || '';
       const vars = {
         first_name: combinedFirst,
@@ -164,6 +166,7 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
       const selectedOpts = applicantOptions.filter((o) => next.includes(o.id));
       setTo(selectedOpts.map((o) => o.email).filter(Boolean).join(', '));
       const combinedFirst = joinNames(selectedOpts.map((o) => o.firstName)) || lead.first_name || '';
+      setCombinedFirstName(combinedFirst);
       const vars = {
         first_name: combinedFirst,
         last_name: lead.last_name || '',
@@ -185,10 +188,40 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
     });
   };
 
+  const ccBroker = () => {
+    const email = (brokerEmail || '').trim();
+    if (!email) { toast.error('No broker email on file'); return; }
+    const existing = cc.split(',').map((s) => s.trim()).filter(Boolean);
+    if (existing.some((e) => e.toLowerCase() === email.toLowerCase())) {
+      toast.info('Broker already CC\'d');
+      return;
+    }
+    setCc([...existing, email].join(', '));
+  };
+
   const send = async () => {
-    if (!to.trim()) { toast.error('Recipient email required'); return; }
+    const selectedOpts = applicantOptions.filter((o) => selectedIds.includes(o.id) && o.email);
+    const manualRecipients = to.split(',').map((s) => s.trim()).filter(Boolean);
+    // Build per-recipient sends: each selected applicant gets a personalized email.
+    // Any extra addresses typed manually in "To" that don't match an applicant
+    // get the combined-name version.
+    type Send = { email: string; firstName: string };
+    const sends: Send[] = [];
+    const seen = new Set<string>();
+    for (const o of selectedOpts) {
+      const key = o.email.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      sends.push({ email: o.email, firstName: o.firstName || combinedFirstName });
+    }
+    for (const em of manualRecipients) {
+      const key = em.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      sends.push({ email: em, firstName: combinedFirstName });
+    }
+    if (sends.length === 0) { toast.error('Recipient email required'); return; }
     setSending(true);
-    const recipients = to.split(',').map((s) => s.trim()).filter(Boolean);
     const escape = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const hasSig = senderSignature.trim() || senderSignatureImage;
     const sigImg = senderSignatureImage
@@ -200,29 +233,45 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
     const sigBlock = hasSig
       ? `<div style="margin-top:24px;padding-top:12px;border-top:1px solid #e5e7eb;color:#374151">${sigText}${sigImg}</div>`
       : '';
-    const html = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;color:#111"><div style="white-space:pre-wrap">${escape(body)}</div>${sigBlock}</div>`;
     const fromName = (senderName || brokerName || 'Margin Finance').replace(/[<>]/g, '').trim();
     const replyTo = (senderEmail || brokerEmail || '').trim() || undefined;
     const fromEmail = replyTo?.toLowerCase().endsWith('@margin.com.au') ? replyTo : 'notifications@margin.com.au';
-    const { error } = await supabase.functions.invoke('send-email', {
-      body: {
-        to: recipients,
-        subject,
-        html,
-        from: `${fromName} <${fromEmail}>`,
-        bcc: bcc.trim() || undefined,
-        cc: cc.trim() ? cc.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
-        reply_to: replyTo,
-        attachments: attachments.length
-          ? attachments.map((a) => ({ filename: a.filename, content: a.content, content_type: a.content_type }))
-          : undefined,
-      },
-    });
-    if (error) {
-      toast.error(error.message || 'Failed to send');
+
+    // Personalize per recipient by swapping the combined first-name token
+    // with the individual applicant's first name (mirrors how MIR sends one
+    // tailored email per applicant).
+    const personalize = (text: string, firstName: string) => {
+      if (!combinedFirstName || combinedFirstName === firstName) return text;
+      return text.split(combinedFirstName).join(firstName);
+    };
+
+    const ccList = cc.trim() ? cc.split(',').map((s) => s.trim()).filter(Boolean) : undefined;
+    const results = await Promise.all(sends.map(async (s) => {
+      const personalBody = personalize(body, s.firstName);
+      const personalSubject = personalize(subject, s.firstName);
+      const html = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;color:#111"><div style="white-space:pre-wrap">${escape(personalBody)}</div>${sigBlock}</div>`;
+      return supabase.functions.invoke('send-email', {
+        body: {
+          to: [s.email],
+          subject: personalSubject,
+          html,
+          from: `${fromName} <${fromEmail}>`,
+          bcc: bcc.trim() || undefined,
+          cc: ccList,
+          reply_to: replyTo,
+          attachments: attachments.length
+            ? attachments.map((a) => ({ filename: a.filename, content: a.content, content_type: a.content_type }))
+            : undefined,
+        },
+      });
+    }));
+    const firstError = results.find((r) => r.error);
+    if (firstError?.error) {
+      toast.error(firstError.error.message || 'Failed to send');
       setSending(false);
       return;
     }
+    const recipients = sends.map((s) => s.email);
     // Audit note → deal timeline
     const m = MILESTONES.find((x) => x.key === milestone);
     const attachNote = attachments.length ? ` · ${attachments.length} attachment(s): ${attachments.map(a => a.filename).join(', ')}` : '';
@@ -230,7 +279,7 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
       lead.id,
       `📧 Milestone email sent (${m?.label}) to ${recipients.join(', ')}${cc ? ` · CC ${cc}` : ''}${bcc ? ` · BCC ${bcc}` : ''} · Subject: "${subject}"${attachNote}`,
     );
-    toast.success('Email sent');
+    toast.success(sends.length > 1 ? `Sent ${sends.length} personalized emails` : 'Email sent');
     setSending(false);
     setAttachments([]);
     setCc('');
@@ -319,7 +368,19 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
             <Input value={bcc} onChange={(e) => setBcc(e.target.value)} type="email" placeholder="aggregator compliance" />
           </div>
           <div className="space-y-1.5">
-            <Label>CC</Label>
+            <div className="flex items-center justify-between">
+              <Label>CC</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={ccBroker}
+                disabled={!brokerEmail}
+              >
+                CC broker{brokerEmail ? ` (${brokerEmail})` : ''}
+              </Button>
+            </div>
             <Input value={cc} onChange={(e) => setCc(e.target.value)} placeholder="comma-separated emails" />
           </div>
           <div className="space-y-1.5">
