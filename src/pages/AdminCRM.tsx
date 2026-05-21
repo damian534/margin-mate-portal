@@ -1107,10 +1107,6 @@ export default function AdminCRM() {
             <IncomingReferralsPanel />
           </TabsContent>
 
-          <TabsContent value="calendar" className="mt-4">
-            <CalendarView />
-          </TabsContent>
-
           <TabsContent value="edm" className="mt-4">
             <EDMPlatform isPreviewMode={isPreviewMode} />
           </TabsContent>
