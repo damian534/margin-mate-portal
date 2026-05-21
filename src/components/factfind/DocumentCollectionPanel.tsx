@@ -71,7 +71,8 @@ type Template = { id: string; name: string; items: TemplateItem[] };
 const FALLBACK_TEMPLATES: Template[] = [
   { id: 'fallback-payg', name: 'PAYG', items: [
     { section: 'Identity', name: 'Passport (current, valid)' },
-    { section: 'Identity', name: "Driver's licence (front and back)" },
+    { section: 'Identity', name: "Driver's licence (front)" },
+    { section: 'Identity', name: "Driver's licence (back)" },
     { section: 'Income', name: 'Most recent payslip' },
     { section: 'Income', name: 'Previous payslip' },
     { section: 'Bank Statements', name: '3 months — everyday salary account' },
