@@ -27,7 +27,7 @@ import {
   Calendar, Plus, CheckCircle, Check, Clock, AlertTriangle,
   MessageSquare, Activity, ChevronDown, ChevronRight, Pencil, X, Save, FileDown,
   Search, ExternalLink, FileText, Copy, Flag, Settings as SettingsIcon,
-  Bold, Italic, List, ListOrdered, ListChecks
+  Bold, Italic, List, ListOrdered, ListChecks, Pin, PinOff
 } from 'lucide-react';
 import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectionPanel';
 import { ReferLeadDialog } from '@/components/ReferLeadDialog';
@@ -123,6 +123,7 @@ interface Note {
   created_at: string;
   author_id: string | null;
   task_id?: string | null;
+  pinned?: boolean;
   attachments?: NoteAttachment[];
 }
 
