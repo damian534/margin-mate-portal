@@ -341,7 +341,7 @@ export function LeadDetailSheet({
       setNotes(sampleNotes || []);
       return;
     }
-    const { data } = await supabase.from('notes').select('*').eq('lead_id', leadId).order('created_at', { ascending: false });
+    const { data } = await supabase.from('notes').select('*').eq('lead_id', leadId).order('pinned', { ascending: false }).order('created_at', { ascending: false });
     const notesArr = (data as Note[]) || [];
     if (notesArr.length) {
       const ids = notesArr.map(n => n.id);
