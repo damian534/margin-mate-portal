@@ -1769,7 +1769,14 @@ export function LeadDetailSheet({
                           <div className={`absolute -left-[14px] top-1.5 w-3 h-3 rounded-full border-2 border-background ${
                             isMir ? 'bg-orange-500' : isEmail ? 'bg-blue-500' : isCall ? 'bg-green-500' : isTaskNote ? 'bg-amber-500' : isDocReq ? 'bg-purple-500' : isFinance ? 'bg-rose-500' : isContact ? 'bg-indigo-500' : isStatus ? 'bg-cyan-500' : isSystem ? 'bg-slate-500' : 'bg-muted-foreground/40'
                           }`} />
-                          <div className={`rounded-lg p-2.5 ${isMir ? 'bg-orange-50 border border-orange-200' : 'bg-muted/50'}`}>
+                          <div className={`rounded-lg p-2.5 ${note.pinned ? 'bg-amber-50 border border-amber-300 ring-1 ring-amber-200' : isMir ? 'bg-orange-50 border border-orange-200' : 'bg-muted/50'}`}>
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                            {note.pinned && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-semibold uppercase tracking-wide mb-1 mr-1">
+                                <Pin className="w-2.5 h-2.5" /> Pinned
+                              </span>
+                            )}
                             {isMir && (
                               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-800 text-[10px] font-semibold uppercase tracking-wide mb-1">
                                 MIR
@@ -1794,6 +1801,17 @@ export function LeadDetailSheet({
                             <div className="flex items-center gap-2 mt-1">
                               <p className="text-xs text-muted-foreground">{format(new Date(note.created_at), 'dd MMM yyyy, HH:mm')}</p>
                               {note.notify_partner && <span className="text-xs bg-accent/20 text-accent-foreground px-1.5 py-0.5 rounded">Partner notified</span>}
+                            </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 shrink-0 -mr-1 -mt-1 opacity-60 hover:opacity-100"
+                                title={note.pinned ? 'Unpin' : 'Pin to top'}
+                                onClick={() => togglePinNote(note)}
+                              >
+                                {note.pinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                              </Button>
                             </div>
                           </div>
                         </div>
