@@ -635,6 +635,25 @@ export function LeadDetailSheet({
 
   const getTaskNotes = (taskId: string) => notes.filter(n => n.task_id === taskId);
 
+  const togglePinNote = async (note: Note) => {
+    const next = !note.pinned;
+    setNotes(prev => {
+      const updated = prev.map(n => n.id === note.id ? { ...n, pinned: next } : n);
+      return [...updated].sort((a, b) => {
+        if ((b.pinned ? 1 : 0) !== (a.pinned ? 1 : 0)) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+    });
+    if (isPreviewMode || note.id.startsWith('preview-')) return;
+    const { error } = await (supabase as any).from('notes').update({ pinned: next }).eq('id', note.id);
+    if (error) {
+      toast.error('Failed to update pin');
+      setNotes(prev => prev.map(n => n.id === note.id ? { ...n, pinned: !next } : n));
+    } else {
+      toast.success(next ? 'Note pinned' : 'Note unpinned');
+    }
+  };
+
   const applyTextFormat = (
     textareaRef: RefObject<HTMLTextAreaElement>,
     setValue: (value: string) => void,
