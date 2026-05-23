@@ -1356,6 +1356,7 @@ export type Database = {
           id: string
           lead_id: string
           notify_partner: boolean | null
+          pinned: boolean
           task_id: string | null
         }
         Insert: {
@@ -1365,6 +1366,7 @@ export type Database = {
           id?: string
           lead_id: string
           notify_partner?: boolean | null
+          pinned?: boolean
           task_id?: string | null
         }
         Update: {
@@ -1374,6 +1376,7 @@ export type Database = {
           id?: string
           lead_id?: string
           notify_partner?: boolean | null
+          pinned?: boolean
           task_id?: string | null
         }
         Relationships: [

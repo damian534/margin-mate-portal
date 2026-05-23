@@ -27,7 +27,7 @@ import {
   Calendar, Plus, CheckCircle, Check, Clock, AlertTriangle,
   MessageSquare, Activity, ChevronDown, ChevronRight, Pencil, X, Save, FileDown,
   Search, ExternalLink, FileText, Copy, Flag, Settings as SettingsIcon,
-  Bold, Italic, List, ListOrdered, ListChecks
+  Bold, Italic, List, ListOrdered, ListChecks, Pin, PinOff
 } from 'lucide-react';
 import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectionPanel';
 import { ReferLeadDialog } from '@/components/ReferLeadDialog';
@@ -123,6 +123,7 @@ interface Note {
   created_at: string;
   author_id: string | null;
   task_id?: string | null;
+  pinned?: boolean;
   attachments?: NoteAttachment[];
 }
 
@@ -340,7 +341,7 @@ export function LeadDetailSheet({
       setNotes(sampleNotes || []);
       return;
     }
-    const { data } = await supabase.from('notes').select('*').eq('lead_id', leadId).order('created_at', { ascending: false });
+    const { data } = await supabase.from('notes').select('*').eq('lead_id', leadId).order('pinned', { ascending: false }).order('created_at', { ascending: false });
     const notesArr = (data as Note[]) || [];
     if (notesArr.length) {
       const ids = notesArr.map(n => n.id);
@@ -633,6 +634,25 @@ export function LeadDetailSheet({
   );
 
   const getTaskNotes = (taskId: string) => notes.filter(n => n.task_id === taskId);
+
+  const togglePinNote = async (note: Note) => {
+    const next = !note.pinned;
+    setNotes(prev => {
+      const updated = prev.map(n => n.id === note.id ? { ...n, pinned: next } : n);
+      return [...updated].sort((a, b) => {
+        if ((b.pinned ? 1 : 0) !== (a.pinned ? 1 : 0)) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+    });
+    if (isPreviewMode || note.id.startsWith('preview-')) return;
+    const { error } = await (supabase as any).from('notes').update({ pinned: next }).eq('id', note.id);
+    if (error) {
+      toast.error('Failed to update pin');
+      setNotes(prev => prev.map(n => n.id === note.id ? { ...n, pinned: !next } : n));
+    } else {
+      toast.success(next ? 'Note pinned' : 'Note unpinned');
+    }
+  };
 
   const applyTextFormat = (
     textareaRef: RefObject<HTMLTextAreaElement>,
@@ -1749,7 +1769,14 @@ export function LeadDetailSheet({
                           <div className={`absolute -left-[14px] top-1.5 w-3 h-3 rounded-full border-2 border-background ${
                             isMir ? 'bg-orange-500' : isEmail ? 'bg-blue-500' : isCall ? 'bg-green-500' : isTaskNote ? 'bg-amber-500' : isDocReq ? 'bg-purple-500' : isFinance ? 'bg-rose-500' : isContact ? 'bg-indigo-500' : isStatus ? 'bg-cyan-500' : isSystem ? 'bg-slate-500' : 'bg-muted-foreground/40'
                           }`} />
-                          <div className={`rounded-lg p-2.5 ${isMir ? 'bg-orange-50 border border-orange-200' : 'bg-muted/50'}`}>
+                          <div className={`rounded-lg p-2.5 ${note.pinned ? 'bg-amber-50 border border-amber-300 ring-1 ring-amber-200' : isMir ? 'bg-orange-50 border border-orange-200' : 'bg-muted/50'}`}>
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                            {note.pinned && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-semibold uppercase tracking-wide mb-1 mr-1">
+                                <Pin className="w-2.5 h-2.5" /> Pinned
+                              </span>
+                            )}
                             {isMir && (
                               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-800 text-[10px] font-semibold uppercase tracking-wide mb-1">
                                 MIR
@@ -1774,6 +1801,17 @@ export function LeadDetailSheet({
                             <div className="flex items-center gap-2 mt-1">
                               <p className="text-xs text-muted-foreground">{format(new Date(note.created_at), 'dd MMM yyyy, HH:mm')}</p>
                               {note.notify_partner && <span className="text-xs bg-accent/20 text-accent-foreground px-1.5 py-0.5 rounded">Partner notified</span>}
+                            </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 shrink-0 -mr-1 -mt-1 opacity-60 hover:opacity-100"
+                                title={note.pinned ? 'Unpin' : 'Pin to top'}
+                                onClick={() => togglePinNote(note)}
+                              >
+                                {note.pinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                              </Button>
                             </div>
                           </div>
                         </div>
