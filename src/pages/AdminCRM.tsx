@@ -412,10 +412,21 @@ export default function AdminCRM() {
     toast.info('Preparing ZIP...');
     try {
       const zip = new JSZip();
+      const usedNames = new Set<string>();
       for (const f of entry.files) {
         const { data, error } = await supabase.storage.from('client-documents').download(f.path);
         if (error || !data) continue;
-        zip.file(f.name, data);
+        const dot = f.name.lastIndexOf('.');
+        const base = dot > 0 ? f.name.slice(0, dot) : f.name;
+        const ext = dot > 0 ? f.name.slice(dot) : '';
+        let candidate = f.name;
+        let i = 2;
+        while (usedNames.has(candidate)) {
+          candidate = `${base} (${i})${ext}`;
+          i++;
+        }
+        usedNames.add(candidate);
+        zip.file(candidate, data);
       }
       const blob = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(blob);
