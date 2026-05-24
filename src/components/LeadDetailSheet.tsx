@@ -1852,21 +1852,9 @@ export function LeadDetailSheet({
             />
           </div>
 
-          {/* Pre-Approval — only for Pre Approval transaction type */}
-          {lead.loan_purpose === 'pre_approval' && (
-            <PreApprovalSection
-              leadId={lead.id}
-              purchasePrice={lead.pre_approval_purchase_price ?? null}
-              loanAmount={lead.pre_approval_loan_amount ?? null}
-              expiryDate={lead.pre_approval_expiry_date ?? null}
-              ftc={lead.pre_approval_ftc ?? null}
-              isPreviewMode={isPreviewMode}
-              onChange={(updates) => onLeadChange?.({ ...lead, ...updates })}
-            />
-          )}
-
-          {/* Deal Setup — moved above Loan Splits, directly below Tasks */}
+          {/* Deal Setup + Pre-Approval — side by side when Pre Approval applies */}
           <div id="sec-status" className="scroll-mt-16" />
+          <div className={lead.loan_purpose === 'pre_approval' ? "lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start space-y-4 lg:space-y-0 mb-3" : "mb-3"}>
           <SectionCard
             icon={SettingsIcon}
             title="Deal Setup"
@@ -2039,6 +2027,18 @@ export function LeadDetailSheet({
           </div>
           </div>
           </SectionCard>
+          {lead.loan_purpose === 'pre_approval' && (
+            <PreApprovalSection
+              leadId={lead.id}
+              purchasePrice={lead.pre_approval_purchase_price ?? null}
+              loanAmount={lead.pre_approval_loan_amount ?? null}
+              expiryDate={lead.pre_approval_expiry_date ?? null}
+              ftc={lead.pre_approval_ftc ?? null}
+              isPreviewMode={isPreviewMode}
+              onChange={(updates) => onLeadChange?.({ ...lead, ...updates })}
+            />
+          )}
+          </div>
 
           {/* Loan Splits + Deal Milestones — side by side on large screens */}
           <div className="lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start space-y-4 lg:space-y-0 mb-3">
