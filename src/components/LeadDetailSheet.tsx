@@ -1480,10 +1480,10 @@ export function LeadDetailSheet({
             </Button>
           </div>
 
-          <div className="mb-4 rounded-xl border-2 border-success/30 bg-gradient-to-br from-success/10 via-background to-background shadow-md overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 bg-success/10 border-b border-success/20">
+          <div className="mb-4 rounded-xl border-2 border-border bg-muted/20 shadow-md overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 bg-muted/40 border-b border-border">
               <div className="flex items-center gap-2 min-w-0">
-                <div className="w-7 h-7 rounded-md bg-success text-success-foreground flex items-center justify-center shrink-0">
+                <div className="w-7 h-7 rounded-md bg-muted text-muted-foreground flex items-center justify-center shrink-0">
                   <CheckCircle className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
