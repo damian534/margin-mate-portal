@@ -81,6 +81,7 @@ interface WIPLead {
   source?: string | null;
   referral_partner_id?: string | null;
   source_contact_id?: string | null;
+  referred_by_contact_id?: string | null;
   created_at?: string | null;
   email?: string | null;
   phone?: string | null;
@@ -600,10 +601,10 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                     </span>
                                   </div>
                                 )}
-                                {lead.source_contact_id && getContactName?.(lead.source_contact_id) && !lead.referral_partner_id && (
+                                {lead.referred_by_contact_id && getContactName?.(lead.referred_by_contact_id) && !lead.referral_partner_id && (
                                   <div className="text-[10px] text-muted-foreground flex items-center gap-1 pt-1 border-t border-border/40">
                                     <Users className="w-3 h-3 shrink-0" />
-                                    <span className="truncate">Referred by {getContactName(lead.source_contact_id)}</span>
+                                    <span className="truncate">Referred by {getContactName(lead.referred_by_contact_id)}</span>
                                   </div>
                                 )}
                                 <p className="text-[10px] text-muted-foreground/70 pt-1 border-t border-border/40">
