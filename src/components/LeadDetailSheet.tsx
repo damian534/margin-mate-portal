@@ -2027,6 +2027,18 @@ export function LeadDetailSheet({
           </div>
           </div>
           </SectionCard>
+          {lead.loan_purpose === 'pre_approval' && (
+            <PreApprovalSection
+              leadId={lead.id}
+              purchasePrice={lead.pre_approval_purchase_price ?? null}
+              loanAmount={lead.pre_approval_loan_amount ?? null}
+              expiryDate={lead.pre_approval_expiry_date ?? null}
+              ftc={lead.pre_approval_ftc ?? null}
+              isPreviewMode={isPreviewMode}
+              onChange={(updates) => onLeadChange?.({ ...lead, ...updates })}
+            />
+          )}
+          </div>
 
           {/* Loan Splits + Deal Milestones — side by side on large screens */}
           <div className="lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start space-y-4 lg:space-y-0 mb-3">
