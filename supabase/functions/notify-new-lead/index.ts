@@ -16,6 +16,7 @@ interface NewLeadNotification {
     source?: string | null;
     referral_partner_id?: string | null;
     source_contact_id?: string | null;
+    referred_by_contact_id?: string | null;
   };
   broker_id: string | null;
 }
@@ -73,11 +74,11 @@ Deno.serve(async (req) => {
         if (partner.phone) contactBits.push(partner.phone);
         referrerLine = parts.join(" — ") + (contactBits.length ? ` (${contactBits.join(" · ")})` : "");
       }
-    } else if (lead.source_contact_id) {
+    } else if (lead.referred_by_contact_id) {
       const { data: contact } = await supabase
         .from("contacts")
         .select("first_name, last_name, email, phone, company")
-        .eq("id", lead.source_contact_id)
+        .eq("id", lead.referred_by_contact_id)
         .maybeSingle();
       if (contact) {
         const name = `${contact.first_name || ""} ${contact.last_name || ""}`.trim() || "Existing client";
