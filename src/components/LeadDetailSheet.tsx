@@ -1480,7 +1480,8 @@ export function LeadDetailSheet({
             </Button>
           </div>
 
-          <div className="mb-4 rounded-xl border-2 border-border bg-muted/20 shadow-md overflow-hidden">
+          <div className="mb-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start space-y-4 lg:space-y-0">
+          <div className="rounded-xl border-2 border-border bg-muted/20 shadow-md overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 bg-muted/40 border-b border-border">
               <div className="flex items-center gap-2 min-w-0">
                 <div className="w-7 h-7 rounded-md bg-muted text-muted-foreground flex items-center justify-center shrink-0">
@@ -1669,6 +1670,7 @@ export function LeadDetailSheet({
             brokerId={lead.broker_id ?? null}
             isPreviewMode={isPreviewMode}
           />
+          </div>
 
           <div id="sec-tabs" className="scroll-mt-16" />
           <div id="sec-activity" className="scroll-mt-16" />
