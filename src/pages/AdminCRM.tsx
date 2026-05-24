@@ -618,11 +618,6 @@ export default function AdminCRM() {
     <div className="min-h-screen bg-background">
       <AppHeader />
       <main className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 py-8 space-y-6">
-        <div>
-          <h1 className="text-3xl font-heading font-bold">Lead Management</h1>
-          <p className="text-muted-foreground">Manage all referral leads in one place</p>
-        </div>
-
         {/* Monthly Pipeline KPIs */}
         {(() => {
           const now = new Date();
