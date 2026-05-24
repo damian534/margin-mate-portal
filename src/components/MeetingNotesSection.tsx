@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { SectionCard } from '@/components/lead/SectionCard';
-import { Brain, Plus, Sparkles, Trash2, ChevronDown, ChevronUp, Pencil, Save, X, Copy } from 'lucide-react';
+import { Brain, Plus, Sparkles, Trash2, ChevronDown, ChevronUp, Pencil, Save, X, Copy, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface MeetingNote {
@@ -32,14 +32,13 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [editingTranscript, setEditingTranscript] = useState<Record<string, string>>({});
   const [editingSummary, setEditingSummary] = useState<Record<string, string>>({});
-  const [generating, setGenerating] = useState<Record<string, boolean>>({});
 
   // new-form state
   const [newTitle, setNewTitle] = useState('');
   const [newDate, setNewDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [newTranscript, setNewTranscript] = useState('');
+  const [generatingNew, setGeneratingNew] = useState(false);
 
   useEffect(() => { fetchMeetings(); }, [leadId]);
 
@@ -56,81 +55,51 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
     setMeetings((data || []) as MeetingNote[]);
   }
 
-  async function createMeeting(generateAfter: boolean) {
-    if (isPreviewMode) { toast.info('Preview mode — not saved'); return; }
-    if (!brokerId) { toast.error('No broker assigned to this deal'); return; }
-    if (!newTranscript.trim() && !newTitle.trim()) {
-      toast.error('Add a title or transcript first');
-      return;
-    }
-    const { data: userRes } = await supabase.auth.getUser();
-    const insertData: any = {
-      lead_id: leadId,
-      broker_id: brokerId,
-      title: newTitle.trim() || 'Meeting',
-      meeting_date: newDate,
-      transcript: newTranscript.trim() || null,
-      created_by: userRes.user?.id ?? null,
-    };
-    const { data, error } = await (supabase as any)
-      .from('meeting_notes')
-      .insert(insertData)
-      .select('*')
-      .single();
-    if (error) { toast.error(error.message); return; }
-    const created = data as MeetingNote;
-    setMeetings(prev => [created, ...prev]);
-    setExpanded(prev => ({ ...prev, [created.id]: true }));
-    setNewTitle(''); setNewTranscript(''); setNewDate(format(new Date(), 'yyyy-MM-dd'));
-    setAdding(false);
-    toast.success('Meeting added');
-    if (generateAfter && created.transcript) {
-      generateSummary(created);
-    }
-  }
-
-  async function generateSummary(m: MeetingNote) {
+  async function generateAndSave() {
     if (isPreviewMode) { toast.info('Preview mode — AI disabled'); return; }
-    if (!m.transcript || m.transcript.trim().length < 20) {
-      toast.error('Add a transcript (at least a few sentences) before generating');
+    if (!brokerId) { toast.error('No broker assigned to this deal'); return; }
+    if (!newTranscript.trim() || newTranscript.trim().length < 20) {
+      toast.error('Paste a transcript (at least a few sentences) first');
       return;
     }
-    setGenerating(prev => ({ ...prev, [m.id]: true }));
+    setGeneratingNew(true);
     try {
+      const title = newTitle.trim() || 'Meeting';
       const { data, error } = await supabase.functions.invoke('summarize-meeting', {
-        body: { transcript: m.transcript, title: m.title, meeting_date: m.meeting_date },
+        body: { transcript: newTranscript, title, meeting_date: newDate },
       });
       if (error) throw error;
       const summary = (data as any)?.summary;
       const errMsg = (data as any)?.error;
       if (errMsg) { toast.error(errMsg); return; }
       if (!summary) { toast.error('No summary returned'); return; }
-      const { error: updErr } = await (supabase as any)
+
+      const { data: userRes } = await supabase.auth.getUser();
+      const { data: inserted, error: insErr } = await (supabase as any)
         .from('meeting_notes')
-        .update({ summary_markdown: summary, summary_status: 'generated' })
-        .eq('id', m.id);
-      if (updErr) { toast.error(updErr.message); return; }
-      setMeetings(prev => prev.map(x => x.id === m.id ? { ...x, summary_markdown: summary, summary_status: 'generated' } : x));
-      setExpanded(prev => ({ ...prev, [m.id]: true }));
+        .insert({
+          lead_id: leadId,
+          broker_id: brokerId,
+          title,
+          meeting_date: newDate,
+          transcript: null,
+          summary_markdown: summary,
+          summary_status: 'generated',
+          created_by: userRes.user?.id ?? null,
+        })
+        .select('*')
+        .single();
+      if (insErr) { toast.error(insErr.message); return; }
+      setMeetings(prev => [inserted as MeetingNote, ...prev]);
+      setExpanded(prev => ({ ...prev, [(inserted as MeetingNote).id]: true }));
+      setNewTitle(''); setNewTranscript(''); setNewDate(format(new Date(), 'yyyy-MM-dd'));
+      setAdding(false);
       toast.success('Summary generated');
     } catch (e: any) {
       toast.error(e?.message || 'AI request failed');
     } finally {
-      setGenerating(prev => ({ ...prev, [m.id]: false }));
+      setGeneratingNew(false);
     }
-  }
-
-  async function saveTranscript(m: MeetingNote) {
-    const v = editingTranscript[m.id];
-    if (v === undefined) return;
-    const { error } = await (supabase as any)
-      .from('meeting_notes')
-      .update({ transcript: v })
-      .eq('id', m.id);
-    if (error) { toast.error(error.message); return; }
-    setMeetings(prev => prev.map(x => x.id === m.id ? { ...x, transcript: v } : x));
-    setEditingTranscript(prev => { const n = { ...prev }; delete n[m.id]; return n; });
-    toast.success('Transcript saved');
   }
 
   async function saveSummary(m: MeetingNote) {
@@ -181,32 +150,32 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
                   onChange={(e) => setNewTitle(e.target.value)}
                   placeholder="e.g. Strategy call — Anthony & Bianca"
                   className="h-9"
+                  disabled={generatingNew}
                 />
               </div>
               <div>
                 <Label className="text-xs">Meeting date</Label>
-                <Input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} className="h-9" />
+                <Input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} className="h-9" disabled={generatingNew} />
               </div>
             </div>
             <div>
-              <Label className="text-xs">Transcript</Label>
+              <Label className="text-xs">Transcript (not saved — used only to generate the summary)</Label>
               <Textarea
                 value={newTranscript}
                 onChange={(e) => setNewTranscript(e.target.value)}
                 placeholder="Paste the raw call transcript here..."
                 rows={8}
                 className="text-sm font-mono"
+                disabled={generatingNew}
               />
             </div>
             <div className="flex items-center justify-end gap-2">
-              <Button variant="ghost" size="sm" onClick={() => { setAdding(false); setNewTitle(''); setNewTranscript(''); }}>
+              <Button variant="ghost" size="sm" disabled={generatingNew} onClick={() => { setAdding(false); setNewTitle(''); setNewTranscript(''); }}>
                 Cancel
               </Button>
-              <Button variant="outline" size="sm" onClick={() => createMeeting(false)}>
-                Save
-              </Button>
-              <Button size="sm" className="gap-1.5" onClick={() => createMeeting(true)} disabled={!newTranscript.trim()}>
-                <Sparkles className="w-3.5 h-3.5" /> Save & Summarise
+              <Button size="sm" className="gap-1.5" onClick={generateAndSave} disabled={!newTranscript.trim() || generatingNew}>
+                {generatingNew ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                {generatingNew ? 'Generating…' : 'Generate Summary'}
               </Button>
             </div>
           </div>
@@ -225,7 +194,6 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
         <div className="space-y-3">
           {meetings.map((m) => {
             const isOpen = !!expanded[m.id];
-            const tEditing = editingTranscript[m.id] !== undefined;
             const sEditing = editingSummary[m.id] !== undefined;
             return (
               <div key={m.id} className="border rounded-md">
@@ -239,21 +207,11 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
                       <div className="text-sm font-medium truncate">{m.title}</div>
                       <div className="text-xs text-muted-foreground">
                         {format(new Date(m.meeting_date + 'T00:00:00'), 'd MMM yyyy')}
-                        {m.summary_markdown ? ' · Summary ready' : (m.transcript ? ' · Transcript only' : ' · Empty')}
+                        {m.summary_markdown ? ' · Summary ready' : ' · No summary'}
                       </div>
                     </div>
                   </button>
                   <div className="flex items-center gap-1 shrink-0">
-                    <Button
-                      size="sm"
-                      variant={m.summary_markdown ? 'outline' : 'default'}
-                      className="h-7 gap-1.5"
-                      disabled={!!generating[m.id] || !m.transcript}
-                      onClick={() => generateSummary(m)}
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      {generating[m.id] ? 'Generating…' : (m.summary_markdown ? 'Regenerate' : 'Summarise')}
-                    </Button>
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => deleteMeeting(m)}>
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
@@ -301,44 +259,7 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.summary_markdown}</ReactMarkdown>
                         </div>
                       ) : (
-                        <p className="text-xs text-muted-foreground italic">No summary yet. Paste a transcript and click Summarise.</p>
-                      )}
-                    </div>
-
-                    {/* Transcript */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <Label className="text-xs uppercase tracking-wide text-muted-foreground">Transcript</Label>
-                        <div className="flex items-center gap-1">
-                          {!tEditing && (
-                            <Button size="sm" variant="ghost" className="h-7 gap-1" onClick={() => setEditingTranscript(prev => ({ ...prev, [m.id]: m.transcript || '' }))}>
-                              <Pencil className="w-3.5 h-3.5" /> {m.transcript ? 'Edit' : 'Add'}
-                            </Button>
-                          )}
-                          {tEditing && (
-                            <>
-                              <Button size="sm" variant="ghost" className="h-7 gap-1" onClick={() => setEditingTranscript(prev => { const n = { ...prev }; delete n[m.id]; return n; })}>
-                                <X className="w-3.5 h-3.5" /> Cancel
-                              </Button>
-                              <Button size="sm" className="h-7 gap-1" onClick={() => saveTranscript(m)}>
-                                <Save className="w-3.5 h-3.5" /> Save
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      {tEditing ? (
-                        <Textarea
-                          value={editingTranscript[m.id]}
-                          onChange={(e) => setEditingTranscript(prev => ({ ...prev, [m.id]: e.target.value }))}
-                          rows={12}
-                          className="text-sm font-mono"
-                          placeholder="Paste raw transcript here..."
-                        />
-                      ) : m.transcript ? (
-                        <pre className="whitespace-pre-wrap text-xs bg-muted/40 border rounded-md p-3 max-h-64 overflow-auto">{m.transcript}</pre>
-                      ) : (
-                        <p className="text-xs text-muted-foreground italic">No transcript stored.</p>
+                        <p className="text-xs text-muted-foreground italic">No summary.</p>
                       )}
                     </div>
                   </div>
