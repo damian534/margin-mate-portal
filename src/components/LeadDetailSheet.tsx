@@ -37,6 +37,7 @@ import { CoApplicantPicker } from '@/components/CoApplicantPicker';
 import { ProfessionalContactsSection } from '@/components/ProfessionalContactsSection';
 import { SubjectToFinanceSection } from '@/components/SubjectToFinanceSection';
 import { PreApprovalSection } from '@/components/PreApprovalSection';
+import { MeetingNotesSection } from '@/components/MeetingNotesSection';
 import { LoanSplitsEditor } from '@/components/LoanSplitsEditor';
 import { SectionCard } from '@/components/lead/SectionCard';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
