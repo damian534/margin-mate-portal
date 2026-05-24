@@ -2040,27 +2040,27 @@ export function LeadDetailSheet({
           </div>
           </SectionCard>
 
-          {/* Loan Splits — moved to sit directly under Tasks */}
-          <LoanSplitsEditor
-            leadId={lead.id}
-            isPreviewMode={isPreviewMode}
-            settled={lead.status === 'settled' || !!(lead as any).settled_date}
-            settledDate={(lead as any).settled_date ?? null}
-            onSettlementStateChange={(isSettled, settledDate) => {
-              onLeadChange?.({ ...lead, status: isSettled ? 'settled' : 'approved', settled_date: settledDate } as any);
-            }}
-            onTotalChange={async (total) => {
-              const val = total > 0 ? total : null;
-              if (val !== lead.loan_amount) {
-                onLeadChange?.({ ...lead, loan_amount: val });
-                if (!isPreviewMode) {
-                  await supabase.from('leads').update({ loan_amount: val } as any).eq('id', lead.id);
+          {/* Loan Splits + Deal Milestones — side by side on large screens */}
+          <div className="lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start space-y-4 lg:space-y-0 mb-3">
+            <LoanSplitsEditor
+              leadId={lead.id}
+              isPreviewMode={isPreviewMode}
+              settled={lead.status === 'settled' || !!(lead as any).settled_date}
+              settledDate={(lead as any).settled_date ?? null}
+              onSettlementStateChange={(isSettled, settledDate) => {
+                onLeadChange?.({ ...lead, status: isSettled ? 'settled' : 'approved', settled_date: settledDate } as any);
+              }}
+              onTotalChange={async (total) => {
+                const val = total > 0 ? total : null;
+                if (val !== lead.loan_amount) {
+                  onLeadChange?.({ ...lead, loan_amount: val });
+                  if (!isPreviewMode) {
+                    await supabase.from('leads').update({ loan_amount: val } as any).eq('id', lead.id);
+                  }
                 }
-              }
-            }}
-          />
+              }}
+            />
 
-          {/* Deal Milestones — collapsible, mirrors Loan Splits styling */}
           {(() => {
             const milestones = [
               { key: 'lodged_date' as const, label: 'Lodged' },
@@ -2079,7 +2079,7 @@ export function LeadDetailSheet({
                 tone={setCount === milestones.length ? 'success' : setCount > 0 ? 'ok' : 'neutral'}
                 subtitle={subtitle}
               >
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {milestones.map(({ key, label }) => (
                     <div key={key}>
                       <Label className="text-[11px] text-muted-foreground">{label}</Label>
@@ -2121,6 +2121,7 @@ export function LeadDetailSheet({
               </SectionCard>
             );
           })()}
+          </div>
 
           {/* Read-only info */}
           <div className="grid grid-cols-2 gap-3 text-sm mt-2">
@@ -2210,7 +2211,7 @@ export function LeadDetailSheet({
             title="Commission"
             tone="neutral"
           >
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
               <div className="bg-muted/50 rounded-lg p-3 space-y-2">
                 <p className="text-xs font-medium text-muted-foreground">Referrer Commission</p>
                 <div className="grid grid-cols-2 gap-2">
