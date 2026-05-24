@@ -37,6 +37,7 @@ import { CoApplicantPicker } from '@/components/CoApplicantPicker';
 import { ProfessionalContactsSection } from '@/components/ProfessionalContactsSection';
 import { SubjectToFinanceSection } from '@/components/SubjectToFinanceSection';
 import { PreApprovalSection } from '@/components/PreApprovalSection';
+import { MeetingNotesSection } from '@/components/MeetingNotesSection';
 import { LoanSplitsEditor } from '@/components/LoanSplitsEditor';
 import { SectionCard } from '@/components/lead/SectionCard';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -1833,6 +1834,13 @@ export function LeadDetailSheet({
               onContactCreated={(c) => setExtraContacts(prev => [...prev, c])}
             />
           </div>
+
+          {/* Meeting Notes — paste transcripts and AI-summarise */}
+          <MeetingNotesSection
+            leadId={lead.id}
+            brokerId={lead.broker_id ?? null}
+            isPreviewMode={isPreviewMode}
+          />
 
           {/* Subject to Finance — highlighted */}
           <SubjectToFinanceSection
