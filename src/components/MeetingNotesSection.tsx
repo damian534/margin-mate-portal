@@ -40,6 +40,7 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
   const [newDate, setNewDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [newTranscript, setNewTranscript] = useState('');
   const [generatingNew, setGeneratingNew] = useState(false);
+  const [savingNew, setSavingNew] = useState(false);
 
   useEffect(() => { fetchMeetings(); }, [leadId]);
 
@@ -103,6 +104,39 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
     }
   }
 
+  async function saveNoteOnly() {
+    if (!brokerId) { toast.error('No broker assigned to this deal'); return; }
+    if (!newTranscript.trim()) { toast.error('Type or paste a note first'); return; }
+    setSavingNew(true);
+    try {
+      const title = newTitle.trim() || 'Meeting note';
+      const { data: userRes } = await supabase.auth.getUser();
+      const { data: inserted, error: insErr } = await (supabase as any)
+        .from('meeting_notes')
+        .insert({
+          lead_id: leadId,
+          broker_id: brokerId,
+          title,
+          meeting_date: newDate,
+          transcript: null,
+          summary_markdown: newTranscript,
+          summary_status: 'manual',
+          created_by: userRes.user?.id ?? null,
+        })
+        .select('*')
+        .single();
+      if (insErr) { toast.error(insErr.message); return; }
+      setMeetings(prev => [inserted as MeetingNote, ...prev]);
+      setNewTitle(''); setNewTranscript(''); setNewDate(format(new Date(), 'yyyy-MM-dd'));
+      setAdding(false);
+      toast.success('Note saved');
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to save note');
+    } finally {
+      setSavingNew(false);
+    }
+  }
+
   async function saveSummary(m: MeetingNote) {
     const v = editingSummary[m.id];
     if (v === undefined) return;
@@ -160,21 +194,25 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
               </div>
             </div>
             <div>
-              <Label className="text-xs">Transcript (not saved — used only to generate the summary)</Label>
+              <Label className="text-xs">Transcript or note</Label>
               <Textarea
                 value={newTranscript}
                 onChange={(e) => setNewTranscript(e.target.value)}
-                placeholder="Paste the raw call transcript here..."
+                placeholder="Paste a transcript to AI-summarise, or just type a note and save it directly..."
                 rows={8}
                 className="text-sm font-mono"
-                disabled={generatingNew}
+                disabled={generatingNew || savingNew}
               />
             </div>
             <div className="flex items-center justify-end gap-2">
-              <Button variant="ghost" size="sm" disabled={generatingNew} onClick={() => { setAdding(false); setNewTitle(''); setNewTranscript(''); }}>
+              <Button variant="ghost" size="sm" disabled={generatingNew || savingNew} onClick={() => { setAdding(false); setNewTitle(''); setNewTranscript(''); }}>
                 Cancel
               </Button>
-              <Button size="sm" className="gap-1.5" onClick={generateAndSave} disabled={!newTranscript.trim() || generatingNew}>
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={saveNoteOnly} disabled={!newTranscript.trim() || generatingNew || savingNew}>
+                {savingNew ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                {savingNew ? 'Saving…' : 'Save Note'}
+              </Button>
+              <Button size="sm" className="gap-1.5" onClick={generateAndSave} disabled={!newTranscript.trim() || generatingNew || savingNew}>
                 {generatingNew ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
                 {generatingNew ? 'Generating…' : 'Generate Summary'}
               </Button>
