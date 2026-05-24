@@ -1663,6 +1663,13 @@ export function LeadDetailSheet({
           </div>
 
           {/* Timeline — moved directly under Tasks */}
+          {/* Meeting Notes — sits between Tasks and Timeline */}
+          <MeetingNotesSection
+            leadId={lead.id}
+            brokerId={lead.broker_id ?? null}
+            isPreviewMode={isPreviewMode}
+          />
+
           <div id="sec-tabs" className="scroll-mt-16" />
           <div id="sec-activity" className="scroll-mt-16" />
           <SectionCard
@@ -1834,13 +1841,6 @@ export function LeadDetailSheet({
               onContactCreated={(c) => setExtraContacts(prev => [...prev, c])}
             />
           </div>
-
-          {/* Meeting Notes — paste transcripts and AI-summarise */}
-          <MeetingNotesSection
-            leadId={lead.id}
-            brokerId={lead.broker_id ?? null}
-            isPreviewMode={isPreviewMode}
-          />
 
           {/* Subject to Finance — highlighted */}
           <SubjectToFinanceSection
