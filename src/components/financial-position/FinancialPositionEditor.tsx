@@ -356,44 +356,12 @@ function AssetsTab({ ctx }: { ctx: Ctx }) {
   }
   const ipTotal = ipSections.reduce((s, x) => s + num(x.data.estimated_value), 0);
 
-  // Savings
-  const savingsSections: { i: number; key: string; data: any }[] = [];
-  for (let i = 1; i <= 6; i++) {
-    const k = `mff_savings_${i}`;
-    if (ctx.data[k]?.has_account === 'yes') savingsSections.push({ i, key: k, data: ctx.data[k] });
-  }
-  const savingsTotal = savingsSections.reduce((s, x) => s + num(x.data.balance), 0);
-
-  // Vehicles
-  const vehicleSections: { i: number; key: string; data: any }[] = [];
-  for (let i = 1; i <= 3; i++) {
-    const k = `mff_vehicle_${i}`;
-    if (ctx.data[k]?.has_vehicle === 'yes') vehicleSections.push({ i, key: k, data: ctx.data[k] });
-  }
-  const vehiclesTotal = vehicleSections.reduce((s, x) => s + num(x.data.value), 0);
-
-  const other = ctx.data.mff_other_assets ?? {};
-  const otherTotal = num(other.home_contents) + num(other.superannuation) + num(other.shares_investments)
-    + num(other.crypto) + num(other.other_assets_value);
-
   const addIP = () => {
     const idx = nextNumberedIndex(ctx.data, 'mff_ip_', () => false, 9);
     if (idx < 0) { toast.info('Maximum 9 investment properties'); return; }
     if (idx === 1) ctx.updateField('mff_re_home', 'has_investment_properties', 'yes');
     else ctx.updateField(`mff_ip_${idx - 1}`, 'has_another_property', 'yes');
     ctx.replaceSection(`mff_ip_${idx}`, {});
-  };
-  const addSavings = () => {
-    const idx = nextNumberedIndex(ctx.data, 'mff_savings_', d => d.has_account === 'yes', 6);
-    if (idx < 0) { toast.info('Maximum 6 savings accounts'); return; }
-    if (idx > 1) ctx.updateField(`mff_savings_${idx - 1}`, 'has_another_account', 'yes');
-    ctx.replaceSection(`mff_savings_${idx}`, { has_account: 'yes' });
-  };
-  const addVehicle = () => {
-    const idx = nextNumberedIndex(ctx.data, 'mff_vehicle_', d => d.has_vehicle === 'yes', 3);
-    if (idx < 0) { toast.info('Maximum 3 vehicles'); return; }
-    if (idx > 1) ctx.updateField(`mff_vehicle_${idx - 1}`, 'has_another_vehicle', 'yes');
-    ctx.replaceSection(`mff_vehicle_${idx}`, { has_vehicle: 'yes' });
   };
 
   return (
@@ -418,46 +386,6 @@ function AssetsTab({ ctx }: { ctx: Ctx }) {
             ctx={ctx}
           />
         ))}
-      </FinancialGroupCard>
-
-      <FinancialGroupCard
-        label="Savings & cash"
-        total={savingsTotal}
-        onAdd={ctx.readOnly ? null : addSavings}
-        addLabel="Add account"
-      >
-        {savingsSections.length === 0 && <p className="text-sm text-muted-foreground">No accounts yet.</p>}
-        {savingsSections.map(s => (
-          <NumberedItemRow
-            key={s.key}
-            title={s.data.institution || `Account ${s.i}`}
-            sectionKey={s.key}
-            fields={SAVINGS_FIELDS}
-            ctx={ctx}
-          />
-        ))}
-      </FinancialGroupCard>
-
-      <FinancialGroupCard
-        label="Vehicles"
-        total={vehiclesTotal}
-        onAdd={ctx.readOnly ? null : addVehicle}
-        addLabel="Add vehicle"
-      >
-        {vehicleSections.length === 0 && <p className="text-sm text-muted-foreground">No vehicles yet.</p>}
-        {vehicleSections.map(s => (
-          <NumberedItemRow
-            key={s.key}
-            title={s.data.make_model || `Vehicle ${s.i}`}
-            sectionKey={s.key}
-            fields={VEHICLE_FIELDS}
-            ctx={ctx}
-          />
-        ))}
-      </FinancialGroupCard>
-
-      <FinancialGroupCard label="Other assets" total={otherTotal} onAdd={null}>
-        <FieldGrid fields={OTHER_ASSETS_FIELDS} sectionKey="mff_other_assets" ctx={ctx} />
       </FinancialGroupCard>
     </>
   );
@@ -591,16 +519,6 @@ function LiabilitiesTab({ ctx }: { ctx: Ctx }) {
   }
   const ipLoanTotal = ipSections.reduce((s, x) => s + num(x.data.loan_balance), 0);
 
-  const vehicleSections: { i: number; key: string; data: any }[] = [];
-  for (let i = 1; i <= 3; i++) {
-    const k = `mff_vehicle_${i}`;
-    const d = ctx.data[k];
-    if (d?.has_vehicle === 'yes' && d?.owned_financed && d.owned_financed !== 'owned') {
-      vehicleSections.push({ i, key: k, data: d });
-    }
-  }
-  const vehicleLoanTotal = vehicleSections.reduce((s, x) => s + num(x.data.finance_balance), 0);
-
   const personal = (ctx.data.mff_liab_personal?.personal_loans ?? []) as any[];
   const personalTotal = personal.reduce((s, x) => s + num(x.balance), 0);
 
@@ -631,19 +549,6 @@ function LiabilitiesTab({ ctx }: { ctx: Ctx }) {
             title={s.data.address || `Investment Property ${s.i}`}
             sectionKey={s.key}
             fields={IP_LOAN_FIELDS}
-            ctx={ctx}
-          />
-        ))}
-      </FinancialGroupCard>
-
-      <FinancialGroupCard label="Vehicle finance" total={vehicleLoanTotal} onAdd={null}>
-        {vehicleSections.length === 0 && <p className="text-sm text-muted-foreground">No financed vehicles.</p>}
-        {vehicleSections.map(s => (
-          <NumberedItemRow
-            key={s.key}
-            title={s.data.make_model || `Vehicle ${s.i}`}
-            sectionKey={s.key}
-            fields={VEHICLE_LOAN_FIELDS}
             ctx={ctx}
           />
         ))}
