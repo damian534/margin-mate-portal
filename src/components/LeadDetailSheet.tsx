@@ -98,6 +98,7 @@ interface Lead {
   company_commission_paid: boolean;
   source: string | null;
   source_contact_id: string | null;
+  referred_by_contact_id?: string | null;
   co_applicant_contact_id?: string | null;
   co_applicant_contact_id_2?: string | null;
   co_applicant_contact_id_3?: string | null;
@@ -327,9 +328,9 @@ export function LeadDetailSheet({
       fetchTasks(lead.id);
       fetchTaskTemplates();
       setNotifyPartner(!!lead.referral_partner_id);
-      if (lead.source_contact_id && !isPreviewMode) {
+      if (lead.referred_by_contact_id && !isPreviewMode) {
         supabase.from('leads').select('id', { count: 'exact', head: true })
-          .eq('source_contact_id', lead.source_contact_id)
+          .eq('referred_by_contact_id', lead.referred_by_contact_id)
           .then(({ count }) => setSourceContactReferralCount(count ?? 0));
       } else {
         setSourceContactReferralCount(null);
@@ -1201,7 +1202,7 @@ export function LeadDetailSheet({
                     <StatusBadge status={lead.status} statuses={statuses} />
                   )}
                 </div>
-                {lead.source_contact_id && sourceContactReferralCount !== null && sourceContactReferralCount > 0 && (
+                {lead.referred_by_contact_id && sourceContactReferralCount !== null && sourceContactReferralCount > 0 && (
                   <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">
                         {sourceContactReferralCount} referral{sourceContactReferralCount !== 1 ? 's' : ''}

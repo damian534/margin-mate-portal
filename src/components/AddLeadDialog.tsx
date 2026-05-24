@@ -162,10 +162,11 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
       loan_purpose: loanPurpose.trim() || null,
       source,
       referral_partner_id: needsReferrer ? (selectedReferrerId || null) : null,
-      // If referred by an existing client, use that contact; otherwise link to the
-      // auto-created (or selected) primary applicant contact so the lead card can
-      // open the contact record directly.
-      source_contact_id: sourceContactId || createdContactId,
+      // source_contact_id ALWAYS points to the client/primary applicant contact.
+      // The referring contact (if any) is stored separately in referred_by_contact_id
+      // so we never leak referrer details into the client record.
+      source_contact_id: createdContactId,
+      referred_by_contact_id: sourceContactId,
       status: defaultWipStatus ? 'in_progress' : 'new',
       broker_id: effectiveBrokerId,
       portal_mode: portalMode,

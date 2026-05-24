@@ -41,6 +41,7 @@ export async function notifyNewLead(
     source?: string | null;
     referral_partner_id?: string | null;
     source_contact_id?: string | null;
+    referred_by_contact_id?: string | null;
   },
   brokerId: string | null
 ) {
