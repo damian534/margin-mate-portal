@@ -1222,6 +1222,48 @@ export type Database = {
         }
         Relationships: []
       }
+      meeting_notes: {
+        Row: {
+          broker_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          lead_id: string
+          meeting_date: string
+          summary_markdown: string | null
+          summary_status: string
+          title: string
+          transcript: string | null
+          updated_at: string
+        }
+        Insert: {
+          broker_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id: string
+          meeting_date?: string
+          summary_markdown?: string | null
+          summary_status?: string
+          title?: string
+          transcript?: string | null
+          updated_at?: string
+        }
+        Update: {
+          broker_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id?: string
+          meeting_date?: string
+          summary_markdown?: string | null
+          summary_status?: string
+          title?: string
+          transcript?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       milestone_email_templates: {
         Row: {
           body: string
