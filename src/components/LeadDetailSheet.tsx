@@ -1833,8 +1833,8 @@ export function LeadDetailSheet({
             </div>
           </SectionCard>
 
-          {/* Professional Contacts (solicitor / conveyancer / accountant) */}
-          <div className="mb-3">
+          {/* Professional Contacts + Subject to Finance — side by side on large screens */}
+          <div className="lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start space-y-4 lg:space-y-0 mb-3">
             <ProfessionalContactsSection
               leadId={lead.id}
               contacts={mergedContactsList as any}
@@ -1842,17 +1842,15 @@ export function LeadDetailSheet({
               onOpenContact={onOpenContact}
               onContactCreated={(c) => setExtraContacts(prev => [...prev, c])}
             />
+            <SubjectToFinanceSection
+              leadId={lead.id}
+              subjectToFinance={!!lead.subject_to_finance}
+              financeDueDate={lead.finance_due_date ?? null}
+              contacts={contactsList as any}
+              isPreviewMode={isPreviewMode}
+              onChange={(updates) => onLeadChange?.({ ...lead, ...updates })}
+            />
           </div>
-
-          {/* Subject to Finance — highlighted */}
-          <SubjectToFinanceSection
-            leadId={lead.id}
-            subjectToFinance={!!lead.subject_to_finance}
-            financeDueDate={lead.finance_due_date ?? null}
-            contacts={contactsList as any}
-            isPreviewMode={isPreviewMode}
-            onChange={(updates) => onLeadChange?.({ ...lead, ...updates })}
-          />
 
           {/* Pre-Approval — only for Pre Approval transaction type */}
           {lead.loan_purpose === 'pre_approval' && (
