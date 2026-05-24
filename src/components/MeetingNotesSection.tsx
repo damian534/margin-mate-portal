@@ -195,8 +195,16 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
           {meetings.map((m) => {
             const isOpen = !!expanded[m.id];
             const sEditing = editingSummary[m.id] !== undefined;
+            const hasSummary = !!m.summary_markdown;
             return (
-              <div key={m.id} className="border rounded-md">
+              <div
+                key={m.id}
+                className={
+                  hasSummary
+                    ? "border rounded-md border-green-500/40 bg-green-500/10"
+                    : "border rounded-md"
+                }
+              >
                 <div className="flex items-center justify-between gap-2 p-3">
                   <button
                     onClick={() => setExpanded(prev => ({ ...prev, [m.id]: !isOpen }))}
