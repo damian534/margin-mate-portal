@@ -1835,6 +1835,13 @@ export function LeadDetailSheet({
             />
           </div>
 
+          {/* Meeting Notes — paste transcripts and AI-summarise */}
+          <MeetingNotesSection
+            leadId={lead.id}
+            brokerId={lead.broker_id ?? null}
+            isPreviewMode={isPreviewMode}
+          />
+
           {/* Subject to Finance — highlighted */}
           <SubjectToFinanceSection
             leadId={lead.id}
