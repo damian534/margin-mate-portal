@@ -88,6 +88,7 @@ interface Lead {
   company_commission_paid: boolean;
   source: string | null;
   source_contact_id: string | null;
+  referred_by_contact_id?: string | null;
   wip_status?: string | null;
   lodged_date?: string | null;
   approved_date?: string | null;
@@ -1125,8 +1126,8 @@ export default function AdminCRM() {
         leadSources={leadSources}
         referrerName={selectedLead ? getReferrerName(selectedLead.referral_partner_id) : null}
         referrerCompany={selectedLead ? getReferrerCompany(selectedLead.referral_partner_id) : null}
-        sourceContactName={selectedLead?.source_contact_id ? (() => {
-          const c = contacts.find(ct => ct.id === selectedLead.source_contact_id);
+        sourceContactName={selectedLead?.referred_by_contact_id ? (() => {
+          const c = contacts.find(ct => ct.id === selectedLead.referred_by_contact_id);
           return c ? `${c.first_name} ${c.last_name}` : null;
         })() : null}
         contacts={contacts}
