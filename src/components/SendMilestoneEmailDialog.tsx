@@ -368,7 +368,7 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
               <Select value={milestone} onValueChange={setMilestone}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {MILESTONES.map((m) => (
+                  {milestoneOptions.map((m) => (
                     <SelectItem key={m.key} value={m.key}>{m.label}</SelectItem>
                   ))}
                 </SelectContent>
