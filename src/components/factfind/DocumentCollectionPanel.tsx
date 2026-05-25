@@ -926,7 +926,20 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
                   <span className="text-xs text-muted-foreground">{docs.length} {docs.length === 1 ? 'item' : 'items'}</span>
                 </div>
                 {activeApplicantId !== 'all' && (
-                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setAddingTo({ section, applicantId: targetApplicantId })}>
+                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => {
+                    // For Bank Statements, auto-reuse the existing bankstatements.com.au
+                    // link that has already been issued for this lead so the broker
+                    // doesn't have to paste it again for every new statement request.
+                    if (section === 'Bank Statements') {
+                      const urlRegex = /(https?:\/\/[^\s]*bankstatements\.com\.au[^\s]*)/i;
+                      const existing = documents
+                        .map(d => d.description || '')
+                        .map(desc => desc.match(urlRegex)?.[1])
+                        .find(Boolean);
+                      if (existing) setNewDocDescription(existing);
+                    }
+                    setAddingTo({ section, applicantId: targetApplicantId });
+                  }}>
                     <Plus className="w-3 h-3" /> Add document
                   </Button>
                 )}
