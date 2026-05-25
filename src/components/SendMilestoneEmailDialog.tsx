@@ -166,11 +166,40 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
       };
       const tpl = (tpls || []).find((t: any) => t.milestone === milestone);
       const m = MILESTONES.find((x) => x.key === milestone);
-      const defaultSubject = `Update on your loan — ${m?.label}`;
-      const defaultBody = `Hi {first_name},\n\nYour loan has reached the ${m?.label} stage.\n\nKind regards,\n{broker_name}`;
+      const label = (tpl as any)?.label || m?.label || milestone;
+      const defaultSubject = `Update on your loan — ${label}`;
+      const defaultBody = `Hi {first_name},\n\nYour loan has reached the ${label} stage.\n\nKind regards,\n{broker_name}`;
       setSubject(applyVars(tpl?.subject || defaultSubject, vars));
       setBody(applyVars(tpl?.body || defaultBody, vars));
       setTo(selectedOpts.map((o) => o.email).filter(Boolean).join(', '));
+
+      // Auto-attach the template's default PDF (replace any previous template attachment)
+      setAttachments((prev) => prev.filter((a) => !a.fromTemplate));
+      const path = (tpl as any)?.attachment_path;
+      const name = (tpl as any)?.attachment_name;
+      if (path && name) {
+        try {
+          const { data: blob, error } = await supabase.storage
+            .from('milestone-attachments')
+            .download(path);
+          if (!error && blob) {
+            const buf = await blob.arrayBuffer();
+            const bytes = new Uint8Array(buf);
+            let binary = '';
+            const chunk = 0x8000;
+            for (let i = 0; i < bytes.length; i += chunk) {
+              binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+            }
+            const content = btoa(binary);
+            setAttachments((prev) => [
+              ...prev.filter((a) => !a.fromTemplate),
+              { filename: name, content, content_type: blob.type || 'application/pdf', size: blob.size, fromTemplate: true },
+            ]);
+          }
+        } catch {
+          // ignore — broker can still send without attachment
+        }
+      }
     })();
   }, [open, milestone, lead.id, lead.broker_id, lead.email, lead.first_name, lead.last_name, lead.opportunity_name, lead.loan_amount, user?.id, user?.email]);
 
