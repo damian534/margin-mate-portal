@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import {
-  FileText, Upload, CheckCircle2, Clock, XCircle, Shield
+  FileText, Upload, CheckCircle2, Clock, XCircle, Shield, ExternalLink
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -35,6 +35,16 @@ function linkify(text: string): React.ReactNode {
   }
   if (lastIndex < text.length) parts.push(text.slice(lastIndex));
   return parts;
+}
+
+// Extract the first URL from a string (returns absolute href or null)
+function extractFirstUrl(text: string | null | undefined): string | null {
+  if (!text) return null;
+  const regex = /((?:https?:\/\/|www\.)[^\s]+|\b[a-z0-9-]+(?:\.[a-z0-9-]+)+\.(?:com\.au|com|au|net|org|io|co)(?:\/[^\s]*)?)/i;
+  const m = text.match(regex);
+  if (!m) return null;
+  const raw = m[0].replace(/[.,;:!?)]+$/, '');
+  return raw.startsWith('http') ? raw : `https://${raw}`;
 }
 
 interface DocumentRequest {
