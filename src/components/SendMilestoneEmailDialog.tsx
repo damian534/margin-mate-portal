@@ -316,7 +316,7 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
     }
     const recipients = sends.map((s) => s.email);
     // Audit note → deal timeline
-    const m = MILESTONES.find((x) => x.key === milestone);
+    const m = milestoneOptions.find((x) => x.key === milestone) || MILESTONES.find((x) => x.key === milestone);
     const attachNote = attachments.length ? ` · ${attachments.length} attachment(s): ${attachments.map(a => a.filename).join(', ')}` : '';
     await logAudit(
       lead.id,
