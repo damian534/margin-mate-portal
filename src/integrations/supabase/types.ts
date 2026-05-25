@@ -1269,31 +1269,46 @@ export type Database = {
       }
       milestone_email_templates: {
         Row: {
+          attachment_name: string | null
+          attachment_path: string | null
+          attachment_size: number | null
           body: string
           broker_id: string
           created_at: string
           enabled: boolean
           id: string
+          is_custom: boolean
+          label: string | null
           milestone: string
           subject: string
           updated_at: string
         }
         Insert: {
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_size?: number | null
           body?: string
           broker_id: string
           created_at?: string
           enabled?: boolean
           id?: string
+          is_custom?: boolean
+          label?: string | null
           milestone: string
           subject?: string
           updated_at?: string
         }
         Update: {
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_size?: number | null
           body?: string
           broker_id?: string
           created_at?: string
           enabled?: boolean
           id?: string
+          is_custom?: boolean
+          label?: string | null
           milestone?: string
           subject?: string
           updated_at?: string
