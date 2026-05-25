@@ -260,6 +260,23 @@ export default function ClientPortal() {
 
                       {(doc.status === 'pending' || doc.status === 'rejected') && (
                         <>
+                          {(() => {
+                            const linkHref = extractFirstUrl(doc.description);
+                            if (!linkHref) return null;
+                            const isBankStatements = /bankstatements/i.test(`${doc.name} ${doc.description ?? ''}`);
+                            return (
+                              <Button
+                                asChild
+                                size="sm"
+                                className="w-full gap-1.5 rounded-full"
+                              >
+                                <a href={linkHref} target="_blank" rel="noopener noreferrer">
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                  {isBankStatements ? 'Open bankstatements.com.au' : 'Open link'}
+                                </a>
+                              </Button>
+                            );
+                          })()}
                           <input
                             type="file"
                             className="hidden"
