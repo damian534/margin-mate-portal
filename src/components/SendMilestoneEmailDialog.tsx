@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Mail, Send, Paperclip, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { MILESTONES } from './MilestoneEmailsManagement';
+import { DEFAULT_MILESTONES } from './MilestoneEmailsManagement';
 
 interface Lead {
   id: string;
@@ -54,6 +54,7 @@ interface Attachment {
   content: string; // base64
   content_type: string;
   size: number;
+  fromTemplate?: boolean;
 }
 
 const MAX_TOTAL_BYTES = 20 * 1024 * 1024; // 20MB Resend limit
@@ -73,6 +74,9 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [milestone, setMilestone] = useState<string>('lodged');
+  const [milestoneOptions, setMilestoneOptions] = useState<{ key: string; label: string }[]>(
+    DEFAULT_MILESTONES.map((m) => ({ key: m.key, label: m.label }))
+  );
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [to, setTo] = useState(lead.email || '');
@@ -100,6 +104,16 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
         supabase.from('lead_applicants').select('id,email,name').eq('lead_id', lead.id).order('display_order', { ascending: true }),
         user?.id ? supabase.from('profiles').select('full_name,email,email_signature,email_signature_image_url').eq('user_id', user.id).maybeSingle() : Promise.resolve({ data: null }),
       ]);
+      // Build milestone options: defaults + any custom rows from DB
+      const opts: { key: string; label: string }[] = DEFAULT_MILESTONES.map((m) => {
+        const t = (tpls || []).find((x: any) => x.milestone === m.key);
+        return { key: m.key, label: t?.label || m.label };
+      });
+      for (const t of (tpls || []) as any[]) {
+        if (DEFAULT_MILESTONES.find((m) => m.key === t.milestone)) continue;
+        opts.push({ key: t.milestone, label: t.label || t.milestone });
+      }
+      setMilestoneOptions(opts);
       const bName = brokerProfile?.full_name || 'Your Broker';
       const bEmail = brokerProfile?.email || '';
       setBrokerName(bName);
