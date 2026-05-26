@@ -806,7 +806,30 @@ export default function AdminCRM() {
             {/* Task due date filter */}
             <div className="flex items-center gap-1 flex-wrap">
               <CalendarClock className="w-4 h-4 text-muted-foreground mr-1" />
-              {([
+              {(() => {
+                // Count against the same base set that the leads board uses (excludes WIP, respects search/status/assignee)
+                // so the badge always matches what the user will see after clicking it.
+                const countableLeads = leads.filter(l => {
+                  if (l.wip_status) return false;
+                  if (search) {
+                    const q = search.toLowerCase();
+                    const matches =
+                      `${l.first_name} ${l.last_name}`.toLowerCase().includes(q) ||
+                      l.email?.toLowerCase().includes(q) ||
+                      l.phone?.includes(q) ||
+                      getReferrerName(l.referral_partner_id)?.toLowerCase().includes(q);
+                    if (!matches) return false;
+                  }
+                  if (statusFilter !== 'all' && l.status !== statusFilter) return false;
+                  if (assigneeFilter.length > 0) {
+                    const wantUnassigned = assigneeFilter.includes('__unassigned__');
+                    const a = (l as any).assigned_to as string | null | undefined;
+                    if (!a) { if (!wantUnassigned) return false; }
+                    else if (!assigneeFilter.includes(a)) return false;
+                  }
+                  return true;
+                });
+                return ([
                 { value: 'all_leads' as TaskDueFilter, label: 'All Leads' },
                 { value: 'overdue' as TaskDueFilter, label: 'Overdue Tasks' },
                 { value: 'today' as TaskDueFilter, label: 'Due Today' },
@@ -814,7 +837,7 @@ export default function AdminCRM() {
                 { value: 'later' as TaskDueFilter, label: 'Due Later' },
                 { value: 'no_tasks' as TaskDueFilter, label: 'No Tasks' },
               ]).map(opt => {
-                const count = opt.value === 'all_leads' ? leads.length : leads.filter(l => getLeadTaskDueCategory(l.id, tasksByLead) === opt.value).length;
+                const count = opt.value === 'all_leads' ? countableLeads.length : countableLeads.filter(l => getLeadTaskDueCategory(l.id, tasksByLead) === opt.value).length;
                 return (
                   <Button
                     key={opt.value}
@@ -835,7 +858,8 @@ export default function AdminCRM() {
                     )}
                   </Button>
                 );
-              })}
+              });
+              })()}
             </div>
 
             {/* Leads view */}
