@@ -1687,11 +1687,35 @@ export function LeadDetailSheet({
             <div className="space-y-2">
               {/* Add note form */}
               <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  {([
+                    { key: 'note', label: 'Note', Icon: MessageSquare },
+                    { key: 'email', label: 'Email', Icon: Mail },
+                    { key: 'call', label: 'Call', Icon: Phone },
+                    { key: 'text', label: 'Text', Icon: MessageSquare },
+                  ] as const).map(({ key, label, Icon }) => (
+                    <Button
+                      key={key}
+                      type="button"
+                      variant={noteType === key ? 'default' : 'outline'}
+                      size="sm"
+                      className="h-7 px-2.5 gap-1.5 text-xs"
+                      onClick={() => setNoteType(key)}
+                    >
+                      <Icon className="w-3.5 h-3.5" /> {label}
+                    </Button>
+                  ))}
+                </div>
                 <Textarea
                   ref={noteTextareaRef}
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
-                  placeholder="Log a note, call summary, or update..."
+                  placeholder={
+                    noteType === 'email' ? `Summary of email sent to ${lead.email || 'client'}...`
+                    : noteType === 'call' ? `Summary of call with ${lead.phone || 'client'}...`
+                    : noteType === 'text' ? `Summary of text sent to ${lead.phone || 'client'}...`
+                    : 'Log a note, call summary, or update...'
+                  }
                   rows={6}
                   maxLength={2000}
                   className="min-h-[180px] text-sm resize-y"
@@ -1755,8 +1779,8 @@ export function LeadDetailSheet({
                       <FileDown className="w-3.5 h-3.5" /> Import Google Doc
                     </Button>
                   </div>
-                  <Button onClick={() => addNote(newNote)} disabled={!newNote.trim()} size="sm" className="gap-1.5">
-                    <Send className="w-3.5 h-3.5" /> Log
+                  <Button onClick={() => addNote(newNote, noteType)} disabled={!newNote.trim()} size="sm" className="gap-1.5">
+                    <Send className="w-3.5 h-3.5" /> Log {noteType === 'note' ? 'note' : noteType}
                   </Button>
                 </div>
               </div>
