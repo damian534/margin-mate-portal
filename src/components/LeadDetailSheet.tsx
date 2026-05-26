@@ -243,6 +243,7 @@ export function LeadDetailSheet({
   const [taskTemplates, setTaskTemplates] = useState<{ id: string; name: string; task_title: string; due_in_days: number | null; checklist_items: { text: string }[] }[]>([]);
   const [newNote, setNewNote] = useState('');
   const [notifyPartner, setNotifyPartner] = useState(!!lead?.referral_partner_id);
+  const [noteType, setNoteType] = useState<'note' | 'email' | 'call' | 'text'>('note');
   const [noteFiles, setNoteFiles] = useState<File[]>([]);
   const noteFileInputRef = useRef<HTMLInputElement>(null);
   const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -443,19 +444,21 @@ export function LeadDetailSheet({
     persistChecklist(taskId, items);
   };
 
-  const addNote = async (content: string, type: 'note' | 'email' | 'call' = 'note', taskId?: string) => {
+  const addNote = async (content: string, type: 'note' | 'email' | 'call' | 'text' = 'note', taskId?: string) => {
     if (!content.trim() || !lead || !user) return;
     const noteContent = type === 'email'
       ? `📧 Email sent to ${lead.email}\n${content}`
       : type === 'call'
       ? `📞 Called ${lead.phone}\n${content}`
+      : type === 'text'
+      ? `💬 Texted ${lead.phone}\n${content}`
       : content;
 
     if (isPreviewMode) {
       const fakeNote: Note = { id: `preview-${Date.now()}`, content: noteContent.trim(), notify_partner: notifyPartner, created_at: new Date().toISOString(), author_id: user.id, task_id: taskId || null };
       setNotes(prev => [fakeNote, ...prev]);
       toast.success('Note added (preview)');
-      if (!taskId) { setNewNote(''); setNotifyPartner(false); }
+    if (!taskId) { setNewNote(''); setNotifyPartner(false); setNoteType('note'); }
       return;
     }
     const insertData: any = { lead_id: lead.id, author_id: user.id, content: noteContent.trim(), notify_partner: notifyPartner };
@@ -485,7 +488,7 @@ export function LeadDetailSheet({
       notifyPartnerNote(lead, noteContent.trim()).catch(err => console.error('Email notification failed:', err));
     }
     toast.success(notifyPartner ? 'Note added & partner notified' : 'Note added');
-    if (!taskId) { setNewNote(''); setNotifyPartner(false); setNoteFiles([]); }
+    if (!taskId) { setNewNote(''); setNotifyPartner(false); setNoteFiles([]); setNoteType('note'); }
     fetchNotes(lead.id);
   };
 
