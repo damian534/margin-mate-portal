@@ -1795,6 +1795,7 @@ export function LeadDetailSheet({
                     {notes.map((note) => {
                       const isEmail = note.content.startsWith('📧');
                       const isCall = note.content.startsWith('📞');
+                      const isText = note.content.startsWith('💬');
                       const isTaskNote = note.content.startsWith('📋');
                       const isDocReq = note.content.startsWith('📄');
                       const isMir = note.content.startsWith('📨');
@@ -1805,7 +1806,7 @@ export function LeadDetailSheet({
                       return (
                         <div key={note.id} className="relative pb-3">
                           <div className={`absolute -left-[14px] top-1.5 w-3 h-3 rounded-full border-2 border-background ${
-                            isMir ? 'bg-orange-500' : isEmail ? 'bg-blue-500' : isCall ? 'bg-green-500' : isTaskNote ? 'bg-amber-500' : isDocReq ? 'bg-purple-500' : isFinance ? 'bg-rose-500' : isContact ? 'bg-indigo-500' : isStatus ? 'bg-cyan-500' : isSystem ? 'bg-slate-500' : 'bg-muted-foreground/40'
+                            isMir ? 'bg-orange-500' : isEmail ? 'bg-blue-500' : isCall ? 'bg-green-500' : isText ? 'bg-teal-500' : isTaskNote ? 'bg-amber-500' : isDocReq ? 'bg-purple-500' : isFinance ? 'bg-rose-500' : isContact ? 'bg-indigo-500' : isStatus ? 'bg-cyan-500' : isSystem ? 'bg-slate-500' : 'bg-muted-foreground/40'
                           }`} />
                           <div className={`rounded-lg p-2.5 ${note.pinned ? 'bg-amber-50 border border-amber-300 ring-1 ring-amber-200' : isMir ? 'bg-orange-50 border border-orange-200' : 'bg-muted/50'}`}>
                             <div className="flex items-start justify-between gap-2">
