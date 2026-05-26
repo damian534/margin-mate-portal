@@ -243,6 +243,7 @@ export function LeadDetailSheet({
   const [taskTemplates, setTaskTemplates] = useState<{ id: string; name: string; task_title: string; due_in_days: number | null; checklist_items: { text: string }[] }[]>([]);
   const [newNote, setNewNote] = useState('');
   const [notifyPartner, setNotifyPartner] = useState(!!lead?.referral_partner_id);
+  const [noteType, setNoteType] = useState<'note' | 'email' | 'call' | 'text'>('note');
   const [noteFiles, setNoteFiles] = useState<File[]>([]);
   const noteFileInputRef = useRef<HTMLInputElement>(null);
   const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -443,19 +444,21 @@ export function LeadDetailSheet({
     persistChecklist(taskId, items);
   };
 
-  const addNote = async (content: string, type: 'note' | 'email' | 'call' = 'note', taskId?: string) => {
+  const addNote = async (content: string, type: 'note' | 'email' | 'call' | 'text' = 'note', taskId?: string) => {
     if (!content.trim() || !lead || !user) return;
     const noteContent = type === 'email'
       ? `📧 Email sent to ${lead.email}\n${content}`
       : type === 'call'
       ? `📞 Called ${lead.phone}\n${content}`
+      : type === 'text'
+      ? `💬 Texted ${lead.phone}\n${content}`
       : content;
 
     if (isPreviewMode) {
       const fakeNote: Note = { id: `preview-${Date.now()}`, content: noteContent.trim(), notify_partner: notifyPartner, created_at: new Date().toISOString(), author_id: user.id, task_id: taskId || null };
       setNotes(prev => [fakeNote, ...prev]);
       toast.success('Note added (preview)');
-      if (!taskId) { setNewNote(''); setNotifyPartner(false); }
+    if (!taskId) { setNewNote(''); setNotifyPartner(false); setNoteType('note'); }
       return;
     }
     const insertData: any = { lead_id: lead.id, author_id: user.id, content: noteContent.trim(), notify_partner: notifyPartner };
@@ -485,7 +488,7 @@ export function LeadDetailSheet({
       notifyPartnerNote(lead, noteContent.trim()).catch(err => console.error('Email notification failed:', err));
     }
     toast.success(notifyPartner ? 'Note added & partner notified' : 'Note added');
-    if (!taskId) { setNewNote(''); setNotifyPartner(false); setNoteFiles([]); }
+    if (!taskId) { setNewNote(''); setNotifyPartner(false); setNoteFiles([]); setNoteType('note'); }
     fetchNotes(lead.id);
   };
 
@@ -1684,11 +1687,35 @@ export function LeadDetailSheet({
             <div className="space-y-2">
               {/* Add note form */}
               <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  {([
+                    { key: 'note', label: 'Note', Icon: MessageSquare },
+                    { key: 'email', label: 'Email', Icon: Mail },
+                    { key: 'call', label: 'Call', Icon: Phone },
+                    { key: 'text', label: 'Text', Icon: MessageSquare },
+                  ] as const).map(({ key, label, Icon }) => (
+                    <Button
+                      key={key}
+                      type="button"
+                      variant={noteType === key ? 'default' : 'outline'}
+                      size="sm"
+                      className="h-7 px-2.5 gap-1.5 text-xs"
+                      onClick={() => setNoteType(key)}
+                    >
+                      <Icon className="w-3.5 h-3.5" /> {label}
+                    </Button>
+                  ))}
+                </div>
                 <Textarea
                   ref={noteTextareaRef}
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
-                  placeholder="Log a note, call summary, or update..."
+                  placeholder={
+                    noteType === 'email' ? `Summary of email sent to ${lead.email || 'client'}...`
+                    : noteType === 'call' ? `Summary of call with ${lead.phone || 'client'}...`
+                    : noteType === 'text' ? `Summary of text sent to ${lead.phone || 'client'}...`
+                    : 'Log a note, call summary, or update...'
+                  }
                   rows={6}
                   maxLength={2000}
                   className="min-h-[180px] text-sm resize-y"
@@ -1752,8 +1779,8 @@ export function LeadDetailSheet({
                       <FileDown className="w-3.5 h-3.5" /> Import Google Doc
                     </Button>
                   </div>
-                  <Button onClick={() => addNote(newNote)} disabled={!newNote.trim()} size="sm" className="gap-1.5">
-                    <Send className="w-3.5 h-3.5" /> Log
+                  <Button onClick={() => addNote(newNote, noteType)} disabled={!newNote.trim()} size="sm" className="gap-1.5">
+                    <Send className="w-3.5 h-3.5" /> Log {noteType === 'note' ? 'note' : noteType}
                   </Button>
                 </div>
               </div>
@@ -1768,6 +1795,7 @@ export function LeadDetailSheet({
                     {notes.map((note) => {
                       const isEmail = note.content.startsWith('📧');
                       const isCall = note.content.startsWith('📞');
+                      const isText = note.content.startsWith('💬');
                       const isTaskNote = note.content.startsWith('📋');
                       const isDocReq = note.content.startsWith('📄');
                       const isMir = note.content.startsWith('📨');
@@ -1778,7 +1806,7 @@ export function LeadDetailSheet({
                       return (
                         <div key={note.id} className="relative pb-3">
                           <div className={`absolute -left-[14px] top-1.5 w-3 h-3 rounded-full border-2 border-background ${
-                            isMir ? 'bg-orange-500' : isEmail ? 'bg-blue-500' : isCall ? 'bg-green-500' : isTaskNote ? 'bg-amber-500' : isDocReq ? 'bg-purple-500' : isFinance ? 'bg-rose-500' : isContact ? 'bg-indigo-500' : isStatus ? 'bg-cyan-500' : isSystem ? 'bg-slate-500' : 'bg-muted-foreground/40'
+                            isMir ? 'bg-orange-500' : isEmail ? 'bg-blue-500' : isCall ? 'bg-green-500' : isText ? 'bg-teal-500' : isTaskNote ? 'bg-amber-500' : isDocReq ? 'bg-purple-500' : isFinance ? 'bg-rose-500' : isContact ? 'bg-indigo-500' : isStatus ? 'bg-cyan-500' : isSystem ? 'bg-slate-500' : 'bg-muted-foreground/40'
                           }`} />
                           <div className={`rounded-lg p-2.5 ${note.pinned ? 'bg-amber-50 border border-amber-300 ring-1 ring-amber-200' : isMir ? 'bg-orange-50 border border-orange-200' : 'bg-muted/50'}`}>
                             <div className="flex items-start justify-between gap-2">
