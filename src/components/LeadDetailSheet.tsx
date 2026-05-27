@@ -1839,6 +1839,11 @@ export function LeadDetailSheet({
                             )}
                             <div className="flex items-center gap-2 mt-1">
                               <p className="text-xs text-muted-foreground">{format(new Date(note.created_at), 'dd MMM yyyy, HH:mm')}</p>
+                              {note.author_id && (
+                                <p className="text-xs text-muted-foreground">
+                                  · by {teamMembers.find(m => m.user_id === note.author_id)?.name || (note.author_id === user?.id ? 'You' : 'Team member')}
+                                </p>
+                              )}
                               {note.notify_partner && <span className="text-xs bg-accent/20 text-accent-foreground px-1.5 py-0.5 rounded">Partner notified</span>}
                             </div>
                               </div>
