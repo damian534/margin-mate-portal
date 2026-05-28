@@ -1094,7 +1094,7 @@ export default function AdminCRM() {
             />
           </TabsContent>
 
-          <TabsContent value="companies" className="mt-4">
+          <TabsContent value="partners" className="mt-4">
             {selectedCompanyCRM ? (
               <CompanyCRM
                 company={selectedCompanyCRM}
@@ -1106,18 +1106,40 @@ export default function AdminCRM() {
                 isPreviewMode={isPreviewMode}
               />
             ) : (
-              <CompanyManagement companies={companies} onRefresh={fetchCompanies} onRefreshContacts={fetchContacts} isPreviewMode={isPreviewMode} referrers={referrers} contacts={contacts} onOpenContact={(contactId) => { setSheetOpen(false); setActiveTab('contacts'); setTimeout(() => setOpenContactId(contactId), 300); }} onOpenCompanyCRM={(company) => setSelectedCompanyCRM(company)} />
+              <PartnersHub
+                companies={companies}
+                referrers={referrers}
+                contacts={contacts}
+                leads={leads as any}
+                onOpenCompany={(c) => setSelectedCompanyCRM(c)}
+                onManageList={() => setActiveTab('partners_manage')}
+              />
             )}
           </TabsContent>
 
-          <TabsContent value="referrers" className="mt-4">
-            <ReferrerProfiles
-              referrers={referrers}
-              companies={companies}
-              onRefresh={fetchReferrers}
-              isPreviewMode={isPreviewMode}
-              onViewReport={handleViewReport}
-            />
+          <TabsContent value="partners_manage" className="mt-4 space-y-6">
+            {selectedCompanyCRM ? (
+              <CompanyCRM
+                company={selectedCompanyCRM}
+                leads={leads}
+                referrers={referrers}
+                contacts={contacts}
+                onBack={() => setSelectedCompanyCRM(null)}
+                onOpenLead={openLead}
+                isPreviewMode={isPreviewMode}
+              />
+            ) : (
+              <>
+                <CompanyManagement companies={companies} onRefresh={fetchCompanies} onRefreshContacts={fetchContacts} isPreviewMode={isPreviewMode} referrers={referrers} contacts={contacts} onOpenContact={(contactId) => { setSheetOpen(false); setActiveTab('contacts'); setTimeout(() => setOpenContactId(contactId), 300); }} onOpenCompanyCRM={(company) => setSelectedCompanyCRM(company)} />
+                <ReferrerProfiles
+                  referrers={referrers}
+                  companies={companies}
+                  onRefresh={fetchReferrers}
+                  isPreviewMode={isPreviewMode}
+                  onViewReport={handleViewReport}
+                />
+              </>
+            )}
           </TabsContent>
 
           <TabsContent value="reports" className="mt-4">
