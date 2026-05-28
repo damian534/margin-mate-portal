@@ -14,6 +14,7 @@ import { CompanyManagement, Company } from '@/components/CompanyManagement';
 import { CompanyCRM } from '@/components/company/CompanyCRM';
 import { ReferrerProfiles, ReferrerProfileData } from '@/components/ReferrerProfile';
 import { ReferrerReports } from '@/components/ReferrerReports';
+import { PartnersHub } from '@/components/partners/PartnersHub';
 import { PipelineKpiCard } from '@/components/PipelineKpiCard';
 import { AddLeadDialog } from '@/components/AddLeadDialog';
 import { ContactsManagement, Contact } from '@/components/ContactsManagement';
