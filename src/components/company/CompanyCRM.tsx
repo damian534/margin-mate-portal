@@ -431,6 +431,11 @@ export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpen
         </TabsContent>
 
         {/* COMMISSIONS TAB */}
+        <TabsContent value="engagement" className="space-y-4 mt-4">
+          <CompanyEngagementPanel companyId={company.id} companyName={company.name} isPreviewMode={isPreviewMode} />
+        </TabsContent>
+
+        {/* COMMISSIONS TAB */}
         <TabsContent value="commissions" className="space-y-6 mt-4">
           {/* Summary */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
