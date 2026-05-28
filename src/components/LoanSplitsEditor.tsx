@@ -286,7 +286,7 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, onSettl
                       value={s.amount ? s.amount.toLocaleString() : ''}
                       onChange={(e) => {
                         const raw = e.target.value.replace(/[^0-9]/g, '');
-                        updateSplit(s.id, { amount: raw ? parseInt(raw, 10) : null });
+                        updateAmount(s.id, raw ? parseInt(raw, 10) : null);
                       }}
                       placeholder="0"
                     />
