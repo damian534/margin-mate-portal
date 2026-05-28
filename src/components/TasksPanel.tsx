@@ -180,7 +180,14 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
 
   // Counts for filter badges
   const dueCounts = useMemo(() => {
-    const active = tasks.filter(t => !t.completed);
+    let active = tasks.filter(t => !t.completed);
+    if (assigneeFilter.length > 0) {
+      const wantUnassigned = assigneeFilter.includes('__unassigned__');
+      active = active.filter(t => {
+        if (!t.assigned_to) return wantUnassigned;
+        return assigneeFilter.includes(t.assigned_to);
+      });
+    }
     return {
       all: active.length,
       overdue: active.filter(t => getTaskDueCategory(t) === 'overdue').length,
@@ -189,7 +196,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
       later: active.filter(t => getTaskDueCategory(t) === 'later').length,
       no_date: active.filter(t => getTaskDueCategory(t) === 'no_date').length,
     };
-  }, [tasks]);
+  }, [tasks, assigneeFilter]);
 
   const displayed = useMemo(() => {
     let result = tasks.filter(t => showCompleted || !t.completed);
