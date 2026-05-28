@@ -14,6 +14,7 @@ import { CompanyManagement, Company } from '@/components/CompanyManagement';
 import { CompanyCRM } from '@/components/company/CompanyCRM';
 import { ReferrerProfiles, ReferrerProfileData } from '@/components/ReferrerProfile';
 import { ReferrerReports } from '@/components/ReferrerReports';
+import { PartnersHub } from '@/components/partners/PartnersHub';
 import { PipelineKpiCard } from '@/components/PipelineKpiCard';
 import { AddLeadDialog } from '@/components/AddLeadDialog';
 import { ContactsManagement, Contact } from '@/components/ContactsManagement';
@@ -687,8 +688,8 @@ export default function AdminCRM() {
             ];
             const moreTabs = [
               { value: 'contacts', label: 'Contacts', icon: ContactIcon },
-              { value: 'companies', label: 'Companies', icon: Building2 },
-              { value: 'referrers', label: 'Referrers', icon: Users },
+              { value: 'partners', label: 'Partners', icon: Building2 },
+              { value: 'partners_manage', label: 'Manage Partners', icon: Users },
               { value: 'broker_referrals', label: 'Broker Referrals', icon: Share2 },
               { value: 'edm', label: 'Email Campaigns', icon: MailIcon },
               { value: 'pipeline_report', label: 'Pipeline Report', icon: BarChart3 },
@@ -1093,7 +1094,7 @@ export default function AdminCRM() {
             />
           </TabsContent>
 
-          <TabsContent value="companies" className="mt-4">
+          <TabsContent value="partners" className="mt-4">
             {selectedCompanyCRM ? (
               <CompanyCRM
                 company={selectedCompanyCRM}
@@ -1105,18 +1106,40 @@ export default function AdminCRM() {
                 isPreviewMode={isPreviewMode}
               />
             ) : (
-              <CompanyManagement companies={companies} onRefresh={fetchCompanies} onRefreshContacts={fetchContacts} isPreviewMode={isPreviewMode} referrers={referrers} contacts={contacts} onOpenContact={(contactId) => { setSheetOpen(false); setActiveTab('contacts'); setTimeout(() => setOpenContactId(contactId), 300); }} onOpenCompanyCRM={(company) => setSelectedCompanyCRM(company)} />
+              <PartnersHub
+                companies={companies}
+                referrers={referrers}
+                contacts={contacts}
+                leads={leads as any}
+                onOpenCompany={(c) => setSelectedCompanyCRM(c)}
+                onManageList={() => setActiveTab('partners_manage')}
+              />
             )}
           </TabsContent>
 
-          <TabsContent value="referrers" className="mt-4">
-            <ReferrerProfiles
-              referrers={referrers}
-              companies={companies}
-              onRefresh={fetchReferrers}
-              isPreviewMode={isPreviewMode}
-              onViewReport={handleViewReport}
-            />
+          <TabsContent value="partners_manage" className="mt-4 space-y-6">
+            {selectedCompanyCRM ? (
+              <CompanyCRM
+                company={selectedCompanyCRM}
+                leads={leads}
+                referrers={referrers}
+                contacts={contacts}
+                onBack={() => setSelectedCompanyCRM(null)}
+                onOpenLead={openLead}
+                isPreviewMode={isPreviewMode}
+              />
+            ) : (
+              <>
+                <CompanyManagement companies={companies} onRefresh={fetchCompanies} onRefreshContacts={fetchContacts} isPreviewMode={isPreviewMode} referrers={referrers} contacts={contacts} onOpenContact={(contactId) => { setSheetOpen(false); setActiveTab('contacts'); setTimeout(() => setOpenContactId(contactId), 300); }} onOpenCompanyCRM={(company) => setSelectedCompanyCRM(company)} />
+                <ReferrerProfiles
+                  referrers={referrers}
+                  companies={companies}
+                  onRefresh={fetchReferrers}
+                  isPreviewMode={isPreviewMode}
+                  onViewReport={handleViewReport}
+                />
+              </>
+            )}
           </TabsContent>
 
           <TabsContent value="reports" className="mt-4">
