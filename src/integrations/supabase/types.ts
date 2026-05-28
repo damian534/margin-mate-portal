@@ -211,6 +211,75 @@ export type Database = {
         }
         Relationships: []
       }
+      company_notes: {
+        Row: {
+          author_id: string | null
+          broker_id: string
+          company_id: string
+          content: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          broker_id: string
+          company_id: string
+          content: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          broker_id?: string
+          company_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      company_reminders: {
+        Row: {
+          broker_id: string
+          company_id: string
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          due_date: string
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          broker_id: string
+          company_id: string
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_date: string
+          id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          broker_id?: string
+          company_id?: string
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_date?: string
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contacts: {
         Row: {
           audience_tags: string[]
