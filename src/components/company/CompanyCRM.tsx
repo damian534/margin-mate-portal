@@ -21,6 +21,8 @@ import {
   ArrowLeft, Building2, Users, TrendingUp, DollarSign, BarChart3,
   Mail, Phone, Trophy, CheckCircle, Clock, UserPlus, Link2, Crown,
 } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
+import { CompanyEngagementPanel } from '@/components/partners/CompanyEngagementPanel';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 interface Lead {
@@ -262,10 +264,11 @@ export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpen
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview" className="gap-1.5"><BarChart3 className="w-4 h-4" /> Overview</TabsTrigger>
           <TabsTrigger value="agents" className="gap-1.5"><Users className="w-4 h-4" /> Agents</TabsTrigger>
           <TabsTrigger value="leads" className="gap-1.5"><TrendingUp className="w-4 h-4" /> Leads</TabsTrigger>
+          <TabsTrigger value="engagement" className="gap-1.5"><MessageSquare className="w-4 h-4" /> Engagement</TabsTrigger>
           <TabsTrigger value="commissions" className="gap-1.5"><DollarSign className="w-4 h-4" /> Commissions</TabsTrigger>
         </TabsList>
 
