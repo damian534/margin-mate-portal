@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +39,13 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, onSettl
   const [splits, setSplits] = useState<LoanSplit[]>([]);
   const [lenders, setLenders] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  // Per-split debounce timers for the amount field, so typing
+  // "1600000" doesn't write to the DB (and audit log) on every keystroke.
+  const amountTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  useEffect(() => () => {
+    Object.values(amountTimers.current).forEach((t) => clearTimeout(t));
+  }, []);
 
   useEffect(() => { load(); }, [leadId]);
 
@@ -126,6 +133,28 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, onSettl
         onSettlementStateChange?.(false, null);
       }
     }
+  };
+
+  /**
+   * Update the amount field with debounced persistence. Local UI updates
+   * immediately, but the DB write + total recompute (which propagates to
+   * the lead's loan_amount and writes an audit row) only fire once the
+   * user stops typing for ~600ms.
+   */
+  const updateAmount = (id: string, amount: number | null) => {
+    setSplits(prev => prev.map(s => s.id === id ? { ...s, amount } : s));
+    const existing = amountTimers.current[id];
+    if (existing) clearTimeout(existing);
+    amountTimers.current[id] = setTimeout(async () => {
+      delete amountTimers.current[id];
+      // Recompute total from the latest state at flush time.
+      setSplits(curr => {
+        recomputeTotal(curr);
+        return curr;
+      });
+      if (isPreviewMode || id.startsWith('preview-')) return;
+      await supabase.from('loan_splits').update({ amount } as any).eq('id', id);
+    }, 600);
   };
 
   const deleteSplit = async (id: string) => {
