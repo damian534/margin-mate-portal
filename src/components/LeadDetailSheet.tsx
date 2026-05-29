@@ -1695,7 +1695,28 @@ export function LeadDetailSheet({
           >
             <div className="space-y-2">
               {/* Add note form */}
-              <div className="space-y-2">
+              <div
+                className={`space-y-2 rounded-md transition-colors ${noteDragOver ? 'ring-2 ring-primary bg-primary/5 p-2 -m-2' : ''}`}
+                onDragOver={(e) => {
+                  if (e.dataTransfer?.types?.includes('Files')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setNoteDragOver(true);
+                  }
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setNoteDragOver(false);
+                }}
+                onDrop={(e) => {
+                  if (!e.dataTransfer?.files?.length) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setNoteDragOver(false);
+                  addDroppedNoteFiles(Array.from(e.dataTransfer.files));
+                }}
+              >
                 <div className="flex items-center gap-1">
                   {([
                     { key: 'note', label: 'Note', Icon: MessageSquare },
