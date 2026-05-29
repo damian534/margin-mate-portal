@@ -297,6 +297,15 @@ export function TasksDayStripView({ tasks, onToggleComplete, onOpenLead, onReord
           )}
         </CardContent>
       </Card>
+
+      <TaskDetailDialog
+        open={!!openTaskId}
+        onOpenChange={(o) => { if (!o) { setOpenTaskId(null); setOpenTaskInitial(null); } }}
+        taskId={openTaskId}
+        initialTask={openTaskInitial as any}
+        onChanged={() => onTaskUpdated?.()}
+        onOpenDeal={(leadId) => { setOpenTaskId(null); onOpenLead?.(leadId); }}
+      />
     </div>
   );
 }
