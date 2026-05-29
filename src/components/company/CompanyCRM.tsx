@@ -68,6 +68,7 @@ export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpen
   const { statuses } = useLeadStatuses();
   const [activeTab, setActiveTab] = useState('overview');
   const [period, setPeriod] = useState<TimePeriod>('all_time');
+  const [directorOverrides, setDirectorOverrides] = useState<Record<string, boolean>>({});
 
   // Get agents for this company
   const companyAgents = useMemo(() => {
@@ -88,7 +89,7 @@ export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpen
             email: r.email,
             phone: r.phone,
             source: 'profile',
-            isDirector: (r as any).is_director || false,
+            isDirector: directorOverrides[r.id] ?? ((r as any).is_director || false),
           });
         }
       }
@@ -112,7 +113,7 @@ export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpen
     });
 
     return agents;
-  }, [company, referrers, contacts]);
+  }, [company, referrers, contacts, directorOverrides]);
 
   const agentUserIds = useMemo(() => new Set(companyAgents.map(a => a.user_id)), [companyAgents]);
 
@@ -199,10 +200,22 @@ export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpen
   };
 
   const toggleDirector = async (agentId: string, currentValue: boolean) => {
-    if (isPreviewMode) { toast.success('Director status toggled (preview)'); return; }
-    const { error } = await supabase.from('profiles').update({ is_director: !currentValue } as any).eq('id', agentId);
-    if (error) { toast.error('Failed to update director status'); return; }
-    toast.success(!currentValue ? 'Set as Director' : 'Removed Director status');
+    const newValue = !currentValue;
+    setDirectorOverrides(prev => ({ ...prev, [agentId]: newValue }));
+    if (isPreviewMode) { toast.success(newValue ? 'Set as Director (preview)' : 'Removed Director (preview)'); return; }
+    const agent = companyAgents.find(a => a.id === agentId);
+    if (agent?.source === 'contact') {
+      setDirectorOverrides(prev => ({ ...prev, [agentId]: currentValue }));
+      toast.error('This agent has no linked user profile yet. Invite them first to set as Director.');
+      return;
+    }
+    const { error } = await supabase.from('profiles').update({ is_director: newValue } as any).eq('id', agentId);
+    if (error) {
+      setDirectorOverrides(prev => ({ ...prev, [agentId]: currentValue }));
+      toast.error('Failed to update director status');
+      return;
+    }
+    toast.success(newValue ? 'Set as Director' : 'Removed Director status');
   };
 
   return (
