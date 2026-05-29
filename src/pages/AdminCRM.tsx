@@ -695,67 +695,50 @@ export default function AdminCRM() {
               { value: 'pipeline_report', label: 'Pipeline Report', icon: BarChart3 },
               { value: 'reports', label: 'Reports', icon: BarChart3 },
             ];
-            const activeMore = moreTabs.find(t => t.value === activeTab);
             return (
-              <div className="flex flex-wrap items-stretch gap-2">
-                {primaryTabs.map((tab) => (
-                  <button
-                    key={tab.value}
-                    onClick={() => setActiveTab(tab.value)}
-                    className={`flex flex-col items-center gap-1.5 rounded-xl border px-4 py-4 text-sm font-medium transition-all flex-1 min-w-[110px]
-                      ${activeTab === tab.value
-                        ? 'border-primary bg-primary/5 text-primary shadow-sm'
-                        : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground'
-                      }`}
-                  >
-                    <tab.icon className="w-5 h-5" />
-                    <span className="text-xs">{tab.label}</span>
-                  </button>
-                ))}
-                <div className="flex-1 min-w-[200px]">
-                  <Select value={activeMore?.value ?? ''} onValueChange={setActiveTab}>
-                    <SelectTrigger
-                      className={`h-full rounded-xl border px-4 py-4 ${
-                        activeMore
+              <div className="space-y-3">
+                {/* Hero primary tabs */}
+                <div className="flex flex-wrap items-stretch gap-2">
+                  {primaryTabs.map((tab) => (
+                    <button
+                      key={tab.value}
+                      onClick={() => setActiveTab(tab.value)}
+                      className={`flex flex-col items-center gap-1.5 rounded-xl border px-4 py-4 text-sm font-medium transition-all flex-1 min-w-[110px]
+                        ${activeTab === tab.value
                           ? 'border-primary bg-primary/5 text-primary shadow-sm'
                           : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground'
-                      }`}
+                        }`}
                     >
-                      <div className="flex items-center gap-2 w-full">
-                        {activeMore ? (
-                          <>
-                            <activeMore.icon className="w-5 h-5" />
-                            <span className="text-sm font-medium">{activeMore.label}</span>
-                          </>
-                        ) : (
-                          <>
-                            <List className="w-5 h-5" />
-                            <span className="text-sm font-medium">More sections…</span>
-                          </>
-                        )}
-                        {pendingReferralsCount > 0 && activeTab !== 'broker_referrals' && (
-                          <span className="ml-auto min-w-[18px] h-[18px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                      <tab.icon className="w-5 h-5" />
+                      <span className="text-xs">{tab.label}</span>
+                    </button>
+                  ))}
+                </div>
+                {/* Secondary sub-buttons */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {moreTabs.map((tab) => {
+                    const isActive = activeTab === tab.value;
+                    const showBadge = tab.value === 'broker_referrals' && pendingReferralsCount > 0;
+                    return (
+                      <button
+                        key={tab.value}
+                        onClick={() => setActiveTab(tab.value)}
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all
+                          ${isActive
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground'
+                          }`}
+                      >
+                        <tab.icon className="w-3.5 h-3.5" />
+                        <span>{tab.label}</span>
+                        {showBadge && (
+                          <span className="ml-1 min-w-[16px] h-[16px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
                             {pendingReferralsCount}
                           </span>
                         )}
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {moreTabs.map((tab) => (
-                        <SelectItem key={tab.value} value={tab.value}>
-                          <div className="flex items-center gap-2">
-                            <tab.icon className="w-4 h-4" />
-                            <span>{tab.label}</span>
-                            {tab.value === 'broker_referrals' && pendingReferralsCount > 0 && (
-                              <span className="ml-2 min-w-[18px] h-[18px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
-                                {pendingReferralsCount}
-                              </span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             );
