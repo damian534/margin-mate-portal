@@ -4,14 +4,44 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, X, Save, CheckCircle, Trash2, Send, User, Calendar } from 'lucide-react';
+import { Plus, X, Save, CheckCircle, Trash2, Send, User, Calendar, Check } from 'lucide-react';
 import { format, isPast, isToday } from 'date-fns';
 import { AssigneePicker } from '@/components/AssigneePicker';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+
+
+const TaskCircleCheck = ({
+  checked,
+  onCheckedChange,
+  className,
+}: {
+  checked: boolean;
+  onCheckedChange: () => void;
+  className?: string;
+}) => (
+  <button
+    type="button"
+    role="checkbox"
+    aria-checked={checked}
+    onClick={(e) => {
+      e.stopPropagation();
+      onCheckedChange();
+    }}
+    className={cn(
+      'shrink-0 h-5 w-5 rounded-full border flex items-center justify-center transition-colors',
+      checked
+        ? 'bg-success border-success text-white'
+        : 'border-muted-foreground/40 hover:border-primary bg-background',
+      className,
+    )}
+  >
+    {checked && <Check className="h-3 w-3" strokeWidth={3} />}
+  </button>
+);
 
 interface ChecklistItem { text: string; done: boolean }
 
@@ -32,6 +62,29 @@ interface NoteRow {
   id: string;
   content: string;
   created_at: string;
+}
+
+
+const FOLLOW_UP_OPTIONS = [
+  { label: 'Later Today', hours: 3 },
+  { label: 'Tomorrow', days: 1 },
+  { label: '2 Days', days: 2 },
+  { label: '3 Days', days: 3 },
+  { label: '1 Week', days: 7 },
+  { label: '2 Weeks', days: 14 },
+  { label: '1 Month', days: 30 },
+];
+
+function getFollowUpDate(opt: typeof FOLLOW_UP_OPTIONS[0]) {
+  const d = new Date();
+  if (opt.hours) { d.setHours(d.getHours() + opt.hours); }
+  else if (opt.days) { d.setDate(d.getDate() + opt.days); d.setHours(9, 0, 0, 0); }
+  return d;
+}
+
+function formatDatetimeLocal(d: Date) {
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 function toLocal(iso: string | null) {
@@ -206,130 +259,193 @@ export function TaskDetailDialog({ open, onOpenChange, taskId, initialTask, onCh
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl max-h-[90vh] flex flex-col p-0 gap-0">
-        <DialogHeader className="p-5 pb-3 border-b">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <DialogTitle className="text-base">Task</DialogTitle>
-              {task?.lead_name && (
-                <button
-                  type="button"
-                  className="mt-1 text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-                  onClick={() => task && onOpenDeal?.(task.lead_id)}
-                  title="Open deal"
-                >
-                  <User className="w-3 h-3" /> {task.lead_name}
-                </button>
-              )}
-            </div>
-            {dueBadge && (
-              <span className={`text-xs font-medium ${dueBadge.cls}`}>{dueBadge.label}</span>
-            )}
-          </div>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Task</DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-5 py-4">
+        <ScrollArea className="flex-1 p-4">
           {loading || !task ? (
             <div className="text-sm text-muted-foreground py-12 text-center">Loading…</div>
           ) : (
-            <div className="space-y-5">
-              <div className="flex items-center gap-2">
-                <Checkbox checked={task.completed} onCheckedChange={toggleComplete} />
-                <span className="text-xs text-muted-foreground">
-                  {task.completed ? 'Completed' : 'Open'}
-                </span>
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Title</Label>
-                <Input value={title} onChange={e => setTitle(e.target.value)} className="text-base font-medium" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Due</Label>
-                  <Input type="datetime-local" value={dueLocal} onChange={e => setDueLocal(e.target.value)} />
+            <div className={cn(
+              'rounded-lg border transition-all overflow-hidden',
+              dueBadge?.label === 'Overdue' ? 'border-destructive/30 bg-destructive/5' : task.completed ? 'opacity-70 bg-background' : 'bg-background'
+            )}>
+              <div className="flex items-start gap-2 p-2.5">
+                <TaskCircleCheck checked={task.completed} onCheckedChange={toggleComplete} className="mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className={cn('text-sm font-medium', task.completed && 'line-through text-muted-foreground')}>{title || task.title}</p>
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                    {task.due_date && (
+                      <span className={cn(
+                        'text-xs flex items-center gap-1',
+                        dueBadge?.label === 'Overdue' ? 'text-destructive' : dueBadge?.label === 'Today' ? 'text-success' : 'text-muted-foreground'
+                      )}>
+                        <Calendar className="w-3 h-3" />
+                        {dueBadge?.label === 'Overdue' ? 'Overdue — ' : dueBadge?.label === 'Today' ? 'Today — ' : ''}
+                        {format(new Date(task.due_date), 'dd MMM')}
+                      </span>
+                    )}
+                    {notes.length > 0 && (
+                      <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                        {notes.length} note{notes.length === 1 ? '' : 's'}
+                      </span>
+                    )}
+                    {checklist.length > 0 && (
+                      <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                        <CheckCircle className="w-3 h-3" /> {checklist.filter(c => c.done).length}/{checklist.length}
+                      </span>
+                    )}
+                    {task.lead_name && (
+                      <button
+                        type="button"
+                        className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                        onClick={() => onOpenDeal?.(task.lead_id)}
+                        title="Open deal"
+                      >
+                        <User className="w-3 h-3" /> {task.lead_name}
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Assigned to</Label>
-                  <AssigneePicker value={assignee} onChange={setAssignee} />
-                </div>
               </div>
 
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Description</Label>
-                <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} />
-              </div>
+              <div className="border-t mx-2.5">
+                <div className="bg-background rounded-lg p-4 space-y-4" onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
+                  {!task.completed && (
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Task title</Label>
+                      <Input
+                        placeholder="Enter a task title"
+                        value={title}
+                        onChange={e => setTitle(e.target.value)}
+                        className="h-11 text-base font-medium border-0 border-b rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary"
+                      />
+                    </div>
+                  )}
 
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Checklist</Label>
-                {checklist.length > 0 && (
                   <div className="space-y-1">
-                    {checklist.map((item, idx) => (
-                      <div key={idx} className="flex items-center gap-2 group">
-                        <Checkbox checked={item.done} onCheckedChange={() => toggleItem(idx)} />
+                    <Label className="text-xs text-muted-foreground">Checklist</Label>
+                    {checklist.length > 0 && (
+                      <div className="space-y-1">
+                        {checklist.map((item, idx) => (
+                          <div key={idx} className="flex items-center gap-2 group">
+                            <TaskCircleCheck checked={item.done} onCheckedChange={() => toggleItem(idx)} className="h-4 w-4 shrink-0" />
+                            <Input
+                              value={item.text}
+                              onChange={e => updateItemText(idx, e.target.value)}
+                              placeholder="List item..."
+                              className={cn(
+                                'h-7 text-xs border-0 border-b rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary',
+                                item.done && 'line-through text-muted-foreground'
+                              )}
+                            />
+                            <Button type="button" variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100" onClick={() => removeItem(idx)} title="Remove item">
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <Button type="button" variant="ghost" size="sm" className="h-7 text-xs gap-1 px-1" onClick={addItem}>
+                      <Plus className="h-3 w-3" /> Add item
+                    </Button>
+                  </div>
+
+                  {description && (
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Description</Label>
+                      <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} className="text-sm resize-y border-0 bg-muted/40 focus-visible:ring-0" />
+                    </div>
+                  )}
+
+                  {notes.length > 0 && (
+                    <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                      {notes.map(n => (
+                        <div key={n.id} className="bg-muted/50 rounded-md p-3 text-sm">
+                          <p className="whitespace-pre-wrap leading-relaxed">{n.content.replace(/^📋 \[Task: .*?\] /, '')}</p>
+                          <p className="text-xs text-muted-foreground mt-1.5">{format(new Date(n.created_at), 'dd MMM, HH:mm')}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Notes</Label>
+                    <div className="rounded-md border bg-background">
+                      <Textarea
+                        ref={noteRef}
+                        value={noteText}
+                        onChange={e => setNoteText(e.target.value)}
+                        placeholder="Add a note to this task..."
+                        rows={6}
+                        className="text-sm resize-y min-h-[140px] border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                        onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) addNote(); }}
+                      />
+                    </div>
+                    <div className="flex justify-end pt-1">
+                      <Button size="sm" disabled={!noteText.trim()} onClick={addNote}>
+                        <Send className="w-3.5 h-3.5 mr-1.5" /> Add note
+                      </Button>
+                    </div>
+                  </div>
+
+                  {!task.completed && (
+                    <div>
+                      <p className="text-[11px] text-muted-foreground mb-1.5">Quick follow-up</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {FOLLOW_UP_OPTIONS.map(opt => {
+                          const targetDate = getFollowUpDate(opt);
+                          const formatted = formatDatetimeLocal(targetDate);
+                          const isSelected = dueLocal === formatted;
+                          return (
+                            <Button key={opt.label} type="button" variant={isSelected ? 'default' : 'outline'} size="sm" className="h-7 text-xs px-2.5" onClick={() => setDueLocal(formatted)}>
+                              {opt.label}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {!task.completed && (
+                    <div className="flex items-center gap-2 pt-1 border-t">
+                      <div className="flex-1">
+                        <Label className="text-[11px] text-muted-foreground">Due date</Label>
                         <Input
-                          value={item.text}
-                          onChange={e => updateItemText(idx, e.target.value)}
-                          placeholder="List item…"
-                          className={`h-8 text-sm ${item.done ? 'line-through text-muted-foreground' : ''}`}
+                          type="date"
+                          value={dueLocal ? dueLocal.slice(0, 10) : ''}
+                          onChange={e => setDueLocal(e.target.value ? `${e.target.value}T09:00` : '')}
+                          className="h-9 text-sm"
                         />
-                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={() => removeItem(idx)}>
-                          <X className="h-3 w-3" />
+                      </div>
+                      <div className="flex-1">
+                        <Label className="text-[11px] text-muted-foreground">Assign to</Label>
+                        <AssigneePicker value={assignee} onChange={setAssignee} size="sm" />
+                      </div>
+                      <div className="self-end">
+                        <Button size="sm" onClick={save} disabled={saving || !title.trim()}>
+                          <Save className="w-3.5 h-3.5 mr-1.5" /> {saving ? 'Saving…' : 'Save changes'}
                         </Button>
                       </div>
-                    ))}
-                  </div>
-                )}
-                <Button type="button" variant="ghost" size="sm" className="h-7 text-xs gap-1 px-1" onClick={addItem}>
-                  <Plus className="h-3 w-3" /> Add item
-                </Button>
-              </div>
+                    </div>
+                  )}
 
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Notes</Label>
-                {notes.length > 0 && (
-                  <div className="space-y-2">
-                    {notes.map(n => (
-                      <div key={n.id} className="bg-muted/50 rounded-md p-2.5 text-sm">
-                        <p className="whitespace-pre-wrap leading-relaxed">{n.content.replace(/^📋 \[Task: .*?\] /, '')}</p>
-                        <p className="text-[11px] text-muted-foreground mt-1">{format(new Date(n.created_at), 'dd MMM, HH:mm')}</p>
-                      </div>
-                    ))}
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t">
+                    <Button variant={task.completed ? 'outline' : 'default'} size="sm" className="h-8 text-xs px-3" onClick={toggleComplete}>
+                      <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
+                      {task.completed ? 'Reopen task' : 'Mark complete'}
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-8 text-xs text-destructive hover:text-destructive px-2" onClick={removeTask}>
+                      <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete task
+                    </Button>
                   </div>
-                )}
-                <Textarea
-                  ref={noteRef}
-                  value={noteText}
-                  onChange={e => setNoteText(e.target.value)}
-                  placeholder="Add a note to this task…"
-                  rows={3}
-                  onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) addNote(); }}
-                />
-                <div className="flex justify-end">
-                  <Button size="sm" disabled={!noteText.trim()} onClick={addNote}>
-                    <Send className="w-3.5 h-3.5 mr-1.5" /> Add note
-                  </Button>
                 </div>
               </div>
             </div>
           )}
         </ScrollArea>
-
-        <div className="flex items-center justify-between gap-2 p-4 border-t bg-muted/30">
-          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={removeTask} disabled={!task}>
-            <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete
-          </Button>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={toggleComplete} disabled={!task}>
-              <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
-              {task?.completed ? 'Reopen' : 'Mark complete'}
-            </Button>
-            <Button size="sm" onClick={save} disabled={saving || !task || !title.trim()}>
-              <Save className="w-3.5 h-3.5 mr-1.5" /> {saving ? 'Saving…' : 'Save'}
-            </Button>
-          </div>
-        </div>
       </DialogContent>
     </Dialog>
   );
