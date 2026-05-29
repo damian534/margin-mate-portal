@@ -34,6 +34,7 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
   const [adding, setAdding] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [editingSummary, setEditingSummary] = useState<Record<string, string>>({});
+  const [dragOver, setDragOver] = useState(false);
 
   // new-form state
   const [newTitle, setNewTitle] = useState('');
@@ -164,6 +165,32 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
     toast.success('Summary copied');
   }
 
+  async function handleDroppedFile(file: File) {
+    const name = file.name.toLowerCase();
+    const isTextLike =
+      file.type.startsWith('text/') ||
+      /\.(txt|md|vtt|srt|json|csv|log)$/i.test(name);
+    if (!isTextLike) {
+      toast.error('Only text-based transcripts (.txt, .md, .vtt, .srt) can be imported here');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Transcript file too large (max 5MB)');
+      return;
+    }
+    const text = await file.text();
+    if (!text.trim()) {
+      toast.error('File is empty');
+      return;
+    }
+    setAdding(true);
+    if (!newTitle.trim()) {
+      setNewTitle(file.name.replace(/\.[^/.]+$/, ''));
+    }
+    setNewTranscript(prev => (prev ? prev + '\n\n' : '') + text);
+    toast.success(`Imported "${file.name}" — review and generate a summary`);
+  }
+
   return (
     <SectionCard
       icon={Brain}
@@ -173,7 +200,27 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
         ? `${meetings.length} ${meetings.length === 1 ? 'meeting' : 'meetings'}`
         : 'Paste a call transcript and let AI summarise it'}
     >
-      <div className="space-y-4">
+      <div
+        className={`space-y-4 rounded-md transition-colors ${dragOver ? 'ring-2 ring-primary bg-primary/5 p-2 -m-2' : ''}`}
+        onDragOver={(e) => {
+          if (e.dataTransfer?.types?.includes('Files')) {
+            e.preventDefault();
+            e.stopPropagation();
+            setDragOver(true);
+          }
+        }}
+        onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false); }}
+        onDrop={(e) => {
+          if (!e.dataTransfer?.files?.length) return;
+          e.preventDefault();
+          e.stopPropagation();
+          setDragOver(false);
+          Array.from(e.dataTransfer.files).forEach(handleDroppedFile);
+        }}
+      >
+        {dragOver && (
+          <p className="text-xs text-primary text-center font-medium">Drop transcript file to import…</p>
+        )}
         {/* Add meeting */}
         {adding ? (
           <div className="border rounded-md p-3 space-y-3 bg-muted/30">
