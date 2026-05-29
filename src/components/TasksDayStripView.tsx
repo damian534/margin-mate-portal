@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { format, isSameDay, startOfDay, addDays, isToday, isPast } from 'date-fns';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, AlertTriangle, GripVertical } from 'lucide-react';
 import { AssigneeBadge } from '@/components/AssigneePicker';
+import { TaskDetailDialog } from '@/components/TaskDetailDialog';
 
 interface Task {
   id: string;
@@ -42,6 +43,8 @@ export function TasksDayStripView({ tasks, onToggleComplete, onOpenLead, onReord
   const [selectedDay, setSelectedDay] = useState<Date>(startOfDay(new Date()));
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
+  const [openTaskInitial, setOpenTaskInitial] = useState<Task | null>(null);
 
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(anchor, i)), [anchor]);
 
@@ -150,7 +153,7 @@ export function TasksDayStripView({ tasks, onToggleComplete, onOpenLead, onReord
                     className={`cursor-pointer hover:shadow-md transition-all border-l-4 ${
                       isDragging ? 'opacity-40' : ''
                     } ${isOver ? 'ring-2 ring-primary ring-offset-1' : ''}`}
-                    onClick={() => onOpenLead?.(task.lead_id, task.id)}
+                    onClick={() => { setOpenTaskInitial(task); setOpenTaskId(task.id); }}
                   >
                     <CardContent className="p-3">
                       <div className="flex items-start gap-3">
