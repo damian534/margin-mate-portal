@@ -65,8 +65,25 @@ export function TasksDayStripView({ tasks, onToggleComplete, onOpenLead }: Props
   const noDateTasks = useMemo(() => tasks.filter(t => !t.due_date), [tasks]);
 
   const selectedKey = selectedDay.toDateString();
-  const selectedTasks = tasksByDay.get(selectedKey) || [];
+  const rawSelectedTasks = tasksByDay.get(selectedKey) || [];
   const isSelectedToday = isToday(selectedDay);
+
+  // Priority sort: overdue first, then today by time, then upcoming by time, then no-time last
+  const priorityRank = (t: Task): number => {
+    if (!t.due_date) return 3;
+    const d = new Date(t.due_date);
+    if (isPast(d) && !isToday(d)) return 0; // overdue
+    if (isToday(d)) return 1;
+    return 2;
+  };
+  const selectedTasks = [...rawSelectedTasks].sort((a, b) => {
+    const ra = priorityRank(a);
+    const rb = priorityRank(b);
+    if (ra !== rb) return ra - rb;
+    const ta = a.due_date ? new Date(a.due_date).getTime() : Number.POSITIVE_INFINITY;
+    const tb = b.due_date ? new Date(b.due_date).getTime() : Number.POSITIVE_INFINITY;
+    return ta - tb;
+  });
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1.4fr,1fr] gap-4">
@@ -94,7 +111,7 @@ export function TasksDayStripView({ tasks, onToggleComplete, onOpenLead }: Props
                   Nothing scheduled for this day
                 </div>
               )}
-              {selectedTasks.map(task => {
+              {selectedTasks.map((task, idx) => {
                 const u = urgencyColor(task);
                 return (
                   <Card
@@ -105,6 +122,9 @@ export function TasksDayStripView({ tasks, onToggleComplete, onOpenLead }: Props
                   >
                     <CardContent className="p-3">
                       <div className="flex items-start gap-3">
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-muted text-foreground text-xs font-semibold inline-flex items-center justify-center mt-0.5">
+                          {idx + 1}
+                        </span>
                         <div onClick={e => e.stopPropagation()}>
                           <Checkbox
                             checked={task.completed}
