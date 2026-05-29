@@ -115,6 +115,7 @@ export default function AdminCRM() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [focusTaskId, setFocusTaskId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = usePersistedState<string>('crm.leads.statusFilter', 'all');
   const [assigneeFilter, setAssigneeFilter] = usePersistedState<string[]>('crm.leads.assigneeFilterMulti', []);
@@ -443,8 +444,9 @@ export default function AdminCRM() {
     }
   };
 
-  const openLead = (lead: Lead) => {
+  const openLead = (lead: Lead, taskId?: string | null) => {
     setSelectedLead(lead);
+    setFocusTaskId(taskId ?? null);
     setSheetOpen(true);
   };
 
@@ -1023,7 +1025,7 @@ export default function AdminCRM() {
           <TabsContent value="tasks" className="mt-4">
             <TasksPanel
               leads={leads.map(l => ({ id: l.id, first_name: l.first_name, last_name: l.last_name }))}
-              onOpenLead={(leadId) => { const lead = leads.find(l => l.id === leadId); if (lead) openLead(lead); }}
+              onOpenLead={(leadId, taskId) => { const lead = leads.find(l => l.id === leadId); if (lead) openLead(lead, taskId); }}
             />
           </TabsContent>
 
@@ -1158,6 +1160,7 @@ export default function AdminCRM() {
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         lead={selectedLead}
+        initialTaskId={focusTaskId}
         statuses={statuses}
         leadSources={leadSources}
         referrerName={selectedLead ? getReferrerName(selectedLead.referral_partner_id) : null}

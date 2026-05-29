@@ -3,16 +3,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { format, isSameDay, startOfDay, addDays, isToday, isPast } from 'date-fns';
-import { Calendar as CalendarIcon, User, ChevronLeft, ChevronRight, AlertTriangle, GripVertical, ExternalLink } from 'lucide-react';
-import { AssigneeBadge, AssigneePicker } from '@/components/AssigneePicker';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, AlertTriangle, GripVertical } from 'lucide-react';
+import { AssigneeBadge } from '@/components/AssigneePicker';
 
 interface Task {
   id: string;
@@ -31,7 +24,7 @@ interface Task {
 interface Props {
   tasks: Task[];
   onToggleComplete: (task: Task) => void;
-  onOpenLead?: (leadId: string) => void;
+  onOpenLead?: (leadId: string, taskId?: string) => void;
   onReorder?: (orderedIds: string[]) => void;
   onTaskUpdated?: () => void;
 }
@@ -45,45 +38,10 @@ function urgencyColor(task: Task): { dot: string; pill: string; label: string } 
 }
 
 export function TasksDayStripView({ tasks, onToggleComplete, onOpenLead, onReorder, onTaskUpdated }: Props) {
-  const { isPreviewMode } = useAuth();
   const [anchor, setAnchor] = useState<Date>(startOfDay(new Date()));
   const [selectedDay, setSelectedDay] = useState<Date>(startOfDay(new Date()));
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
-  const [editTask, setEditTask] = useState<Task | null>(null);
-  const [editTitle, setEditTitle] = useState('');
-  const [editDesc, setEditDesc] = useState('');
-  const [editDue, setEditDue] = useState('');
-  const [editAssignee, setEditAssignee] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  const openEdit = (t: Task) => {
-    setEditTask(t);
-    setEditTitle(t.title);
-    setEditDesc(t.description ?? '');
-    setEditDue(t.due_date ? format(new Date(t.due_date), "yyyy-MM-dd'T'HH:mm") : '');
-    setEditAssignee(t.assigned_to ?? null);
-  };
-  const closeEdit = () => setEditTask(null);
-
-  const saveEdit = async () => {
-    if (!editTask) return;
-    setSaving(true);
-    const updates = {
-      title: editTitle.trim() || editTask.title,
-      description: editDesc.trim() || null,
-      due_date: editDue ? new Date(editDue).toISOString() : null,
-      assigned_to: editAssignee,
-    };
-    if (!isPreviewMode) {
-      const { error } = await supabase.from('tasks').update(updates).eq('id', editTask.id);
-      if (error) { toast.error('Failed to save task'); setSaving(false); return; }
-    }
-    toast.success('Task updated');
-    setSaving(false);
-    setEditTask(null);
-    onTaskUpdated?.();
-  };
 
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(anchor, i)), [anchor]);
 
@@ -192,7 +150,7 @@ export function TasksDayStripView({ tasks, onToggleComplete, onOpenLead, onReord
                     className={`cursor-pointer hover:shadow-md transition-all border-l-4 ${
                       isDragging ? 'opacity-40' : ''
                     } ${isOver ? 'ring-2 ring-primary ring-offset-1' : ''}`}
-                    onClick={() => openEdit(task)}
+                    onClick={() => onOpenLead?.(task.lead_id, task.id)}
                   >
                     <CardContent className="p-3">
                       <div className="flex items-start gap-3">
@@ -336,58 +294,6 @@ export function TasksDayStripView({ tasks, onToggleComplete, onOpenLead, onReord
           )}
         </CardContent>
       </Card>
-
-      <Dialog open={!!editTask} onOpenChange={(o) => !o && closeEdit()}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit task</DialogTitle>
-          </DialogHeader>
-          {editTask && (
-            <div className="space-y-4 pt-2">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <User className="w-3 h-3" /> {editTask.lead_name}
-                {onOpenLead && (
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="h-auto p-0 text-xs gap-1 ml-auto"
-                    onClick={() => { closeEdit(); onOpenLead(editTask.lead_id); }}
-                  >
-                    Open deal <ExternalLink className="w-3 h-3" />
-                  </Button>
-                )}
-              </div>
-              <div>
-                <Label>Title</Label>
-                <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
-              </div>
-              <div>
-                <Label>Description</Label>
-                <Textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={3} />
-              </div>
-              <div>
-                <Label>Due date</Label>
-                <Input type="datetime-local" value={editDue} onChange={(e) => setEditDue(e.target.value)} />
-              </div>
-              <div>
-                <Label>Assigned to</Label>
-                <AssigneePicker value={editAssignee} onChange={setEditAssignee} />
-              </div>
-              <DialogFooter className="gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => { onToggleComplete(editTask); closeEdit(); }}
-                >
-                  {editTask.completed ? 'Reopen' : 'Mark complete'}
-                </Button>
-                <Button onClick={saveEdit} disabled={saving || !editTitle.trim()}>
-                  {saving ? 'Saving…' : 'Save'}
-                </Button>
-              </DialogFooter>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

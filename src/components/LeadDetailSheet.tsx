@@ -206,6 +206,7 @@ interface LeadDetailSheetProps {
   onOpenContact?: (contactId: string) => void;
   sampleNotes?: Note[];
   onLeadSourcesChanged?: () => void;
+  initialTaskId?: string | null;
 }
 
 const FOLLOW_UP_OPTIONS = [
@@ -232,7 +233,7 @@ function formatDatetimeLocal(d: Date) {
 
 export function LeadDetailSheet({
   open, onOpenChange, lead, statuses, leadSources = [], referrerName, referrerCompany, sourceContactName,
-  contacts: contactsList = [], referrers: referrersList = [], isPreviewMode, onUpdateStatus, onUpdateWipStatus, onUpdateCommission, onDeleteLead, onDuplicateLead, onLeadChange, onOpenContact, sampleNotes, onLeadSourcesChanged
+  contacts: contactsList = [], referrers: referrersList = [], isPreviewMode, onUpdateStatus, onUpdateWipStatus, onUpdateCommission, onDeleteLead, onDuplicateLead, onLeadChange, onOpenContact, sampleNotes, onLeadSourcesChanged, initialTaskId
 }: LeadDetailSheetProps) {
   const { user, role } = useAuth();
   const { members: teamMembers } = useTeamMembers();
@@ -378,6 +379,24 @@ export function LeadDetailSheet({
     const { data } = await supabase.from('tasks').select('*').eq('lead_id', leadId).order('due_date', { ascending: true, nullsFirst: false });
     setTasks(((data as any[]) || []).map(t => ({ ...t, checklist_items: Array.isArray(t.checklist_items) ? t.checklist_items : [] })) as Task[]);
   };
+
+  // Auto-expand a task when the sheet is opened with an initialTaskId (e.g. from My Day)
+  useEffect(() => {
+    if (!open || !initialTaskId) return;
+    const t = tasks.find(x => x.id === initialTaskId);
+    if (!t) return;
+    setExpandedTaskId(t.id);
+    setEditingTask({
+      id: t.id,
+      title: t.title,
+      dueDate: t.due_date ? formatDatetimeLocal(new Date(t.due_date)) : '',
+    });
+    // Scroll the task into view shortly after expansion
+    setTimeout(() => {
+      const el = document.getElementById(`lead-task-${t.id}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 150);
+  }, [open, initialTaskId, tasks]);
 
   const fetchTaskTemplates = async () => {
     if (isPreviewMode) { setTaskTemplates([]); return; }
@@ -980,7 +999,7 @@ export function LeadDetailSheet({
     };
 
     return (
-      <div key={task.id} className={`rounded-lg border transition-all ${isOverdue ? 'border-destructive/30 bg-destructive/5' : task.completed ? 'opacity-60' : 'bg-background'}`}>
+      <div key={task.id} id={`lead-task-${task.id}`} className={`rounded-lg border transition-all ${isOverdue ? 'border-destructive/30 bg-destructive/5' : task.completed ? 'opacity-60' : 'bg-background'}`}>
         {/* Header row — always shown */}
         <div className="flex items-start gap-2 p-2.5">
             <TaskCircleCheck checked={task.completed} onCheckedChange={() => toggleTaskComplete(task)} className="mt-0.5" />
