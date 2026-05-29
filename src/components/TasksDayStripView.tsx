@@ -3,16 +3,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { format, isSameDay, startOfDay, addDays, isToday, isPast } from 'date-fns';
-import { Calendar as CalendarIcon, User, ChevronLeft, ChevronRight, AlertTriangle, GripVertical, ExternalLink } from 'lucide-react';
-import { AssigneeBadge, AssigneePicker } from '@/components/AssigneePicker';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, AlertTriangle, GripVertical } from 'lucide-react';
+import { AssigneeBadge } from '@/components/AssigneePicker';
 
 interface Task {
   id: string;
@@ -45,45 +38,10 @@ function urgencyColor(task: Task): { dot: string; pill: string; label: string } 
 }
 
 export function TasksDayStripView({ tasks, onToggleComplete, onOpenLead, onReorder, onTaskUpdated }: Props) {
-  const { isPreviewMode } = useAuth();
   const [anchor, setAnchor] = useState<Date>(startOfDay(new Date()));
   const [selectedDay, setSelectedDay] = useState<Date>(startOfDay(new Date()));
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
-  const [editTask, setEditTask] = useState<Task | null>(null);
-  const [editTitle, setEditTitle] = useState('');
-  const [editDesc, setEditDesc] = useState('');
-  const [editDue, setEditDue] = useState('');
-  const [editAssignee, setEditAssignee] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  const openEdit = (t: Task) => {
-    setEditTask(t);
-    setEditTitle(t.title);
-    setEditDesc(t.description ?? '');
-    setEditDue(t.due_date ? format(new Date(t.due_date), "yyyy-MM-dd'T'HH:mm") : '');
-    setEditAssignee(t.assigned_to ?? null);
-  };
-  const closeEdit = () => setEditTask(null);
-
-  const saveEdit = async () => {
-    if (!editTask) return;
-    setSaving(true);
-    const updates = {
-      title: editTitle.trim() || editTask.title,
-      description: editDesc.trim() || null,
-      due_date: editDue ? new Date(editDue).toISOString() : null,
-      assigned_to: editAssignee,
-    };
-    if (!isPreviewMode) {
-      const { error } = await supabase.from('tasks').update(updates).eq('id', editTask.id);
-      if (error) { toast.error('Failed to save task'); setSaving(false); return; }
-    }
-    toast.success('Task updated');
-    setSaving(false);
-    setEditTask(null);
-    onTaskUpdated?.();
-  };
 
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(anchor, i)), [anchor]);
 
