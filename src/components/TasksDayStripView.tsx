@@ -150,7 +150,7 @@ export function TasksDayStripView({ tasks, onToggleComplete, onOpenLead, onReord
                     className={`cursor-pointer hover:shadow-md transition-all border-l-4 ${
                       isDragging ? 'opacity-40' : ''
                     } ${isOver ? 'ring-2 ring-primary ring-offset-1' : ''}`}
-                    onClick={() => openEdit(task)}
+                    onClick={() => onOpenLead?.(task.lead_id, task.id)}
                   >
                     <CardContent className="p-3">
                       <div className="flex items-start gap-3">
@@ -294,58 +294,6 @@ export function TasksDayStripView({ tasks, onToggleComplete, onOpenLead, onReord
           )}
         </CardContent>
       </Card>
-
-      <Dialog open={!!editTask} onOpenChange={(o) => !o && closeEdit()}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit task</DialogTitle>
-          </DialogHeader>
-          {editTask && (
-            <div className="space-y-4 pt-2">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <User className="w-3 h-3" /> {editTask.lead_name}
-                {onOpenLead && (
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="h-auto p-0 text-xs gap-1 ml-auto"
-                    onClick={() => { closeEdit(); onOpenLead(editTask.lead_id); }}
-                  >
-                    Open deal <ExternalLink className="w-3 h-3" />
-                  </Button>
-                )}
-              </div>
-              <div>
-                <Label>Title</Label>
-                <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
-              </div>
-              <div>
-                <Label>Description</Label>
-                <Textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={3} />
-              </div>
-              <div>
-                <Label>Due date</Label>
-                <Input type="datetime-local" value={editDue} onChange={(e) => setEditDue(e.target.value)} />
-              </div>
-              <div>
-                <Label>Assigned to</Label>
-                <AssigneePicker value={editAssignee} onChange={setEditAssignee} />
-              </div>
-              <DialogFooter className="gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => { onToggleComplete(editTask); closeEdit(); }}
-                >
-                  {editTask.completed ? 'Reopen' : 'Mark complete'}
-                </Button>
-                <Button onClick={saveEdit} disabled={saving || !editTitle.trim()}>
-                  {saving ? 'Saving…' : 'Save'}
-                </Button>
-              </DialogFooter>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
