@@ -356,7 +356,14 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
       </div>
 
       {/* View */}
-      {viewMode === 'kanban' ? (
+      {viewMode === 'myday' ? (
+        <MyDayPanel
+          tasks={tasks.filter(t => !t.completed && (assigneeFilter.length === 0 || (t.assigned_to ? assigneeFilter.includes(t.assigned_to) : assigneeFilter.includes('__unassigned__')))) as any}
+          onToggleComplete={toggleComplete}
+          onOpenLead={onOpenLead}
+          onUpdatePriority={updatePriority}
+        />
+      ) : viewMode === 'kanban' ? (
         <TasksKanban tasks={displayed.filter(t => !t.completed)} onToggleComplete={toggleComplete} onOpenLead={onOpenLead} />
       ) : (
         <>
