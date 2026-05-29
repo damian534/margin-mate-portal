@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { SAMPLE_TASKS } from '@/lib/sample-data';
 import { TasksKanban } from '@/components/TasksKanban';
+import { MyDayPanel } from '@/components/MyDayPanel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { toast } from 'sonner';
 import { format, isPast, isToday, isTomorrow } from 'date-fns';
-import { Plus, Calendar, User, AlertTriangle, List, Columns, ChevronsUpDown, Check, UserPlus } from 'lucide-react';
+import { Plus, Calendar, User, AlertTriangle, List, Columns, ChevronsUpDown, Check, UserPlus, Sun } from 'lucide-react';
 import { AssigneePicker, AssigneeBadge, AssigneeFilter } from '@/components/AssigneePicker';
 import { usePersistedState } from '@/hooks/usePersistedState';
 
@@ -31,6 +32,7 @@ interface Task {
   created_at: string;
   lead_name?: string;
   assigned_to?: string | null;
+  priority?: number | null;
 }
 
 interface TasksPanelProps {
@@ -61,7 +63,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCompleted, setShowCompleted] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
+  const [viewMode, setViewMode] = usePersistedState<'myday' | 'list' | 'kanban'>('crm.tasks.viewMode', 'myday');
   const [dueFilter, setDueFilter] = useState<DueFilter>('all');
   const [assigneeFilter, setAssigneeFilter] = usePersistedState<string[]>('crm.tasks.assigneeFilterMulti', []);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -95,6 +97,12 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
     }));
     setTasks(mapped);
     setLoading(false);
+  };
+
+  const updatePriority = async (taskId: string, priority: number | null) => {
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, priority } : t));
+    if (isPreviewMode) return;
+    await supabase.from('tasks').update({ priority } as any).eq('id', taskId);
   };
 
   const toggleComplete = async (task: Task) => {
@@ -234,6 +242,9 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
           <AssigneeFilter value={assigneeFilter} onChange={setAssigneeFilter} className="w-44 h-8 text-xs" />
           {/* View toggle */}
           <div className="flex items-center border rounded-md">
+            <Button variant={viewMode === 'myday' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-2" onClick={() => setViewMode('myday')} title="My Day">
+              <Sun className="w-4 h-4" />
+            </Button>
             <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-2" onClick={() => setViewMode('list')}>
               <List className="w-4 h-4" />
             </Button>
@@ -317,7 +328,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
       </div>
 
       {/* Due date filter tabs */}
-      <div className="flex items-center gap-1 flex-wrap">
+      <div className={`flex items-center gap-1 flex-wrap ${viewMode === 'myday' ? 'hidden' : ''}`}>
         {DUE_FILTER_OPTIONS.map(opt => {
           const count = dueCounts[opt.value];
           const isActive = dueFilter === opt.value;
