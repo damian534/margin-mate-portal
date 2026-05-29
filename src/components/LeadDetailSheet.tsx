@@ -246,6 +246,15 @@ export function LeadDetailSheet({
   const [noteType, setNoteType] = useState<'note' | 'email' | 'call' | 'text'>('note');
   const [noteFiles, setNoteFiles] = useState<File[]>([]);
   const noteFileInputRef = useRef<HTMLInputElement>(null);
+  const [noteDragOver, setNoteDragOver] = useState(false);
+
+  const addDroppedNoteFiles = (files: File[]) => {
+    const valid = files.filter(f => f.size <= 25 * 1024 * 1024);
+    if (valid.length < files.length) toast.error('Some files exceeded 25MB and were skipped');
+    if (valid.length === 0) return;
+    setNoteFiles(prev => [...prev, ...valid]);
+    toast.success(`${valid.length} file${valid.length === 1 ? '' : 's'} attached`);
+  };
   const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
   const taskDescTextareaRef = useRef<HTMLTextAreaElement>(null);
   const taskNoteTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -1686,7 +1695,28 @@ export function LeadDetailSheet({
           >
             <div className="space-y-2">
               {/* Add note form */}
-              <div className="space-y-2">
+              <div
+                className={`space-y-2 rounded-md transition-colors ${noteDragOver ? 'ring-2 ring-primary bg-primary/5 p-2 -m-2' : ''}`}
+                onDragOver={(e) => {
+                  if (e.dataTransfer?.types?.includes('Files')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setNoteDragOver(true);
+                  }
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setNoteDragOver(false);
+                }}
+                onDrop={(e) => {
+                  if (!e.dataTransfer?.files?.length) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setNoteDragOver(false);
+                  addDroppedNoteFiles(Array.from(e.dataTransfer.files));
+                }}
+              >
                 <div className="flex items-center gap-1">
                   {([
                     { key: 'note', label: 'Note', Icon: MessageSquare },
