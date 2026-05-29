@@ -210,7 +210,7 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                             onClick={() => onOpenLead(lead)}
                             className="cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors border bg-card"
                           >
-                            <CardContent className={compact ? "p-2 space-y-1" : "p-3 space-y-2"}>
+                            <CardContent className={compact ? "p-2 space-y-1.5" : "p-3 space-y-2"}>
                               <div className="flex items-start gap-2">
                                 <div className="w-7 h-7 rounded-full bg-primary/10 text-primary text-[11px] font-semibold flex items-center justify-center shrink-0">
                                   {lead.first_name[0]}{lead.last_name?.[0] || ''}
@@ -254,37 +254,49 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               </div>
-                              {lead.loan_amount ? (
-                                <p className="text-xs font-semibold tabular-nums leading-none text-muted-foreground">
-                                  ${lead.loan_amount.toLocaleString()}
-                                </p>
-                              ) : null}
-                              {lead.source && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground inline-block">
-                                  {leadSources.find(s => s.name === lead.source)?.label || lead.source}
-                                </span>
-                              )}
-                              {/* Attribution: referral partner or client referral */}
-                              {lead.referral_partner_id && getReferrerName?.(lead.referral_partner_id) && (
-                                <div className="text-[10px] text-muted-foreground flex items-center gap-1 pt-1 border-t border-border/40">
-                                  <Users className="w-3 h-3 shrink-0" />
-                                  <span className="truncate">
-                                    {getReferrerName(lead.referral_partner_id)}
-                                    {getReferrerCompany?.(lead.referral_partner_id) && (
-                                      <span className="opacity-70"> · {getReferrerCompany(lead.referral_partner_id)}</span>
-                                    )}
-                                  </span>
+                              {/* Primary meta — loan amount and source on one row */}
+                              {(lead.loan_amount || lead.source) && (
+                                <div className="flex items-center justify-between gap-2">
+                                  {lead.loan_amount ? (
+                                    <span className="text-xs font-semibold tabular-nums text-foreground">
+                                      ${lead.loan_amount.toLocaleString()}
+                                    </span>
+                                  ) : <span />}
+                                  {lead.source && (
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground truncate max-w-[60%]">
+                                      {leadSources.find(s => s.name === lead.source)?.label || lead.source}
+                                    </span>
+                                  )}
                                 </div>
                               )}
-                              {lead.referred_by_contact_id && getContactName?.(lead.referred_by_contact_id) && !lead.referral_partner_id && (
-                                <div className="text-[10px] text-muted-foreground flex items-center gap-1 pt-1 border-t border-border/40">
-                                  <Users className="w-3 h-3 shrink-0" />
-                                  <span className="truncate">Referred by {getContactName(lead.referred_by_contact_id)}</span>
+
+                              {/* Footer meta — attribution + date on one divided row */}
+                              <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-border/40 text-[10px] text-muted-foreground">
+                                <div className="flex items-center gap-1 min-w-0 flex-1">
+                                  {lead.referral_partner_id && getReferrerName?.(lead.referral_partner_id) ? (
+                                    <>
+                                      <Users className="w-3 h-3 shrink-0" />
+                                      <span className="truncate">
+                                        {getReferrerName(lead.referral_partner_id)}
+                                        {getReferrerCompany?.(lead.referral_partner_id) && (
+                                          <span className="opacity-70"> · {getReferrerCompany(lead.referral_partner_id)}</span>
+                                        )}
+                                      </span>
+                                    </>
+                                  ) : lead.referred_by_contact_id && getContactName?.(lead.referred_by_contact_id) ? (
+                                    <>
+                                      <Users className="w-3 h-3 shrink-0" />
+                                      <span className="truncate">Referred by {getContactName(lead.referred_by_contact_id)}</span>
+                                    </>
+                                  ) : (
+                                    <span className="opacity-60">Direct</span>
+                                  )}
                                 </div>
-                              )}
-                              <p className="text-[10px] text-muted-foreground/70 pt-1 border-t border-border/40">{format(new Date(lead.created_at), 'dd MMM')}</p>
+                                <span className="shrink-0 opacity-70 tabular-nums">{format(new Date(lead.created_at), 'dd MMM')}</span>
+                              </div>
+
                               {docs && docs.requested > 0 && (
-                                <div className="pt-1 border-t border-border/40 space-y-1">
+                                <div className="pt-1.5 border-t border-border/40 space-y-1">
                                   <div className="flex items-center justify-between text-[10px]">
                                     <span className="text-muted-foreground flex items-center gap-1"><FileText className="w-3 h-3" /> Docs {docsPct}%</span>
                                     {docs.files.length > 0 && onDownloadDocs && (

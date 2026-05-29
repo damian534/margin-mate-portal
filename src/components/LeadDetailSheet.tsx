@@ -1183,23 +1183,20 @@ export function LeadDetailSheet({
       <SheetContent className="w-[95vw] sm:max-w-5xl lg:max-w-[1100px] overflow-y-auto p-0">
         {/* Contact Header Card */}
         <div className="bg-muted/30 p-6 pb-4 border-b">
-          <SheetHeader className="mb-4">
+          <SheetHeader className="mb-3">
             <SheetTitle asChild>
-              <div className="min-w-0">
+              <div className="min-w-0 space-y-1.5">
                 <Input
                   value={lead.opportunity_name ?? ''}
                   placeholder={`e.g. ${lead.last_name || 'Surname'}, ${lead.first_name || 'Name'} - ${LOAN_PURPOSE_OPTIONS.find(o => o.value === lead.loan_purpose)?.label || 'Opportunity'}`}
-                  className="h-10 text-xl font-bold border-0 px-0 mb-2 focus-visible:ring-0 placeholder:text-muted-foreground/60 placeholder:font-normal text-foreground shadow-none"
+                  className="h-9 text-xl font-bold border-0 px-0 focus-visible:ring-0 placeholder:text-muted-foreground/60 placeholder:font-normal text-foreground shadow-none leading-tight"
                   onChange={(e) => onLeadChange?.({ ...lead, opportunity_name: e.target.value })}
                   onBlur={async (e) => {
                     const v = e.target.value.trim() || null;
                     await supabase.from('leads').update({ opportunity_name: v } as any).eq('id', lead.id);
                   }}
                 />
-                {lead.loan_purpose && (
-                  <p className="text-sm font-normal text-muted-foreground">{LOAN_PURPOSE_OPTIONS.find(o => o.value === lead.loan_purpose)?.label || lead.loan_purpose}</p>
-                )}
-                <div className="mt-1.5">
+                <div className="flex items-center flex-wrap gap-2">
                   {lead.wip_status ? (() => {
                     const w = WIP_STATUSES.find(s => s.name === lead.wip_status);
                     return (
@@ -1213,33 +1210,23 @@ export function LeadDetailSheet({
                   })() : (
                     <StatusBadge status={lead.status} statuses={statuses} />
                   )}
+                  {lead.loan_purpose && (
+                    <span className="text-xs font-normal text-muted-foreground">
+                      {LOAN_PURPOSE_OPTIONS.find(o => o.value === lead.loan_purpose)?.label || lead.loan_purpose}
+                    </span>
+                  )}
+                  {lead.referred_by_contact_id && sourceContactReferralCount !== null && sourceContactReferralCount > 0 && (
+                    <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">
+                      {sourceContactReferralCount} referral{sourceContactReferralCount !== 1 ? 's' : ''}
+                    </span>
+                  )}
                 </div>
-                {lead.referred_by_contact_id && sourceContactReferralCount !== null && sourceContactReferralCount > 0 && (
-                  <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">
-                        {sourceContactReferralCount} referral{sourceContactReferralCount !== 1 ? 's' : ''}
-                      </span>
-                  </div>
-                )}
               </div>
             </SheetTitle>
           </SheetHeader>
 
-          <div className="mb-3 flex items-end gap-3">
-            {!isPreviewMode && lead.broker_id === user?.id && (
-              <div className="shrink-0">
-                <ReferLeadDialog
-                  leadId={lead.id}
-                  leadName={`${lead.first_name} ${lead.last_name}`}
-                />
-              </div>
-            )}
-            {!isPreviewMode && lead.email && (
-              <div className="shrink-0">
-                <SendMilestoneEmailDialog lead={lead as any} />
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
+          <div className="mb-3 grid grid-cols-1 sm:grid-cols-[1fr,auto] items-end gap-3">
+            <div className="min-w-0">
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">Lead Source</Label>
               <Select
                 value={lead.source ?? ''}
@@ -1252,7 +1239,7 @@ export function LeadDetailSheet({
                   }
                 }}
               >
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Select source" /></SelectTrigger>
+                <SelectTrigger className="mt-1 h-9"><SelectValue placeholder="Select source" /></SelectTrigger>
                 <SelectContent>
                   {leadSources.map(s => (
                     <SelectItem key={s.name} value={s.name}>{s.label}</SelectItem>
@@ -1273,6 +1260,17 @@ export function LeadDetailSheet({
                   <Button size="sm" className="h-8" onClick={handleAddSource}>Add</Button>
                   <Button size="sm" variant="ghost" className="h-8" onClick={() => { setAddingSource(false); setNewSourceLabel(''); }}>Cancel</Button>
                 </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {!isPreviewMode && lead.broker_id === user?.id && (
+                <ReferLeadDialog
+                  leadId={lead.id}
+                  leadName={`${lead.first_name} ${lead.last_name}`}
+                />
+              )}
+              {!isPreviewMode && lead.email && (
+                <SendMilestoneEmailDialog lead={lead as any} />
               )}
             </div>
           </div>
