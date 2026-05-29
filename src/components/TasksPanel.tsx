@@ -32,6 +32,7 @@ interface Task {
   created_at: string;
   lead_name?: string;
   assigned_to?: string | null;
+  sort_order?: number | null;
 }
 
 interface TasksPanelProps {
@@ -89,6 +90,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
     const { data } = await supabase
       .from('tasks')
       .select('*, leads(first_name, last_name)')
+      .order('sort_order', { ascending: true, nullsFirst: false })
       .order('due_date', { ascending: true, nullsFirst: false });
     const mapped = (data || []).map((t: any) => ({
       ...t,
@@ -96,6 +98,19 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
     }));
     setTasks(mapped);
     setLoading(false);
+  };
+
+  const reorderTasks = async (orderedIds: string[]) => {
+    setTasks(prev => prev.map(t => {
+      const idx = orderedIds.indexOf(t.id);
+      return idx >= 0 ? { ...t, sort_order: (idx + 1) * 10 } : t;
+    }));
+    if (isPreviewMode) return;
+    await Promise.all(
+      orderedIds.map((id, idx) =>
+        supabase.from('tasks').update({ sort_order: (idx + 1) * 10 }).eq('id', id)
+      )
+    );
   };
 
   const toggleComplete = async (task: Task) => {
@@ -350,7 +365,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
 
       {/* View */}
       {viewMode === 'day' ? (
-        <TasksDayStripView tasks={displayed.filter(t => !t.completed)} onToggleComplete={toggleComplete} onOpenLead={onOpenLead} />
+        <TasksDayStripView tasks={displayed.filter(t => !t.completed)} onToggleComplete={toggleComplete} onOpenLead={onOpenLead} onReorder={reorderTasks} />
       ) : viewMode === 'kanban' ? (
         <TasksKanban tasks={displayed.filter(t => !t.completed)} onToggleComplete={toggleComplete} onOpenLead={onOpenLead} />
       ) : (

@@ -1765,6 +1765,7 @@ export type Database = {
           id: string
           lead_id: string
           priority: number | null
+          sort_order: number | null
           title: string
           updated_at: string
         }
@@ -1780,6 +1781,7 @@ export type Database = {
           id?: string
           lead_id: string
           priority?: number | null
+          sort_order?: number | null
           title: string
           updated_at?: string
         }
@@ -1795,6 +1797,7 @@ export type Database = {
           id?: string
           lead_id?: string
           priority?: number | null
+          sort_order?: number | null
           title?: string
           updated_at?: string
         }
