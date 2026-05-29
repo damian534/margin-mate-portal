@@ -31,7 +31,7 @@ interface Task {
 interface Props {
   tasks: Task[];
   onToggleComplete: (task: Task) => void;
-  onOpenLead?: (leadId: string) => void;
+  onOpenLead?: (leadId: string, taskId?: string) => void;
   onReorder?: (orderedIds: string[]) => void;
   onTaskUpdated?: () => void;
 }

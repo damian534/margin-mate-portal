@@ -37,7 +37,7 @@ interface Task {
 
 interface TasksPanelProps {
   leads: Array<{ id: string; first_name: string; last_name: string }>;
-  onOpenLead?: (leadId: string) => void;
+  onOpenLead?: (leadId: string, taskId?: string) => void;
 }
 
 function getTaskDueCategory(task: Task): DueFilter {
