@@ -246,6 +246,15 @@ export function LeadDetailSheet({
   const [noteType, setNoteType] = useState<'note' | 'email' | 'call' | 'text'>('note');
   const [noteFiles, setNoteFiles] = useState<File[]>([]);
   const noteFileInputRef = useRef<HTMLInputElement>(null);
+  const [noteDragOver, setNoteDragOver] = useState(false);
+
+  const addDroppedNoteFiles = (files: File[]) => {
+    const valid = files.filter(f => f.size <= 25 * 1024 * 1024);
+    if (valid.length < files.length) toast.error('Some files exceeded 25MB and were skipped');
+    if (valid.length === 0) return;
+    setNoteFiles(prev => [...prev, ...valid]);
+    toast.success(`${valid.length} file${valid.length === 1 ? '' : 's'} attached`);
+  };
   const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
   const taskDescTextareaRef = useRef<HTMLTextAreaElement>(null);
   const taskNoteTextareaRef = useRef<HTMLTextAreaElement>(null);
