@@ -380,6 +380,24 @@ export function LeadDetailSheet({
     setTasks(((data as any[]) || []).map(t => ({ ...t, checklist_items: Array.isArray(t.checklist_items) ? t.checklist_items : [] })) as Task[]);
   };
 
+  // Auto-expand a task when the sheet is opened with an initialTaskId (e.g. from My Day)
+  useEffect(() => {
+    if (!open || !initialTaskId) return;
+    const t = tasks.find(x => x.id === initialTaskId);
+    if (!t) return;
+    setExpandedTaskId(t.id);
+    setEditingTask({
+      id: t.id,
+      title: t.title,
+      dueDate: t.due_date ? formatDatetimeLocal(new Date(t.due_date)) : '',
+    });
+    // Scroll the task into view shortly after expansion
+    setTimeout(() => {
+      const el = document.getElementById(`lead-task-${t.id}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 150);
+  }, [open, initialTaskId, tasks]);
+
   const fetchTaskTemplates = async () => {
     if (isPreviewMode) { setTaskTemplates([]); return; }
     const { data } = await (supabase as any)
