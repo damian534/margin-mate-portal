@@ -34,7 +34,7 @@ const TaskCircleCheck = ({
     className={cn(
       'shrink-0 h-5 w-5 rounded-full border flex items-center justify-center transition-colors',
       checked
-        ? 'bg-success border-success text-white'
+        ? 'bg-success border-success text-success-foreground'
         : 'border-muted-foreground/40 hover:border-primary bg-background',
       className,
     )}
@@ -253,7 +253,7 @@ export function TaskDetailDialog({ open, onOpenChange, taskId, initialTask, onCh
     if (!task?.due_date) return null;
     const d = new Date(task.due_date);
     if (isPast(d) && !isToday(d) && !task.completed) return { label: 'Overdue', cls: 'text-destructive' };
-    if (isToday(d)) return { label: 'Today', cls: 'text-amber-600' };
+    if (isToday(d)) return { label: 'Today', cls: 'text-success' };
     return null;
   })();
 
