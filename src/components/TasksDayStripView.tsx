@@ -229,17 +229,15 @@ export function TasksDayStripView({ tasks, onToggleComplete, onOpenLead, onReord
                               </span>
                             )}
                           </div>
-                          <p className={`font-medium text-sm ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
+                          <p className={`font-semibold text-sm leading-tight ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
+                            {task.lead_name}
+                          </p>
+                          <p className={`text-sm ${task.completed ? 'line-through text-muted-foreground' : 'text-foreground/80'}`}>
                             {task.title}
                           </p>
                           {task.description && (
                             <p className="text-xs text-muted-foreground line-clamp-2">{task.description}</p>
                           )}
-                          <div className="flex items-center gap-2 pt-0.5">
-                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <User className="w-3 h-3" /> {task.lead_name}
-                            </span>
-                          </div>
                         </div>
                         <AssigneeBadge userId={task.assigned_to ?? null} />
                       </div>
