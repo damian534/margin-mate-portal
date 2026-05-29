@@ -4,7 +4,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { format, isSameDay, startOfDay, addDays, isToday, isPast } from 'date-fns';
-import { Calendar as CalendarIcon, User, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
+import { Calendar as CalendarIcon, User, ChevronLeft, ChevronRight, AlertTriangle, GripVertical } from 'lucide-react';
 import { AssigneeBadge } from '@/components/AssigneePicker';
 
 interface Task {
@@ -18,12 +18,14 @@ interface Task {
   created_at: string;
   lead_name?: string;
   assigned_to?: string | null;
+  sort_order?: number | null;
 }
 
 interface Props {
   tasks: Task[];
   onToggleComplete: (task: Task) => void;
   onOpenLead?: (leadId: string) => void;
+  onReorder?: (orderedIds: string[]) => void;
 }
 
 function urgencyColor(task: Task): { dot: string; pill: string; label: string } {
@@ -34,9 +36,11 @@ function urgencyColor(task: Task): { dot: string; pill: string; label: string } 
   return { dot: 'bg-emerald-500', pill: 'bg-emerald-50 text-emerald-900 border-emerald-200', label: 'Upcoming' };
 }
 
-export function TasksDayStripView({ tasks, onToggleComplete, onOpenLead }: Props) {
+export function TasksDayStripView({ tasks, onToggleComplete, onOpenLead, onReorder }: Props) {
   const [anchor, setAnchor] = useState<Date>(startOfDay(new Date()));
   const [selectedDay, setSelectedDay] = useState<Date>(startOfDay(new Date()));
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
 
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(anchor, i)), [anchor]);
 
@@ -68,15 +72,18 @@ export function TasksDayStripView({ tasks, onToggleComplete, onOpenLead }: Props
   const rawSelectedTasks = tasksByDay.get(selectedKey) || [];
   const isSelectedToday = isToday(selectedDay);
 
-  // Priority sort: overdue first, then today by time, then upcoming by time, then no-time last
+  // Sort: manual sort_order first (if set), then priority (overdue → today → upcoming), then due time
   const priorityRank = (t: Task): number => {
     if (!t.due_date) return 3;
     const d = new Date(t.due_date);
-    if (isPast(d) && !isToday(d)) return 0; // overdue
+    if (isPast(d) && !isToday(d)) return 0;
     if (isToday(d)) return 1;
     return 2;
   };
   const selectedTasks = [...rawSelectedTasks].sort((a, b) => {
+    const sa = a.sort_order ?? Number.POSITIVE_INFINITY;
+    const sb = b.sort_order ?? Number.POSITIVE_INFINITY;
+    if (sa !== sb) return sa - sb;
     const ra = priorityRank(a);
     const rb = priorityRank(b);
     if (ra !== rb) return ra - rb;
@@ -84,6 +91,21 @@ export function TasksDayStripView({ tasks, onToggleComplete, onOpenLead }: Props
     const tb = b.due_date ? new Date(b.due_date).getTime() : Number.POSITIVE_INFINITY;
     return ta - tb;
   });
+
+  const handleDrop = (targetId: string) => {
+    if (!dragId || !onReorder || dragId === targetId) {
+      setDragId(null); setOverId(null); return;
+    }
+    const ids = selectedTasks.map(t => t.id);
+    const from = ids.indexOf(dragId);
+    const to = ids.indexOf(targetId);
+    if (from < 0 || to < 0) { setDragId(null); setOverId(null); return; }
+    const next = [...ids];
+    next.splice(from, 1);
+    next.splice(to, 0, dragId);
+    onReorder(next);
+    setDragId(null); setOverId(null);
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1.4fr,1fr] gap-4">
@@ -113,15 +135,33 @@ export function TasksDayStripView({ tasks, onToggleComplete, onOpenLead }: Props
               )}
               {selectedTasks.map((task, idx) => {
                 const u = urgencyColor(task);
+                const isDragging = dragId === task.id;
+                const isOver = overId === task.id && dragId !== task.id;
                 return (
                   <Card
                     key={task.id}
-                    className="cursor-pointer hover:shadow-md transition-shadow border-l-4"
-                    style={{}}
+                    draggable={!!onReorder}
+                    onDragStart={(e) => { setDragId(task.id); e.dataTransfer.effectAllowed = 'move'; }}
+                    onDragOver={(e) => { if (dragId) { e.preventDefault(); setOverId(task.id); } }}
+                    onDragLeave={() => { if (overId === task.id) setOverId(null); }}
+                    onDrop={(e) => { e.preventDefault(); handleDrop(task.id); }}
+                    onDragEnd={() => { setDragId(null); setOverId(null); }}
+                    className={`cursor-pointer hover:shadow-md transition-all border-l-4 ${
+                      isDragging ? 'opacity-40' : ''
+                    } ${isOver ? 'ring-2 ring-primary ring-offset-1' : ''}`}
                     onClick={() => onOpenLead?.(task.lead_id)}
                   >
                     <CardContent className="p-3">
                       <div className="flex items-start gap-3">
+                        {onReorder && (
+                          <span
+                            className="flex-shrink-0 mt-1 text-muted-foreground/60 hover:text-foreground cursor-grab active:cursor-grabbing"
+                            onClick={e => e.stopPropagation()}
+                            title="Drag to reorder"
+                          >
+                            <GripVertical className="w-4 h-4" />
+                          </span>
+                        )}
                         <span className="flex-shrink-0 w-6 h-6 rounded-full bg-muted text-foreground text-xs font-semibold inline-flex items-center justify-center mt-0.5">
                           {idx + 1}
                         </span>
