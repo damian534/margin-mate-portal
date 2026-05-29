@@ -6,8 +6,6 @@ import { useLeadStatuses } from '@/hooks/useLeadStatuses';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { SAMPLE_LEADS_WITH_REFERRERS, SAMPLE_NOTES, SAMPLE_COMPANIES, SAMPLE_REFERRERS } from '@/lib/sample-data';
 import { AppHeader } from '@/components/AppHeader';
-import { AdminCrmSidebar } from '@/components/AdminCrmSidebar';
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { StatusBadge } from '@/components/StatusBadge';
 import { TasksPanel } from '@/components/TasksPanel';
 import { LeadsKanban } from '@/components/LeadsKanban';
@@ -631,18 +629,7 @@ export default function AdminCRM() {
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
-      <SidebarProvider defaultOpen={true}>
-        <div className="flex w-full">
-          <AdminCrmSidebar
-            active={activeTab}
-            onChange={setActiveTab}
-            pendingReferralsCount={pendingReferralsCount}
-          />
-          <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 xl:px-10 py-6 space-y-6">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger />
-              <span className="text-xs text-muted-foreground uppercase tracking-wider">Connect CRM</span>
-            </div>
+      <main className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 py-8 space-y-6">
         {/* Monthly Pipeline KPIs */}
         {(() => {
           const now = new Date();
@@ -692,6 +679,71 @@ export default function AdminCRM() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
+          {/* Navigation: primary tabs + dropdown for the rest */}
+          {(() => {
+            const primaryTabs = [
+              { value: 'leads', label: 'Leads', icon: TrendingUp },
+              { value: 'wip', label: 'WIP', icon: Briefcase },
+              { value: 'tasks', label: 'Tasks', icon: ListTodo },
+            ];
+            const moreTabs = [
+              { value: 'contacts', label: 'Contacts', icon: ContactIcon },
+              { value: 'partners', label: 'Partners', icon: Building2 },
+              { value: 'partners_manage', label: 'Manage Partners', icon: Users },
+              { value: 'broker_referrals', label: 'Broker Referrals', icon: Share2 },
+              { value: 'edm', label: 'Email Campaigns', icon: MailIcon },
+              { value: 'pipeline_report', label: 'Pipeline Report', icon: BarChart3 },
+              { value: 'reports', label: 'Reports', icon: BarChart3 },
+            ];
+            return (
+              <div className="space-y-3">
+                {/* Hero primary tabs */}
+                <div className="flex flex-wrap items-stretch gap-2">
+                  {primaryTabs.map((tab) => (
+                    <button
+                      key={tab.value}
+                      onClick={() => setActiveTab(tab.value)}
+                      className={`flex flex-col items-center gap-1.5 rounded-xl border px-4 py-4 text-sm font-medium transition-all flex-1 min-w-[110px]
+                        ${activeTab === tab.value
+                          ? 'border-primary bg-primary/5 text-primary shadow-sm'
+                          : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground'
+                        }`}
+                    >
+                      <tab.icon className="w-5 h-5" />
+                      <span className="text-xs">{tab.label}</span>
+                    </button>
+                  ))}
+                </div>
+                {/* Secondary sub-buttons */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {moreTabs.map((tab) => {
+                    const isActive = activeTab === tab.value;
+                    const showBadge = tab.value === 'broker_referrals' && pendingReferralsCount > 0;
+                    return (
+                      <button
+                        key={tab.value}
+                        onClick={() => setActiveTab(tab.value)}
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all
+                          ${isActive
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground'
+                          }`}
+                      >
+                        <tab.icon className="w-3.5 h-3.5" />
+                        <span>{tab.label}</span>
+                        {showBadge && (
+                          <span className="ml-1 min-w-[16px] h-[16px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                            {pendingReferralsCount}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
           <TabsContent value="leads" className="space-y-4 mt-4">
             {/* Toolbar */}
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
@@ -1099,9 +1151,7 @@ export default function AdminCRM() {
 
 
         </Tabs>
-          </main>
-        </div>
-      </SidebarProvider>
+      </main>
 
       {/* Lead Detail Sheet */}
       <LeadDetailSheet
