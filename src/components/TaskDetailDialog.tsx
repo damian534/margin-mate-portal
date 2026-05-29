@@ -64,6 +64,16 @@ interface NoteRow {
   created_at: string;
 }
 
+type FetchedTaskRow = Omit<TaskRow, 'checklist_items' | 'lead_name'> & { checklist_items: unknown };
+
+type TasksChecklistUpdater = {
+  from: (table: 'tasks') => {
+    update: (values: { checklist_items: ChecklistItem[] }) => {
+      eq: (column: 'id', value: string) => Promise<unknown>;
+    };
+  };
+};
+
 
 const FOLLOW_UP_OPTIONS = [
   { label: 'Later Today', hours: 3 },
@@ -149,9 +159,10 @@ export function TaskDetailDialog({ open, onOpenChange, taskId, initialTask, onCh
         .maybeSingle();
       if (cancelled) return;
       if (error || !data) { toast.error('Could not load task'); setLoading(false); onOpenChange(false); return; }
+      const fetched = data as FetchedTaskRow;
       const row: TaskRow = {
-        ...(data as any),
-        checklist_items: Array.isArray((data as any).checklist_items) ? (data as any).checklist_items : [],
+        ...fetched,
+        checklist_items: Array.isArray(fetched.checklist_items) ? fetched.checklist_items as ChecklistItem[] : [],
         lead_name: initialTask?.lead_name ?? null,
       };
       applyTask(row);
@@ -164,7 +175,7 @@ export function TaskDetailDialog({ open, onOpenChange, taskId, initialTask, onCh
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [open, taskId, isPreviewMode]);
+  }, [open, taskId, isPreviewMode, initialTask, onOpenChange]);
 
   const applyTask = (t: TaskRow) => {
     setTask(t);
@@ -178,7 +189,7 @@ export function TaskDetailDialog({ open, onOpenChange, taskId, initialTask, onCh
   const persistChecklist = async (items: ChecklistItem[]) => {
     setChecklist(items);
     if (isPreviewMode || !task) return;
-    await (supabase as any).from('tasks').update({ checklist_items: items }).eq('id', task.id);
+    await (supabase as unknown as TasksChecklistUpdater).from('tasks').update({ checklist_items: items }).eq('id', task.id);
   };
 
   const save = async () => {
