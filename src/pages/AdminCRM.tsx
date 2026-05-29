@@ -115,6 +115,7 @@ export default function AdminCRM() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [focusTaskId, setFocusTaskId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = usePersistedState<string>('crm.leads.statusFilter', 'all');
   const [assigneeFilter, setAssigneeFilter] = usePersistedState<string[]>('crm.leads.assigneeFilterMulti', []);
