@@ -365,7 +365,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
 
       {/* View */}
       {viewMode === 'day' ? (
-        <TasksDayStripView tasks={displayed.filter(t => !t.completed)} onToggleComplete={toggleComplete} onOpenLead={onOpenLead} onReorder={reorderTasks} />
+        <TasksDayStripView tasks={displayed.filter(t => !t.completed)} onToggleComplete={toggleComplete} onOpenLead={onOpenLead} onReorder={reorderTasks} onTaskUpdated={fetchTasks} />
       ) : viewMode === 'kanban' ? (
         <TasksKanban tasks={displayed.filter(t => !t.completed)} onToggleComplete={toggleComplete} onOpenLead={onOpenLead} />
       ) : (
