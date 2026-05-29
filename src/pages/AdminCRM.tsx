@@ -444,8 +444,9 @@ export default function AdminCRM() {
     }
   };
 
-  const openLead = (lead: Lead) => {
+  const openLead = (lead: Lead, taskId?: string | null) => {
     setSelectedLead(lead);
+    setFocusTaskId(taskId ?? null);
     setSheetOpen(true);
   };
 
