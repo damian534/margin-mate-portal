@@ -999,7 +999,7 @@ export function LeadDetailSheet({
     };
 
     return (
-      <div key={task.id} className={`rounded-lg border transition-all ${isOverdue ? 'border-destructive/30 bg-destructive/5' : task.completed ? 'opacity-60' : 'bg-background'}`}>
+      <div key={task.id} id={`lead-task-${task.id}`} className={`rounded-lg border transition-all ${isOverdue ? 'border-destructive/30 bg-destructive/5' : task.completed ? 'opacity-60' : 'bg-background'}`}>
         {/* Header row — always shown */}
         <div className="flex items-start gap-2 p-2.5">
             <TaskCircleCheck checked={task.completed} onCheckedChange={() => toggleTaskComplete(task)} className="mt-0.5" />
