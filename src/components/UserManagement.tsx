@@ -323,6 +323,80 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
     }
   };
 
+  const reassignmentCandidates = users.filter(u =>
+    u.user_id && u.user_id !== removeTarget?.user_id && (u.role === 'broker' || u.role === 'broker_staff' || u.role === 'super_admin')
+  );
+
+  const openRemoveDialog = async (u: UserWithRole) => {
+    setRemoveTarget(u);
+    setReassignTo('');
+    setRemoveCounts(null);
+    if (!u.user_id) return; // placeholder profile — nothing to reassign
+    setLoadingCounts(true);
+    try {
+      const [tasksRes, assignedLeadsRes, ownedLeadsRes] = await Promise.all([
+        supabase.from('tasks').select('id', { count: 'exact', head: true }).eq('assigned_to', u.user_id).eq('completed', false),
+        supabase.from('leads').select('id', { count: 'exact', head: true }).eq('assigned_to', u.user_id),
+        supabase.from('leads').select('id', { count: 'exact', head: true }).eq('broker_id', u.user_id),
+      ]);
+      setRemoveCounts({
+        openTaskCount: tasksRes.count || 0,
+        assignedLeadCount: assignedLeadsRes.count || 0,
+        ownedLeadCount: ownedLeadsRes.count || 0,
+      });
+    } finally {
+      setLoadingCounts(false);
+    }
+  };
+
+  const confirmRemove = async () => {
+    if (!removeTarget) return;
+    const needsReassignment = !!removeCounts && (removeCounts.openTaskCount + removeCounts.assignedLeadCount + removeCounts.ownedLeadCount) > 0;
+    if (removeTarget.user_id && needsReassignment && !reassignTo) {
+      toast.error('Please choose who to reassign their work to');
+      return;
+    }
+    if (isPreviewMode) {
+      toast.success(`${removeTarget.full_name || removeTarget.email} removed (preview)`);
+      setUsers(prev => prev.filter(x => x !== removeTarget));
+      setRemoveTarget(null);
+      return;
+    }
+    setRemoving(true);
+    try {
+      if (!removeTarget.user_id && removeTarget.profile_id) {
+        // Placeholder profile (never registered) — delete directly
+        const { error } = await supabase.from('profiles').delete().eq('id', removeTarget.profile_id);
+        if (error) { toast.error('Failed to remove user'); return; }
+        toast.success('User removed');
+      } else {
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-delete-user`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+            body: JSON.stringify({ userId: removeTarget.user_id, reassignToId: reassignTo || null }),
+          }
+        );
+        const result = await res.json();
+        if (!res.ok) {
+          toast.error(result.error || 'Failed to remove user');
+          return;
+        }
+        toast.success(`${removeTarget.full_name || removeTarget.email} removed`);
+      }
+      setRemoveTarget(null);
+      fetchUsers();
+      onRefreshReferrers?.();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to remove user');
+    } finally {
+      setRemoving(false);
+    }
+  };
+
   if (loading) return <p className="text-muted-foreground text-center py-12">Loading users...</p>;
 
   return (
