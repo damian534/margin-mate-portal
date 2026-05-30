@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Plus, Pencil, Building2, Trash2, Users, Mail, Phone, UserPlus, Link2, Copy, KeyRound } from 'lucide-react';
 
-function AgencyCode({ companyId, isPreviewMode }: { companyId: string; isPreviewMode?: boolean }) {
+export function AgencyCode({ companyId, isPreviewMode }: { companyId: string; isPreviewMode?: boolean }) {
   const [code, setCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
