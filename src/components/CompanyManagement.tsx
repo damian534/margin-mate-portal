@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,48 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Plus, Pencil, Building2, Trash2, Users, Mail, Phone, UserPlus, Link2 } from 'lucide-react';
+import { Plus, Pencil, Building2, Trash2, Users, Mail, Phone, UserPlus, Link2, Copy, KeyRound } from 'lucide-react';
+
+function AgencyCode({ companyId, isPreviewMode }: { companyId: string; isPreviewMode?: boolean }) {
+  const [code, setCode] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (isPreviewMode) { setCode('MF-DEMO-AB12'); return; }
+    setLoading(true);
+    (supabase.rpc as any)('get_or_create_company_invite_code', { _company_id: companyId })
+      .then(({ data, error }: any) => {
+        if (cancelled) return;
+        if (!error && data && data[0]) setCode(data[0].code);
+        setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [companyId, isPreviewMode]);
+
+  const copyCode = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!code) return;
+    navigator.clipboard.writeText(code);
+    toast.success(`Code ${code} copied`);
+  };
+  const copyLink = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!code) return;
+    const url = `${window.location.origin}/register?code=${code}`;
+    navigator.clipboard.writeText(url);
+    toast.success('Invite link copied');
+  };
+
+  if (loading || !code) return <span className="text-xs text-muted-foreground">…</span>;
+  return (
+    <div className="flex items-center gap-1">
+      <code className="px-1.5 py-0.5 rounded bg-muted text-xs font-mono">{code}</code>
+      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={copyCode} title="Copy code"><Copy className="w-3 h-3" /></Button>
+      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={copyLink} title="Copy invite link"><Link2 className="w-3 h-3" /></Button>
+    </div>
+  );
+}
 
 export interface Company {
   id: string;
@@ -252,6 +293,7 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
                   <TableHead>Company</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead>Agents</TableHead>
+                  <TableHead>Agency Code</TableHead>
                   <TableHead>Website</TableHead>
                   <TableHead className="w-24"></TableHead>
                 </TableRow>
@@ -281,6 +323,9 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
                           <Users className="w-3.5 h-3.5 text-muted-foreground" />
                           <span>{agentCount}</span>
                         </div>
+                      </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <AgencyCode companyId={c.id} isPreviewMode={isPreviewMode} />
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{c.website || '—'}</TableCell>
                       <TableCell>
@@ -315,6 +360,14 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
                 </SheetHeader>
 
                 <div className="mt-6 space-y-4">
+                  <div className="rounded-lg border bg-muted/30 p-3">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <KeyRound className="w-3.5 h-3.5 text-primary" />
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Agency invite code</span>
+                    </div>
+                    <AgencyCode companyId={selectedCompany.id} isPreviewMode={isPreviewMode} />
+                    <p className="text-xs text-muted-foreground mt-1.5">Share this code (or the invite link) with any agent from {selectedCompany.name}. The universal code MF-MPY8TU still works as a fallback.</p>
+                  </div>
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     {selectedCompany.email && (
                       <div className="flex items-center gap-2">

@@ -726,6 +726,7 @@ export type Database = {
         Row: {
           broker_id: string
           code: string
+          company_id: string | null
           created_at: string
           expires_at: string | null
           id: string
@@ -738,6 +739,7 @@ export type Database = {
         Insert: {
           broker_id: string
           code: string
+          company_id?: string | null
           created_at?: string
           expires_at?: string | null
           id?: string
@@ -750,6 +752,7 @@ export type Database = {
         Update: {
           broker_id?: string
           code?: string
+          company_id?: string | null
           created_at?: string
           expires_at?: string | null
           id?: string
@@ -759,7 +762,15 @@ export type Database = {
           target_role?: string | null
           used_count?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "invite_codes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lead_applicants: {
         Row: {
@@ -1901,6 +1912,14 @@ export type Database = {
       }
       get_director_company_id: { Args: { _user_id: string }; Returns: string }
       get_my_broker_id: { Args: { _user_id: string }; Returns: string }
+      get_or_create_company_invite_code: {
+        Args: { _company_id: string }
+        Returns: {
+          code: string
+          id: string
+          used_count: number
+        }[]
+      }
       get_user_tenant_broker_id: { Args: { _user_id: string }; Returns: string }
       has_any_super_admin: { Args: never; Returns: boolean }
       has_role: {
