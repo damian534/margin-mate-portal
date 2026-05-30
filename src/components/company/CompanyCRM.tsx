@@ -15,11 +15,14 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, startOfYear, subMonths, isWithinInterval, startOfQuarter, endOfQuarter } from 'date-fns';
 import {
   ArrowLeft, Building2, Users, TrendingUp, DollarSign, BarChart3,
-  Mail, Phone, Trophy, CheckCircle, Clock, UserPlus, Link2, Crown, KeyRound,
+  Mail, Phone, Trophy, CheckCircle, Clock, UserPlus, Link2, Crown, KeyRound, Send,
 } from 'lucide-react';
 import { MessageSquare } from 'lucide-react';
 import { CompanyEngagementPanel } from '@/components/partners/CompanyEngagementPanel';
@@ -73,6 +76,9 @@ export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpen
   const [directorOverrides, setDirectorOverrides] = useState<Record<string, boolean>>({});
   const [editingReferrer, setEditingReferrer] = useState<ReferrerProfileData | null>(null);
   const [editSheetOpen, setEditSheetOpen] = useState(false);
+  const [addAgentOpen, setAddAgentOpen] = useState(false);
+  const [agentForm, setAgentForm] = useState({ firstName: '', lastName: '', email: '', phone: '', sendInvite: true });
+  const [savingAgent, setSavingAgent] = useState(false);
 
   const [companies, setCompanies] = useState<Company[]>([company]);
   useEffect(() => {
@@ -92,6 +98,80 @@ export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpen
     if (!r) return;
     setEditingReferrer(r);
     setEditSheetOpen(true);
+  };
+
+  const addAgent = async () => {
+    if (!agentForm.firstName.trim() || !agentForm.lastName.trim()) {
+      toast.error('First and last name are required');
+      return;
+    }
+    const fullName = `${agentForm.firstName.trim()} ${agentForm.lastName.trim()}`;
+    const email = agentForm.email.trim().toLowerCase();
+
+    if (isPreviewMode) {
+      toast.success(`${fullName} added (preview)`);
+      setAddAgentOpen(false);
+      setAgentForm({ firstName: '', lastName: '', email: '', phone: '', sendInvite: true });
+      return;
+    }
+
+    if (!user) { toast.error('You must be logged in'); return; }
+    setSavingAgent(true);
+    try {
+      if (email) {
+        const { data: existing } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', email)
+          .maybeSingle();
+        if (existing) { toast.error('An agent with this email already exists'); return; }
+      }
+
+      const { error: profileError } = await supabase.from('profiles').insert({
+        user_id: null,
+        email: email || null,
+        full_name: fullName,
+        phone: agentForm.phone.trim() || null,
+        broker_id: user.id,
+        company_id: company.id,
+        company_name: company.name,
+      } as any);
+      if (profileError) { toast.error('Failed to add agent'); console.error(profileError); return; }
+
+      // If invite + email provided, fetch the agency code and send invite email
+      if (agentForm.sendInvite && email) {
+        const { data: codeRes } = await (supabase.rpc as any)('get_or_create_company_invite_code', { _company_id: company.id });
+        const code = codeRes?.[0]?.code;
+        if (code) {
+          const registerUrl = `${window.location.origin}/register?code=${code}`;
+          const html = `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #333;">You're Invited to Margin Finance</h2>
+              <p>Hi ${agentForm.firstName.trim()},</p>
+              <p>You've been invited to join <strong>Margin Finance</strong> as a referral partner for <strong>${company.name}</strong>.</p>
+              <div style="margin: 24px 0;">
+                <a href="${registerUrl}" style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">Register Now</a>
+              </div>
+              <p style="color: #666; font-size: 14px;">Your agency code: <strong>${code}</strong></p>
+              <p style="color: #666; font-size: 14px;">Or copy this link: <a href="${registerUrl}">${registerUrl}</a></p>
+            </div>`;
+          await supabase.functions.invoke('send-email', {
+            body: { to: email, subject: `You're invited to Margin Finance (${company.name})`, html },
+          });
+          toast.success(`${fullName} added — invite sent to ${email}`);
+        } else {
+          toast.success(`${fullName} added`);
+        }
+      } else {
+        toast.success(`${fullName} added to ${company.name}`);
+      }
+
+      setAddAgentOpen(false);
+      setAgentForm({ firstName: '', lastName: '', email: '', phone: '', sendInvite: true });
+      onRefreshReferrers?.();
+    } finally {
+      setSavingAgent(false);
+    }
   };
 
   // Get agents for this company
@@ -373,10 +453,17 @@ export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpen
         <TabsContent value="agents" className="space-y-4 mt-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-heading font-semibold">Agents ({companyAgents.length})</h3>
-            <p className="text-xs text-muted-foreground">Click an agent to edit their profile and settings</p>
+            <div className="flex items-center gap-3">
+              <p className="text-xs text-muted-foreground hidden sm:block">Click an agent to edit · or invite a new one</p>
+              <Button size="sm" onClick={() => setAddAgentOpen(true)}>
+                <UserPlus className="w-4 h-4 mr-1.5" /> Add Agent
+              </Button>
+            </div>
           </div>
           {companyAgents.length === 0 ? (
-            <Card><CardContent className="py-12 text-center text-muted-foreground">No agents linked to this company yet.</CardContent></Card>
+            <Card><CardContent className="py-12 text-center text-muted-foreground">
+              No agents linked yet. Click <span className="font-medium">Add Agent</span> to add one, or share the agency code so they can self-register.
+            </CardContent></Card>
           ) : (
             <div className="grid gap-3">
               {agentPerformance.map(agent => (
@@ -559,6 +646,32 @@ export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpen
         isPreviewMode={isPreviewMode}
         onSaved={() => onRefreshReferrers?.()}
       />
+
+      <Dialog open={addAgentOpen} onOpenChange={setAddAgentOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Agent to {company.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>First Name *</Label><Input value={agentForm.firstName} onChange={e => setAgentForm(f => ({ ...f, firstName: e.target.value }))} maxLength={100} /></div>
+              <div><Label>Last Name *</Label><Input value={agentForm.lastName} onChange={e => setAgentForm(f => ({ ...f, lastName: e.target.value }))} maxLength={100} /></div>
+            </div>
+            <div><Label>Email</Label><Input type="email" value={agentForm.email} onChange={e => setAgentForm(f => ({ ...f, email: e.target.value }))} placeholder="agent@agency.com" maxLength={255} /></div>
+            <div><Label>Phone</Label><Input value={agentForm.phone} onChange={e => setAgentForm(f => ({ ...f, phone: e.target.value }))} maxLength={20} /></div>
+            <label className="flex items-start gap-2 rounded-md border p-3 cursor-pointer">
+              <Checkbox checked={agentForm.sendInvite} onCheckedChange={(v) => setAgentForm(f => ({ ...f, sendInvite: !!v }))} className="mt-0.5" />
+              <div className="text-sm">
+                <p className="font-medium">Send invite email</p>
+                <p className="text-xs text-muted-foreground">Emails the agent a registration link pre-filled with this agency's invite code. Requires email above.</p>
+              </div>
+            </label>
+            <Button onClick={addAgent} className="w-full" disabled={savingAgent}>
+              {savingAgent ? 'Adding…' : agentForm.sendInvite && agentForm.email ? (<><Send className="w-4 h-4 mr-1.5" /> Add & Invite Agent</>) : 'Add Agent'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
