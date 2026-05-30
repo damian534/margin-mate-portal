@@ -544,6 +544,15 @@ export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpen
           </Card>
         </TabsContent>
       </Tabs>
+
+      <ReferrerEditSheet
+        open={editSheetOpen}
+        onOpenChange={setEditSheetOpen}
+        referrer={editingReferrer}
+        companies={companies}
+        isPreviewMode={isPreviewMode}
+        onSaved={() => onRefreshReferrers?.()}
+      />
     </div>
   );
 }
