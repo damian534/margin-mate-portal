@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useLeadStatuses } from '@/hooks/useLeadStatuses';
-import { Company } from '@/components/CompanyManagement';
+import { Company, AgencyCode } from '@/components/CompanyManagement';
 import { ReferrerProfileData } from '@/components/ReferrerProfile';
 import { CompanyLeaderboard } from './CompanyLeaderboard';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, startOfYear, subMonths, isWithinInterval, startOfQuarter, endOfQuarter } from 'date-fns';
 import {
   ArrowLeft, Building2, Users, TrendingUp, DollarSign, BarChart3,
-  Mail, Phone, Trophy, CheckCircle, Clock, UserPlus, Link2, Crown,
+  Mail, Phone, Trophy, CheckCircle, Clock, UserPlus, Link2, Crown, KeyRound,
 } from 'lucide-react';
 import { MessageSquare } from 'lucide-react';
 import { CompanyEngagementPanel } from '@/components/partners/CompanyEngagementPanel';
@@ -259,6 +259,11 @@ export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpen
               {company.address && <span>{company.address}</span>}
               {company.email && <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{company.email}</span>}
               {company.phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{company.phone}</span>}
+            </div>
+            <div className="flex items-center gap-2 mt-1.5">
+              <KeyRound className="w-3.5 h-3.5 text-primary" />
+              <span className="text-xs font-medium text-muted-foreground">Agency code:</span>
+              <AgencyCode companyId={company.id} isPreviewMode={isPreviewMode} />
             </div>
           </div>
         </div>
