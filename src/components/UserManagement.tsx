@@ -11,10 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Shield, ShieldCheck, KeyRound, Loader2, Plus, UserPlus, Send } from 'lucide-react';
+import { Shield, ShieldCheck, KeyRound, Loader2, Plus, UserPlus, Send, Trash2, AlertTriangle } from 'lucide-react';
 import { Company } from '@/components/CompanyManagement';
 
 interface UserWithRole {
+  profile_id?: string;
   user_id: string;
   email: string | null;
   full_name: string | null;
@@ -37,6 +38,11 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
   const [invitingEmail, setInvitingEmail] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<UserWithRole | null>(null);
+  const [removeCounts, setRemoveCounts] = useState<{ openTaskCount: number; assignedLeadCount: number; ownedLeadCount: number } | null>(null);
+  const [reassignTo, setReassignTo] = useState<string>('');
+  const [removing, setRemoving] = useState(false);
+  const [loadingCounts, setLoadingCounts] = useState(false);
   const [form, setForm] = useState({
     fullName: '',
     email: '',
@@ -61,12 +67,13 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data: profiles } = await supabase.from('profiles').select('user_id, email, full_name, created_at, company_name, company_id');
+    const { data: profiles } = await supabase.from('profiles').select('id, user_id, email, full_name, created_at, company_name, company_id');
     const { data: roles } = await supabase.from('user_roles').select('user_id, role');
 
     if (profiles) {
       const roleMap = new Map(roles?.map(r => [r.user_id, r.role]) || []);
       const combined: UserWithRole[] = profiles.map(p => ({
+        profile_id: p.id,
         user_id: p.user_id,
         email: p.email,
         full_name: p.full_name,
@@ -316,6 +323,80 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
     }
   };
 
+  const reassignmentCandidates = users.filter(u =>
+    u.user_id && u.user_id !== removeTarget?.user_id && (u.role === 'broker' || u.role === 'broker_staff' || u.role === 'super_admin')
+  );
+
+  const openRemoveDialog = async (u: UserWithRole) => {
+    setRemoveTarget(u);
+    setReassignTo('');
+    setRemoveCounts(null);
+    if (!u.user_id) return; // placeholder profile — nothing to reassign
+    setLoadingCounts(true);
+    try {
+      const [tasksRes, assignedLeadsRes, ownedLeadsRes] = await Promise.all([
+        supabase.from('tasks').select('id', { count: 'exact', head: true }).eq('assigned_to', u.user_id).eq('completed', false),
+        supabase.from('leads').select('id', { count: 'exact', head: true }).eq('assigned_to', u.user_id),
+        supabase.from('leads').select('id', { count: 'exact', head: true }).eq('broker_id', u.user_id),
+      ]);
+      setRemoveCounts({
+        openTaskCount: tasksRes.count || 0,
+        assignedLeadCount: assignedLeadsRes.count || 0,
+        ownedLeadCount: ownedLeadsRes.count || 0,
+      });
+    } finally {
+      setLoadingCounts(false);
+    }
+  };
+
+  const confirmRemove = async () => {
+    if (!removeTarget) return;
+    const needsReassignment = !!removeCounts && (removeCounts.openTaskCount + removeCounts.assignedLeadCount + removeCounts.ownedLeadCount) > 0;
+    if (removeTarget.user_id && needsReassignment && !reassignTo) {
+      toast.error('Please choose who to reassign their work to');
+      return;
+    }
+    if (isPreviewMode) {
+      toast.success(`${removeTarget.full_name || removeTarget.email} removed (preview)`);
+      setUsers(prev => prev.filter(x => x !== removeTarget));
+      setRemoveTarget(null);
+      return;
+    }
+    setRemoving(true);
+    try {
+      if (!removeTarget.user_id && removeTarget.profile_id) {
+        // Placeholder profile (never registered) — delete directly
+        const { error } = await supabase.from('profiles').delete().eq('id', removeTarget.profile_id);
+        if (error) { toast.error('Failed to remove user'); return; }
+        toast.success('User removed');
+      } else {
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-delete-user`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+            body: JSON.stringify({ userId: removeTarget.user_id, reassignToId: reassignTo || null }),
+          }
+        );
+        const result = await res.json();
+        if (!res.ok) {
+          toast.error(result.error || 'Failed to remove user');
+          return;
+        }
+        toast.success(`${removeTarget.full_name || removeTarget.email} removed`);
+      }
+      setRemoveTarget(null);
+      fetchUsers();
+      onRefreshReferrers?.();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to remove user');
+    } finally {
+      setRemoving(false);
+    }
+  };
+
   if (loading) return <p className="text-muted-foreground text-center py-12">Loading users...</p>;
 
   return (
@@ -450,6 +531,17 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
                               Reset PW
                             </Button>
                           )}
+                          {u.role !== 'super_admin' && u.user_id !== user?.id && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 h-8 text-destructive hover:text-destructive"
+                              onClick={() => openRemoveDialog(u)}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              Remove
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     )}
@@ -460,6 +552,75 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={!!removeTarget} onOpenChange={(v) => { if (!v) { setRemoveTarget(null); setRemoveCounts(null); setReassignTo(''); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              Remove {removeTarget?.full_name || removeTarget?.email}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            {!removeTarget?.user_id ? (
+              <p className="text-sm text-muted-foreground">
+                This user hasn't registered yet. Removing them will delete the placeholder profile.
+              </p>
+            ) : loadingCounts || !removeCounts ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" /> Checking assigned work...
+              </div>
+            ) : (removeCounts.openTaskCount + removeCounts.assignedLeadCount + removeCounts.ownedLeadCount) === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                This user has no open tasks or assigned files. They can be removed safely.
+              </p>
+            ) : (
+              <>
+                <div className="rounded-md border bg-muted/40 p-3 space-y-1 text-sm">
+                  <p className="font-medium">Currently assigned to this user:</p>
+                  <ul className="text-muted-foreground space-y-0.5">
+                    {removeCounts.openTaskCount > 0 && <li>• {removeCounts.openTaskCount} open task{removeCounts.openTaskCount === 1 ? '' : 's'}</li>}
+                    {removeCounts.assignedLeadCount > 0 && <li>• {removeCounts.assignedLeadCount} file{removeCounts.assignedLeadCount === 1 ? '' : 's'} (assigned)</li>}
+                    {removeCounts.ownedLeadCount > 0 && <li>• {removeCounts.ownedLeadCount} file{removeCounts.ownedLeadCount === 1 ? '' : 's'} (owned)</li>}
+                  </ul>
+                  <p className="text-xs text-muted-foreground pt-1">
+                    All of this work must be reassigned before the user can be removed.
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-xs">Reassign all work to *</Label>
+                  <Select value={reassignTo} onValueChange={setReassignTo}>
+                    <SelectTrigger><SelectValue placeholder="Select a team member" /></SelectTrigger>
+                    <SelectContent>
+                      {reassignmentCandidates.length === 0 ? (
+                        <div className="px-2 py-1.5 text-sm text-muted-foreground">No other team members available</div>
+                      ) : reassignmentCandidates.map(c => (
+                        <SelectItem key={c.user_id} value={c.user_id}>
+                          {c.full_name || c.email} {c.role ? `(${c.role.replace('_', ' ')})` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setRemoveTarget(null)} disabled={removing}>Cancel</Button>
+              <Button
+                variant="destructive"
+                onClick={confirmRemove}
+                disabled={
+                  removing ||
+                  (!!removeTarget?.user_id && (loadingCounts || !removeCounts)) ||
+                  (!!removeTarget?.user_id && !!removeCounts && (removeCounts.openTaskCount + removeCounts.assignedLeadCount + removeCounts.ownedLeadCount) > 0 && !reassignTo)
+                }
+              >
+                {removing ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Removing...</> : 'Remove user'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
