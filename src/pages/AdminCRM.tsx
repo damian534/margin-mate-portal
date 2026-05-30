@@ -12,7 +12,7 @@ import { LeadsKanban } from '@/components/LeadsKanban';
 import { StatusSettings } from '@/components/StatusSettings';
 import { CompanyManagement, Company } from '@/components/CompanyManagement';
 import { CompanyCRM } from '@/components/company/CompanyCRM';
-import { ReferrerProfiles, ReferrerProfileData } from '@/components/ReferrerProfile';
+import { ReferrerProfileData } from '@/components/ReferrerProfile';
 import { ReferrerReports } from '@/components/ReferrerReports';
 import { PartnersHub } from '@/components/partners/PartnersHub';
 import { PipelineKpiCard } from '@/components/PipelineKpiCard';
@@ -1088,6 +1088,7 @@ export default function AdminCRM() {
                 onBack={() => setSelectedCompanyCRM(null)}
                 onOpenLead={openLead}
                 isPreviewMode={isPreviewMode}
+                onRefreshReferrers={fetchReferrers}
               />
             ) : (
               <div className="space-y-6">
@@ -1103,13 +1104,6 @@ export default function AdminCRM() {
                 />
                 <div id="partners-manage-section" className="space-y-6 pt-4 border-t">
                   <CompanyManagement companies={companies} onRefresh={fetchCompanies} onRefreshContacts={fetchContacts} isPreviewMode={isPreviewMode} referrers={referrers} contacts={contacts} onOpenContact={(contactId) => { setSheetOpen(false); setActiveTab('contacts'); setTimeout(() => setOpenContactId(contactId), 300); }} onOpenCompanyCRM={(company) => setSelectedCompanyCRM(company)} />
-                  <ReferrerProfiles
-                    referrers={referrers}
-                    companies={companies}
-                    onRefresh={fetchReferrers}
-                    isPreviewMode={isPreviewMode}
-                    onViewReport={handleViewReport}
-                  />
                 </div>
               </div>
             )}

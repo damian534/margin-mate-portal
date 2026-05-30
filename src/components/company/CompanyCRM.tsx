@@ -24,6 +24,7 @@ import {
 import { MessageSquare } from 'lucide-react';
 import { CompanyEngagementPanel } from '@/components/partners/CompanyEngagementPanel';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { ReferrerEditSheet } from '@/components/ReferrerEditSheet';
 
 interface Lead {
   id: string;
@@ -61,14 +62,37 @@ interface CompanyCRMProps {
   onBack: () => void;
   onOpenLead?: (lead: Lead) => void;
   isPreviewMode?: boolean;
+  onRefreshReferrers?: () => void;
 }
 
-export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpenLead, isPreviewMode }: CompanyCRMProps) {
+export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpenLead, isPreviewMode, onRefreshReferrers }: CompanyCRMProps) {
   const { user } = useAuth();
   const { statuses } = useLeadStatuses();
   const [activeTab, setActiveTab] = useState('overview');
   const [period, setPeriod] = useState<TimePeriod>('all_time');
   const [directorOverrides, setDirectorOverrides] = useState<Record<string, boolean>>({});
+  const [editingReferrer, setEditingReferrer] = useState<ReferrerProfileData | null>(null);
+  const [editSheetOpen, setEditSheetOpen] = useState(false);
+
+  const [companies, setCompanies] = useState<Company[]>([company]);
+  useEffect(() => {
+    let active = true;
+    supabase.from('companies').select('*').order('name').then(({ data }) => {
+      if (active && data) setCompanies(data as Company[]);
+    });
+    return () => { active = false; };
+  }, [company.id]);
+
+  const openAgentEditor = (agent: { id: string; source: 'profile' | 'contact' }) => {
+    if (agent.source !== 'profile') {
+      toast.info('This agent was added as a contact. Convert them to a partner from the Contacts section to edit settings.');
+      return;
+    }
+    const r = referrers.find(rr => rr.id === agent.id);
+    if (!r) return;
+    setEditingReferrer(r);
+    setEditSheetOpen(true);
+  };
 
   // Get agents for this company
   const companyAgents = useMemo(() => {
@@ -344,13 +368,14 @@ export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpen
         <TabsContent value="agents" className="space-y-4 mt-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-heading font-semibold">Agents ({companyAgents.length})</h3>
+            <p className="text-xs text-muted-foreground">Click an agent to edit their profile and settings</p>
           </div>
           {companyAgents.length === 0 ? (
             <Card><CardContent className="py-12 text-center text-muted-foreground">No agents linked to this company yet.</CardContent></Card>
           ) : (
             <div className="grid gap-3">
               {agentPerformance.map(agent => (
-                <Card key={agent.id} className="overflow-hidden">
+                <Card key={agent.id} className="overflow-hidden cursor-pointer hover:border-primary/40 hover:shadow-sm transition" onClick={() => openAgentEditor(agent)}>
                   <CardContent className="p-4">
                     <div className="flex items-center gap-4">
                       <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
@@ -382,7 +407,7 @@ export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpen
                           <p className="text-[10px] text-muted-foreground">Volume</p>
                         </div>
                         {agent.source === 'profile' && (
-                          <div className="flex items-center gap-2 border-l pl-4">
+                          <div className="flex items-center gap-2 border-l pl-4" onClick={(e) => e.stopPropagation()}>
                             <Label htmlFor={`dir-${agent.id}`} className="text-xs text-muted-foreground">Director</Label>
                             <Switch
                               id={`dir-${agent.id}`}
@@ -520,6 +545,15 @@ export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpen
           </Card>
         </TabsContent>
       </Tabs>
+
+      <ReferrerEditSheet
+        open={editSheetOpen}
+        onOpenChange={setEditSheetOpen}
+        referrer={editingReferrer}
+        companies={companies}
+        isPreviewMode={isPreviewMode}
+        onSaved={() => onRefreshReferrers?.()}
+      />
     </div>
   );
 }
