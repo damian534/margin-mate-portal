@@ -531,6 +531,17 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
                               Reset PW
                             </Button>
                           )}
+                          {u.role !== 'super_admin' && u.user_id !== user?.id && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 h-8 text-destructive hover:text-destructive"
+                              onClick={() => openRemoveDialog(u)}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              Remove
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     )}
@@ -541,6 +552,75 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={!!removeTarget} onOpenChange={(v) => { if (!v) { setRemoveTarget(null); setRemoveCounts(null); setReassignTo(''); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              Remove {removeTarget?.full_name || removeTarget?.email}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            {!removeTarget?.user_id ? (
+              <p className="text-sm text-muted-foreground">
+                This user hasn't registered yet. Removing them will delete the placeholder profile.
+              </p>
+            ) : loadingCounts || !removeCounts ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" /> Checking assigned work...
+              </div>
+            ) : (removeCounts.openTaskCount + removeCounts.assignedLeadCount + removeCounts.ownedLeadCount) === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                This user has no open tasks or assigned files. They can be removed safely.
+              </p>
+            ) : (
+              <>
+                <div className="rounded-md border bg-muted/40 p-3 space-y-1 text-sm">
+                  <p className="font-medium">Currently assigned to this user:</p>
+                  <ul className="text-muted-foreground space-y-0.5">
+                    {removeCounts.openTaskCount > 0 && <li>• {removeCounts.openTaskCount} open task{removeCounts.openTaskCount === 1 ? '' : 's'}</li>}
+                    {removeCounts.assignedLeadCount > 0 && <li>• {removeCounts.assignedLeadCount} file{removeCounts.assignedLeadCount === 1 ? '' : 's'} (assigned)</li>}
+                    {removeCounts.ownedLeadCount > 0 && <li>• {removeCounts.ownedLeadCount} file{removeCounts.ownedLeadCount === 1 ? '' : 's'} (owned)</li>}
+                  </ul>
+                  <p className="text-xs text-muted-foreground pt-1">
+                    All of this work must be reassigned before the user can be removed.
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-xs">Reassign all work to *</Label>
+                  <Select value={reassignTo} onValueChange={setReassignTo}>
+                    <SelectTrigger><SelectValue placeholder="Select a team member" /></SelectTrigger>
+                    <SelectContent>
+                      {reassignmentCandidates.length === 0 ? (
+                        <div className="px-2 py-1.5 text-sm text-muted-foreground">No other team members available</div>
+                      ) : reassignmentCandidates.map(c => (
+                        <SelectItem key={c.user_id} value={c.user_id}>
+                          {c.full_name || c.email} {c.role ? `(${c.role.replace('_', ' ')})` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setRemoveTarget(null)} disabled={removing}>Cancel</Button>
+              <Button
+                variant="destructive"
+                onClick={confirmRemove}
+                disabled={
+                  removing ||
+                  (!!removeTarget?.user_id && (loadingCounts || !removeCounts)) ||
+                  (!!removeTarget?.user_id && !!removeCounts && (removeCounts.openTaskCount + removeCounts.assignedLeadCount + removeCounts.ownedLeadCount) > 0 && !reassignTo)
+                }
+              >
+                {removing ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Removing...</> : 'Remove user'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
