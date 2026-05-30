@@ -24,6 +24,7 @@ import {
 import { MessageSquare } from 'lucide-react';
 import { CompanyEngagementPanel } from '@/components/partners/CompanyEngagementPanel';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { ReferrerEditSheet } from '@/components/ReferrerEditSheet';
 
 interface Lead {
   id: string;
@@ -61,14 +62,37 @@ interface CompanyCRMProps {
   onBack: () => void;
   onOpenLead?: (lead: Lead) => void;
   isPreviewMode?: boolean;
+  onRefreshReferrers?: () => void;
 }
 
-export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpenLead, isPreviewMode }: CompanyCRMProps) {
+export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpenLead, isPreviewMode, onRefreshReferrers }: CompanyCRMProps) {
   const { user } = useAuth();
   const { statuses } = useLeadStatuses();
   const [activeTab, setActiveTab] = useState('overview');
   const [period, setPeriod] = useState<TimePeriod>('all_time');
   const [directorOverrides, setDirectorOverrides] = useState<Record<string, boolean>>({});
+  const [editingReferrer, setEditingReferrer] = useState<ReferrerProfileData | null>(null);
+  const [editSheetOpen, setEditSheetOpen] = useState(false);
+
+  const [companies, setCompanies] = useState<Company[]>([company]);
+  useEffect(() => {
+    let active = true;
+    supabase.from('companies').select('*').order('name').then(({ data }) => {
+      if (active && data) setCompanies(data as Company[]);
+    });
+    return () => { active = false; };
+  }, [company.id]);
+
+  const openAgentEditor = (agent: { id: string; source: 'profile' | 'contact' }) => {
+    if (agent.source !== 'profile') {
+      toast.info('This agent was added as a contact. Convert them to a partner from the Contacts section to edit settings.');
+      return;
+    }
+    const r = referrers.find(rr => rr.id === agent.id);
+    if (!r) return;
+    setEditingReferrer(r);
+    setEditSheetOpen(true);
+  };
 
   // Get agents for this company
   const companyAgents = useMemo(() => {
