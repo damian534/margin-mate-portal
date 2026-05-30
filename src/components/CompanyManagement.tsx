@@ -293,6 +293,7 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
                   <TableHead>Company</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead>Agents</TableHead>
+                  <TableHead>Agency Code</TableHead>
                   <TableHead>Website</TableHead>
                   <TableHead className="w-24"></TableHead>
                 </TableRow>
@@ -322,6 +323,9 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
                           <Users className="w-3.5 h-3.5 text-muted-foreground" />
                           <span>{agentCount}</span>
                         </div>
+                      </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <AgencyCode companyId={c.id} isPreviewMode={isPreviewMode} />
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{c.website || '—'}</TableCell>
                       <TableCell>
