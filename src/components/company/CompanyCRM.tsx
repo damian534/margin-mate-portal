@@ -374,7 +374,7 @@ export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpen
           ) : (
             <div className="grid gap-3">
               {agentPerformance.map(agent => (
-                <Card key={agent.id} className="overflow-hidden">
+                <Card key={agent.id} className="overflow-hidden cursor-pointer hover:border-primary/40 hover:shadow-sm transition" onClick={() => openAgentEditor(agent)}>
                   <CardContent className="p-4">
                     <div className="flex items-center gap-4">
                       <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
@@ -406,7 +406,7 @@ export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpen
                           <p className="text-[10px] text-muted-foreground">Volume</p>
                         </div>
                         {agent.source === 'profile' && (
-                          <div className="flex items-center gap-2 border-l pl-4">
+                          <div className="flex items-center gap-2 border-l pl-4" onClick={(e) => e.stopPropagation()}>
                             <Label htmlFor={`dir-${agent.id}`} className="text-xs text-muted-foreground">Director</Label>
                             <Switch
                               id={`dir-${agent.id}`}
