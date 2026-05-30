@@ -646,6 +646,32 @@ export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpen
         isPreviewMode={isPreviewMode}
         onSaved={() => onRefreshReferrers?.()}
       />
+
+      <Dialog open={addAgentOpen} onOpenChange={setAddAgentOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Agent to {company.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>First Name *</Label><Input value={agentForm.firstName} onChange={e => setAgentForm(f => ({ ...f, firstName: e.target.value }))} maxLength={100} /></div>
+              <div><Label>Last Name *</Label><Input value={agentForm.lastName} onChange={e => setAgentForm(f => ({ ...f, lastName: e.target.value }))} maxLength={100} /></div>
+            </div>
+            <div><Label>Email</Label><Input type="email" value={agentForm.email} onChange={e => setAgentForm(f => ({ ...f, email: e.target.value }))} placeholder="agent@agency.com" maxLength={255} /></div>
+            <div><Label>Phone</Label><Input value={agentForm.phone} onChange={e => setAgentForm(f => ({ ...f, phone: e.target.value }))} maxLength={20} /></div>
+            <label className="flex items-start gap-2 rounded-md border p-3 cursor-pointer">
+              <Checkbox checked={agentForm.sendInvite} onCheckedChange={(v) => setAgentForm(f => ({ ...f, sendInvite: !!v }))} className="mt-0.5" />
+              <div className="text-sm">
+                <p className="font-medium">Send invite email</p>
+                <p className="text-xs text-muted-foreground">Emails the agent a registration link pre-filled with this agency's invite code. Requires email above.</p>
+              </div>
+            </label>
+            <Button onClick={addAgent} className="w-full" disabled={savingAgent}>
+              {savingAgent ? 'Adding…' : agentForm.sendInvite && agentForm.email ? (<><Send className="w-4 h-4 mr-1.5" /> Add & Invite Agent</>) : 'Add Agent'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
