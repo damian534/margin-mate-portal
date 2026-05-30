@@ -360,6 +360,14 @@ export function CompanyManagement({ companies, onRefresh, onRefreshContacts, isP
                 </SheetHeader>
 
                 <div className="mt-6 space-y-4">
+                  <div className="rounded-lg border bg-muted/30 p-3">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <KeyRound className="w-3.5 h-3.5 text-primary" />
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Agency invite code</span>
+                    </div>
+                    <AgencyCode companyId={selectedCompany.id} isPreviewMode={isPreviewMode} />
+                    <p className="text-xs text-muted-foreground mt-1.5">Share this code (or the invite link) with any agent from {selectedCompany.name}. The universal code MF-MPY8TU still works as a fallback.</p>
+                  </div>
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     {selectedCompany.email && (
                       <div className="flex items-center gap-2">
