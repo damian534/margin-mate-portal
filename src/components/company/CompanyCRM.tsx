@@ -368,6 +368,7 @@ export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpen
         <TabsContent value="agents" className="space-y-4 mt-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-heading font-semibold">Agents ({companyAgents.length})</h3>
+            <p className="text-xs text-muted-foreground">Click an agent to edit their profile and settings</p>
           </div>
           {companyAgents.length === 0 ? (
             <Card><CardContent className="py-12 text-center text-muted-foreground">No agents linked to this company yet.</CardContent></Card>
