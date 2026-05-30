@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, X, Save, CheckCircle, Trash2, Send, User, Calendar, Check } from 'lucide-react';
+import { Plus, X, Save, CheckCircle, Trash2, Send, User, Calendar, Check, Bold, Italic, List, ListOrdered, ListChecks } from 'lucide-react';
 import { format, isPast, isToday } from 'date-fns';
 import { AssigneePicker } from '@/components/AssigneePicker';
 import { supabase } from '@/integrations/supabase/client';
@@ -102,6 +102,17 @@ function toLocal(iso: string | null) {
   const d = new Date(iso);
   const pad = (n: number) => n.toString().padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function applyTextFormat(
+  el: HTMLTextAreaElement | null,
+  setValue: (value: string) => void,
+  formatter: (value: string, start: number, end: number) => { value: string; cursor: number },
+) {
+  if (!el) return;
+  const { value, cursor } = formatter(el.value, el.selectionStart ?? 0, el.selectionEnd ?? 0);
+  setValue(value);
+  requestAnimationFrame(() => { el.focus(); el.setSelectionRange(cursor, cursor); });
 }
 
 interface Props {
@@ -385,6 +396,43 @@ export function TaskDetailDialog({ open, onOpenChange, taskId, initialTask, onCh
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Notes</Label>
                     <div className="rounded-md border bg-background">
+                      <div className="flex items-center gap-0.5 px-1.5 py-1 border-b bg-muted/40">
+                        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" title="Bold"
+                          onClick={() => applyTextFormat(noteRef.current, setNoteText, (v, s, e) => {
+                            const sel = v.slice(s, e) || 'text';
+                            return { value: v.slice(0, s) + '**' + sel + '**' + v.slice(e), cursor: s + 2 + sel.length + 2 };
+                          })}><Bold className="w-3.5 h-3.5" /></Button>
+                        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" title="Italic"
+                          onClick={() => applyTextFormat(noteRef.current, setNoteText, (v, s, e) => {
+                            const sel = v.slice(s, e) || 'text';
+                            return { value: v.slice(0, s) + '_' + sel + '_' + v.slice(e), cursor: s + 1 + sel.length + 1 };
+                          })}><Italic className="w-3.5 h-3.5" /></Button>
+                        <div className="w-px h-4 bg-border mx-1" />
+                        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" title="Bullet list"
+                          onClick={() => applyTextFormat(noteRef.current, setNoteText, (v, s, e) => {
+                            const ls = v.lastIndexOf('\n', s - 1) + 1;
+                            const le = v.indexOf('\n', e); const end = le === -1 ? v.length : le;
+                            const block = v.slice(ls, end) || '';
+                            const next = v.slice(0, ls) + block.split('\n').map(l => '• ' + l).join('\n') + v.slice(end);
+                            return { value: next, cursor: next.length - (v.length - end) };
+                          })}><List className="w-3.5 h-3.5" /></Button>
+                        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" title="Numbered list"
+                          onClick={() => applyTextFormat(noteRef.current, setNoteText, (v, s, e) => {
+                            const ls = v.lastIndexOf('\n', s - 1) + 1;
+                            const le = v.indexOf('\n', e); const end = le === -1 ? v.length : le;
+                            const block = v.slice(ls, end) || '';
+                            const next = v.slice(0, ls) + block.split('\n').map((l, i) => `${i + 1}. ` + l).join('\n') + v.slice(end);
+                            return { value: next, cursor: next.length - (v.length - end) };
+                          })}><ListOrdered className="w-3.5 h-3.5" /></Button>
+                        <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" title="To-do list"
+                          onClick={() => applyTextFormat(noteRef.current, setNoteText, (v, s, e) => {
+                            const ls = v.lastIndexOf('\n', s - 1) + 1;
+                            const le = v.indexOf('\n', e); const end = le === -1 ? v.length : le;
+                            const block = v.slice(ls, end) || '';
+                            const next = v.slice(0, ls) + block.split('\n').map(l => '◯ ' + l).join('\n') + v.slice(end);
+                            return { value: next, cursor: next.length - (v.length - end) };
+                          })}><ListChecks className="w-3.5 h-3.5" /></Button>
+                      </div>
                       <Textarea
                         ref={noteRef}
                         value={noteText}
