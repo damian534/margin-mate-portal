@@ -691,7 +691,6 @@ export default function AdminCRM() {
             const moreTabs = [
               { value: 'contacts', label: 'Contacts', icon: ContactIcon },
               { value: 'partners', label: 'Partners', icon: Building2 },
-              { value: 'partners_manage', label: 'Manage Partners', icon: Users },
               { value: 'broker_referrals', label: 'Broker Referrals', icon: Share2 },
               { value: 'edm', label: 'Email Campaigns', icon: MailIcon },
               { value: 'pipeline_report', label: 'Pipeline Report', icon: BarChart3 },
