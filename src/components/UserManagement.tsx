@@ -11,10 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Shield, ShieldCheck, KeyRound, Loader2, Plus, UserPlus, Send } from 'lucide-react';
+import { Shield, ShieldCheck, KeyRound, Loader2, Plus, UserPlus, Send, Trash2, AlertTriangle } from 'lucide-react';
 import { Company } from '@/components/CompanyManagement';
 
 interface UserWithRole {
+  profile_id?: string;
   user_id: string;
   email: string | null;
   full_name: string | null;
@@ -37,6 +38,11 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
   const [invitingEmail, setInvitingEmail] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<UserWithRole | null>(null);
+  const [removeCounts, setRemoveCounts] = useState<{ openTaskCount: number; assignedLeadCount: number; ownedLeadCount: number } | null>(null);
+  const [reassignTo, setReassignTo] = useState<string>('');
+  const [removing, setRemoving] = useState(false);
+  const [loadingCounts, setLoadingCounts] = useState(false);
   const [form, setForm] = useState({
     fullName: '',
     email: '',
@@ -61,12 +67,13 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data: profiles } = await supabase.from('profiles').select('user_id, email, full_name, created_at, company_name, company_id');
+    const { data: profiles } = await supabase.from('profiles').select('id, user_id, email, full_name, created_at, company_name, company_id');
     const { data: roles } = await supabase.from('user_roles').select('user_id, role');
 
     if (profiles) {
       const roleMap = new Map(roles?.map(r => [r.user_id, r.role]) || []);
       const combined: UserWithRole[] = profiles.map(p => ({
+        profile_id: p.id,
         user_id: p.user_id,
         email: p.email,
         full_name: p.full_name,
