@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
     // Get all leads for these agents (only summary data needed)
     const { data: leads } = await admin
       .from("leads")
-      .select("referral_partner_id, loan_amount, status, created_at")
+      .select("referral_partner_id, loan_amount, status, created_at, settled_date")
       .in("referral_partner_id", agentUserIds);
 
     const allLeads = leads || [];
@@ -90,6 +90,12 @@ Deno.serve(async (req) => {
           loan_volume: loanVolume,
           score: agentLeads.length + settledLeads.length * 3 + loanVolume / 100000,
           lead_dates: agentLeads.map((l) => l.created_at),
+          leads: agentLeads.map((l) => ({
+            created_at: l.created_at,
+            status: l.status,
+            loan_amount: l.loan_amount || 0,
+            settled_date: l.settled_date || null,
+          })),
         };
       })
       .sort((a, b) => b.score - a.score);
