@@ -124,14 +124,14 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
       const selectedCompany = companies.find(c => c.id === form.companyId);
 
       // Create a profile entry (no auth account yet — will link when they register)
-      const { error: profileError } = await supabase.from('profiles').insert({
+      const { data: newProfile, error: profileError } = await supabase.from('profiles').insert({
         user_id: null,
         email: form.email.trim().toLowerCase(),
         full_name: form.fullName.trim(),
         broker_id: user?.id || null,
         company_id: form.companyId || null,
         company_name: selectedCompany?.name || null,
-      });
+      }).select('id').single();
 
       if (profileError) {
         toast.error('Failed to create user profile');
@@ -149,6 +149,7 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
         label: `Invite for ${form.fullName.trim()}`,
         max_uses: 1,
         target_role: targetRole,
+        profile_id: newProfile?.id || null,
       } as any);
 
       const registerUrl = `${window.location.origin}/register?code=${code}`;
@@ -296,6 +297,7 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
         label: `Invite for ${u.full_name || u.email}`,
         max_uses: 1,
         target_role: targetRole,
+        profile_id: u.profile_id || null,
       } as any);
       if (codeErr) { toast.error('Failed to generate invite code'); setInvitingEmail(null); return; }
 

@@ -784,6 +784,7 @@ export type Database = {
           is_active: boolean
           label: string | null
           max_uses: number | null
+          profile_id: string | null
           target_role: string | null
           used_count: number
         }
@@ -797,6 +798,7 @@ export type Database = {
           is_active?: boolean
           label?: string | null
           max_uses?: number | null
+          profile_id?: string | null
           target_role?: string | null
           used_count?: number
         }
@@ -810,6 +812,7 @@ export type Database = {
           is_active?: boolean
           label?: string | null
           max_uses?: number | null
+          profile_id?: string | null
           target_role?: string | null
           used_count?: number
         }
@@ -1965,6 +1968,17 @@ export type Database = {
         Returns: undefined
       }
       get_director_company_id: { Args: { _user_id: string }; Returns: string }
+      get_invite_preview: {
+        Args: { _code: string }
+        Returns: {
+          company_id: string
+          company_name: string
+          email: string
+          full_name: string
+          is_valid: boolean
+          target_role: string
+        }[]
+      }
       get_my_broker_id: { Args: { _user_id: string }; Returns: string }
       get_or_create_company_invite_code: {
         Args: { _company_id: string }
