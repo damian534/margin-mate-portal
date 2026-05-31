@@ -9,6 +9,7 @@ import { LeadsKanban } from '@/components/LeadsKanban';
 import { CompanyCRM } from '@/components/company/CompanyCRM';
 import { AgentGamification } from '@/components/company/AgentGamification';
 import { CompetitionBanner } from '@/components/company/CompetitionBanner';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -206,6 +207,55 @@ export default function PartnerDashboard() {
         {/* Active competitions banner */}
         {user?.id && hasCompany && (
           <CompetitionBanner leaderboard={leaderboard} currentUserId={user.id} />
+        )}
+
+        {/* Sample competition banner (preview mode only) */}
+        {isPreviewMode && (
+          <Card className="border-amber-400/60 bg-gradient-to-br from-amber-50 to-white shadow-sm overflow-hidden">
+            <CardContent className="p-5">
+              <div className="flex flex-col md:flex-row md:items-center gap-4">
+                <div className="flex items-start gap-3 flex-1">
+                  <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center shrink-0 shadow-md">
+                    <Trophy className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-heading font-bold text-lg">June Referral Champion — Ray White Glenroy</h3>
+                      <Badge className="bg-amber-500 hover:bg-amber-500 text-white">Live</Badge>
+                      <Badge variant="outline" className="text-[10px]">Sample</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      Win <span className="font-semibold text-foreground">$1,000 cash</span> for the most referrals this month.
+                    </p>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                      <span>Ends 30 Jun 2026</span>
+                      <span className="font-semibold text-amber-700">12 days left</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="md:w-72 shrink-0 rounded-lg bg-white border border-amber-200 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Leaderboard</p>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex items-center gap-2 font-semibold">
+                      <span className="w-4 text-center">🥇</span>
+                      <span className="flex-1 truncate">Sarah Mitchell</span>
+                      <span className="font-bold">7</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-4 text-center">2</span>
+                      <span className="flex-1 truncate">You</span>
+                      <span className="font-bold">5</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-4 text-center">3</span>
+                      <span className="flex-1 truncate">James Tran</span>
+                      <span className="font-bold">4</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Stats */}
