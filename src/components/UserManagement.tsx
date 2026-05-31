@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Shield, ShieldCheck, KeyRound, Loader2, Plus, UserPlus, Send, Trash2, AlertTriangle } from 'lucide-react';
+import { Copy, Mail, MessageCircle } from 'lucide-react';
 import { Company } from '@/components/CompanyManagement';
 
 interface UserWithRole {
@@ -35,6 +36,7 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [resettingEmail, setResettingEmail] = useState<string | null>(null);
+  const [resetLinkInfo, setResetLinkInfo] = useState<{ email: string; link: string; emailSent: boolean; emailError?: string | null } | null>(null);
   const [invitingEmail, setInvitingEmail] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -220,7 +222,11 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
 
   const resetUserPassword = async (email: string) => {
     if (isPreviewMode) {
-      toast.success(`Password reset email sent to ${email} (preview)`);
+      setResetLinkInfo({
+        email,
+        link: `${window.location.origin}/reset-password#preview-sample-token`,
+        emailSent: true,
+      });
       return;
     }
     setResettingEmail(email);
@@ -239,14 +245,29 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
       );
       const result = await response.json();
       if (!response.ok) {
-        toast.error(result.error || 'Failed to send reset email');
+        toast.error(result.error || 'Failed to generate reset link');
       } else {
-        toast.success(`Password reset email sent to ${email}`);
+        setResetLinkInfo({
+          email,
+          link: result.action_link,
+          emailSent: !!result.email_sent,
+          emailError: result.email_error,
+        });
       }
     } catch {
-      toast.error('Failed to send reset email');
+      toast.error('Failed to generate reset link');
     }
     setResettingEmail(null);
+  };
+
+  const copyResetLink = async () => {
+    if (!resetLinkInfo) return;
+    try {
+      await navigator.clipboard.writeText(resetLinkInfo.link);
+      toast.success('Reset link copied to clipboard');
+    } catch {
+      toast.error('Could not copy — please copy manually');
+    }
   };
 
   const sendInvite = async (u: UserWithRole) => {
