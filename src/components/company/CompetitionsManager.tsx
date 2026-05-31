@@ -360,6 +360,58 @@ export function CompetitionsManager({ companyId, companyName, leads, agents, isP
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!manageCompId} onOpenChange={(o) => !o && setManageCompId(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Manage Entries · {manageComp?.name}</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground -mt-2">
+            Exclude leads that don't meet the minimum (e.g. you couldn't make contact). Excluded leads won't count toward the leaderboard.
+          </p>
+          <div className="max-h-[60vh] overflow-y-auto border rounded-md">
+            {manageComp && leadsInWindow(manageComp).length === 0 ? (
+              <p className="p-6 text-center text-sm text-muted-foreground">No leads in this competition window yet.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Lead</TableHead>
+                    <TableHead>Agent</TableHead>
+                    <TableHead>Submitted</TableHead>
+                    <TableHead className="text-right">Counts?</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {manageComp && leadsInWindow(manageComp).map(l => {
+                    const excluded = !!l.excluded_from_competition;
+                    return (
+                      <TableRow key={l.id} className={excluded ? 'opacity-60' : ''}>
+                        <TableCell className="font-medium">{l.first_name} {l.last_name}</TableCell>
+                        <TableCell className="text-sm">{l.agentName}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{format(new Date(l.created_at), 'd MMM')}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            variant={excluded ? 'outline' : 'ghost'}
+                            disabled={togglingId === l.id}
+                            onClick={() => toggleExclude(l.id, !excluded)}
+                          >
+                            {excluded ? (<><Eye className="w-3.5 h-3.5 mr-1" /> Include</>) : (<><EyeOff className="w-3.5 h-3.5 mr-1" /> Exclude</>)}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setManageCompId(null)}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
