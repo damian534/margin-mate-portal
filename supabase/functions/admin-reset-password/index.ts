@@ -72,19 +72,80 @@ serve(async (req) => {
     const origin = referer ? new URL(referer).origin : "";
     const redirectTo = `${origin}/reset-password`;
 
-    const { error: resetError } = await adminClient.auth.resetPasswordForEmail(email, {
-      redirectTo,
+    // Generate a recovery link via the admin API (does not auto-send an email)
+    const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+      type: "recovery",
+      email,
+      options: { redirectTo },
     });
 
-    if (resetError) {
-      return new Response(JSON.stringify({ error: resetError.message }), {
+    if (linkError || !linkData?.properties?.action_link) {
+      return new Response(JSON.stringify({ error: linkError?.message || "Failed to generate reset link" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    const actionLink = linkData.properties.action_link;
+
+    // Look up the user's name for a friendlier email
+    const { data: profile } = await adminClient
+      .from("profiles")
+      .select("full_name")
+      .eq("email", email.toLowerCase())
+      .maybeSingle();
+    const fullName = profile?.full_name || "there";
+
+    // Send a branded email via the existing Resend-backed send-email function
+    const html = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Reset your Margin Finance password</h2>
+        <p>Hi ${fullName},</p>
+        <p>A password reset has been requested for your Margin Finance account. Click below to set a new password.</p>
+        <div style="margin: 24px 0;">
+          <a href="${actionLink}" style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">
+            Reset Password
+          </a>
+        </div>
+        <p style="color: #666; font-size: 14px;">Or copy this link into your browser:<br/><a href="${actionLink}">${actionLink}</a></p>
+        <p style="color: #999; font-size: 12px; margin-top: 32px;">If you didn't request this, you can safely ignore this email. The link expires in 1 hour.</p>
+      </div>
+    `;
+
+    let emailSent = true;
+    let emailError: string | null = null;
+    try {
+      const sendRes = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authHeader,
+        },
+        body: JSON.stringify({
+          to: email,
+          subject: "Reset your Margin Finance password",
+          html,
+        }),
+      });
+      if (!sendRes.ok) {
+        emailSent = false;
+        emailError = await sendRes.text();
+      }
+    } catch (e) {
+      emailSent = false;
+      emailError = (e as Error).message;
+    }
+
     return new Response(
-      JSON.stringify({ success: true, message: `Password reset email sent to ${email}` }),
+      JSON.stringify({
+        success: true,
+        email_sent: emailSent,
+        email_error: emailError,
+        action_link: actionLink,
+        message: emailSent
+          ? `Password reset email sent to ${email}`
+          : `Generated reset link (email delivery failed — share the link manually)`,
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
