@@ -567,6 +567,17 @@ export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpen
           <CompanyEngagementPanel companyId={company.id} companyName={company.name} isPreviewMode={isPreviewMode} />
         </TabsContent>
 
+        {/* COMPETITIONS TAB */}
+        <TabsContent value="competitions" className="space-y-4 mt-4">
+          <CompetitionsManager
+            companyId={company.id}
+            companyName={company.name}
+            leads={companyLeads}
+            agents={companyAgents.map(a => ({ id: a.id, user_id: a.user_id, full_name: a.full_name }))}
+            isPreviewMode={isPreviewMode}
+          />
+        </TabsContent>
+
         {/* COMMISSIONS TAB */}
         <TabsContent value="commissions" className="space-y-6 mt-4">
           {/* Summary */}
