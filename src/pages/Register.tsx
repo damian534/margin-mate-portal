@@ -36,6 +36,7 @@ export default function Register() {
   const [registerAs, setRegisterAs] = useState<'broker' | 'partner'>('partner');
   const [hasAnySuperAdmin, setHasAnySuperAdmin] = useState<boolean | null>(null);
   const [inviteTargetRole, setInviteTargetRole] = useState<string | null>(null);
+  const [prefilled, setPrefilled] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -53,13 +54,30 @@ export default function Register() {
 
   const validateCode = async (code: string) => {
     const normalizedCode = normalizeInviteCode(code);
-    if (!normalizedCode) { setCodeValid(null); setInviteTargetRole(null); return; }
+    if (!normalizedCode) { setCodeValid(null); setInviteTargetRole(null); setPrefilled(false); return; }
+    // Try the richer preview RPC first (returns prefilled name/email/company for pre-registered profiles)
+    const { data: preview, error: previewErr } = await (supabase.rpc as any)('get_invite_preview', { _code: normalizedCode });
+    const previewRow = Array.isArray(preview) ? preview[0] : preview;
+    if (!previewErr && previewRow?.is_valid) {
+      setCodeValid(true);
+      setInviteTargetRole(previewRow.target_role || null);
+      if (previewRow.email) {
+        setEmail(previewRow.email);
+        setFullName(previewRow.full_name || '');
+        setCompanyName(previewRow.company_name || '');
+        setPrefilled(true);
+      } else {
+        setPrefilled(false);
+      }
+      return;
+    }
+    // Fallback to the older validator
     const { data, error } = await (supabase.rpc as any)('validate_invite_code', { _code: normalizedCode });
     const result = Array.isArray(data) ? data[0] : data;
-
-    if (error || !result?.is_valid) { setCodeValid(false); setInviteTargetRole(null); return; }
+    if (error || !result?.is_valid) { setCodeValid(false); setInviteTargetRole(null); setPrefilled(false); return; }
     setCodeValid(true);
     setInviteTargetRole(result.target_role || null);
+    setPrefilled(false);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -107,13 +125,17 @@ export default function Register() {
           <div className="flex justify-center mb-4">
             <Logo className="h-16" />
           </div>
-          <CardTitle className="text-2xl">Create Account</CardTitle>
-          <CardDescription>Select your account type to get started</CardDescription>
+          <CardTitle className="text-2xl">{prefilled ? `Welcome${fullName ? `, ${fullName.split(' ')[0]}` : ''}` : 'Create Account'}</CardTitle>
+          <CardDescription>
+            {prefilled
+              ? 'Just set a password to finish setting up your account.'
+              : 'Select your account type to get started'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleRegister} className="space-y-4">
-            {/* Role selector — hidden when invite code determines role */}
-            {inviteTargetRole === 'broker_staff' ? (
+            {/* Role selector — hidden when invite code determines role or details are prefilled */}
+            {prefilled ? null : inviteTargetRole === 'broker_staff' ? (
               <div className="rounded-lg border-2 border-primary bg-primary/5 p-3 text-center">
                 <Building2 className="w-5 h-5 mx-auto mb-1 text-primary" />
                 <span className="text-sm font-medium text-primary">Admin Staff</span>
@@ -147,8 +169,8 @@ export default function Register() {
               </div>
             )}
 
-            {/* Invite code — only for partners when super admin exists */}
-            {registerAs === 'partner' && hasAnySuperAdmin !== false && (
+            {/* Invite code — only for partners when super admin exists, and hidden once prefilled */}
+            {registerAs === 'partner' && hasAnySuperAdmin !== false && !prefilled && (
               <div className="space-y-2">
                 <Label htmlFor="inviteCode">Invite Code *</Label>
                 <div className="relative">
@@ -172,6 +194,14 @@ export default function Register() {
                 )}
               </div>
             )}
+            {prefilled && (
+              <div className="rounded-lg border bg-muted/40 p-3 space-y-1 text-sm">
+                <div><span className="text-muted-foreground">Name:</span> <span className="font-medium">{fullName}</span></div>
+                <div><span className="text-muted-foreground">Email:</span> <span className="font-medium">{email}</span></div>
+                {companyName && <div><span className="text-muted-foreground">Company:</span> <span className="font-medium">{companyName}</span></div>}
+              </div>
+            )}
+            {!prefilled && (<>
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name *</Label>
               <Input
@@ -204,6 +234,7 @@ export default function Register() {
                 required
               />
             </div>
+            </>)}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password *</Label>
@@ -245,7 +276,7 @@ export default function Register() {
             </div>
             <Button type="submit" className="w-full" disabled={loading || codeValid === false}>
               {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Create Account
+              {prefilled ? 'Set Password & Continue' : 'Create Account'}
             </Button>
           </form>
           <p className="text-center text-sm text-muted-foreground mt-4">
