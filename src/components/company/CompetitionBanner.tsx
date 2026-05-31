@@ -23,6 +23,7 @@ interface LeaderboardEntry {
   leads_count: number;
   settled_count: number;
   loan_volume: number;
+  leads?: Array<{ created_at: string; status: string; loan_amount: number; settled_date: string | null }>;
 }
 
 interface Props {
@@ -66,19 +67,31 @@ export function CompetitionBanner({ leaderboard, currentUserId }: Props) {
 
   if (competitions.length === 0) return null;
 
-  const rankedFor = (metric: string) => {
-    const sorted = [...leaderboard].sort((a, b) => {
-      const av = metric === 'settled' ? a.settled_count : metric === 'loan_volume' ? a.loan_volume : a.leads_count;
-      const bv = metric === 'settled' ? b.settled_count : metric === 'loan_volume' ? b.loan_volume : b.leads_count;
-      return bv - av;
-    });
-    const myIdx = sorted.findIndex(e => e.user_id === currentUserId);
-    const myEntry = sorted[myIdx];
-    const myScore = myEntry ? (metric === 'settled' ? myEntry.settled_count : metric === 'loan_volume' ? myEntry.loan_volume : myEntry.leads_count) : 0;
-    const top3 = sorted.slice(0, 3).map(e => ({
-      ...e,
-      score: metric === 'settled' ? e.settled_count : metric === 'loan_volume' ? e.loan_volume : e.leads_count,
-    }));
+  const rankedFor = (metric: string, startDate: string, endDate: string) => {
+    const start = new Date(startDate + 'T00:00:00').getTime();
+    const end = new Date(endDate + 'T23:59:59').getTime();
+    const scoreFor = (e: LeaderboardEntry) => {
+      const leads = e.leads || [];
+      const inWindow = leads.filter(l => {
+        const t = new Date(l.created_at).getTime();
+        return t >= start && t <= end;
+      });
+      if (metric === 'settled') {
+        return inWindow.filter(l => l.status === 'settled' && (l.settled_date ? (new Date(l.settled_date).getTime() >= start && new Date(l.settled_date).getTime() <= end) : true)).length;
+      }
+      if (metric === 'loan_volume') {
+        return inWindow
+          .filter(l => l.status === 'settled')
+          .reduce((s, l) => s + (l.loan_amount || 0), 0);
+      }
+      return inWindow.length;
+    };
+    const sorted = [...leaderboard]
+      .map(e => ({ entry: e, score: scoreFor(e) }))
+      .sort((a, b) => b.score - a.score);
+    const myIdx = sorted.findIndex(s => s.entry.user_id === currentUserId);
+    const myScore = myIdx >= 0 ? sorted[myIdx].score : 0;
+    const top3 = sorted.slice(0, 3).map(s => ({ ...s.entry, score: s.score }));
     return { top3, myRank: myIdx >= 0 ? myIdx + 1 : null, myScore };
   };
 
@@ -87,7 +100,7 @@ export function CompetitionBanner({ leaderboard, currentUserId }: Props) {
       {competitions.map(c => {
         const end = parseISO(c.end_date);
         const daysLeft = differenceInCalendarDays(end, new Date());
-        const { top3, myRank, myScore } = rankedFor(c.metric);
+        const { top3, myRank, myScore } = rankedFor(c.metric, c.start_date, c.end_date);
         const metricLabel = METRIC_LABELS[c.metric] || 'referrals';
 
         return (
