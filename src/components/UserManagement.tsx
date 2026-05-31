@@ -297,6 +297,7 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
         label: `Invite for ${u.full_name || u.email}`,
         max_uses: 1,
         target_role: targetRole,
+        profile_id: u.profile_id || null,
       } as any);
       if (codeErr) { toast.error('Failed to generate invite code'); setInvitingEmail(null); return; }
 
