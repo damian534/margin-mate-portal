@@ -1,0 +1,1 @@
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS excluded_from_competition boolean NOT NULL DEFAULT false;

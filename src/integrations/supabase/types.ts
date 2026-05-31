@@ -1109,6 +1109,7 @@ export type Database = {
           doc_reminders_paused: boolean
           email: string | null
           estimated_settlement_date: string | null
+          excluded_from_competition: boolean
           finance_due_date: string | null
           first_name: string
           id: string
@@ -1152,6 +1153,7 @@ export type Database = {
           doc_reminders_paused?: boolean
           email?: string | null
           estimated_settlement_date?: string | null
+          excluded_from_competition?: boolean
           finance_due_date?: string | null
           first_name: string
           id?: string
@@ -1195,6 +1197,7 @@ export type Database = {
           doc_reminders_paused?: boolean
           email?: string | null
           estimated_settlement_date?: string | null
+          excluded_from_competition?: boolean
           finance_due_date?: string | null
           first_name?: string
           id?: string
