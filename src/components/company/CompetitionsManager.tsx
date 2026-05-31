@@ -81,6 +81,7 @@ export function CompetitionsManager({ companyId, companyName, leads, agents, isP
   const [saving, setSaving] = useState(false);
   const [manageCompId, setManageCompId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [excludedOverrides, setExcludedOverrides] = useState<Record<string, boolean>>({});
 
   const load = async () => {
     if (isPreviewMode) { setCompetitions([]); setLoading(false); return; }
@@ -169,7 +170,7 @@ export function CompetitionsManager({ companyId, companyName, leads, agents, isP
     const inWindow = leads.filter(l =>
       l.referral_partner_id &&
       agentIds.has(l.referral_partner_id) &&
-      !l.excluded_from_competition &&
+      !(excludedOverrides[l.id] ?? l.excluded_from_competition) &&
       isWithinInterval(new Date(l.created_at), { start, end })
     );
     const byAgent: Record<string, { leads: number; settled: number; volume: number }> = {};
@@ -197,7 +198,7 @@ export function CompetitionsManager({ companyId, companyName, leads, agents, isP
     const agentName = (uid: string | null) => agents.find(a => a.user_id === uid)?.full_name || 'Unknown';
     return leads
       .filter(l => l.referral_partner_id && agentIds.has(l.referral_partner_id) && isWithinInterval(new Date(l.created_at), { start, end }))
-      .map(l => ({ ...l, agentName: agentName(l.referral_partner_id) }))
+      .map(l => ({ ...l, excluded_from_competition: excludedOverrides[l.id] ?? l.excluded_from_competition, agentName: agentName(l.referral_partner_id) }))
       .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
   };
 
@@ -207,6 +208,7 @@ export function CompetitionsManager({ companyId, companyName, leads, agents, isP
     const { error } = await supabase.from('leads').update({ excluded_from_competition: exclude }).eq('id', leadId);
     setTogglingId(null);
     if (error) { toast.error('Failed to update lead'); return; }
+    setExcludedOverrides(prev => ({ ...prev, [leadId]: exclude }));
     toast.success(exclude ? 'Lead excluded from competition' : 'Lead included again');
     onLeadsChanged?.();
   };
