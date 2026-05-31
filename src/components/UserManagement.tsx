@@ -642,6 +642,81 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!resetLinkInfo} onOpenChange={(v) => { if (!v) setResetLinkInfo(null); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="w-5 h-5" /> Password reset link
+            </DialogTitle>
+          </DialogHeader>
+          {resetLinkInfo && (
+            <div className="space-y-4 mt-2">
+              <div className={`rounded-md border p-3 text-sm flex items-start gap-2 ${resetLinkInfo.emailSent ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-amber-50 border-amber-200 text-amber-900'}`}>
+                <Mail className="w-4 h-4 mt-0.5 shrink-0" />
+                <div>
+                  {resetLinkInfo.emailSent ? (
+                    <>Email sent to <strong>{resetLinkInfo.email}</strong>. If it doesn't arrive in a few minutes (check spam), you can share the link below directly.</>
+                  ) : (
+                    <>Email delivery failed — share the link below with the user directly.</>
+                  )}
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Direct reset link (valid for 1 hour)</Label>
+                <div className="mt-1 flex gap-2">
+                  <Input value={resetLinkInfo.link} readOnly className="font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
+                  <Button size="sm" variant="outline" onClick={copyResetLink} className="gap-1 shrink-0">
+                    <Copy className="w-3 h-3" /> Copy
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Paste this into SMS, WhatsApp, or any chat — they'll land on the password screen when they click it.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1"
+                  asChild
+                >
+                  <a href={`sms:?&body=${encodeURIComponent(`Reset your Margin Finance password: ${resetLinkInfo.link}`)}`}>
+                    <MessageCircle className="w-3 h-3" /> Send via SMS
+                  </a>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1"
+                  asChild
+                >
+                  <a
+                    href={`https://wa.me/?text=${encodeURIComponent(`Reset your Margin Finance password: ${resetLinkInfo.link}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <MessageCircle className="w-3 h-3" /> Send via WhatsApp
+                  </a>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1"
+                  asChild
+                >
+                  <a href={`mailto:${resetLinkInfo.email}?subject=${encodeURIComponent('Reset your Margin Finance password')}&body=${encodeURIComponent(`Hi,\n\nUse this link to reset your Margin Finance password:\n\n${resetLinkInfo.link}\n\n(Link expires in 1 hour.)`)}`}>
+                    <Mail className="w-3 h-3" /> Email from your inbox
+                  </a>
+                </Button>
+              </div>
+              <div className="flex justify-end pt-2">
+                <Button variant="outline" onClick={() => setResetLinkInfo(null)}>Done</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
