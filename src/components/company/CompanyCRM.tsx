@@ -46,6 +46,7 @@ interface Lead {
   referrer_commission_paid: boolean | null;
   company_commission: number | null;
   company_commission_paid: boolean | null;
+  excluded_from_competition?: boolean | null;
 }
 
 type TimePeriod = 'current_month' | 'previous_month' | 'current_quarter' | 'ytd' | 'all_time';

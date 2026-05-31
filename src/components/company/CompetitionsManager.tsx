@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trophy, Plus, Calendar, DollarSign, Pencil, Trash2, Medal } from 'lucide-react';
+import { Trophy, Plus, Calendar, DollarSign, Pencil, Trash2, Medal, EyeOff, Eye, ListChecks } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, parseISO, isWithinInterval, differenceInCalendarDays } from 'date-fns';
 
@@ -34,6 +34,9 @@ interface Lead {
   loan_amount: number | null;
   status: string;
   created_at: string;
+  first_name?: string;
+  last_name?: string;
+  excluded_from_competition?: boolean | null;
 }
 
 interface Agent {
@@ -48,6 +51,7 @@ interface Props {
   leads: Lead[];
   agents: Agent[];
   isPreviewMode?: boolean;
+  onLeadsChanged?: () => void;
 }
 
 const METRIC_LABELS: Record<string, string> = {
@@ -67,7 +71,7 @@ const emptyForm = {
   is_active: true,
 };
 
-export function CompetitionsManager({ companyId, companyName, leads, agents, isPreviewMode }: Props) {
+export function CompetitionsManager({ companyId, companyName, leads, agents, isPreviewMode, onLeadsChanged }: Props) {
   const { user } = useAuth();
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,6 +79,9 @@ export function CompetitionsManager({ companyId, companyName, leads, agents, isP
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [manageCompId, setManageCompId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [excludedOverrides, setExcludedOverrides] = useState<Record<string, boolean>>({});
 
   const load = async () => {
     if (isPreviewMode) { setCompetitions([]); setLoading(false); return; }
@@ -163,6 +170,7 @@ export function CompetitionsManager({ companyId, companyName, leads, agents, isP
     const inWindow = leads.filter(l =>
       l.referral_partner_id &&
       agentIds.has(l.referral_partner_id) &&
+      !(excludedOverrides[l.id] ?? l.excluded_from_competition) &&
       isWithinInterval(new Date(l.created_at), { start, end })
     );
     const byAgent: Record<string, { leads: number; settled: number; volume: number }> = {};
@@ -182,7 +190,31 @@ export function CompetitionsManager({ companyId, companyName, leads, agents, isP
       .sort((x, y) => y.score - x.score);
   };
 
+  const leadsInWindow = (c: Competition) => {
+    const start = parseISO(c.start_date);
+    const end = parseISO(c.end_date);
+    end.setHours(23, 59, 59);
+    const agentIds = new Set(agents.filter(a => a.user_id).map(a => a.user_id!));
+    const agentName = (uid: string | null) => agents.find(a => a.user_id === uid)?.full_name || 'Unknown';
+    return leads
+      .filter(l => l.referral_partner_id && agentIds.has(l.referral_partner_id) && isWithinInterval(new Date(l.created_at), { start, end }))
+      .map(l => ({ ...l, excluded_from_competition: excludedOverrides[l.id] ?? l.excluded_from_competition, agentName: agentName(l.referral_partner_id) }))
+      .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
+  };
+
+  const toggleExclude = async (leadId: string, exclude: boolean) => {
+    if (isPreviewMode) { toast.success(exclude ? 'Excluded (preview)' : 'Included (preview)'); return; }
+    setTogglingId(leadId);
+    const { error } = await supabase.from('leads').update({ excluded_from_competition: exclude }).eq('id', leadId);
+    setTogglingId(null);
+    if (error) { toast.error('Failed to update lead'); return; }
+    setExcludedOverrides(prev => ({ ...prev, [leadId]: exclude }));
+    toast.success(exclude ? 'Lead excluded from competition' : 'Lead included again');
+    onLeadsChanged?.();
+  };
+
   const today = new Date();
+  const manageComp = competitions.find(c => c.id === manageCompId) || null;
 
   return (
     <div className="space-y-4">
@@ -234,6 +266,7 @@ export function CompetitionsManager({ companyId, companyName, leads, agents, isP
                       {c.description && <p className="text-xs text-muted-foreground pt-1">{c.description}</p>}
                     </div>
                     <div className="flex gap-1 shrink-0">
+                      <Button variant="ghost" size="icon" onClick={() => setManageCompId(c.id)} title="Manage entries"><ListChecks className="w-4 h-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="w-4 h-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => remove(c.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                     </div>
@@ -326,6 +359,58 @@ export function CompetitionsManager({ companyId, companyName, leads, agents, isP
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
             <Button onClick={save} disabled={saving}>{saving ? 'Saving…' : editingId ? 'Save' : 'Launch Competition'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!manageCompId} onOpenChange={(o) => !o && setManageCompId(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Manage Entries · {manageComp?.name}</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground -mt-2">
+            Exclude leads that don't meet the minimum (e.g. you couldn't make contact). Excluded leads won't count toward the leaderboard.
+          </p>
+          <div className="max-h-[60vh] overflow-y-auto border rounded-md">
+            {manageComp && leadsInWindow(manageComp).length === 0 ? (
+              <p className="p-6 text-center text-sm text-muted-foreground">No leads in this competition window yet.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Lead</TableHead>
+                    <TableHead>Agent</TableHead>
+                    <TableHead>Submitted</TableHead>
+                    <TableHead className="text-right">Counts?</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {manageComp && leadsInWindow(manageComp).map(l => {
+                    const excluded = !!l.excluded_from_competition;
+                    return (
+                      <TableRow key={l.id} className={excluded ? 'opacity-60' : ''}>
+                        <TableCell className="font-medium">{l.first_name} {l.last_name}</TableCell>
+                        <TableCell className="text-sm">{l.agentName}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{format(new Date(l.created_at), 'd MMM')}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            variant={excluded ? 'outline' : 'ghost'}
+                            disabled={togglingId === l.id}
+                            onClick={() => toggleExclude(l.id, !excluded)}
+                          >
+                            {excluded ? (<><Eye className="w-3.5 h-3.5 mr-1" /> Include</>) : (<><EyeOff className="w-3.5 h-3.5 mr-1" /> Exclude</>)}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setManageCompId(null)}>Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
