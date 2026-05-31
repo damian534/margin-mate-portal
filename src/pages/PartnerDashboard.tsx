@@ -8,6 +8,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { LeadsKanban } from '@/components/LeadsKanban';
 import { CompanyCRM } from '@/components/company/CompanyCRM';
 import { AgentGamification } from '@/components/company/AgentGamification';
+import { CompetitionBanner } from '@/components/company/CompetitionBanner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -201,6 +202,11 @@ export default function PartnerDashboard() {
             <Plus className="w-4 h-4 mr-2" /> New Referral
           </Button>
         </div>
+
+        {/* Active competitions banner */}
+        {user?.id && hasCompany && (
+          <CompetitionBanner leaderboard={leaderboard} currentUserId={user.id} />
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

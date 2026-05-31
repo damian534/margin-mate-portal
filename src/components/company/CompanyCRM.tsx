@@ -5,6 +5,7 @@ import { useLeadStatuses } from '@/hooks/useLeadStatuses';
 import { Company, AgencyCode } from '@/components/CompanyManagement';
 import { ReferrerProfileData } from '@/components/ReferrerProfile';
 import { CompanyLeaderboard } from './CompanyLeaderboard';
+import { CompetitionsManager } from './CompetitionsManager';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -386,10 +387,11 @@ export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpen
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview" className="gap-1.5"><BarChart3 className="w-4 h-4" /> Overview</TabsTrigger>
           <TabsTrigger value="agents" className="gap-1.5"><Users className="w-4 h-4" /> Agents</TabsTrigger>
           <TabsTrigger value="leads" className="gap-1.5"><TrendingUp className="w-4 h-4" /> Leads</TabsTrigger>
+          <TabsTrigger value="competitions" className="gap-1.5"><Trophy className="w-4 h-4" /> Competitions</TabsTrigger>
           <TabsTrigger value="engagement" className="gap-1.5"><MessageSquare className="w-4 h-4" /> Engagement</TabsTrigger>
           <TabsTrigger value="commissions" className="gap-1.5"><DollarSign className="w-4 h-4" /> Commissions</TabsTrigger>
         </TabsList>
@@ -563,6 +565,17 @@ export function CompanyCRM({ company, leads, referrers, contacts, onBack, onOpen
         {/* COMMISSIONS TAB */}
         <TabsContent value="engagement" className="space-y-4 mt-4">
           <CompanyEngagementPanel companyId={company.id} companyName={company.name} isPreviewMode={isPreviewMode} />
+        </TabsContent>
+
+        {/* COMPETITIONS TAB */}
+        <TabsContent value="competitions" className="space-y-4 mt-4">
+          <CompetitionsManager
+            companyId={company.id}
+            companyName={company.name}
+            leads={companyLeads}
+            agents={companyAgents.map(a => ({ id: a.id, user_id: a.user_id, full_name: a.full_name }))}
+            isPreviewMode={isPreviewMode}
+          />
         </TabsContent>
 
         {/* COMMISSIONS TAB */}

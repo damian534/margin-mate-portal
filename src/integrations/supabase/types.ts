@@ -280,6 +280,57 @@ export type Database = {
         }
         Relationships: []
       }
+      competitions: {
+        Row: {
+          broker_id: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          end_date: string
+          id: string
+          is_active: boolean
+          metric: string
+          name: string
+          prize: string
+          prize_amount: number | null
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          broker_id: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date: string
+          id?: string
+          is_active?: boolean
+          metric?: string
+          name: string
+          prize: string
+          prize_amount?: number | null
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          broker_id?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string
+          id?: string
+          is_active?: boolean
+          metric?: string
+          name?: string
+          prize?: string
+          prize_amount?: number | null
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contacts: {
         Row: {
           audience_tags: string[]
