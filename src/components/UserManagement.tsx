@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Shield, ShieldCheck, KeyRound, Loader2, Plus, UserPlus, Send, Trash2, AlertTriangle } from 'lucide-react';
+import { Copy, Mail, MessageCircle } from 'lucide-react';
 import { Company } from '@/components/CompanyManagement';
 
 interface UserWithRole {
@@ -35,6 +36,7 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [resettingEmail, setResettingEmail] = useState<string | null>(null);
+  const [resetLinkInfo, setResetLinkInfo] = useState<{ email: string; link: string; emailSent: boolean; emailError?: string | null } | null>(null);
   const [invitingEmail, setInvitingEmail] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -220,7 +222,11 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
 
   const resetUserPassword = async (email: string) => {
     if (isPreviewMode) {
-      toast.success(`Password reset email sent to ${email} (preview)`);
+      setResetLinkInfo({
+        email,
+        link: `${window.location.origin}/reset-password#preview-sample-token`,
+        emailSent: true,
+      });
       return;
     }
     setResettingEmail(email);
@@ -239,14 +245,29 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
       );
       const result = await response.json();
       if (!response.ok) {
-        toast.error(result.error || 'Failed to send reset email');
+        toast.error(result.error || 'Failed to generate reset link');
       } else {
-        toast.success(`Password reset email sent to ${email}`);
+        setResetLinkInfo({
+          email,
+          link: result.action_link,
+          emailSent: !!result.email_sent,
+          emailError: result.email_error,
+        });
       }
     } catch {
-      toast.error('Failed to send reset email');
+      toast.error('Failed to generate reset link');
     }
     setResettingEmail(null);
+  };
+
+  const copyResetLink = async () => {
+    if (!resetLinkInfo) return;
+    try {
+      await navigator.clipboard.writeText(resetLinkInfo.link);
+      toast.success('Reset link copied to clipboard');
+    } catch {
+      toast.error('Could not copy — please copy manually');
+    }
   };
 
   const sendInvite = async (u: UserWithRole) => {
@@ -619,6 +640,81 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!resetLinkInfo} onOpenChange={(v) => { if (!v) setResetLinkInfo(null); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="w-5 h-5" /> Password reset link
+            </DialogTitle>
+          </DialogHeader>
+          {resetLinkInfo && (
+            <div className="space-y-4 mt-2">
+              <div className={`rounded-md border p-3 text-sm flex items-start gap-2 ${resetLinkInfo.emailSent ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-amber-50 border-amber-200 text-amber-900'}`}>
+                <Mail className="w-4 h-4 mt-0.5 shrink-0" />
+                <div>
+                  {resetLinkInfo.emailSent ? (
+                    <>Email sent to <strong>{resetLinkInfo.email}</strong>. If it doesn't arrive in a few minutes (check spam), you can share the link below directly.</>
+                  ) : (
+                    <>Email delivery failed — share the link below with the user directly.</>
+                  )}
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Direct reset link (valid for 1 hour)</Label>
+                <div className="mt-1 flex gap-2">
+                  <Input value={resetLinkInfo.link} readOnly className="font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
+                  <Button size="sm" variant="outline" onClick={copyResetLink} className="gap-1 shrink-0">
+                    <Copy className="w-3 h-3" /> Copy
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Paste this into SMS, WhatsApp, or any chat — they'll land on the password screen when they click it.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1"
+                  asChild
+                >
+                  <a href={`sms:?&body=${encodeURIComponent(`Reset your Margin Finance password: ${resetLinkInfo.link}`)}`}>
+                    <MessageCircle className="w-3 h-3" /> Send via SMS
+                  </a>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1"
+                  asChild
+                >
+                  <a
+                    href={`https://wa.me/?text=${encodeURIComponent(`Reset your Margin Finance password: ${resetLinkInfo.link}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <MessageCircle className="w-3 h-3" /> Send via WhatsApp
+                  </a>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1"
+                  asChild
+                >
+                  <a href={`mailto:${resetLinkInfo.email}?subject=${encodeURIComponent('Reset your Margin Finance password')}&body=${encodeURIComponent(`Hi,\n\nUse this link to reset your Margin Finance password:\n\n${resetLinkInfo.link}\n\n(Link expires in 1 hour.)`)}`}>
+                    <Mail className="w-3 h-3" /> Email from your inbox
+                  </a>
+                </Button>
+              </div>
+              <div className="flex justify-end pt-2">
+                <Button variant="outline" onClick={() => setResetLinkInfo(null)}>Done</Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
