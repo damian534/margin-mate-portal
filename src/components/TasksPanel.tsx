@@ -23,7 +23,7 @@ type DueFilter = 'all' | 'overdue' | 'today' | 'tomorrow' | 'later' | 'no_date';
 
 interface Task {
   id: string;
-  lead_id: string;
+  lead_id: string | null;
   title: string;
   description: string | null;
   due_date: string | null;
@@ -94,7 +94,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
       .order('due_date', { ascending: true, nullsFirst: false });
     const mapped = (data || []).map((t: any) => ({
       ...t,
-      lead_name: t.leads ? `${t.leads.first_name} ${t.leads.last_name}` : 'Unknown',
+    lead_name: t.leads ? `${t.leads.first_name} ${t.leads.last_name}` : (t.lead_id ? 'Unknown' : 'Personal task'),
     }));
     setTasks(mapped);
     setLoading(false);
@@ -128,7 +128,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
   const createTask = async () => {
     if (!newTitle.trim()) return;
     
-    let leadId = newLeadId;
+    let leadId: string | null = newLeadId || null;
     let leadName = '';
 
     if (useCustomClient) {
@@ -155,15 +155,18 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
         leadName = customClientName.trim();
       }
     } else {
-      if (!leadId) { toast.error('Select a lead or add a new client'); return; }
-      const lead = leads.find(l => l.id === leadId);
-      leadName = lead ? `${lead.first_name} ${lead.last_name}` : 'Unknown';
+      if (leadId) {
+        const lead = leads.find(l => l.id === leadId);
+        leadName = lead ? `${lead.first_name} ${lead.last_name}` : 'Unknown';
+      } else {
+        leadName = 'Personal task';
+      }
     }
 
     if (isPreviewMode) {
       const fakeTask: Task = {
         id: `preview-${Date.now()}`,
-        lead_id: leadId,
+        lead_id: leadId ?? null,
         title: newTitle.trim(),
         description: newDesc.trim() || null,
         due_date: newDueDate ? new Date(newDueDate).toISOString() : null,
@@ -272,7 +275,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
               <DialogHeader><DialogTitle>Create Follow-up Task</DialogTitle></DialogHeader>
               <div className="space-y-4 pt-2">
                 <div>
-                  <Label>Lead *</Label>
+                  <Label>Lead (optional)</Label>
                   {useCustomClient ? (
                     <div className="space-y-2">
                       <Input
@@ -290,7 +293,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
                       <Popover open={leadSearchOpen} onOpenChange={setLeadSearchOpen}>
                         <PopoverTrigger asChild>
                           <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
-                            {newLeadId ? (() => { const l = leads.find(x => x.id === newLeadId); return l ? `${l.first_name} ${l.last_name}` : 'Select a lead...'; })() : 'Search leads...'}
+                            {newLeadId ? (() => { const l = leads.find(x => x.id === newLeadId); return l ? `${l.first_name} ${l.last_name}` : 'Select a lead...'; })() : 'No client — personal task'}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </PopoverTrigger>
@@ -300,6 +303,12 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
                             <CommandList>
                               <CommandEmpty>No leads found.</CommandEmpty>
                               <CommandGroup>
+                                {newLeadId && (
+                                  <CommandItem value="__clear__" onSelect={() => { setNewLeadId(''); setLeadSearchOpen(false); }}>
+                                    <Check className="mr-2 h-4 w-4 opacity-0" />
+                                    <span className="text-muted-foreground">Clear — no client</span>
+                                  </CommandItem>
+                                )}
                                 {leads.map(l => (
                                   <CommandItem
                                     key={l.id}
@@ -328,7 +337,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
                   <Label>Assign To</Label>
                   <AssigneePicker value={newAssignee} onChange={setNewAssignee} />
                 </div>
-                <Button onClick={createTask} disabled={!newTitle.trim() || (!newLeadId && !useCustomClient) || (useCustomClient && !customClientName.trim())} className="w-full">Create Task</Button>
+                <Button onClick={createTask} disabled={!newTitle.trim() || (useCustomClient && !customClientName.trim())} className="w-full">Create Task</Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -382,7 +391,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
                 const isDueToday = !task.completed && cat === 'today';
                 return (
                   <Card key={task.id} className={`transition-opacity cursor-pointer hover:bg-muted/50 ${task.completed ? 'opacity-60' : ''} ${isOverdue ? 'border-destructive/50' : ''}`}
-                    onClick={() => onOpenLead?.(task.lead_id)}>
+                    onClick={() => task.lead_id && onOpenLead?.(task.lead_id)}>
                     <CardContent className="py-3 px-4 flex items-start gap-3">
                       <div onClick={(e) => e.stopPropagation()}>
                         <Checkbox checked={task.completed} onCheckedChange={() => toggleComplete(task)} className="mt-1" />
