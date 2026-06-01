@@ -248,6 +248,7 @@ export function TaskDetailDialog({ open, onOpenChange, taskId, initialTask, onCh
 
   const addNote = async () => {
     if (!task || !user || !noteText.trim()) return;
+    if (!task.lead_id) { toast.error('Notes require an associated client'); return; }
     const content = `📋 [Task: ${title || task.title}] ${noteText.trim()}`;
     if (isPreviewMode) {
       setNotes(prev => [{ id: `preview-${Date.now()}`, content, created_at: new Date().toISOString() }, ...prev]);
