@@ -332,7 +332,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
                 </div>
                 <div><Label>Task Title *</Label><Input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="e.g. Call back after 5pm" /></div>
                 <div><Label>Description</Label><Textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Optional details..." rows={2} /></div>
-                <div><Label>Due Date</Label><Input type="datetime-local" value={newDueDate} onChange={e => setNewDueDate(e.target.value)} /></div>
+                <div><Label>Due Date</Label><Input type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)} /></div>
                 <div>
                   <Label>Assign To</Label>
                   <AssigneePicker value={newAssignee} onChange={setNewAssignee} />
@@ -405,7 +405,7 @@ export function TasksPanel({ leads, onOpenLead }: TasksPanelProps) {
                             <span className={`flex items-center gap-1 text-xs ${isOverdue ? 'text-destructive font-medium' : isDueToday ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
                               <Calendar className="w-3 h-3" />
                               {isOverdue ? 'Overdue — ' : isDueToday ? 'Today — ' : cat === 'tomorrow' ? 'Tomorrow — ' : ''}
-                              {format(new Date(task.due_date), 'dd MMM, HH:mm')}
+                              {format(new Date(task.due_date), 'dd MMM')}
                             </span>
                           )}
                         </div>
