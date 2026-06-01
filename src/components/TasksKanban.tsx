@@ -7,7 +7,7 @@ import { AssigneeBadge } from '@/components/AssigneePicker';
 
 interface Task {
   id: string;
-  lead_id: string;
+  lead_id: string | null;
   title: string;
   description: string | null;
   due_date: string | null;
@@ -77,7 +77,7 @@ export function TasksKanban({ tasks, onToggleComplete, onOpenLead }: TasksKanban
                     key={task.id}
                     className="cursor-pointer hover:shadow-md transition-shadow border-l-4"
                     style={{ borderLeftColor: col.color }}
-                    onClick={() => onOpenLead?.(task.lead_id)}
+                    onClick={() => task.lead_id && onOpenLead?.(task.lead_id)}
                   >
                     <CardContent className="p-3 space-y-1.5">
                       <div className="flex items-start gap-2">
