@@ -47,7 +47,7 @@ interface ChecklistItem { text: string; done: boolean }
 
 interface TaskRow {
   id: string;
-  lead_id: string;
+  lead_id: string | null;
   title: string;
   description: string | null;
   due_date: string | null;
@@ -253,7 +253,7 @@ export function TaskDetailDialog({ open, onOpenChange, taskId, initialTask, onCh
       setNotes(prev => [{ id: `preview-${Date.now()}`, content, created_at: new Date().toISOString() }, ...prev]);
     } else {
       const { data, error } = await supabase.from('notes').insert({
-        lead_id: task.lead_id, author_id: user.id, content, task_id: task.id,
+        lead_id: task.lead_id as any, author_id: user.id, content, task_id: task.id,
       }).select('id, content, created_at').single();
       if (error || !data) { toast.error('Failed to add note'); return; }
       setNotes(prev => [data as NoteRow, ...prev]);
@@ -323,7 +323,7 @@ export function TaskDetailDialog({ open, onOpenChange, taskId, initialTask, onCh
                       <button
                         type="button"
                         className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-                        onClick={() => onOpenDeal?.(task.lead_id)}
+                        onClick={() => task.lead_id && onOpenDeal?.(task.lead_id)}
                         title="Open deal"
                       >
                         <User className="w-3 h-3" /> {task.lead_name}
