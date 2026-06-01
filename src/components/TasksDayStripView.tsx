@@ -182,13 +182,6 @@ export function TasksDayStripView({ tasks, onToggleComplete, onOpenLead, onReord
                               <span className={`w-1.5 h-1.5 rounded-full ${u.dot}`} />
                               {u.label}
                             </span>
-                            {task.due_date && (
-                              <span className="text-xs text-muted-foreground">
-                                {format(new Date(task.due_date), 'HH:mm') !== '00:00'
-                                  ? format(new Date(task.due_date), 'HH:mm')
-                                  : 'All day'}
-                              </span>
-                            )}
                           </div>
                           <p className={`font-semibold text-sm leading-tight ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
                             {task.lead_name}
