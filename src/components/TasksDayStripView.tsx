@@ -10,7 +10,7 @@ import { TaskDetailDialog } from '@/components/TaskDetailDialog';
 
 interface Task {
   id: string;
-  lead_id: string;
+  lead_id: string | null;
   title: string;
   description: string | null;
   due_date: string | null;
