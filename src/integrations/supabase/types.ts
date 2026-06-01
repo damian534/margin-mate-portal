@@ -1831,7 +1831,7 @@ export type Database = {
           description: string | null
           due_date: string | null
           id: string
-          lead_id: string
+          lead_id: string | null
           priority: number | null
           sort_order: number | null
           title: string
@@ -1847,7 +1847,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
-          lead_id: string
+          lead_id?: string | null
           priority?: number | null
           sort_order?: number | null
           title: string
@@ -1863,7 +1863,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
-          lead_id?: string
+          lead_id?: string | null
           priority?: number | null
           sort_order?: number | null
           title?: string
