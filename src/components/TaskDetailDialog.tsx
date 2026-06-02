@@ -282,12 +282,12 @@ export function TaskDetailDialog({ open, onOpenChange, taskId, initialTask, onCh
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] grid-rows-[auto_1fr] flex flex-col p-0 gap-0 overflow-hidden">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
         <DialogHeader className="sr-only">
           <DialogTitle>Task</DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0 p-4">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4">
           {loading || !task ? (
             <div className="text-sm text-muted-foreground py-12 text-center">Loading…</div>
           ) : (
@@ -505,7 +505,7 @@ export function TaskDetailDialog({ open, onOpenChange, taskId, initialTask, onCh
               </div>
             </div>
           )}
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
