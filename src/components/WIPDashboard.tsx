@@ -279,6 +279,15 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
           {compact ? (<><Maximize2 className="w-3.5 h-3.5" /> Normal</>) : (<><Minimize2 className="w-3.5 h-3.5" /> Compact</>)}
         </Button>
         <AssigneeFilter value={assigneeFilter} onChange={setAssigneeFilter} className="w-full sm:w-56" />
+        <StatusSettings
+          statuses={wipStatuses as any}
+          onAdd={addStatus}
+          onUpdate={updateWipStatusConfig}
+          onDelete={deleteStatus}
+          onReorder={reorderStatuses as any}
+          title="WIP Statuses"
+          triggerLabel="Manage WIP Statuses"
+        />
         </div>
       </div>
 
