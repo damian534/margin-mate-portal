@@ -1945,6 +1945,33 @@ export type Database = {
         }
         Relationships: []
       }
+      wip_statuses: {
+        Row: {
+          color: string
+          created_at: string
+          display_order: number
+          id: string
+          label: string
+          name: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          label: string
+          name: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          label?: string
+          name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
