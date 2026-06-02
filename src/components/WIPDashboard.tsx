@@ -15,6 +15,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { format, isPast, isToday, isTomorrow } from 'date-fns';
 import { Users } from 'lucide-react';
 import { HorizontalScrollWithTopBar } from '@/components/HorizontalScrollWithTopBar';
+import { useWipStatuses } from '@/hooks/useWipStatuses';
+import { StatusSettings } from '@/components/StatusSettings';
 
 export const WIP_STATUSES = [
   { name: 'pending_fact_find', label: 'Pending Fact Find', color: '#cbd5e1' },
@@ -110,6 +112,8 @@ interface WIPDashboardProps {
 }
 
 export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead, docsByLead, onDownloadDocs, leadSources = [], getReferrerName, getReferrerCompany, getContactName, externalSearch, tasksByLead }: WIPDashboardProps) {
+  const { statuses: wipStatusesDynamic, addStatus, updateStatus: updateWipStatusConfig, deleteStatus, reorderStatuses } = useWipStatuses();
+  const wipStatuses = wipStatusesDynamic.length > 0 ? wipStatusesDynamic : (WIP_STATUSES as unknown as { name: string; label: string; color: string }[]);
   const [assigneeFilter, setAssigneeFilter] = usePersistedState<string[]>('crm.wip.assigneeFilterMulti', []);
   const [collapsedColumns, setCollapsedColumns] = usePersistedStringSet('crm.wip.collapsedColumns', []);
   const [search, setSearch] = usePersistedState<string>('crm.wip.search', '');
@@ -124,9 +128,9 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
       return next;
     });
   };
-  const collapseAll = () => setCollapsedColumns(new Set(WIP_STATUSES.map(s => s.name)));
+  const collapseAll = () => setCollapsedColumns(new Set(wipStatuses.map(s => s.name)));
   const expandAll = () => setCollapsedColumns(new Set());
-  const allCollapsed = collapsedColumns.size === WIP_STATUSES.length;
+  const allCollapsed = collapsedColumns.size === wipStatuses.length;
 
   const visibleLeads = useMemo(() => {
     let result = leads;
@@ -157,17 +161,17 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
 
   const grouped = useMemo(() => {
     const map = new Map<string, WIPLead[]>();
-    WIP_STATUSES.forEach(s => map.set(s.name, []));
+    wipStatuses.forEach(s => map.set(s.name, []));
     for (const l of visibleLeads) {
       const key = l.wip_status || '';
       if (map.has(key)) map.get(key)!.push(l);
     }
     return map;
-  }, [visibleLeads]);
+  }, [visibleLeads, wipStatuses]);
 
   const totals = useMemo(() => {
     const t = new Map<string, { count: number; volume: number }>();
-    WIP_STATUSES.forEach(s => {
+    wipStatuses.forEach(s => {
       const arr = grouped.get(s.name) || [];
       t.set(s.name, {
         count: arr.length,
@@ -175,7 +179,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
       });
     });
     return t;
-  }, [grouped]);
+  }, [grouped, wipStatuses]);
 
   const totalActive = leads.filter(l => l.wip_status && l.wip_status !== 'settled').length;
   const totalVolume = leads
@@ -275,6 +279,15 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
           {compact ? (<><Maximize2 className="w-3.5 h-3.5" /> Normal</>) : (<><Minimize2 className="w-3.5 h-3.5" /> Compact</>)}
         </Button>
         <AssigneeFilter value={assigneeFilter} onChange={setAssigneeFilter} className="w-full sm:w-56" />
+        <StatusSettings
+          statuses={wipStatuses as any}
+          onAdd={addStatus}
+          onUpdate={updateWipStatusConfig}
+          onDelete={deleteStatus}
+          onReorder={reorderStatuses as any}
+          title="WIP Statuses"
+          triggerLabel="Manage WIP Statuses"
+        />
         </div>
       </div>
 
@@ -321,7 +334,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
           <Card><CardContent className="p-0"><p className="text-muted-foreground text-center py-12">No deals in WIP</p></CardContent></Card>
         ) : (
           <div className="space-y-6">
-            {WIP_STATUSES.map(stage => {
+            {wipStatuses.map(stage => {
               const stageLeads = visibleLeads.filter(l => l.wip_status === stage.name);
               const stageTotal = stageLeads.reduce((s, l) => s + (l.loan_amount || 0), 0);
               return (
@@ -399,7 +412,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                     <DropdownMenuContent align="end" className="max-h-[60vh] overflow-y-auto bg-popover z-50">
                                       <DropdownMenuLabel className="text-xs">Move to stage</DropdownMenuLabel>
                                       <DropdownMenuSeparator />
-                                      {WIP_STATUSES.map(s => (
+                                      {wipStatuses.map(s => (
                                         <DropdownMenuItem
                                           key={s.name}
                                           disabled={s.name === lead.wip_status}
@@ -446,7 +459,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
       ) : (
       <HorizontalScrollWithTopBar style={{ minHeight: '60vh' }}>
         <div className="flex gap-3 pb-4" style={{ minWidth: 'max-content' }}>
-          {WIP_STATUSES.map(stage => {
+          {wipStatuses.map(stage => {
             const stageLeads = grouped.get(stage.name) || [];
             const t = totals.get(stage.name)!;
             const isCollapsed = collapsedColumns.has(stage.name);
@@ -549,7 +562,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                     <DropdownMenuContent align="end" className="max-h-[60vh] overflow-y-auto bg-popover z-50">
                                       <DropdownMenuLabel className="text-xs">Move to stage</DropdownMenuLabel>
                                       <DropdownMenuSeparator />
-                                      {WIP_STATUSES.map(s => (
+                                      {wipStatuses.map(s => (
                                         <DropdownMenuItem
                                           key={s.name}
                                           disabled={s.name === stage.name}

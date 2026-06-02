@@ -44,6 +44,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { WIP_STATUSES } from './WIPDashboard';
+import { useWipStatuses } from '@/hooks/useWipStatuses';
 
 // Circular tick checkbox used for tasks
 const TaskCircleCheck = ({
@@ -237,6 +238,8 @@ export function LeadDetailSheet({
 }: LeadDetailSheetProps) {
   const { user, role } = useAuth();
   const { members: teamMembers } = useTeamMembers();
+  const { statuses: wipStatusesDynamic } = useWipStatuses();
+  const wipStatusList = wipStatusesDynamic.length > 0 ? wipStatusesDynamic : (WIP_STATUSES as unknown as { name: string; label: string; color: string }[]);
   const isSuperAdmin = role === 'super_admin';
   const [notes, setNotes] = useState<Note[]>([]);
   const [brokerOptions, setBrokerOptions] = useState<{ id: string; name: string; email: string | null }[]>([]);
@@ -1217,7 +1220,7 @@ export function LeadDetailSheet({
                 />
                 <div className="flex items-center flex-wrap gap-2">
                   {lead.wip_status ? (() => {
-                    const w = WIP_STATUSES.find(s => s.name === lead.wip_status);
+                    const w = wipStatusList.find(s => s.name === lead.wip_status);
                     return (
                       <span
                         className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white"
@@ -1957,7 +1960,7 @@ export function LeadDetailSheet({
                   if (v.startsWith('wip:')) {
                     const next = v.slice(4);
                     onUpdateWipStatus?.(lead.id, next);
-                    const nextLabel = WIP_STATUSES.find(s => s.name === next)?.label || next;
+                    const nextLabel = wipStatusList.find(s => s.name === next)?.label || next;
                     import('@/lib/leadAudit').then(m => m.logAudit(lead.id, `🔄 Status changed: ${prev} → WIP · ${nextLabel}`, { isPreview: isPreviewMode }));
                   } else {
                     const next = v.slice(5);
@@ -1980,7 +1983,7 @@ export function LeadDetailSheet({
                     </SelectItem>
                   ))}
                   <div className="px-2 py-1 mt-1 text-[10px] font-semibold uppercase text-muted-foreground border-t">WIP Stage</div>
-                  {WIP_STATUSES.map(s => (
+                  {wipStatusList.map(s => (
                     <SelectItem key={`wip-${s.name}`} value={`wip:${s.name}`}>
                       <span className="inline-flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />

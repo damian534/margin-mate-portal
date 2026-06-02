@@ -13,9 +13,11 @@ interface StatusSettingsProps {
   onUpdate: (id: string, updates: Partial<Pick<LeadStatus, 'label' | 'color' | 'name'>>) => Promise<boolean>;
   onDelete: (id: string) => Promise<boolean>;
   onReorder: (reordered: LeadStatus[]) => Promise<boolean>;
+  title?: string;
+  triggerLabel?: string;
 }
 
-export function StatusSettings({ statuses, onAdd, onUpdate, onDelete, onReorder }: StatusSettingsProps) {
+export function StatusSettings({ statuses, onAdd, onUpdate, onDelete, onReorder, title = 'Lead Statuses', triggerLabel = 'Manage Statuses' }: StatusSettingsProps) {
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [newLabel, setNewLabel] = useState('');
@@ -74,12 +76,12 @@ export function StatusSettings({ statuses, onAdd, onUpdate, onDelete, onReorder 
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
-          <Settings className="w-4 h-4 mr-1" /> Manage Statuses
+          <Settings className="w-4 h-4 mr-1" /> {triggerLabel}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Lead Statuses</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-2 mt-2">
