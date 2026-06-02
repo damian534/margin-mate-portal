@@ -325,7 +325,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
           <Card><CardContent className="p-0"><p className="text-muted-foreground text-center py-12">No deals in WIP</p></CardContent></Card>
         ) : (
           <div className="space-y-6">
-            {WIP_STATUSES.map(stage => {
+            {wipStatuses.map(stage => {
               const stageLeads = visibleLeads.filter(l => l.wip_status === stage.name);
               const stageTotal = stageLeads.reduce((s, l) => s + (l.loan_amount || 0), 0);
               return (
@@ -403,7 +403,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                     <DropdownMenuContent align="end" className="max-h-[60vh] overflow-y-auto bg-popover z-50">
                                       <DropdownMenuLabel className="text-xs">Move to stage</DropdownMenuLabel>
                                       <DropdownMenuSeparator />
-                                      {WIP_STATUSES.map(s => (
+                                      {wipStatuses.map(s => (
                                         <DropdownMenuItem
                                           key={s.name}
                                           disabled={s.name === lead.wip_status}
@@ -450,7 +450,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
       ) : (
       <HorizontalScrollWithTopBar style={{ minHeight: '60vh' }}>
         <div className="flex gap-3 pb-4" style={{ minWidth: 'max-content' }}>
-          {WIP_STATUSES.map(stage => {
+          {wipStatuses.map(stage => {
             const stageLeads = grouped.get(stage.name) || [];
             const t = totals.get(stage.name)!;
             const isCollapsed = collapsedColumns.has(stage.name);
@@ -553,7 +553,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                     <DropdownMenuContent align="end" className="max-h-[60vh] overflow-y-auto bg-popover z-50">
                                       <DropdownMenuLabel className="text-xs">Move to stage</DropdownMenuLabel>
                                       <DropdownMenuSeparator />
-                                      {WIP_STATUSES.map(s => (
+                                      {wipStatuses.map(s => (
                                         <DropdownMenuItem
                                           key={s.name}
                                           disabled={s.name === stage.name}
