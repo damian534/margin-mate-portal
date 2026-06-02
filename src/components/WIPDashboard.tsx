@@ -15,6 +15,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { format, isPast, isToday, isTomorrow } from 'date-fns';
 import { Users } from 'lucide-react';
 import { HorizontalScrollWithTopBar } from '@/components/HorizontalScrollWithTopBar';
+import { useWipStatuses } from '@/hooks/useWipStatuses';
+import { StatusSettings } from '@/components/StatusSettings';
 
 export const WIP_STATUSES = [
   { name: 'pending_fact_find', label: 'Pending Fact Find', color: '#cbd5e1' },
@@ -110,6 +112,8 @@ interface WIPDashboardProps {
 }
 
 export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead, docsByLead, onDownloadDocs, leadSources = [], getReferrerName, getReferrerCompany, getContactName, externalSearch, tasksByLead }: WIPDashboardProps) {
+  const { statuses: wipStatusesDynamic, addStatus, updateStatus: updateWipStatusConfig, deleteStatus, reorderStatuses } = useWipStatuses();
+  const wipStatuses = wipStatusesDynamic.length > 0 ? wipStatusesDynamic : (WIP_STATUSES as unknown as { name: string; label: string; color: string }[]);
   const [assigneeFilter, setAssigneeFilter] = usePersistedState<string[]>('crm.wip.assigneeFilterMulti', []);
   const [collapsedColumns, setCollapsedColumns] = usePersistedStringSet('crm.wip.collapsedColumns', []);
   const [search, setSearch] = usePersistedState<string>('crm.wip.search', '');
@@ -124,9 +128,9 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
       return next;
     });
   };
-  const collapseAll = () => setCollapsedColumns(new Set(WIP_STATUSES.map(s => s.name)));
+  const collapseAll = () => setCollapsedColumns(new Set(wipStatuses.map(s => s.name)));
   const expandAll = () => setCollapsedColumns(new Set());
-  const allCollapsed = collapsedColumns.size === WIP_STATUSES.length;
+  const allCollapsed = collapsedColumns.size === wipStatuses.length;
 
   const visibleLeads = useMemo(() => {
     let result = leads;
@@ -157,17 +161,17 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
 
   const grouped = useMemo(() => {
     const map = new Map<string, WIPLead[]>();
-    WIP_STATUSES.forEach(s => map.set(s.name, []));
+    wipStatuses.forEach(s => map.set(s.name, []));
     for (const l of visibleLeads) {
       const key = l.wip_status || '';
       if (map.has(key)) map.get(key)!.push(l);
     }
     return map;
-  }, [visibleLeads]);
+  }, [visibleLeads, wipStatuses]);
 
   const totals = useMemo(() => {
     const t = new Map<string, { count: number; volume: number }>();
-    WIP_STATUSES.forEach(s => {
+    wipStatuses.forEach(s => {
       const arr = grouped.get(s.name) || [];
       t.set(s.name, {
         count: arr.length,
@@ -175,7 +179,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
       });
     });
     return t;
-  }, [grouped]);
+  }, [grouped, wipStatuses]);
 
   const totalActive = leads.filter(l => l.wip_status && l.wip_status !== 'settled').length;
   const totalVolume = leads
