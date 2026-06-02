@@ -1117,6 +1117,7 @@ export type Database = {
           first_name: string
           id: string
           last_name: string
+          lead_sort_order: number | null
           loan_amount: number | null
           loan_purpose: string | null
           lodged_date: string | null
@@ -1139,6 +1140,7 @@ export type Database = {
           status: string
           subject_to_finance: boolean
           updated_at: string
+          wip_sort_order: number | null
           wip_status: string | null
         }
         Insert: {
@@ -1161,6 +1163,7 @@ export type Database = {
           first_name: string
           id?: string
           last_name: string
+          lead_sort_order?: number | null
           loan_amount?: number | null
           loan_purpose?: string | null
           lodged_date?: string | null
@@ -1183,6 +1186,7 @@ export type Database = {
           status?: string
           subject_to_finance?: boolean
           updated_at?: string
+          wip_sort_order?: number | null
           wip_status?: string | null
         }
         Update: {
@@ -1205,6 +1209,7 @@ export type Database = {
           first_name?: string
           id?: string
           last_name?: string
+          lead_sort_order?: number | null
           loan_amount?: number | null
           loan_purpose?: string | null
           lodged_date?: string | null
@@ -1227,6 +1232,7 @@ export type Database = {
           status?: string
           subject_to_finance?: boolean
           updated_at?: string
+          wip_sort_order?: number | null
           wip_status?: string | null
         }
         Relationships: [

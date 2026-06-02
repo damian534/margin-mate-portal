@@ -87,6 +87,7 @@ interface WIPLead {
   created_at?: string | null;
   email?: string | null;
   phone?: string | null;
+  wip_sort_order?: number | null;
 }
 
 interface LeadSource {
@@ -117,6 +118,19 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
   const [assigneeFilter, setAssigneeFilter] = usePersistedState<string[]>('crm.wip.assigneeFilterMulti', []);
   const [collapsedColumns, setCollapsedColumns] = usePersistedStringSet('crm.wip.collapsedColumns', []);
   const [search, setSearch] = usePersistedState<string>('crm.wip.search', '');
+  const [sortOverrides, setSortOverrides] = useState<Record<string, number>>({});
+  const [stageOverrides, setStageOverrides] = useState<Record<string, string>>({});
+  const [dragOverCard, setDragOverCard] = useState<{ leadId: string; position: 'before' | 'after' } | null>(null);
+
+  const getSort = (l: WIPLead) => sortOverrides[l.id] ?? l.wip_sort_order ?? null;
+  const getStage = (l: WIPLead) => stageOverrides[l.id] ?? l.wip_status ?? '';
+  const sortLeadsArr = (arr: WIPLead[]) => [...arr].sort((a, b) => {
+    const av = getSort(a); const bv = getSort(b);
+    if (av == null && bv == null) return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+    if (av == null) return 1;
+    if (bv == null) return -1;
+    return av - bv;
+  });
   const [compact, setCompact] = usePersistedState<boolean>('crm.wip.compact', false);
   const [view, setView] = usePersistedState<'kanban' | 'list'>('crm.wip.view', 'kanban');
   const [taskDueFilter, setTaskDueFilter] = usePersistedState<WipTaskDueFilter>('crm.wip.taskDueFilter', 'all_leads');
@@ -163,11 +177,13 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
     const map = new Map<string, WIPLead[]>();
     wipStatuses.forEach(s => map.set(s.name, []));
     for (const l of visibleLeads) {
-      const key = l.wip_status || '';
+      const key = getStage(l);
       if (map.has(key)) map.get(key)!.push(l);
     }
+    // Sort each column by manual order
+    for (const [k, arr] of map.entries()) map.set(k, sortLeadsArr(arr));
     return map;
-  }, [visibleLeads, wipStatuses]);
+  }, [visibleLeads, wipStatuses, sortOverrides, stageOverrides]);
 
   const totals = useMemo(() => {
     const t = new Map<string, { count: number; volume: number }>();
@@ -222,6 +238,53 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
       toast.error('Failed to update WIP status');
     } else {
       toast.success('WIP status updated');
+    }
+  };
+
+  const reorderToEnd = async (leadId: string, stageName: string) => {
+    const lead = leads.find(l => l.id === leadId);
+    if (!lead) return;
+    const sorted = sortLeadsArr(leads.filter(l => getStage(l) === stageName && l.id !== leadId));
+    const lastSort = sorted.length > 0 ? (getSort(sorted[sorted.length - 1]) ?? 0) : 0;
+    const newSort = lastSort + 1000;
+    setSortOverrides(prev => ({ ...prev, [leadId]: newSort }));
+    if (getStage(lead) !== stageName) {
+      setStageOverrides(prev => ({ ...prev, [leadId]: stageName }));
+      await update(leadId, stageName);
+    }
+    if (!isPreviewMode) {
+      await supabase.from('leads').update({ wip_sort_order: newSort } as any).eq('id', leadId);
+    }
+  };
+
+  const reorderBeforeCard = async (e: React.DragEvent, target: WIPLead, stageName: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const leadId = e.dataTransfer.getData('leadId');
+    setDragOverCard(null);
+    if (!leadId || leadId === target.id) return;
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const dropAfter = e.clientY > rect.top + rect.height / 2;
+    const sorted = sortLeadsArr(leads.filter(l => getStage(l) === stageName && l.id !== leadId));
+    const targetIdx = sorted.findIndex(l => l.id === target.id);
+    if (targetIdx === -1) return;
+    const prevIdx = dropAfter ? targetIdx : targetIdx - 1;
+    const nextIdx = dropAfter ? targetIdx + 1 : targetIdx;
+    const prevSort = prevIdx >= 0 ? (getSort(sorted[prevIdx]) ?? null) : null;
+    const nextSort = nextIdx < sorted.length ? (getSort(sorted[nextIdx]) ?? null) : null;
+    let newSort: number;
+    if (prevSort != null && nextSort != null) newSort = (prevSort + nextSort) / 2;
+    else if (prevSort != null) newSort = prevSort + 1000;
+    else if (nextSort != null) newSort = nextSort - 1000;
+    else newSort = 1000;
+    setSortOverrides(prev => ({ ...prev, [leadId]: newSort }));
+    const moving = leads.find(l => l.id === leadId);
+    if (moving && getStage(moving) !== stageName) {
+      setStageOverrides(prev => ({ ...prev, [leadId]: stageName }));
+      await update(leadId, stageName);
+    }
+    if (!isPreviewMode) {
+      await supabase.from('leads').update({ wip_sort_order: newSort } as any).eq('id', leadId);
     }
   };
 
@@ -335,7 +398,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
         ) : (
           <div className="space-y-6">
             {wipStatuses.map(stage => {
-              const stageLeads = visibleLeads.filter(l => l.wip_status === stage.name);
+              const stageLeads = sortLeadsArr(visibleLeads.filter(l => getStage(l) === stage.name));
               const stageTotal = stageLeads.reduce((s, l) => s + (l.loan_amount || 0), 0);
               return (
                 <div
@@ -344,7 +407,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                   onDrop={(e) => {
                     e.preventDefault();
                     const leadId = e.dataTransfer.getData('leadId');
-                    if (leadId) update(leadId, stage.name);
+                    if (leadId) reorderToEnd(leadId, stage.name);
                   }}
                 >
                   <div className="flex items-center gap-2 mb-2">
@@ -386,7 +449,20 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                   e.dataTransfer.setData('leadId', lead.id);
                                   e.dataTransfer.effectAllowed = 'move';
                                 }}
-                                className="cursor-grab active:cursor-grabbing hover:bg-muted/50"
+                                onDragOver={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                  const after = e.clientY > rect.top + rect.height / 2;
+                                  setDragOverCard({ leadId: lead.id, position: after ? 'after' : 'before' });
+                                }}
+                                onDragLeave={(e) => { e.stopPropagation(); setDragOverCard(prev => prev?.leadId === lead.id ? null : prev); }}
+                                onDrop={(e) => reorderBeforeCard(e, lead, stage.name)}
+                                className={`cursor-grab active:cursor-grabbing hover:bg-muted/50 ${
+                                  dragOverCard?.leadId === lead.id && dragOverCard.position === 'before' ? 'border-t-2 border-t-primary' : ''
+                                } ${
+                                  dragOverCard?.leadId === lead.id && dragOverCard.position === 'after' ? 'border-b-2 border-b-primary' : ''
+                                }`}
                                 onClick={() => onOpenLead(lead)}
                               >
                                 <TableCell className="font-medium">
@@ -471,7 +547,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                 onDrop={(e) => {
                   e.preventDefault();
                   const leadId = e.dataTransfer.getData('leadId');
-                  if (leadId) update(leadId, stage.name);
+                  if (leadId) reorderToEnd(leadId, stage.name);
                 }}
               >
                 {isCollapsed ? (
@@ -526,8 +602,21 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                 e.dataTransfer.setData('leadId', lead.id);
                                 e.dataTransfer.effectAllowed = 'move';
                               }}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                const after = e.clientY > rect.top + rect.height / 2;
+                                setDragOverCard({ leadId: lead.id, position: after ? 'after' : 'before' });
+                              }}
+                              onDragLeave={(e) => { e.stopPropagation(); setDragOverCard(prev => prev?.leadId === lead.id ? null : prev); }}
+                              onDrop={(e) => reorderBeforeCard(e, lead, stage.name)}
                               onClick={() => onOpenLead(lead)}
-                              className="cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors border bg-card"
+                              className={`cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors border bg-card ${
+                                dragOverCard?.leadId === lead.id && dragOverCard.position === 'before' ? 'border-t-2 border-t-primary' : ''
+                              } ${
+                                dragOverCard?.leadId === lead.id && dragOverCard.position === 'after' ? 'border-b-2 border-b-primary' : ''
+                              }`}
                             >
                               <CardContent className={compact ? "p-2 space-y-1" : "p-3 space-y-2"}>
                                 <div className="flex items-start gap-2">

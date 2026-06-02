@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { LeadStatus } from '@/hooks/useLeadStatuses';
@@ -27,6 +28,7 @@ interface Lead {
   wip_status?: string | null;
   created_at: string;
   assigned_to?: string | null;
+  lead_sort_order?: number | null;
 }
 
 interface LeadSource {
@@ -60,6 +62,20 @@ interface LeadsKanbanProps {
 export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName, getReferrerCompany, getContactName, onOpenLead, onUpdateStatus, onUpdateWipStatus, tasksByLead, taskDueFilter, docsByLead, onDownloadDocs }: LeadsKanbanProps) {
   const [collapsedColumns, setCollapsedColumns] = usePersistedStringSet('crm.leads.kanban.collapsedColumns', []);
   const [compact, setCompact] = usePersistedState<boolean>('crm.leads.kanban.compact', false);
+  // Local optimistic overrides for sort_order and status to keep DnD snappy.
+  const [sortOverrides, setSortOverrides] = useState<Record<string, number>>({});
+  const [statusOverrides, setStatusOverrides] = useState<Record<string, string>>({});
+  const [dragOverCard, setDragOverCard] = useState<{ leadId: string; position: 'before' | 'after' } | null>(null);
+
+  const getSort = (l: Lead) => sortOverrides[l.id] ?? l.lead_sort_order ?? null;
+  const getStatus = (l: Lead) => statusOverrides[l.id] ?? l.status;
+  const sortLeads = (arr: Lead[]) => [...arr].sort((a, b) => {
+    const av = getSort(a); const bv = getSort(b);
+    if (av == null && bv == null) return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    if (av == null) return 1;
+    if (bv == null) return -1;
+    return av - bv;
+  });
 
   // Auto-expand columns that have leads when a task filter is applied
   useEffect(() => {
@@ -115,9 +131,53 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
   const handleDrop = (e: React.DragEvent, statusName: string) => {
     e.preventDefault();
     const leadId = e.dataTransfer.getData('leadId');
-    if (leadId) {
+    if (!leadId) return;
+    // Drop at end of column
+    const sorted = sortLeads(leads.filter(l => getStatus(l) === statusName && l.id !== leadId));
+    const lastSort = sorted.length > 0 ? (getSort(sorted[sorted.length - 1]) ?? 0) : 0;
+    const newSort = lastSort + 1000;
+    setSortOverrides(prev => ({ ...prev, [leadId]: newSort }));
+    const movingLead = leads.find(l => l.id === leadId);
+    if (movingLead && getStatus(movingLead) !== statusName) {
+      setStatusOverrides(prev => ({ ...prev, [leadId]: statusName }));
       onUpdateStatus(leadId, statusName);
     }
+    supabase.from('leads').update({ lead_sort_order: newSort } as any).eq('id', leadId).then(({ error }) => {
+      if (error) console.error('Failed to save lead order', error);
+    });
+    setDragOverCard(null);
+  };
+
+  const handleCardDrop = (e: React.DragEvent, targetLead: Lead, statusName: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const leadId = e.dataTransfer.getData('leadId');
+    if (!leadId || leadId === targetLead.id) { setDragOverCard(null); return; }
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const dropAfter = e.clientY > rect.top + rect.height / 2;
+    const sorted = sortLeads(leads.filter(l => getStatus(l) === statusName && l.id !== leadId));
+    const targetIdx = sorted.findIndex(l => l.id === targetLead.id);
+    if (targetIdx === -1) { setDragOverCard(null); return; }
+    // Find neighbours
+    const prevIdx = dropAfter ? targetIdx : targetIdx - 1;
+    const nextIdx = dropAfter ? targetIdx + 1 : targetIdx;
+    const prevSort = prevIdx >= 0 ? (getSort(sorted[prevIdx]) ?? null) : null;
+    const nextSort = nextIdx < sorted.length ? (getSort(sorted[nextIdx]) ?? null) : null;
+    let newSort: number;
+    if (prevSort != null && nextSort != null) newSort = (prevSort + nextSort) / 2;
+    else if (prevSort != null) newSort = prevSort + 1000;
+    else if (nextSort != null) newSort = nextSort - 1000;
+    else newSort = 1000;
+    setSortOverrides(prev => ({ ...prev, [leadId]: newSort }));
+    const movingLead = leads.find(l => l.id === leadId);
+    if (movingLead && getStatus(movingLead) !== statusName) {
+      setStatusOverrides(prev => ({ ...prev, [leadId]: statusName }));
+      onUpdateStatus(leadId, statusName);
+    }
+    supabase.from('leads').update({ lead_sort_order: newSort } as any).eq('id', leadId).then(({ error }) => {
+      if (error) console.error('Failed to save lead order', error);
+    });
+    setDragOverCard(null);
   };
 
   return (
@@ -149,7 +209,7 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
       <HorizontalScrollWithTopBar style={{ minHeight: '60vh' }}>
         <div className="flex gap-3 pb-4" style={{ minWidth: 'max-content' }}>
         {statuses.map(status => {
-          const columnLeads = leads.filter(l => l.status === status.name);
+          const columnLeads = sortLeads(leads.filter(l => getStatus(l) === status.name));
           const totalAmount = columnLeads.reduce((sum, l) => sum + (l.loan_amount || 0), 0);
           const isCollapsed = collapsedColumns.has(status.name);
 
@@ -207,8 +267,24 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                             key={lead.id}
                             draggable
                             onDragStart={(e) => handleDragStart(e, lead.id)}
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                              const after = e.clientY > rect.top + rect.height / 2;
+                              setDragOverCard({ leadId: lead.id, position: after ? 'after' : 'before' });
+                            }}
+                            onDragLeave={(e) => {
+                              e.stopPropagation();
+                              setDragOverCard(prev => prev?.leadId === lead.id ? null : prev);
+                            }}
+                            onDrop={(e) => handleCardDrop(e, lead, status.name)}
                             onClick={() => onOpenLead(lead)}
-                            className="cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors border bg-card"
+                            className={`cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors border bg-card ${
+                              dragOverCard?.leadId === lead.id && dragOverCard.position === 'before' ? 'border-t-2 border-t-primary' : ''
+                            } ${
+                              dragOverCard?.leadId === lead.id && dragOverCard.position === 'after' ? 'border-b-2 border-b-primary' : ''
+                            }`}
                           >
                             <CardContent className={compact ? "p-2 space-y-1.5" : "p-3 space-y-2"}>
                               <div className="flex items-start gap-2">
