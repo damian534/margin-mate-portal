@@ -398,7 +398,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
         ) : (
           <div className="space-y-6">
             {wipStatuses.map(stage => {
-              const stageLeads = visibleLeads.filter(l => l.wip_status === stage.name);
+              const stageLeads = sortLeadsArr(visibleLeads.filter(l => getStage(l) === stage.name));
               const stageTotal = stageLeads.reduce((s, l) => s + (l.loan_amount || 0), 0);
               return (
                 <div
@@ -407,7 +407,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                   onDrop={(e) => {
                     e.preventDefault();
                     const leadId = e.dataTransfer.getData('leadId');
-                    if (leadId) update(leadId, stage.name);
+                    if (leadId) reorderToEnd(leadId, stage.name);
                   }}
                 >
                   <div className="flex items-center gap-2 mb-2">
@@ -449,7 +449,20 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                   e.dataTransfer.setData('leadId', lead.id);
                                   e.dataTransfer.effectAllowed = 'move';
                                 }}
-                                className="cursor-grab active:cursor-grabbing hover:bg-muted/50"
+                                onDragOver={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                  const after = e.clientY > rect.top + rect.height / 2;
+                                  setDragOverCard({ leadId: lead.id, position: after ? 'after' : 'before' });
+                                }}
+                                onDragLeave={(e) => { e.stopPropagation(); setDragOverCard(prev => prev?.leadId === lead.id ? null : prev); }}
+                                onDrop={(e) => reorderBeforeCard(e, lead, stage.name)}
+                                className={`cursor-grab active:cursor-grabbing hover:bg-muted/50 ${
+                                  dragOverCard?.leadId === lead.id && dragOverCard.position === 'before' ? 'border-t-2 border-t-primary' : ''
+                                } ${
+                                  dragOverCard?.leadId === lead.id && dragOverCard.position === 'after' ? 'border-b-2 border-b-primary' : ''
+                                }`}
                                 onClick={() => onOpenLead(lead)}
                               >
                                 <TableCell className="font-medium">
