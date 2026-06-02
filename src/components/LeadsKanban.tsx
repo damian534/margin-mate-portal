@@ -267,8 +267,24 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                             key={lead.id}
                             draggable
                             onDragStart={(e) => handleDragStart(e, lead.id)}
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                              const after = e.clientY > rect.top + rect.height / 2;
+                              setDragOverCard({ leadId: lead.id, position: after ? 'after' : 'before' });
+                            }}
+                            onDragLeave={(e) => {
+                              e.stopPropagation();
+                              setDragOverCard(prev => prev?.leadId === lead.id ? null : prev);
+                            }}
+                            onDrop={(e) => handleCardDrop(e, lead, status.name)}
                             onClick={() => onOpenLead(lead)}
-                            className="cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors border bg-card"
+                            className={`cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors border bg-card ${
+                              dragOverCard?.leadId === lead.id && dragOverCard.position === 'before' ? 'border-t-2 border-t-primary' : ''
+                            } ${
+                              dragOverCard?.leadId === lead.id && dragOverCard.position === 'after' ? 'border-b-2 border-b-primary' : ''
+                            }`}
                           >
                             <CardContent className={compact ? "p-2 space-y-1.5" : "p-3 space-y-2"}>
                               <div className="flex items-start gap-2">
