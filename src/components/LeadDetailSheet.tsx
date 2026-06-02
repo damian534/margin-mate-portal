@@ -238,6 +238,8 @@ export function LeadDetailSheet({
 }: LeadDetailSheetProps) {
   const { user, role } = useAuth();
   const { members: teamMembers } = useTeamMembers();
+  const { statuses: wipStatusesDynamic } = useWipStatuses();
+  const wipStatusList = wipStatusesDynamic.length > 0 ? wipStatusesDynamic : (WIP_STATUSES as unknown as { name: string; label: string; color: string }[]);
   const isSuperAdmin = role === 'super_admin';
   const [notes, setNotes] = useState<Note[]>([]);
   const [brokerOptions, setBrokerOptions] = useState<{ id: string; name: string; email: string | null }[]>([]);
