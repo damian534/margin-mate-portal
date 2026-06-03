@@ -236,7 +236,7 @@ export function LeadDetailSheet({
   open, onOpenChange, lead, statuses, leadSources = [], referrerName, referrerCompany, sourceContactName,
   contacts: contactsList = [], referrers: referrersList = [], isPreviewMode, onUpdateStatus, onUpdateWipStatus, onUpdateCommission, onDeleteLead, onDuplicateLead, onLeadChange, onOpenContact, sampleNotes, onLeadSourcesChanged, initialTaskId
 }: LeadDetailSheetProps) {
-  const { user, role } = useAuth();
+  const { user, role, effectiveBrokerId } = useAuth();
   const { members: teamMembers } = useTeamMembers();
   const { statuses: wipStatusesDynamic } = useWipStatuses();
   const wipStatusList = wipStatusesDynamic.length > 0 ? wipStatusesDynamic : (WIP_STATUSES as unknown as { name: string; label: string; color: string }[]);
