@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, X, Save, CheckCircle, Trash2, Send, User, Calendar, Check, Bold, Italic, List, ListOrdered, ListChecks } from 'lucide-react';
+import { Plus, X, Save, CheckCircle, Trash2, Send, User, Calendar, Check, Bold, Italic, List, ListOrdered, ListChecks, ExternalLink } from 'lucide-react';
 import { format, isPast, isToday } from 'date-fns';
 import { AssigneePicker } from '@/components/AssigneePicker';
 import { supabase } from '@/integrations/supabase/client';
@@ -287,12 +287,12 @@ export function TaskDetailDialog({ open, onOpenChange, taskId, initialTask, onCh
           <DialogTitle>Task</DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 min-h-0 overflow-y-auto p-4">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4">
           {loading || !task ? (
             <div className="text-sm text-muted-foreground py-12 text-center">Loading…</div>
           ) : (
             <div className={cn(
-              'rounded-lg border transition-all overflow-hidden',
+              'rounded-lg border transition-all',
               dueBadge?.label === 'Overdue' ? 'border-destructive/30 bg-destructive/5' : task.completed ? 'opacity-70 bg-background' : 'bg-background'
             )}>
               <div className="flex items-start gap-2 p-2.5">
@@ -321,17 +321,23 @@ export function TaskDetailDialog({ open, onOpenChange, taskId, initialTask, onCh
                       </span>
                     )}
                     {task.lead_name && (
-                      <button
-                        type="button"
-                        className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-                        onClick={() => task.lead_id && onOpenDeal?.(task.lead_id)}
-                        title="Open deal"
-                      >
+                      <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
                         <User className="w-3 h-3" /> {task.lead_name}
-                      </button>
+                      </span>
                     )}
                   </div>
                 </div>
+                {task.lead_id && onOpenDeal && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs gap-1 shrink-0"
+                    onClick={() => onOpenDeal(task.lead_id!)}
+                  >
+                    <ExternalLink className="w-3 h-3" /> View client
+                  </Button>
+                )}
               </div>
 
               <div className="border-t mx-2.5">

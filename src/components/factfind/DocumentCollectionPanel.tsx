@@ -70,12 +70,27 @@ type Template = { id: string; name: string; items: TemplateItem[] };
 
 const FALLBACK_TEMPLATES: Template[] = [
   { id: 'fallback-payg', name: 'PAYG', items: [
-    { section: 'Identity', name: 'Passport (current, valid)' },
+    { section: 'Identity', name: 'Passport (current) or Birth Certificate' },
     { section: 'Identity', name: "Driver's licence (front)" },
     { section: 'Identity', name: "Driver's licence (back)" },
     { section: 'Income', name: 'Most recent payslip' },
     { section: 'Income', name: 'Previous payslip' },
-    { section: 'Bank Statements', name: '3 months — everyday salary account' },
+    { section: 'Bank Statements', name: '3 months — everyday spending account (must be dated within 30 days)', description: 'Use https://bankstatements.com.au' },
+    { section: 'Bank Statements', name: '3 months — savings account (must be dated within 30 days)', description: 'Use https://bankstatements.com.au' },
+  ]},
+  { id: 'fallback-sole-trader', name: 'Sole Trader', items: [
+    { section: 'Tax Returns', name: 'Most recent year tax return' },
+    { section: 'Tax Returns', name: 'Previous year tax return' },
+    { section: 'Tax Returns', name: 'Most recent ATO NOA (Notice of Assessment)' },
+    { section: 'Tax Returns', name: 'Previous year ATO NOA (Notice of Assessment)' },
+  ]},
+  { id: 'fallback-company-trust', name: 'Company/Trust', items: [
+    { section: 'Tax Returns', name: 'Most recent year individual tax return' },
+    { section: 'Tax Returns', name: 'Previous year individual tax return' },
+    { section: 'Tax Returns', name: 'Most recent year company tax return' },
+    { section: 'Tax Returns', name: 'Previous year company tax return' },
+    { section: 'Tax Returns', name: 'Most recent ATO NOA (Notice of Assessment)' },
+    { section: 'Tax Returns', name: 'Previous year ATO NOA (Notice of Assessment)' },
   ]},
 ];
 
