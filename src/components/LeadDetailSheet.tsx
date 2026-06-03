@@ -1426,10 +1426,46 @@ export function LeadDetailSheet({
                 </div>
               </div>
               <div className="flex gap-2 mt-3 pt-2 border-t border-border">
-                {primaryApplicantContact && onOpenContact && (
-                  <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-8" onClick={() => onOpenContact(primaryApplicantContact.id)}>
-                    <ExternalLink className="w-3 h-3" /> Open
-                  </Button>
+                {onOpenContact && (
+                  primaryApplicantContact ? (
+                    <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-8" onClick={() => onOpenContact(primaryApplicantContact.id)}>
+                      <ExternalLink className="w-3 h-3" /> Open contact
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 gap-1.5 text-xs h-8"
+                      onClick={async () => {
+                        if (isPreviewMode) { toast.info('Not available in preview'); return; }
+                        const { data: userRes } = await supabase.auth.getUser();
+                        const myUid = userRes?.user?.id || null;
+                        const payload = {
+                          first_name: lead.first_name || 'Unknown',
+                          last_name: lead.last_name || '',
+                          email: lead.email || null,
+                          phone: lead.phone || null,
+                          type: 'client',
+                          created_by: myUid,
+                        } as any;
+                        let { data: c, error } = await supabase.from('contacts').insert(payload).select().maybeSingle();
+                        if ((error || !c) && effectiveBrokerId && effectiveBrokerId !== myUid) {
+                          const retry = await supabase.from('contacts').insert({ ...payload, created_by: effectiveBrokerId }).select().maybeSingle();
+                          c = retry.data as any; error = retry.error as any;
+                        }
+                        if (error || !c) {
+                          toast.error(`Failed to create contact: ${(error as any)?.message || 'unknown error'}`);
+                          return;
+                        }
+                        await supabase.from('leads').update({ source_contact_id: (c as any).id } as any).eq('id', lead.id);
+                        onLeadChange?.({ ...lead, source_contact_id: (c as any).id });
+                        toast.success('Contact created');
+                        onOpenContact((c as any).id);
+                      }}
+                    >
+                      <Plus className="w-3 h-3" /> Create contact
+                    </Button>
+                  )
                 )}
               </div>
             </div>
