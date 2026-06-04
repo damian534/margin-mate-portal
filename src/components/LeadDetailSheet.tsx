@@ -1429,7 +1429,7 @@ export function LeadDetailSheet({
                 {onOpenContact && (
                   primaryApplicantContact ? (
                     <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs h-8" onClick={() => onOpenContact(primaryApplicantContact.id)}>
-                      <ExternalLink className="w-3 h-3" /> Open contact
+                      <ExternalLink className="w-3 h-3" /> Edit contact
                     </Button>
                   ) : (
                     <Button
@@ -1459,11 +1459,11 @@ export function LeadDetailSheet({
                         }
                         await supabase.from('leads').update({ source_contact_id: (c as any).id } as any).eq('id', lead.id);
                         onLeadChange?.({ ...lead, source_contact_id: (c as any).id });
-                        toast.success('Contact created');
+                        toast.success('Contact created — you can now edit details');
                         onOpenContact((c as any).id);
                       }}
                     >
-                      <Plus className="w-3 h-3" /> Create contact
+                      <Plus className="w-3 h-3" /> Edit contact
                     </Button>
                   )
                 )}
