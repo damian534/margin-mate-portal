@@ -342,11 +342,11 @@ export function SendMilestoneEmailDialog({ lead }: Props) {
           <Mail className="w-4 h-4" /> Milestone email
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Send milestone email</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3">
+        <div className="space-y-3 overflow-y-auto flex-1 pr-1 -mr-1">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Milestone</Label>
