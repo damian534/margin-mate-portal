@@ -52,9 +52,7 @@ export default function AdminSettings() {
     ...(role !== 'broker_staff'
       ? [{ value: 'claude', label: 'Claude Co-Work', icon: Bot }]
       : []),
-    ...(role !== 'broker_staff'
-      ? [{ value: 'zapier', label: 'Zapier', icon: Zap }]
-      : []),
+    { value: 'zapier', label: 'Zapier', icon: Zap },
     { value: 'signature', label: 'Email Signature', icon: PenLine },
   ];
 
@@ -99,7 +97,7 @@ export default function AdminSettings() {
         {activeSection === 'fact-find' && <FactFindToggle />}
         {activeSection === 'milestone-emails' && role !== 'broker_staff' && <MilestoneEmailsManagement />}
         {activeSection === 'claude' && role !== 'broker_staff' && <ClaudeIntegrationSettings />}
-        {activeSection === 'zapier' && role !== 'broker_staff' && <ZapierIntegrationSettings />}
+        {activeSection === 'zapier' && <ZapierIntegrationSettings />}
         {activeSection === 'signature' && <EmailSignatureSettings />}
       </main>
     </div>
