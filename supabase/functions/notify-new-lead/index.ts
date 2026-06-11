@@ -133,6 +133,39 @@ Deno.serve(async (req) => {
     const data = await res.json();
     console.log("Resend response:", { status: res.status, data });
 
+    // Fire Zapier webhook (fan-out to MyCRM, Google Contacts, etc.)
+    try {
+      const { data: settings } = await supabase
+        .from("broker_email_settings")
+        .select("zapier_new_lead_webhook_url")
+        .eq("broker_id", broker_id)
+        .maybeSingle();
+      const zapUrl = settings?.zapier_new_lead_webhook_url?.trim();
+      if (zapUrl) {
+        const zapRes = await fetch(zapUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event: "new_lead",
+            timestamp: new Date().toISOString(),
+            first_name: lead.first_name,
+            last_name: lead.last_name,
+            full_name: leadName,
+            email: lead.email || null,
+            phone: lead.phone || null,
+            loan_amount: lead.loan_amount || null,
+            loan_purpose: lead.loan_purpose || null,
+            source: lead.source || null,
+            referrer: referrerLine,
+            broker_id,
+          }),
+        });
+        console.log("Zapier webhook response:", zapRes.status);
+      }
+    } catch (zapErr) {
+      console.error("Zapier webhook failed:", zapErr);
+    }
+
     if (!res.ok) {
       return new Response(JSON.stringify({ error: data }), {
         status: res.status,
