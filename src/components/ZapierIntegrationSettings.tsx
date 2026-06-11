@@ -9,8 +9,8 @@ import { toast } from 'sonner';
 import { Zap, Save, Send } from 'lucide-react';
 
 export function ZapierIntegrationSettings() {
-  const { user, role } = useAuth();
-  const brokerId = user?.id ?? null;
+  const { effectiveBrokerId } = useAuth();
+  const brokerId = effectiveBrokerId;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -29,14 +29,6 @@ export function ZapierIntegrationSettings() {
       setLoading(false);
     })();
   }, [brokerId]);
-
-  if (role === 'broker_staff') {
-    return (
-      <Card><CardContent className="py-12 text-center text-muted-foreground">
-        Only the broker or super admin can configure Zapier integration.
-      </CardContent></Card>
-    );
-  }
 
   const save = async () => {
     if (!brokerId) return;
