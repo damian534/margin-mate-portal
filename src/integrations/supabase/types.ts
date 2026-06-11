@@ -97,6 +97,7 @@ export type Database = {
           created_at: string
           milestone_bcc_email: string | null
           updated_at: string
+          zapier_new_lead_webhook_url: string | null
         }
         Insert: {
           auto_suppress_bounces?: boolean
@@ -108,6 +109,7 @@ export type Database = {
           created_at?: string
           milestone_bcc_email?: string | null
           updated_at?: string
+          zapier_new_lead_webhook_url?: string | null
         }
         Update: {
           auto_suppress_bounces?: boolean
@@ -119,6 +121,7 @@ export type Database = {
           created_at?: string
           milestone_bcc_email?: string | null
           updated_at?: string
+          zapier_new_lead_webhook_url?: string | null
         }
         Relationships: []
       }

@@ -12,10 +12,11 @@ import { FactFindToggle } from '@/components/FactFindToggle';
 import { MilestoneEmailsManagement } from '@/components/MilestoneEmailsManagement';
 import { ClaudeIntegrationSettings } from '@/components/ClaudeIntegrationSettings';
 import { EmailSignatureSettings } from '@/components/EmailSignatureSettings';
+import { ZapierIntegrationSettings } from '@/components/ZapierIntegrationSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
-import { KeyRound, UserCog, Settings2, FileText, ListChecks, Tag, Building2, ClipboardList, Mail, Bot, PenLine } from 'lucide-react';
+import { KeyRound, UserCog, Settings2, FileText, ListChecks, Tag, Building2, ClipboardList, Mail, Bot, PenLine, Zap } from 'lucide-react';
 
 export default function AdminSettings() {
   const { isPreviewMode, role } = useAuth();
@@ -50,6 +51,9 @@ export default function AdminSettings() {
       : []),
     ...(role !== 'broker_staff'
       ? [{ value: 'claude', label: 'Claude Co-Work', icon: Bot }]
+      : []),
+    ...(role !== 'broker_staff'
+      ? [{ value: 'zapier', label: 'Zapier', icon: Zap }]
       : []),
     { value: 'signature', label: 'Email Signature', icon: PenLine },
   ];
@@ -95,6 +99,7 @@ export default function AdminSettings() {
         {activeSection === 'fact-find' && <FactFindToggle />}
         {activeSection === 'milestone-emails' && role !== 'broker_staff' && <MilestoneEmailsManagement />}
         {activeSection === 'claude' && role !== 'broker_staff' && <ClaudeIntegrationSettings />}
+        {activeSection === 'zapier' && role !== 'broker_staff' && <ZapierIntegrationSettings />}
         {activeSection === 'signature' && <EmailSignatureSettings />}
       </main>
     </div>

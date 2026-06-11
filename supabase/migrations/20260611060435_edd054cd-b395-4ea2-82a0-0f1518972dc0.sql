@@ -1,0 +1,1 @@
+ALTER TABLE public.broker_email_settings ADD COLUMN IF NOT EXISTS zapier_new_lead_webhook_url text;
