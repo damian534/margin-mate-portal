@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useLeadStatuses } from '@/hooks/useLeadStatuses';
+import { useWipStatuses } from '@/hooks/useWipStatuses';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Separator } from '@/components/ui/separator';
@@ -48,6 +50,8 @@ interface AddLeadDialogProps {
 
 export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode, onLeadAdded, onContactCreated, defaultWipStatus }: AddLeadDialogProps) {
   const { effectiveBrokerId } = useAuth();
+  const { statuses: leadStatuses } = useLeadStatuses();
+  const { statuses: wipStatuses } = useWipStatuses();
   const [open, setOpen] = useState(false);
   const [source, setSource] = useState('direct_call');
   const [firstName, setFirstName] = useState('');
@@ -64,6 +68,15 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
   const [referrerOpen, setReferrerOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Status placement: "lead:<name>" routes to Leads dashboard, "wip:<name>" routes to WIP dashboard
+  const [statusPlacement, setStatusPlacement] = useState<string>(
+    defaultWipStatus ? `wip:${defaultWipStatus}` : 'lead:new'
+  );
+
+  useEffect(() => {
+    setStatusPlacement(defaultWipStatus ? `wip:${defaultWipStatus}` : 'lead:new');
+  }, [defaultWipStatus, open]);
 
   // For creating new contact inline
   const [showNewContact, setShowNewContact] = useState(false);
@@ -91,6 +104,7 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
     setNewContactLast('');
     setNewContactEmail('');
     setNewContactPhone('');
+    setStatusPlacement(defaultWipStatus ? `wip:${defaultWipStatus}` : 'lead:new');
   };
 
   const createNewContact = async (): Promise<string | null> => {
@@ -152,6 +166,9 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
       }
     }
 
+    const [placementKind, placementName] = statusPlacement.split(':');
+    const isWipPlacement = placementKind === 'wip';
+
     const leadData = {
       first_name: firstName.trim(),
       last_name: lastName.trim(),
@@ -167,10 +184,10 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
       // so we never leak referrer details into the client record.
       source_contact_id: createdContactId,
       referred_by_contact_id: sourceContactId,
-      status: defaultWipStatus ? 'in_progress' : 'new',
+      status: isWipPlacement ? 'in_progress' : (placementName || 'new'),
       broker_id: effectiveBrokerId,
       portal_mode: portalMode,
-      wip_status: defaultWipStatus || null,
+      wip_status: isWipPlacement ? placementName : null,
     };
 
     if (isPreviewMode) {
