@@ -442,6 +442,27 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
             </div>
           </div>
 
+          {/* Initial status placement: choose Leads dashboard column or WIP dashboard stage */}
+          <div className="space-y-1.5">
+            <Label>Initial Status / Placement</Label>
+            <Select value={statusPlacement} onValueChange={setStatusPlacement}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent className="max-h-72">
+                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Leads Dashboard</div>
+                {leadStatuses.map(s => (
+                  <SelectItem key={`lead-${s.id}`} value={`lead:${s.name}`}>{s.label}</SelectItem>
+                ))}
+                <div className="px-2 py-1.5 mt-1 text-xs font-semibold text-muted-foreground border-t">WIP Dashboard</div>
+                {wipStatuses.map(s => (
+                  <SelectItem key={`wip-${s.id}`} value={`wip:${s.name}`}>{s.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Choose where this deal card should appear. WIP stages move it into the WIP pipeline.
+            </p>
+          </div>
+
           <Button onClick={handleSubmit} disabled={saving || !firstName.trim() || !lastName.trim()} className="w-full">
             {saving ? 'Adding...' : 'Add Lead'}
           </Button>
