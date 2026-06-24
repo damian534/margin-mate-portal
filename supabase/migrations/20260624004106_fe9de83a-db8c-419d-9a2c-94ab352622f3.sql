@@ -1,0 +1,1 @@
+UPDATE public.leads SET email = 'massimodibennardo1@outlook.com', updated_at = now() WHERE id = 'ef697107-0b02-460d-aef8-3132c5790021' AND email = 'massimodibennardo1@outlook';
