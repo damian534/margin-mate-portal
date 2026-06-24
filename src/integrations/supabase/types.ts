@@ -1606,6 +1606,7 @@ export type Database = {
         Row: {
           address: string | null
           audience_tags: string[]
+          bankstatements_url: string | null
           broker_id: string | null
           broker_notes: string | null
           company_id: string | null
@@ -1630,6 +1631,7 @@ export type Database = {
         Insert: {
           address?: string | null
           audience_tags?: string[]
+          bankstatements_url?: string | null
           broker_id?: string | null
           broker_notes?: string | null
           company_id?: string | null
@@ -1654,6 +1656,7 @@ export type Database = {
         Update: {
           address?: string | null
           audience_tags?: string[]
+          bankstatements_url?: string | null
           broker_id?: string | null
           broker_notes?: string | null
           company_id?: string | null
