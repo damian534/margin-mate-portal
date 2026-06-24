@@ -122,6 +122,10 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   const [savingDocId, setSavingDocId] = useState<string | null>(null);
   const [mirOpen, setMirOpen] = useState(false);
   const [resendingBatchId, setResendingBatchId] = useState<string | null>(null);
+  // The lead broker's unique bankstatements.com.au share link, loaded from
+  // profiles.bankstatements_url. Used to auto-fill the description on every
+  // Bank Statements document request so clients never get the generic homepage.
+  const [brokerBankUrl, setBrokerBankUrl] = useState<string>('');
 
   const primaryName = primaryApplicantName?.trim() || 'Primary Applicant';
   const primaryEmail = primaryApplicantEmail?.trim() || null;
@@ -189,10 +193,20 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       setIsLoading(false);
       return;
     }
-    const [{ data: apps }, { data: docs }] = await Promise.all([
+    const [{ data: apps }, { data: docs }, { data: leadRow }] = await Promise.all([
       supabase.from('lead_applicants').select('*').eq('lead_id', leadId).order('display_order'),
       supabase.from('document_requests').select('*').eq('lead_id', leadId).order('created_at'),
+      supabase.from('leads').select('broker_id').eq('id', leadId).maybeSingle(),
     ]);
+    const brokerId = (leadRow as any)?.broker_id;
+    if (brokerId) {
+      const { data: brokerProfile } = await supabase
+        .from('profiles')
+        .select('bankstatements_url')
+        .eq('user_id', brokerId)
+        .maybeSingle();
+      setBrokerBankUrl(((brokerProfile as any)?.bankstatements_url as string) || '');
+    }
     let appList = ((apps as Applicant[]) || []).map(app => app.display_order === 0 ? {
       ...app,
       email: app.email || primaryEmail,
@@ -345,8 +359,15 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
     if (!tpl || tpl.length === 0) { toast.error('This template has no documents'); return; }
     const persistedApplicantId = await ensurePersistedApplicantId(applicantId);
     if (isPrimaryFallback(applicantId) && !persistedApplicantId) return;
+    // Substitute the broker's unique bankstatements.com.au URL into every
+    // Bank Statements description so clients always see the right link.
+    const itemsWithBrokerUrl = tpl.map(t =>
+      t.section === 'Bank Statements' && brokerBankUrl
+        ? { ...t, description: `Use ${brokerBankUrl}` }
+        : t,
+    );
     if (isPreviewMode) {
-      const items = tpl.map((t, i) => ({
+      const items = itemsWithBrokerUrl.map((t, i) => ({
         id: `prev-${Date.now()}-${i}`, lead_id: leadId, name: t.name, description: t.description || null,
         status: 'pending', file_path: null, file_name: null, file_size: null, uploaded_at: null,
         rejection_reason: null, created_at: new Date().toISOString(),
@@ -354,7 +375,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       }));
       setDocuments(prev => [...prev, ...items]);
     } else {
-      const rows = tpl.map(t => ({
+      const rows = itemsWithBrokerUrl.map(t => ({
         lead_id: leadId, name: t.name, description: t.description || null,
         applicant_id: persistedApplicantId, section: t.section,
       }));
@@ -942,16 +963,20 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
                 </div>
                 {activeApplicantId !== 'all' && (
                   <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => {
-                    // For Bank Statements, auto-reuse the existing bankstatements.com.au
-                    // link that has already been issued for this lead so the broker
-                    // doesn't have to paste it again for every new statement request.
+                    // For Bank Statements, pre-fill with the broker's saved
+                    // bankstatements.com.au share link (Settings → Bank Statements Link).
+                    // Fall back to scanning existing rows on this lead if no broker URL is set.
                     if (section === 'Bank Statements') {
-                      const urlRegex = /(https?:\/\/[^\s]*bankstatements\.com\.au[^\s]*)/i;
-                      const existing = documents
-                        .map(d => d.description || '')
-                        .map(desc => desc.match(urlRegex)?.[1])
-                        .find(Boolean);
-                      if (existing) setNewDocDescription(existing);
+                      if (brokerBankUrl) {
+                        setNewDocDescription(`Use ${brokerBankUrl}`);
+                      } else {
+                        const urlRegex = /(https?:\/\/[^\s]*bankstatements\.com\.au[^\s]*)/i;
+                        const existing = documents
+                          .map(d => d.description || '')
+                          .map(desc => desc.match(urlRegex)?.[1])
+                          .find(Boolean);
+                        if (existing) setNewDocDescription(existing);
+                      }
                     }
                     setAddingTo({ section, applicantId: targetApplicantId });
                   }}>
