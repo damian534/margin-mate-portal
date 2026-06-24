@@ -1,0 +1,1 @@
+UPDATE public.lead_applicants SET email = 'massimodibennardo1@outlook.com' WHERE id = '054dd52e-5948-4422-9a43-c09e8e8c9812' AND email = 'massimodibennardo1@outlook';
