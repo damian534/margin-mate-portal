@@ -136,6 +136,14 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
       toast.error('First and last name are required');
       return;
     }
+    if (!isEmptyOrValidEmail(email)) {
+      toast.error('That email looks incomplete (e.g. missing ".com"). Please fix it before saving.');
+      return;
+    }
+    if (showNewContact && !isEmptyOrValidEmail(newContactEmail)) {
+      toast.error('Referring contact email looks incomplete. Please fix it before saving.');
+      return;
+    }
     setSaving(true);
 
     let sourceContactId: string | null = null;
