@@ -359,8 +359,15 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
     if (!tpl || tpl.length === 0) { toast.error('This template has no documents'); return; }
     const persistedApplicantId = await ensurePersistedApplicantId(applicantId);
     if (isPrimaryFallback(applicantId) && !persistedApplicantId) return;
+    // Substitute the broker's unique bankstatements.com.au URL into every
+    // Bank Statements description so clients always see the right link.
+    const itemsWithBrokerUrl = tpl.map(t =>
+      t.section === 'Bank Statements' && brokerBankUrl
+        ? { ...t, description: `Use ${brokerBankUrl}` }
+        : t,
+    );
     if (isPreviewMode) {
-      const items = tpl.map((t, i) => ({
+      const items = itemsWithBrokerUrl.map((t, i) => ({
         id: `prev-${Date.now()}-${i}`, lead_id: leadId, name: t.name, description: t.description || null,
         status: 'pending', file_path: null, file_name: null, file_size: null, uploaded_at: null,
         rejection_reason: null, created_at: new Date().toISOString(),
@@ -368,7 +375,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       }));
       setDocuments(prev => [...prev, ...items]);
     } else {
-      const rows = tpl.map(t => ({
+      const rows = itemsWithBrokerUrl.map(t => ({
         lead_id: leadId, name: t.name, description: t.description || null,
         applicant_id: persistedApplicantId, section: t.section,
       }));
