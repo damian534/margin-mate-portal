@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { z } from 'zod';
 import { RequestMirDialog } from './RequestMirDialog';
 import { logAudit } from '@/lib/leadAudit';
+import { isValidEmail } from '@/lib/email';
 
 interface DocumentRequest {
   id: string;
