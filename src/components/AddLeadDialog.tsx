@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import { isEmptyOrValidEmail } from '@/lib/email';
 import { Plus, Search, UserPlus, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -133,6 +134,14 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
   const handleSubmit = async () => {
     if (!firstName.trim() || !lastName.trim()) {
       toast.error('First and last name are required');
+      return;
+    }
+    if (!isEmptyOrValidEmail(email)) {
+      toast.error('That email looks incomplete (e.g. missing ".com"). Please fix it before saving.');
+      return;
+    }
+    if (showNewContact && !isEmptyOrValidEmail(newContactEmail)) {
+      toast.error('Referring contact email looks incomplete. Please fix it before saving.');
       return;
     }
     setSaving(true);
