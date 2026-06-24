@@ -595,7 +595,9 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
           }, {});
           await Promise.all(Object.entries(docsByApplicant).map(async ([applicantId, docs]) => {
             const applicant = applicants.find(a => a.id === applicantId || (isPrimaryFallback(applicantId) && a.display_order === 0));
-            const recipientEmail = applicant?.email || (applicant?.display_order === 0 ? primaryEmail : null);
+            const applicantEmail = isValidEmail(applicant?.email) ? applicant?.email : null;
+            const fallback = isValidEmail(primaryEmail) && applicant?.display_order === 0 ? primaryEmail : null;
+            const recipientEmail = applicantEmail || fallback;
             if (!recipientEmail) return;
             const groupsMap = docs.reduce<Record<string, string[]>>((acc, d) => {
               const sec = d.section || 'Other';
@@ -655,7 +657,9 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       let sent = 0;
       await Promise.all(Object.entries(docsByApplicant).map(async ([applicantId, docs]) => {
         const applicant = applicants.find(a => a.id === applicantId || (isPrimaryFallback(applicantId) && a.display_order === 0));
-        const recipientEmail = applicant?.email || (applicant?.display_order === 0 ? primaryEmail : null);
+        const applicantEmail = isValidEmail(applicant?.email) ? applicant?.email : null;
+        const fallback = isValidEmail(primaryEmail) && applicant?.display_order === 0 ? primaryEmail : null;
+        const recipientEmail = applicantEmail || fallback;
         if (!recipientEmail) return;
         // Split: rejected docs go in their own "action required" section with reasons;
         // pending docs go in the standard "documents requested" list.
