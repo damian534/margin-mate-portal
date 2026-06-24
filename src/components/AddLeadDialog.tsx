@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import { isEmptyOrValidEmail } from '@/lib/email';
 import { Plus, Search, UserPlus, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
