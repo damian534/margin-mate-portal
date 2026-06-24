@@ -122,6 +122,10 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   const [savingDocId, setSavingDocId] = useState<string | null>(null);
   const [mirOpen, setMirOpen] = useState(false);
   const [resendingBatchId, setResendingBatchId] = useState<string | null>(null);
+  // The lead broker's unique bankstatements.com.au share link, loaded from
+  // profiles.bankstatements_url. Used to auto-fill the description on every
+  // Bank Statements document request so clients never get the generic homepage.
+  const [brokerBankUrl, setBrokerBankUrl] = useState<string>('');
 
   const primaryName = primaryApplicantName?.trim() || 'Primary Applicant';
   const primaryEmail = primaryApplicantEmail?.trim() || null;
@@ -189,10 +193,20 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       setIsLoading(false);
       return;
     }
-    const [{ data: apps }, { data: docs }] = await Promise.all([
+    const [{ data: apps }, { data: docs }, { data: leadRow }] = await Promise.all([
       supabase.from('lead_applicants').select('*').eq('lead_id', leadId).order('display_order'),
       supabase.from('document_requests').select('*').eq('lead_id', leadId).order('created_at'),
+      supabase.from('leads').select('broker_id').eq('id', leadId).maybeSingle(),
     ]);
+    const brokerId = (leadRow as any)?.broker_id;
+    if (brokerId) {
+      const { data: brokerProfile } = await supabase
+        .from('profiles')
+        .select('bankstatements_url')
+        .eq('user_id', brokerId)
+        .maybeSingle();
+      setBrokerBankUrl(((brokerProfile as any)?.bankstatements_url as string) || '');
+    }
     let appList = ((apps as Applicant[]) || []).map(app => app.display_order === 0 ? {
       ...app,
       email: app.email || primaryEmail,
