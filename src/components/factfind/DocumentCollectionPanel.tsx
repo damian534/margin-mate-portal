@@ -963,16 +963,20 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
                 </div>
                 {activeApplicantId !== 'all' && (
                   <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => {
-                    // For Bank Statements, auto-reuse the existing bankstatements.com.au
-                    // link that has already been issued for this lead so the broker
-                    // doesn't have to paste it again for every new statement request.
+                    // For Bank Statements, pre-fill with the broker's saved
+                    // bankstatements.com.au share link (Settings → Bank Statements Link).
+                    // Fall back to scanning existing rows on this lead if no broker URL is set.
                     if (section === 'Bank Statements') {
-                      const urlRegex = /(https?:\/\/[^\s]*bankstatements\.com\.au[^\s]*)/i;
-                      const existing = documents
-                        .map(d => d.description || '')
-                        .map(desc => desc.match(urlRegex)?.[1])
-                        .find(Boolean);
-                      if (existing) setNewDocDescription(existing);
+                      if (brokerBankUrl) {
+                        setNewDocDescription(`Use ${brokerBankUrl}`);
+                      } else {
+                        const urlRegex = /(https?:\/\/[^\s]*bankstatements\.com\.au[^\s]*)/i;
+                        const existing = documents
+                          .map(d => d.description || '')
+                          .map(desc => desc.match(urlRegex)?.[1])
+                          .find(Boolean);
+                        if (existing) setNewDocDescription(existing);
+                      }
                     }
                     setAddingTo({ section, applicantId: targetApplicantId });
                   }}>
