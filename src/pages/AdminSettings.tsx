@@ -13,10 +13,11 @@ import { MilestoneEmailsManagement } from '@/components/MilestoneEmailsManagemen
 import { ClaudeIntegrationSettings } from '@/components/ClaudeIntegrationSettings';
 import { EmailSignatureSettings } from '@/components/EmailSignatureSettings';
 import { ZapierIntegrationSettings } from '@/components/ZapierIntegrationSettings';
+import { BankStatementsSettings } from '@/components/BankStatementsSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
-import { KeyRound, UserCog, Settings2, FileText, ListChecks, Tag, Building2, ClipboardList, Mail, Bot, PenLine, Zap } from 'lucide-react';
+import { KeyRound, UserCog, Settings2, FileText, ListChecks, Tag, Building2, ClipboardList, Mail, Bot, PenLine, Zap, Banknote } from 'lucide-react';
 
 export default function AdminSettings() {
   const { isPreviewMode, role } = useAuth();
@@ -54,6 +55,7 @@ export default function AdminSettings() {
       : []),
     { value: 'zapier', label: 'Zapier', icon: Zap },
     { value: 'signature', label: 'Email Signature', icon: PenLine },
+    { value: 'bank-statements', label: 'Bank Statements Link', icon: Banknote },
   ];
 
   return (
@@ -99,6 +101,7 @@ export default function AdminSettings() {
         {activeSection === 'claude' && role !== 'broker_staff' && <ClaudeIntegrationSettings />}
         {activeSection === 'zapier' && <ZapierIntegrationSettings />}
         {activeSection === 'signature' && <EmailSignatureSettings />}
+        {activeSection === 'bank-statements' && <BankStatementsSettings />}
       </main>
     </div>
   );
