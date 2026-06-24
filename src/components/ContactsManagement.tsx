@@ -18,6 +18,7 @@ import { CoApplicantPicker } from '@/components/CoApplicantPicker';
 import { ContactLeadsList } from '@/components/ContactLeadsList';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ContactsCsvImport } from '@/components/ContactsCsvImport';
+import { isEmptyOrValidEmail } from '@/lib/email';
 
 export interface Contact {
   id: string;
@@ -95,6 +96,10 @@ export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openCon
 
   const handleAdd = async () => {
     if (!firstName.trim() || !lastName.trim()) { toast.error('Name is required'); return; }
+    if (!isEmptyOrValidEmail(email)) {
+      toast.error('That email looks incomplete (e.g. missing ".com"). Please fix it before saving.');
+      return;
+    }
     setSaving(true);
     if (isPreviewMode) {
       toast.success('Contact added (preview)');
@@ -119,6 +124,26 @@ export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openCon
 
   const handleUpdate = async (field: string, value: any) => {
     if (!selectedContact) return;
+    // For email, defer DB write until the value is empty or fully valid so we
+    // never persist a half-typed address like "name@outlook".
+    if (field === 'email') {
+      const trimmed = typeof value === 'string' ? value.trim() : value;
+      const next = trimmed ? trimmed : null;
+      // Always reflect typing in local state
+      const updatedLocal = { ...selectedContact, email: next };
+      setSelectedContact(updatedLocal);
+      if (isPreviewMode) return;
+      if (next !== null && !isEmptyOrValidEmail(next)) {
+        // Wait until user finishes typing a valid address
+        return;
+      }
+      const { error } = await supabase.from('contacts').update({ email: next } as any).eq('id', selectedContact.id);
+      if (error) { toast.error('Failed to update'); return; }
+      // Keep any linked lead's email in sync so document requests use the latest value
+      await supabase.from('leads').update({ email: next } as any).eq('source_contact_id', selectedContact.id);
+      onRefresh();
+      return;
+    }
     const updated = { ...selectedContact, [field]: value };
     setSelectedContact(updated);
     if (isPreviewMode) return;
