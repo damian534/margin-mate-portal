@@ -145,6 +145,7 @@ export default function AdminCRM() {
   const [selectedCompanyCRM, setSelectedCompanyCRM] = useState<Company | null>(null);
   const [docsByLead, setDocsByLead] = useState<Map<string, { requested: number; completed: number; files: { path: string; name: string }[] }>>(new Map());
   const [pendingReferralsCount, setPendingReferralsCount] = useState(0);
+  const [stageAddDialog, setStageAddDialog] = useState<{ kind: 'lead' | 'wip'; name: string } | null>(null);
 
   useEffect(() => {
     if (!user || isPreviewMode) return;
