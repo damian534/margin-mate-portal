@@ -870,6 +870,7 @@ export default function AdminCRM() {
                 taskDueFilter={taskDueFilter}
                 docsByLead={docsByLead}
                 onDownloadDocs={downloadLeadDocsZip}
+                onAddInStage={(statusName) => setStageAddDialog({ kind: 'lead', name: statusName })}
               />
             ) : filteredLeads.length === 0 ? (
               <Card><CardContent className="p-0"><p className="text-muted-foreground text-center py-12">No leads found</p></CardContent></Card>
