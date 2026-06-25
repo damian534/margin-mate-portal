@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { FileDown, FileText, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search, X, MoreVertical, Maximize2, Minimize2, List, Columns, CalendarClock, ClipboardList } from 'lucide-react';
+import { FileDown, FileText, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search, X, MoreVertical, Maximize2, Minimize2, List, Columns, CalendarClock, ClipboardList, Plus } from 'lucide-react';
 import { AssigneeBadge, AssigneeFilter } from '@/components/AssigneePicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -110,9 +110,10 @@ interface WIPDashboardProps {
   getContactName?: (contactId: string | null) => string | null;
   externalSearch?: string;
   tasksByLead?: Map<string, WipLeadTask[]>;
+  onAddInStage?: (wipStatusName: string) => void;
 }
 
-export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead, docsByLead, onDownloadDocs, leadSources = [], getReferrerName, getReferrerCompany, getContactName, externalSearch, tasksByLead }: WIPDashboardProps) {
+export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead, docsByLead, onDownloadDocs, leadSources = [], getReferrerName, getReferrerCompany, getContactName, externalSearch, tasksByLead, onAddInStage }: WIPDashboardProps) {
   const { statuses: wipStatusesDynamic, addStatus, updateStatus: updateWipStatusConfig, deleteStatus, reorderStatuses } = useWipStatuses();
   const wipStatuses = wipStatusesDynamic.length > 0 ? wipStatusesDynamic : (WIP_STATUSES as unknown as { name: string; label: string; color: string }[]);
   const [assigneeFilter, setAssigneeFilter] = usePersistedState<string[]>('crm.wip.assigneeFilterMulti', []);
