@@ -47,13 +47,23 @@ interface AddLeadDialogProps {
   onLeadAdded: () => void;
   onContactCreated?: () => void;
   defaultWipStatus?: string | null;
+  defaultLeadStatus?: string | null;
+  /** Controlled open state (optional). When provided, the internal trigger is hidden. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }
 
-export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode, onLeadAdded, onContactCreated, defaultWipStatus }: AddLeadDialogProps) {
+export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode, onLeadAdded, onContactCreated, defaultWipStatus, defaultLeadStatus, open: openProp, onOpenChange, hideTrigger }: AddLeadDialogProps) {
   const { effectiveBrokerId } = useAuth();
   const { statuses: leadStatuses } = useLeadStatuses();
   const { statuses: wipStatuses } = useWipStatuses();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = openProp ?? internalOpen;
+  const setOpen = (v: boolean) => {
+    if (openProp === undefined) setInternalOpen(v);
+    onOpenChange?.(v);
+  };
   const [source, setSource] = useState('direct_call');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -72,12 +82,12 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
 
   // Status placement: "lead:<name>" routes to Leads dashboard, "wip:<name>" routes to WIP dashboard
   const [statusPlacement, setStatusPlacement] = useState<string>(
-    defaultWipStatus ? `wip:${defaultWipStatus}` : 'lead:new'
+    defaultWipStatus ? `wip:${defaultWipStatus}` : `lead:${defaultLeadStatus || 'new'}`
   );
 
   useEffect(() => {
-    setStatusPlacement(defaultWipStatus ? `wip:${defaultWipStatus}` : 'lead:new');
-  }, [defaultWipStatus, open]);
+    setStatusPlacement(defaultWipStatus ? `wip:${defaultWipStatus}` : `lead:${defaultLeadStatus || 'new'}`);
+  }, [defaultWipStatus, defaultLeadStatus, open]);
 
   // For creating new contact inline
   const [showNewContact, setShowNewContact] = useState(false);
@@ -105,7 +115,7 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
     setNewContactLast('');
     setNewContactEmail('');
     setNewContactPhone('');
-    setStatusPlacement(defaultWipStatus ? `wip:${defaultWipStatus}` : 'lead:new');
+    setStatusPlacement(defaultWipStatus ? `wip:${defaultWipStatus}` : `lead:${defaultLeadStatus || 'new'}`);
   };
 
   const createNewContact = async (): Promise<string | null> => {
@@ -223,9 +233,11 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
 
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
-      <DialogTrigger asChild>
-        <Button size="sm"><Plus className="w-4 h-4 mr-2" /> Add Lead</Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button size="sm"><Plus className="w-4 h-4 mr-2" /> Add Lead</Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Lead</DialogTitle>
