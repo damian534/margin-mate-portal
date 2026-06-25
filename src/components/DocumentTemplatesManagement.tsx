@@ -5,18 +5,48 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Plus, Trash2, FileText, Save, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Trash2, FileText, Save, ArrowUp, ArrowDown, RotateCcw } from 'lucide-react';
 
 const SECTIONS = ['Identity', 'Income', 'Bank Statements', 'Tax Returns', 'Additional', 'Other'];
 
 interface TemplateItem { section: string; name: string; description?: string }
 interface Template { id: string; name: string; items: TemplateItem[]; display_order: number }
 
+const DEFAULT_TEMPLATES = (bankUrl: string): { name: string; items: TemplateItem[] }[] => ([
+  { name: 'PAYG', items: [
+    { section: 'Identity', name: 'Passport (current, valid)' },
+    { section: 'Identity', name: "Driver's licence (front and back)" },
+    { section: 'Identity', name: 'Medicare card (current)' },
+    { section: 'Income', name: 'Most recent payslip' },
+    { section: 'Income', name: 'Previous payslip' },
+    { section: 'Income', name: '2025 income statement', description: 'myGov → ATO → Income statements → download as PDF' },
+    { section: 'Bank Statements', name: '3 months — everyday salary account', description: `Use ${bankUrl}` },
+    { section: 'Bank Statements', name: '3 months — savings account', description: `Use ${bankUrl}` },
+    { section: 'Additional', name: 'Rental income — lease agreements + last 2 years tax returns' },
+    { section: 'Additional', name: 'Property documents — rates notice or contract of sale' },
+  ]},
+  { name: 'Sole Trader', items: [
+    { section: 'Tax Returns', name: 'Most recent year tax return' },
+    { section: 'Tax Returns', name: 'Previous year tax return' },
+    { section: 'Tax Returns', name: 'Most recent ATO NOA (Notice of Assessment)' },
+    { section: 'Tax Returns', name: 'Previous year ATO NOA (Notice of Assessment)' },
+  ]},
+  { name: 'Company/Trust', items: [
+    { section: 'Tax Returns', name: 'Most recent year individual tax return' },
+    { section: 'Tax Returns', name: 'Previous year individual tax return' },
+    { section: 'Tax Returns', name: 'Most recent year company tax return' },
+    { section: 'Tax Returns', name: 'Previous year company tax return' },
+    { section: 'Tax Returns', name: 'Most recent ATO NOA (Notice of Assessment)' },
+    { section: 'Tax Returns', name: 'Previous year ATO NOA (Notice of Assessment)' },
+  ]},
+]);
+
 export function DocumentTemplatesManagement() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [newTplName, setNewTplName] = useState('');
+  const [seeding, setSeeding] = useState(false);
 
   useEffect(() => { fetchTemplates(); }, []);
 
@@ -62,6 +92,31 @@ export function DocumentTemplatesManagement() {
     if (!confirm('Delete this template?')) return;
     await (supabase as any).from('document_templates').delete().eq('id', id);
     fetchTemplates();
+  };
+
+  const seedDefaults = async () => {
+    setSeeding(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { toast.error('Not signed in'); return; }
+      const { data: brokerData } = await (supabase as any).rpc('get_my_broker_id', { _user_id: user.id });
+      const brokerId = brokerData || user.id;
+      // Look up broker's bankstatements URL to inject into defaults
+      const { data: prof } = await supabase.from('profiles').select('bankstatements_url').eq('user_id', brokerId).maybeSingle();
+      const bankUrl = (prof as any)?.bankstatements_url || 'https://bankstatements.com.au';
+      const existingNames = new Set(templates.map(t => t.name.trim().toLowerCase()));
+      const baseOrder = templates.length;
+      const toInsert = DEFAULT_TEMPLATES(bankUrl)
+        .filter(d => !existingNames.has(d.name.toLowerCase()))
+        .map((d, i) => ({ broker_id: brokerId, name: d.name, items: d.items, display_order: baseOrder + i + 1, is_default: true }));
+      if (toInsert.length === 0) { toast.info('Default templates already exist'); return; }
+      const { error } = await (supabase as any).from('document_templates').insert(toInsert);
+      if (error) { toast.error(error.message); return; }
+      toast.success(`Restored ${toInsert.length} default template${toInsert.length > 1 ? 's' : ''}`);
+      fetchTemplates();
+    } finally {
+      setSeeding(false);
+    }
   };
 
   const updateLocal = (id: string, patch: Partial<Template>) => {
@@ -111,9 +166,14 @@ export function DocumentTemplatesManagement() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Input placeholder="Template name (e.g. PAYG, Self-Employed)" value={newTplName} onChange={e => setNewTplName(e.target.value)} />
-            <Button onClick={createTemplate} disabled={!newTplName.trim()}><Plus className="w-4 h-4 mr-1" />Create</Button>
+            <div className="flex gap-2">
+              <Button onClick={createTemplate} disabled={!newTplName.trim()}><Plus className="w-4 h-4 mr-1" />Create</Button>
+              <Button variant="outline" onClick={seedDefaults} disabled={seeding} title="Add PAYG / Sole Trader / Company-Trust default templates">
+                <RotateCcw className="w-4 h-4 mr-1" /> {seeding ? 'Restoring…' : 'Restore defaults'}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
