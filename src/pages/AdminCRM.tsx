@@ -1174,6 +1174,19 @@ export default function AdminCRM() {
         sampleNotes={isPreviewMode && selectedLead ? (SAMPLE_NOTES[selectedLead.id] || []) as any : undefined}
         onLeadSourcesChanged={fetchLeadSources}
       />
+      <AddLeadDialog
+        leadSources={leadSources}
+        referrers={referrers}
+        contacts={contacts}
+        isPreviewMode={isPreviewMode}
+        onLeadAdded={() => { if (!isPreviewMode) fetchLeads(); }}
+        onContactCreated={() => { if (!isPreviewMode) fetchContacts(); }}
+        hideTrigger
+        open={!!stageAddDialog}
+        onOpenChange={(v) => { if (!v) setStageAddDialog(null); }}
+        defaultLeadStatus={stageAddDialog?.kind === 'lead' ? stageAddDialog.name : null}
+        defaultWipStatus={stageAddDialog?.kind === 'wip' ? stageAddDialog.name : null}
+      />
     </div>
   );
 }
