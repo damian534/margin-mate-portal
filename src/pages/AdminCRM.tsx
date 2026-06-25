@@ -1066,6 +1066,7 @@ export default function AdminCRM() {
                 updateStatus(leadId, leadStatus);
                 updateWipStatus(leadId, null);
               }}
+              onAddInStage={(wipName) => setStageAddDialog({ kind: 'wip', name: wipName })}
             />
           </TabsContent>
 
