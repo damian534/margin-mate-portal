@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { LeadStatus } from '@/hooks/useLeadStatuses';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ChevronDown, ChevronRight, DollarSign, Users, ChevronsDownUp, ChevronsUpDown, ClipboardList, FileDown, FileText, MoreVertical, Maximize2, Minimize2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, DollarSign, Users, ChevronsDownUp, ChevronsUpDown, ClipboardList, FileDown, FileText, MoreVertical, Maximize2, Minimize2, Plus } from 'lucide-react';
 import { AssigneeBadge } from '@/components/AssigneePicker';
 import { usePersistedState, usePersistedStringSet } from '@/hooks/usePersistedState';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -57,9 +57,10 @@ interface LeadsKanbanProps {
   taskDueFilter?: string;
   docsByLead?: Map<string, { requested: number; completed: number; files: { path: string; name: string }[] }>;
   onDownloadDocs?: (leadId: string) => void;
+  onAddInStage?: (statusName: string) => void;
 }
 
-export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName, getReferrerCompany, getContactName, onOpenLead, onUpdateStatus, onUpdateWipStatus, tasksByLead, taskDueFilter, docsByLead, onDownloadDocs }: LeadsKanbanProps) {
+export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName, getReferrerCompany, getContactName, onOpenLead, onUpdateStatus, onUpdateWipStatus, tasksByLead, taskDueFilter, docsByLead, onDownloadDocs, onAddInStage }: LeadsKanbanProps) {
   const [collapsedColumns, setCollapsedColumns] = usePersistedStringSet('crm.leads.kanban.collapsedColumns', []);
   const [compact, setCompact] = usePersistedState<boolean>('crm.leads.kanban.compact', false);
   // Local optimistic overrides for sort_order and status to keep DnD snappy.
@@ -254,6 +255,15 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                       <p className="text-xs text-muted-foreground mt-1">${totalAmount.toLocaleString()}</p>
                     )}
                   </div>
+                  {onAddInStage && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onAddInStage(status.name); }}
+                      className="mx-2 mt-2 inline-flex items-center justify-center gap-1 py-1.5 rounded-md border border-dashed border-border text-[11px] font-medium text-muted-foreground hover:text-foreground hover:border-foreground/40 hover:bg-background/60 transition"
+                    >
+                      <Plus className="w-3 h-3" /> Add card
+                    </button>
+                  )}
 
                   {/* Cards */}
                   <ScrollArea className="flex-1 max-h-[calc(100vh-340px)]">

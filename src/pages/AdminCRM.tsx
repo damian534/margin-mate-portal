@@ -145,6 +145,7 @@ export default function AdminCRM() {
   const [selectedCompanyCRM, setSelectedCompanyCRM] = useState<Company | null>(null);
   const [docsByLead, setDocsByLead] = useState<Map<string, { requested: number; completed: number; files: { path: string; name: string }[] }>>(new Map());
   const [pendingReferralsCount, setPendingReferralsCount] = useState(0);
+  const [stageAddDialog, setStageAddDialog] = useState<{ kind: 'lead' | 'wip'; name: string } | null>(null);
 
   useEffect(() => {
     if (!user || isPreviewMode) return;
@@ -869,6 +870,7 @@ export default function AdminCRM() {
                 taskDueFilter={taskDueFilter}
                 docsByLead={docsByLead}
                 onDownloadDocs={downloadLeadDocsZip}
+                onAddInStage={(statusName) => setStageAddDialog({ kind: 'lead', name: statusName })}
               />
             ) : filteredLeads.length === 0 ? (
               <Card><CardContent className="p-0"><p className="text-muted-foreground text-center py-12">No leads found</p></CardContent></Card>
@@ -1064,6 +1066,7 @@ export default function AdminCRM() {
                 updateStatus(leadId, leadStatus);
                 updateWipStatus(leadId, null);
               }}
+              onAddInStage={(wipName) => setStageAddDialog({ kind: 'wip', name: wipName })}
             />
           </TabsContent>
 
@@ -1170,6 +1173,19 @@ export default function AdminCRM() {
         }}
         sampleNotes={isPreviewMode && selectedLead ? (SAMPLE_NOTES[selectedLead.id] || []) as any : undefined}
         onLeadSourcesChanged={fetchLeadSources}
+      />
+      <AddLeadDialog
+        leadSources={leadSources}
+        referrers={referrers}
+        contacts={contacts}
+        isPreviewMode={isPreviewMode}
+        onLeadAdded={() => { if (!isPreviewMode) fetchLeads(); }}
+        onContactCreated={() => { if (!isPreviewMode) fetchContacts(); }}
+        hideTrigger
+        open={!!stageAddDialog}
+        onOpenChange={(v) => { if (!v) setStageAddDialog(null); }}
+        defaultLeadStatus={stageAddDialog?.kind === 'lead' ? stageAddDialog.name : null}
+        defaultWipStatus={stageAddDialog?.kind === 'wip' ? stageAddDialog.name : null}
       />
     </div>
   );

@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { FileDown, FileText, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search, X, MoreVertical, Maximize2, Minimize2, List, Columns, CalendarClock, ClipboardList } from 'lucide-react';
+import { FileDown, FileText, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search, X, MoreVertical, Maximize2, Minimize2, List, Columns, CalendarClock, ClipboardList, Plus } from 'lucide-react';
 import { AssigneeBadge, AssigneeFilter } from '@/components/AssigneePicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -110,9 +110,10 @@ interface WIPDashboardProps {
   getContactName?: (contactId: string | null) => string | null;
   externalSearch?: string;
   tasksByLead?: Map<string, WipLeadTask[]>;
+  onAddInStage?: (wipStatusName: string) => void;
 }
 
-export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead, docsByLead, onDownloadDocs, leadSources = [], getReferrerName, getReferrerCompany, getContactName, externalSearch, tasksByLead }: WIPDashboardProps) {
+export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead, docsByLead, onDownloadDocs, leadSources = [], getReferrerName, getReferrerCompany, getContactName, externalSearch, tasksByLead, onAddInStage }: WIPDashboardProps) {
   const { statuses: wipStatusesDynamic, addStatus, updateStatus: updateWipStatusConfig, deleteStatus, reorderStatuses } = useWipStatuses();
   const wipStatuses = wipStatusesDynamic.length > 0 ? wipStatusesDynamic : (WIP_STATUSES as unknown as { name: string; label: string; color: string }[]);
   const [assigneeFilter, setAssigneeFilter] = usePersistedState<string[]>('crm.wip.assigneeFilterMulti', []);
@@ -583,6 +584,15 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                         <p className="text-xs text-muted-foreground mt-1">${t.volume.toLocaleString()}</p>
                       )}
                     </div>
+                    {onAddInStage && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onAddInStage(stage.name); }}
+                        className="mx-2 mt-2 inline-flex items-center justify-center gap-1 py-1.5 rounded-md border border-dashed border-border text-[11px] font-medium text-muted-foreground hover:text-foreground hover:border-foreground/40 hover:bg-background/60 transition"
+                      >
+                        <Plus className="w-3 h-3" /> Add card
+                      </button>
+                    )}
 
                     <ScrollArea className="flex-1 max-h-[calc(100vh-340px)]">
                       <div className="p-2 space-y-2">
