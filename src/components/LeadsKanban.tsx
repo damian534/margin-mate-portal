@@ -256,7 +256,7 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                   </div>
 
                   {/* Cards */}
-                  <ScrollArea className="flex-1">
+                  <ScrollArea className="flex-1 max-h-[calc(100vh-340px)]">
                     <div className="p-2 space-y-2">
                       {columnLeads.map(lead => {
                         const hasTask = getLeadHasActiveTasks(lead.id);
