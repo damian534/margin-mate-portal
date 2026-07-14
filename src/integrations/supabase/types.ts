@@ -426,6 +426,57 @@ export type Database = {
         }
         Relationships: []
       }
+      document_request_files: {
+        Row: {
+          content_type: string | null
+          document_request_id: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          lead_id: string
+          uploaded_at: string
+          uploaded_by_client: boolean
+        }
+        Insert: {
+          content_type?: string | null
+          document_request_id: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          lead_id: string
+          uploaded_at?: string
+          uploaded_by_client?: boolean
+        }
+        Update: {
+          content_type?: string | null
+          document_request_id?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          lead_id?: string
+          uploaded_at?: string
+          uploaded_by_client?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_request_files_document_request_id_fkey"
+            columns: ["document_request_id"]
+            isOneToOne: false
+            referencedRelation: "document_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_request_files_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_requests: {
         Row: {
           applicant_id: string | null
