@@ -47,6 +47,7 @@ interface DocumentRequest {
   rejection_reason: string | null;
   applicant_id?: string | null;
   section?: string | null;
+  files?: { id: string; file_name: string; uploaded_at: string }[];
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -117,27 +118,39 @@ export default function ClientPortal() {
     setLoading(false);
   };
 
-  const handleFileUpload = async (docId: string, file: File) => {
+  const handleFileUpload = async (docId: string, files: FileList | File[]) => {
     if (!leadId) return;
+    const list = Array.from(files);
+    if (list.length === 0) return;
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('token', token!);
-    formData.append('document_id', docId);
+    let successCount = 0;
+    const newFileEntries: { id: string; file_name: string; uploaded_at: string }[] = [];
+    for (const file of list) {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('token', token!);
+      formData.append('document_id', docId);
 
-    const res = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/client-portal-upload`,
-      { method: 'POST', body: formData }
-    );
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/client-portal-upload`,
+        { method: 'POST', body: formData }
+      );
 
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      toast.error(errData.error || 'Upload failed');
-      return;
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        toast.error(`${file.name}: ${errData.error || 'Upload failed'}`);
+        continue;
+      }
+      successCount++;
+      newFileEntries.push({ id: crypto.randomUUID(), file_name: file.name, uploaded_at: new Date().toISOString() });
     }
 
-    toast.success('File uploaded successfully');
-    setDocuments(prev => prev.map(d => d.id === docId ? { ...d, status: 'uploaded', file_name: file.name } : d));
+    if (successCount > 0) {
+      toast.success(successCount === 1 ? 'File uploaded' : `${successCount} files uploaded`);
+      setDocuments(prev => prev.map(d => d.id === docId
+        ? { ...d, status: 'uploaded', file_name: newFileEntries[newFileEntries.length - 1]?.file_name ?? d.file_name, files: [...(d.files || []), ...newFileEntries] }
+        : d));
+    }
   };
 
   const handleMarkComplete = async (docId: string) => {
@@ -237,11 +250,19 @@ export default function ClientPortal() {
                         </Badge>
                       </div>
 
-                      {doc.file_name && (
+                      {(doc.files && doc.files.length > 0) ? (
+                        <div className="space-y-1">
+                          {doc.files.map(f => (
+                            <p key={f.id} className="text-xs text-muted-foreground bg-muted/50 rounded p-2 flex items-center gap-1.5">
+                              <FileText className="w-3 h-3 shrink-0" /> <span className="truncate">{f.file_name}</span>
+                            </p>
+                          ))}
+                        </div>
+                      ) : doc.file_name ? (
                         <p className="text-xs text-muted-foreground bg-muted/50 rounded p-2 flex items-center gap-1.5">
                           <FileText className="w-3 h-3" /> {doc.file_name}
                         </p>
-                      )}
+                      ) : null}
 
                       {doc.rejection_reason && (
                         <p className="text-xs text-destructive bg-destructive/10 rounded p-2">
@@ -249,7 +270,7 @@ export default function ClientPortal() {
                         </p>
                       )}
 
-                      {(doc.status === 'pending' || doc.status === 'rejected') && (
+                      {(doc.status === 'pending' || doc.status === 'rejected' || doc.status === 'uploaded') && (
                         <>
                           {(() => {
                             const linkHref = extractFirstUrl(doc.description);
@@ -270,11 +291,12 @@ export default function ClientPortal() {
                           })()}
                           <input
                             type="file"
+                            multiple
                             className="hidden"
                             ref={(el) => { fileInputRefs.current[doc.id] = el; }}
                             onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleFileUpload(doc.id, file);
+                              const files = e.target.files;
+                              if (files && files.length > 0) handleFileUpload(doc.id, files);
                               e.target.value = '';
                             }}
                           />
@@ -285,7 +307,11 @@ export default function ClientPortal() {
                             onClick={() => fileInputRefs.current[doc.id]?.click()}
                           >
                             <Upload className="w-3.5 h-3.5" />
-                            {doc.status === 'rejected' ? 'Upload Again' : 'Upload File'}
+                            {doc.status === 'rejected'
+                              ? 'Upload Again'
+                              : (doc.files && doc.files.length > 0) || doc.file_name
+                                ? 'Add Another File'
+                                : 'Upload File(s)'}
                           </Button>
                           {/(bankstatements\.com\.au|bankstatements)/i.test(`${doc.name} ${doc.description ?? ''}`) && (
                             <Button
