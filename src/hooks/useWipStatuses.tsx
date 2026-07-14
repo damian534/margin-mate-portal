@@ -106,7 +106,12 @@ export function useWipStatuses() {
     const updates = reordered.map((s, i) =>
       supabase.from('wip_statuses' as any).update({ display_order: i } as any).eq('id', s.id)
     );
-    await Promise.all(updates);
+    const results = await Promise.all(updates);
+    const failed = results.some(result => result.error);
+    if (failed) {
+      await fetchStatuses();
+      return false;
+    }
     return true;
   };
 
