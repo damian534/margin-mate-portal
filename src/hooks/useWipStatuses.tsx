@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -39,34 +39,34 @@ export function useWipStatuses() {
   const [statuses, setStatuses] = useState<WipStatus[]>(DEFAULT_WIP_STATUSES);
   const [loading, setLoading] = useState(true);
 
-  const fetchStatuses = async () => {
+  const fetchStatuses = useCallback(async () => {
     if (isPreviewMode) {
       setStatuses(DEFAULT_WIP_STATUSES);
       setLoading(false);
       return;
     }
     const { data } = await supabase
-      .from('wip_statuses' as any)
+      .from('wip_statuses')
       .select('*')
       .order('display_order', { ascending: true });
-    if (data && (data as any[]).length > 0) {
-      setStatuses(data as unknown as WipStatus[]);
+    if (data && data.length > 0) {
+      setStatuses(data);
     }
     setLoading(false);
-  };
+  }, [isPreviewMode]);
 
   useEffect(() => {
     fetchStatuses();
-  }, [isPreviewMode]);
+  }, [fetchStatuses]);
 
   const addStatus = async (name: string, label: string, color: string) => {
     if (isPreviewMode) {
       setStatuses(prev => [...prev, { id: `preview-${Date.now()}`, name, label, color, display_order: prev.length }]);
       return true;
     }
-    const { error } = await supabase.from('wip_statuses' as any).insert({
+    const { error } = await supabase.from('wip_statuses').insert({
       name, label, color, display_order: statuses.length,
-    } as any);
+    });
     if (error) return false;
     await fetchStatuses();
     return true;
@@ -80,10 +80,10 @@ export function useWipStatuses() {
     if (updates.name) {
       const oldStatus = statuses.find(s => s.id === id);
       if (oldStatus && oldStatus.name !== updates.name) {
-        await supabase.from('leads').update({ wip_status: updates.name } as any).eq('wip_status', oldStatus.name);
+        await supabase.from('leads').update({ wip_status: updates.name }).eq('wip_status', oldStatus.name);
       }
     }
-    const { error } = await supabase.from('wip_statuses' as any).update(updates as any).eq('id', id);
+    const { error } = await supabase.from('wip_statuses').update(updates).eq('id', id);
     if (error) return false;
     await fetchStatuses();
     return true;
@@ -94,7 +94,7 @@ export function useWipStatuses() {
       setStatuses(prev => prev.filter(s => s.id !== id));
       return true;
     }
-    const { error } = await supabase.from('wip_statuses' as any).delete().eq('id', id);
+    const { error } = await supabase.from('wip_statuses').delete().eq('id', id);
     if (error) return false;
     await fetchStatuses();
     return true;
@@ -104,7 +104,7 @@ export function useWipStatuses() {
     setStatuses(reordered);
     if (isPreviewMode) return true;
     const updates = reordered.map((s, i) =>
-      supabase.from('wip_statuses' as any).update({ display_order: i } as any).eq('id', s.id)
+      supabase.from('wip_statuses').update({ display_order: i }).eq('id', s.id)
     );
     const results = await Promise.all(updates);
     const failed = results.some(result => result.error);
