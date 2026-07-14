@@ -69,7 +69,8 @@ export function StatusSettings({ statuses, onAdd, onUpdate, onDelete, onReorder,
     if (newIndex < 0 || newIndex >= statuses.length) return;
     const reordered = [...statuses];
     [reordered[index], reordered[newIndex]] = [reordered[newIndex], reordered[index]];
-    await onReorder(reordered.map((s, i) => ({ ...s, display_order: i })));
+    const ok = await onReorder(reordered.map((s, i) => ({ ...s, display_order: i })));
+    if (!ok) toast.error('Failed to save status order');
   };
 
   return (
