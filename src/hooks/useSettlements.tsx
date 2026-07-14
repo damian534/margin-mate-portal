@@ -63,39 +63,15 @@ export function useSettlements() {
       return;
     }
     setLoading(true);
-    const [settlementsRes, estimatedRes] = await Promise.all([
-      supabase.from('settlements').select('*').order('settlement_date', { ascending: false }),
-      supabase
-        .from('leads')
-        .select('id, broker_id, first_name, last_name, loan_amount, estimated_settlement_date, settled_date, source')
-        .not('estimated_settlement_date', 'is', null)
-        .is('settled_date', null),
-    ]);
+    const settlementsRes = await supabase
+      .from('settlements')
+      .select('*')
+      .order('settlement_date', { ascending: false });
     if (settlementsRes.error) {
       console.error('Error fetching settlements:', settlementsRes.error);
       toast.error('Failed to load settlements');
     }
-    const real = (settlementsRes.data as Settlement[]) || [];
-    const estimated: Settlement[] = ((estimatedRes.data as any[]) || []).map((l) => ({
-      id: `estimated-${l.id}`,
-      broker_id: l.broker_id || '',
-      lending_assistant_id: null,
-      client_name: `${l.first_name || ''} ${l.last_name || ''}`.trim() || 'Lead',
-      settlement_date: l.estimated_settlement_date,
-      status: 'estimated',
-      loan_amount: Number(l.loan_amount) || 0,
-      lender: null,
-      application_type: null,
-      lead_source: l.source || null,
-      security_address: null,
-      discharge_completed: false,
-      pre_settlement_check_completed: false,
-      contact_name: null,
-      notes: 'Auto-generated from lead estimated settlement date',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }));
-    setSettlements([...real, ...estimated]);
+    setSettlements((settlementsRes.data as Settlement[]) || []);
     setLoading(false);
   }, [isPreviewMode]);
 
