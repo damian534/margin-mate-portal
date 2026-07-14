@@ -1732,6 +1732,7 @@ export type Database = {
           created_at: string
           discharge_completed: boolean | null
           id: string
+          lead_id: string | null
           lead_source: string | null
           lender: string | null
           lending_assistant_id: string | null
@@ -1756,6 +1757,7 @@ export type Database = {
           created_at?: string
           discharge_completed?: boolean | null
           id?: string
+          lead_id?: string | null
           lead_source?: string | null
           lender?: string | null
           lending_assistant_id?: string | null
@@ -1780,6 +1782,7 @@ export type Database = {
           created_at?: string
           discharge_completed?: boolean | null
           id?: string
+          lead_id?: string | null
           lead_source?: string | null
           lender?: string | null
           lending_assistant_id?: string | null
@@ -1794,7 +1797,15 @@ export type Database = {
           updated_at?: string
           upfront_commission?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "settlements_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       task_templates: {
         Row: {
