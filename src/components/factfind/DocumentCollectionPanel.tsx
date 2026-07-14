@@ -1149,7 +1149,23 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
                           </p>
                         )}
 
-                        {doc.file_name && (
+                        {(doc.files && doc.files.length > 0) ? (
+                          <div className="space-y-1">
+                            {doc.files.map(f => (
+                              <div key={f.id} className="flex items-center gap-2 bg-muted/50 rounded p-2">
+                                <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                <span className="text-xs truncate flex-1">{f.file_name}</span>
+                                {f.file_size && <span className="text-xs text-muted-foreground shrink-0">{(f.file_size / 1024).toFixed(0)} KB</span>}
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => downloadFileByPath(f.file_path)}>
+                                  <Download className="w-3 h-3" />
+                                </Button>
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive hover:text-destructive" onClick={() => deleteUploadedFile(doc.id, f)}>
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : doc.file_name ? (
                           <div className="flex items-center gap-2 bg-muted/50 rounded p-2">
                             <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                             <span className="text-xs truncate flex-1">{doc.file_name}</span>
@@ -1158,23 +1174,25 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
                               <Download className="w-3 h-3" />
                             </Button>
                           </div>
-                        )}
+                        ) : null}
 
                         {doc.rejection_reason && (
                           <p className="text-xs text-destructive bg-destructive/10 rounded p-2">Rejection: {doc.rejection_reason}</p>
                         )}
 
                         <div className="flex gap-1.5 flex-wrap">
-                          {(doc.status === 'pending' || doc.status === 'rejected') && (
+                          {(doc.status === 'pending' || doc.status === 'rejected' || doc.status === 'uploaded') && (
                             <>
-                              <input type="file" className="hidden" ref={el => { fileInputRefs.current[doc.id] = el; }}
-                                onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(doc.id, f); e.target.value = ''; }} />
+                              <input type="file" multiple className="hidden" ref={el => { fileInputRefs.current[doc.id] = el; }}
+                                onChange={e => { const fs = e.target.files; if (fs && fs.length > 0) handleFileUpload(doc.id, fs); e.target.value = ''; }} />
                               <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => fileInputRefs.current[doc.id]?.click()}>
-                                <Upload className="w-3 h-3" /> {doc.status === 'rejected' ? 'Re-upload' : 'Upload'}
+                                <Upload className="w-3 h-3" /> {doc.status === 'rejected' ? 'Re-upload' : ((doc.files && doc.files.length > 0) || doc.file_name ? 'Add file' : 'Upload')}
                               </Button>
-                              <Button variant="outline" size="sm" className="h-7 text-xs gap-1 text-emerald-700 border-emerald-200 hover:bg-emerald-50" onClick={() => updateStatus(doc.id, 'approved')}>
-                                <CheckCircle2 className="w-3 h-3" /> Mark Provided
-                              </Button>
+                              {doc.status !== 'uploaded' && (
+                                <Button variant="outline" size="sm" className="h-7 text-xs gap-1 text-emerald-700 border-emerald-200 hover:bg-emerald-50" onClick={() => updateStatus(doc.id, 'approved')}>
+                                  <CheckCircle2 className="w-3 h-3" /> Mark Provided
+                                </Button>
+                              )}
                             </>
                           )}
                           {doc.status === 'uploaded' && (
