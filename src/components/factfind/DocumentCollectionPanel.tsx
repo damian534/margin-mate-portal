@@ -30,6 +30,16 @@ interface DocumentRequest {
   is_mir?: boolean;
   mir_batch_id?: string | null;
   mir_requested_at?: string | null;
+  files?: DocumentRequestFile[];
+}
+
+interface DocumentRequestFile {
+  id: string;
+  document_request_id: string;
+  file_path: string;
+  file_name: string;
+  file_size: number | null;
+  uploaded_at: string;
 }
 
 interface Applicant {
@@ -235,7 +245,21 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
     if (appList.length > 0) {
       setActiveApplicantId(current => appList.some(app => app.id === current) ? current : appList[0].id);
     }
-    setDocuments((docs as DocumentRequest[]) || []);
+    // Fetch all uploaded files for these document requests
+    const docList = (docs as DocumentRequest[]) || [];
+    const docIds = docList.map(d => d.id);
+    let filesByDoc: Record<string, DocumentRequestFile[]> = {};
+    if (docIds.length > 0) {
+      const { data: files } = await (supabase as any)
+        .from('document_request_files')
+        .select('id, document_request_id, file_path, file_name, file_size, uploaded_at')
+        .in('document_request_id', docIds)
+        .order('uploaded_at', { ascending: true });
+      for (const f of (files || []) as DocumentRequestFile[]) {
+        (filesByDoc[f.document_request_id] ||= []).push(f);
+      }
+    }
+    setDocuments(docList.map(d => ({ ...d, files: filesByDoc[d.id] || [] })));
     setIsLoading(false);
   };
 
@@ -427,7 +451,14 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       return;
     }
     const doc = documents.find(d => d.id === id);
-    if (doc?.file_path) await supabase.storage.from('client-documents').remove([doc.file_path]);
+    // Remove all uploaded files for this request
+    const pathsToRemove = [
+      ...(doc?.files?.map(f => f.file_path) || []),
+      ...(doc?.file_path && !doc.files?.some(f => f.file_path === doc.file_path) ? [doc.file_path] : []),
+    ];
+    if (pathsToRemove.length > 0) {
+      await supabase.storage.from('client-documents').remove(pathsToRemove);
+    }
     await supabase.from('document_requests').delete().eq('id', id);
     if (doc) {
       const applicant = applicants.find(a => a.id === doc.applicant_id);
@@ -436,24 +467,51 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
     fetchAll();
   };
 
-  const handleFileUpload = async (docId: string, file: File) => {
+  const handleFileUpload = async (docId: string, files: FileList | File[]) => {
+    const list = Array.from(files);
+    if (list.length === 0) return;
     if (isPreviewMode) {
       setDocuments(prev => prev.map(d => d.id === docId ? {
-        ...d, status: 'uploaded', file_name: file.name, file_size: file.size, uploaded_at: new Date().toISOString(),
+        ...d, status: 'uploaded',
+        file_name: list[list.length - 1].name,
+        file_size: list[list.length - 1].size,
+        uploaded_at: new Date().toISOString(),
+        files: [...(d.files || []), ...list.map((f, i) => ({
+          id: `prev-${Date.now()}-${i}`,
+          document_request_id: docId,
+          file_path: `preview/${f.name}`,
+          file_name: f.name,
+          file_size: f.size,
+          uploaded_at: new Date().toISOString(),
+        }))],
       } : d));
       return;
     }
-    const filePath = `${leadId}/${docId}/${file.name}`;
-    const { error } = await supabase.storage.from('client-documents').upload(filePath, file, { upsert: true });
-    if (error) { toast.error('Upload failed: ' + error.message); return; }
+    let lastPath = '';
+    let lastFile: File | null = null;
+    let uploadedCount = 0;
+    for (const file of list) {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const uniquePrefix = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+      const filePath = `${leadId}/${docId}/${uniquePrefix}-${safeName}`;
+      const { error } = await supabase.storage.from('client-documents').upload(filePath, file, { upsert: false });
+      if (error) { toast.error(`${file.name}: ${error.message}`); continue; }
+      await (supabase as any).from('document_request_files').insert({
+        document_request_id: docId, lead_id: leadId, file_path: filePath,
+        file_name: file.name, file_size: file.size, content_type: file.type || null,
+        uploaded_by_client: false,
+      });
+      lastPath = filePath; lastFile = file; uploadedCount++;
+    }
+    if (uploadedCount === 0) return;
     await supabase.from('document_requests').update({
-      file_path: filePath, file_name: file.name, file_size: file.size,
+      file_path: lastPath, file_name: lastFile!.name, file_size: lastFile!.size,
       status: 'uploaded', uploaded_at: new Date().toISOString(),
     }).eq('id', docId);
     const doc = documents.find(d => d.id === docId);
     const applicant = doc ? applicants.find(a => a.id === doc.applicant_id) : null;
-    await logAudit(leadId, `📄 Uploaded "${doc?.name || file.name}"${applicant ? ` for ${applicant.name}` : ''} (${file.name})`, { isPreview: isPreviewMode });
-    toast.success('Uploaded');
+    await logAudit(leadId, `📄 Uploaded ${uploadedCount} file(s) for "${doc?.name || 'document'}"${applicant ? ` — ${applicant.name}` : ''}`, { isPreview: isPreviewMode });
+    toast.success(uploadedCount === 1 ? 'Uploaded' : `${uploadedCount} files uploaded`);
     fetchAll();
   };
 
@@ -483,6 +541,35 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
     if (!doc.file_path || isPreviewMode) return;
     const { data } = await supabase.storage.from('client-documents').createSignedUrl(doc.file_path, 60);
     if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+  };
+
+  const downloadFileByPath = async (path: string) => {
+    if (isPreviewMode) return;
+    const { data } = await supabase.storage.from('client-documents').createSignedUrl(path, 60);
+    if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+  };
+
+  const deleteUploadedFile = async (docId: string, file: DocumentRequestFile) => {
+    if (isPreviewMode) {
+      setDocuments(prev => prev.map(d => d.id === docId ? { ...d, files: (d.files || []).filter(f => f.id !== file.id) } : d));
+      return;
+    }
+    await supabase.storage.from('client-documents').remove([file.file_path]);
+    await (supabase as any).from('document_request_files').delete().eq('id', file.id);
+    // If the deleted file was the "latest" pointer on the parent, update it
+    const doc = documents.find(d => d.id === docId);
+    if (doc?.file_path === file.file_path) {
+      const remaining = (doc.files || []).filter(f => f.id !== file.id);
+      const newest = remaining[remaining.length - 1];
+      await supabase.from('document_requests').update({
+        file_path: newest?.file_path ?? null,
+        file_name: newest?.file_name ?? null,
+        file_size: newest?.file_size ?? null,
+        status: newest ? 'uploaded' : 'pending',
+        uploaded_at: newest?.uploaded_at ?? null,
+      }).eq('id', docId);
+    }
+    fetchAll();
   };
 
   const updateDocumentName = (docId: string, value: string) => {
@@ -1062,7 +1149,23 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
                           </p>
                         )}
 
-                        {doc.file_name && (
+                        {(doc.files && doc.files.length > 0) ? (
+                          <div className="space-y-1">
+                            {doc.files.map(f => (
+                              <div key={f.id} className="flex items-center gap-2 bg-muted/50 rounded p-2">
+                                <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                <span className="text-xs truncate flex-1">{f.file_name}</span>
+                                {f.file_size && <span className="text-xs text-muted-foreground shrink-0">{(f.file_size / 1024).toFixed(0)} KB</span>}
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => downloadFileByPath(f.file_path)}>
+                                  <Download className="w-3 h-3" />
+                                </Button>
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive hover:text-destructive" onClick={() => deleteUploadedFile(doc.id, f)}>
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : doc.file_name ? (
                           <div className="flex items-center gap-2 bg-muted/50 rounded p-2">
                             <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                             <span className="text-xs truncate flex-1">{doc.file_name}</span>
@@ -1071,23 +1174,25 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
                               <Download className="w-3 h-3" />
                             </Button>
                           </div>
-                        )}
+                        ) : null}
 
                         {doc.rejection_reason && (
                           <p className="text-xs text-destructive bg-destructive/10 rounded p-2">Rejection: {doc.rejection_reason}</p>
                         )}
 
                         <div className="flex gap-1.5 flex-wrap">
-                          {(doc.status === 'pending' || doc.status === 'rejected') && (
+                          {(doc.status === 'pending' || doc.status === 'rejected' || doc.status === 'uploaded') && (
                             <>
-                              <input type="file" className="hidden" ref={el => { fileInputRefs.current[doc.id] = el; }}
-                                onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(doc.id, f); e.target.value = ''; }} />
+                              <input type="file" multiple className="hidden" ref={el => { fileInputRefs.current[doc.id] = el; }}
+                                onChange={e => { const fs = e.target.files; if (fs && fs.length > 0) handleFileUpload(doc.id, fs); e.target.value = ''; }} />
                               <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => fileInputRefs.current[doc.id]?.click()}>
-                                <Upload className="w-3 h-3" /> {doc.status === 'rejected' ? 'Re-upload' : 'Upload'}
+                                <Upload className="w-3 h-3" /> {doc.status === 'rejected' ? 'Re-upload' : ((doc.files && doc.files.length > 0) || doc.file_name ? 'Add file' : 'Upload')}
                               </Button>
-                              <Button variant="outline" size="sm" className="h-7 text-xs gap-1 text-emerald-700 border-emerald-200 hover:bg-emerald-50" onClick={() => updateStatus(doc.id, 'approved')}>
-                                <CheckCircle2 className="w-3 h-3" /> Mark Provided
-                              </Button>
+                              {doc.status !== 'uploaded' && (
+                                <Button variant="outline" size="sm" className="h-7 text-xs gap-1 text-emerald-700 border-emerald-200 hover:bg-emerald-50" onClick={() => updateStatus(doc.id, 'approved')}>
+                                  <CheckCircle2 className="w-3 h-3" /> Mark Provided
+                                </Button>
+                              )}
                             </>
                           )}
                           {doc.status === 'uploaded' && (

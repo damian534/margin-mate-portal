@@ -79,6 +79,26 @@ serve(async (req) => {
       }
       const { data: documents } = await docsQuery;
 
+      // Fetch all uploaded files for these documents
+      const docIds = (documents || []).map((d: { id: string }) => d.id);
+      let filesByDoc: Record<string, Array<{ id: string; file_name: string; uploaded_at: string }>> = {};
+      if (docIds.length > 0) {
+        const { data: files } = await supabase
+          .from("document_request_files")
+          .select("id, document_request_id, file_name, uploaded_at")
+          .in("document_request_id", docIds)
+          .order("uploaded_at", { ascending: true });
+        for (const f of files || []) {
+          (filesByDoc[f.document_request_id] ||= []).push({
+            id: f.id, file_name: f.file_name, uploaded_at: f.uploaded_at,
+          });
+        }
+      }
+      const documentsWithFiles = (documents || []).map((d: { id: string }) => ({
+        ...d,
+        files: filesByDoc[d.id] || [],
+      }));
+
       // Get applicant info to display the recipient's name when scoped
       let applicantName: string | null = null;
       if (normalisedApplicantParam) {
@@ -97,7 +117,7 @@ serve(async (req) => {
         lead_email: lead?.email || "",
         lead_phone: lead?.phone || "",
         fact_find: factFind || [],
-        documents: documents || [],
+        documents: documentsWithFiles,
         applicant_name: applicantName,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

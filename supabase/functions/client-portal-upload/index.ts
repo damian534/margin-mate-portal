@@ -75,15 +75,17 @@ serve(async (req) => {
       });
     }
 
-    // Upload file
-    const filePath = `${tokenData.lead_id}/${documentId}/${file.name}`;
+    // Upload file — prefix with timestamp so multiple files per request don't collide
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const uniquePrefix = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+    const filePath = `${tokenData.lead_id}/${documentId}/${uniquePrefix}-${safeName}`;
     const fileBuffer = await file.arrayBuffer();
 
     const { error: uploadError } = await supabase.storage
       .from("client-documents")
       .upload(filePath, fileBuffer, {
         contentType: file.type,
-        upsert: true,
+        upsert: false,
       });
 
     if (uploadError) {
@@ -92,7 +94,18 @@ serve(async (req) => {
       });
     }
 
-    // Update document request
+    // Record this file (append — supports multiple files per request)
+    await supabase.from("document_request_files").insert({
+      document_request_id: documentId,
+      lead_id: tokenData.lead_id,
+      file_path: filePath,
+      file_name: file.name,
+      file_size: file.size,
+      content_type: file.type || null,
+      uploaded_by_client: true,
+    });
+
+    // Keep legacy single-file columns pointing at the latest upload and flip status
     await supabase.from("document_requests").update({
       file_path: filePath,
       file_name: file.name,
