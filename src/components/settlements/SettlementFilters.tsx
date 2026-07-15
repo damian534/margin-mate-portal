@@ -58,7 +58,13 @@ const MONTH_NAMES = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Ma
 export function SettlementFiltersBar({ filters, filterOptions, isSuperAdmin, brokers, updateFilter, resetFilters }: Props) {
   const currentFyStart = getCurrentFYStartYear();
   const [selectedFy, setSelectedFy] = useState<number>(currentFyStart);
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
+  // Default to the full current FY so top-of-page KPIs immediately reflect
+  // the selected financial year rather than all-time totals.
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('fy');
+
+  // Apply the default FY range once on mount so KPIs are scoped from the start.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { applyPeriod('fy', currentFyStart); }, []);
 
   // Offer 5 past FYs + current + 2 future
   const fyOptions = useMemo(() => {
@@ -85,7 +91,11 @@ export function SettlementFiltersBar({ filters, filterOptions, isSuperAdmin, bro
   const handleFyChange = (v: string) => {
     const y = Number(v);
     setSelectedFy(y);
-    if (selectedPeriod !== 'all') applyPeriod(selectedPeriod, y);
+    // Always re-scope KPIs & table to the newly selected FY. If the user
+    // was on "All Time", switch to Full FY so the dashboard reflects it.
+    const period = selectedPeriod === 'all' ? 'fy' : selectedPeriod;
+    if (selectedPeriod === 'all') setSelectedPeriod('fy');
+    applyPeriod(period, y);
   };
 
   const handlePeriod = (period: string) => {
