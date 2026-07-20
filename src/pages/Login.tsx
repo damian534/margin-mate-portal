@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -25,12 +25,19 @@ export default function Login() {
     return 'login';
   });
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const rawNext = searchParams.get('next');
+  const nextPath = rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : null;
   const { user, role, loading: authLoading, isBrokerOrAdmin } = useAuth();
 
   // Redirect when auth state resolves after login
   useEffect(() => {
     if (authLoading) return;
     if (user) {
+      if (nextPath) {
+        window.location.replace(nextPath);
+        return;
+      }
       if (role) {
         if (isBrokerOrAdmin) {
           navigate('/admin', { replace: true });
@@ -43,7 +50,7 @@ export default function Login() {
         toast.error('Your account is pending setup. Please contact your broker.');
       }
     }
-  }, [user, role, authLoading, isBrokerOrAdmin, navigate]);
+  }, [user, role, authLoading, isBrokerOrAdmin, navigate, nextPath]);
 
   // Listen for PASSWORD_RECOVERY event
   useEffect(() => {
