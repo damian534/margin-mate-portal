@@ -24,6 +24,7 @@ import ClientPortal from "./pages/ClientPortal";
 import PortfolioAdvisor from "./pages/PortfolioAdvisor";
 import FeasibilityCalculator from "./pages/FeasibilityCalculator";
 import RetirementCalculator from "./pages/RetirementCalculator";
+import OAuthConsent from "./pages/OAuthConsent";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'broker' | 'referral_partner' | 'super_admin' | 'broker_or_admin' | 'broker_staff' }) {
@@ -133,6 +134,7 @@ const App = () => (
             } />
             <Route path="/preview" element={<Preview />} />
             <Route path="/client-portal/:token" element={<ClientPortal />} />
+            <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
