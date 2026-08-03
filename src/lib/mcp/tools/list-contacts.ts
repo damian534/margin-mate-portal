@@ -17,7 +17,7 @@ export default defineTool({
     const sb = supabaseForUser(ctx);
     let q = sb
       .from("contacts")
-      .select("id, first_name, last_name, email, phone, contact_type, company_name, created_at")
+      .select("id, first_name, last_name, email, phone, type, company, notes, created_at")
       .order("created_at", { ascending: false })
       .limit(limit ?? 50);
     if (search) {

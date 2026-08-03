@@ -18,10 +18,10 @@ export default defineTool({
     const sb = supabaseForUser(ctx);
     let q = sb
       .from("tasks")
-      .select("id, title, description, due_date, status, priority, lead_id, assigned_to, created_at")
+      .select("id, title, description, due_date, completed, priority, lead_id, assigned_to, created_at")
       .order("due_date", { ascending: true, nullsFirst: false })
       .limit(limit ?? 50);
-    if (!include_completed) q = q.neq("status", "completed");
+    if (!include_completed) q = q.eq("completed", false);
     if (due_before) q = q.lte("due_date", due_before);
     const { data, error } = await q;
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };
