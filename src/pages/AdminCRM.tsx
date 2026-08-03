@@ -143,7 +143,7 @@ export default function AdminCRM() {
   const [leadTasks, setLeadTasks] = useState<LeadTask[]>([]);
   const [openContactId, setOpenContactId] = useState<string | null>(null);
   const [selectedCompanyCRM, setSelectedCompanyCRM] = useState<Company | null>(null);
-  const [docsByLead, setDocsByLead] = useState<Map<string, { requested: number; completed: number; files: { path: string; name: string }[] }>>(new Map());
+  const [docsByLead, setDocsByLead] = useState<Map<string, { requested: number; completed: number; files: { path: string; name: string; label: string }[] }>>(new Map());
   const [pendingReferralsCount, setPendingReferralsCount] = useState(0);
   const [stageAddDialog, setStageAddDialog] = useState<{ kind: 'lead' | 'wip'; name: string } | null>(null);
 
@@ -395,14 +395,48 @@ export default function AdminCRM() {
   const fetchLeadDocs = async () => {
     const { data } = await supabase
       .from('document_requests')
-      .select('lead_id, status, requested_at, file_path, file_name')
+      .select('id, lead_id, name, status, requested_at, file_path, file_name')
       .not('requested_at', 'is', null);
-    const map = new Map<string, { requested: number; completed: number; files: { path: string; name: string }[] }>();
-    for (const d of (data as any[]) || []) {
+    const requests = (data as any[]) || [];
+
+    // Pull EVERY file uploaded against each request (clients can upload several
+    // per item, e.g. licence front + back). The legacy file_path column only
+    // ever holds the most recent one.
+    const requestIds = requests.map(r => r.id);
+    const filesByRequest = new Map<string, { path: string; name: string }[]>();
+    for (let i = 0; i < requestIds.length; i += 500) {
+      const chunk = requestIds.slice(i, i + 500);
+      if (chunk.length === 0) break;
+      const { data: files } = await supabase
+        .from('document_request_files')
+        .select('document_request_id, file_path, file_name, uploaded_at')
+        .in('document_request_id', chunk)
+        .order('uploaded_at', { ascending: true });
+      for (const f of (files as any[]) || []) {
+        const list = filesByRequest.get(f.document_request_id) || [];
+        list.push({ path: f.file_path, name: f.file_name || f.file_path.split('/').pop() || 'file' });
+        filesByRequest.set(f.document_request_id, list);
+      }
+    }
+
+    const map = new Map<string, { requested: number; completed: number; files: { path: string; name: string; label: string }[] }>();
+    for (const d of requests) {
       const entry = map.get(d.lead_id) || { requested: 0, completed: 0, files: [] };
       entry.requested += 1;
       if (d.status === 'uploaded' || d.status === 'approved') entry.completed += 1;
-      if (d.file_path) entry.files.push({ path: d.file_path, name: d.file_name || d.file_path.split('/').pop() || 'file' });
+
+      const label = (d.name || 'Documents').replace(/[\\/:*?"<>|]/g, '-').trim() || 'Documents';
+      const uploaded = filesByRequest.get(d.id) || [];
+      if (uploaded.length > 0) {
+        for (const f of uploaded) entry.files.push({ ...f, label });
+      } else if (d.file_path) {
+        // Fallback for older uploads recorded before per-file tracking existed
+        entry.files.push({
+          path: d.file_path,
+          name: d.file_name || d.file_path.split('/').pop() || 'file',
+          label,
+        });
+      }
       map.set(d.lead_id, entry);
     }
     setDocsByLead(map);
@@ -419,13 +453,16 @@ export default function AdminCRM() {
       for (const f of entry.files) {
         const { data, error } = await supabase.storage.from('client-documents').download(f.path);
         if (error || !data) continue;
+        // Group each document request into its own folder so multiple files
+        // for the same item (front/back, 3 months of statements) stay together.
+        const folder = (f as any).label ? `${(f as any).label}/` : '';
         const dot = f.name.lastIndexOf('.');
         const base = dot > 0 ? f.name.slice(0, dot) : f.name;
         const ext = dot > 0 ? f.name.slice(dot) : '';
-        let candidate = f.name;
+        let candidate = `${folder}${f.name}`;
         let i = 2;
         while (usedNames.has(candidate)) {
-          candidate = `${base} (${i})${ext}`;
+          candidate = `${folder}${base} (${i})${ext}`;
           i++;
         }
         usedNames.add(candidate);
