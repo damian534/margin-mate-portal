@@ -123,12 +123,10 @@
               "description": "ISO date (YYYY-MM-DD)."
             },
             "priority": {
-              "type": "string",
-              "enum": [
-                "low",
-                "medium",
-                "high"
-              ]
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3,
+              "description": "1 = high, 2 = medium, 3 = low."
             },
             "lead_id": {
               "type": "string",
@@ -183,11 +181,11 @@
           "properties": {
             "from": {
               "type": "string",
-              "description": "ISO date. Only settlements on or after this date."
+              "description": "ISO date. Only settlements on or after this settlement date."
             },
             "to": {
               "type": "string",
-              "description": "ISO date. Only settlements on or before this date."
+              "description": "ISO date. Only settlements on or before this settlement date."
             },
             "limit": {
               "type": "integer",

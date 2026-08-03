@@ -93,8 +93,8 @@ var list_tasks_default = defineTool3({
     const gate = requireAuth(ctx);
     if (gate) return gate;
     const sb = supabaseForUser(ctx);
-    let q = sb.from("tasks").select("id, title, description, due_date, status, priority, lead_id, assigned_to, created_at").order("due_date", { ascending: true, nullsFirst: false }).limit(limit ?? 50);
-    if (!include_completed) q = q.neq("status", "completed");
+    let q = sb.from("tasks").select("id, title, description, due_date, completed, priority, lead_id, assigned_to, created_at").order("due_date", { ascending: true, nullsFirst: false }).limit(limit ?? 50);
+    if (!include_completed) q = q.eq("completed", false);
     if (due_before) q = q.lte("due_date", due_before);
     const { data, error } = await q;
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };
@@ -116,7 +116,7 @@ var create_task_default = defineTool4({
     title: z4.string().trim().min(1).describe("Task title."),
     description: z4.string().optional(),
     due_date: z4.string().optional().describe("ISO date (YYYY-MM-DD)."),
-    priority: z4.enum(["low", "medium", "high"]).optional(),
+    priority: z4.number().int().min(1).max(3).optional().describe("1 = high, 2 = medium, 3 = low."),
     lead_id: z4.string().uuid().optional().describe("Optional lead to link.")
   },
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
@@ -128,8 +128,8 @@ var create_task_default = defineTool4({
       title: input.title,
       description: input.description ?? null,
       due_date: input.due_date ?? null,
-      priority: input.priority ?? "medium",
-      status: "pending",
+      priority: input.priority ?? 2,
+      completed: false,
       lead_id: input.lead_id ?? null,
       created_by: ctx.getUserId(),
       assigned_to: ctx.getUserId()
@@ -158,7 +158,7 @@ var list_contacts_default = defineTool5({
     const gate = requireAuth(ctx);
     if (gate) return gate;
     const sb = supabaseForUser(ctx);
-    let q = sb.from("contacts").select("id, first_name, last_name, email, phone, contact_type, company_name, created_at").order("created_at", { ascending: false }).limit(limit ?? 50);
+    let q = sb.from("contacts").select("id, first_name, last_name, email, phone, type, company, notes, created_at").order("created_at", { ascending: false }).limit(limit ?? 50);
     if (search) {
       const s = `%${search}%`;
       q = q.or(`first_name.ilike.${s},last_name.ilike.${s},email.ilike.${s}`);
@@ -180,8 +180,8 @@ var list_settlements_default = defineTool6({
   title: "List settlements",
   description: "List settlements visible to the signed-in user. Optionally filter by date window.",
   inputSchema: {
-    from: z6.string().optional().describe("ISO date. Only settlements on or after this date."),
-    to: z6.string().optional().describe("ISO date. Only settlements on or before this date."),
+    from: z6.string().optional().describe("ISO date. Only settlements on or after this settlement date."),
+    to: z6.string().optional().describe("ISO date. Only settlements on or before this settlement date."),
     limit: z6.number().int().min(1).max(200).optional()
   },
   annotations: { readOnlyHint: true, openWorldHint: false },
@@ -189,9 +189,9 @@ var list_settlements_default = defineTool6({
     const gate = requireAuth(ctx);
     if (gate) return gate;
     const sb = supabaseForUser(ctx);
-    let q = sb.from("settlements").select("id, client_name, loan_amount, lender, settled_date, status, lead_id, referral_partner_id").order("settled_date", { ascending: false, nullsFirst: false }).limit(limit ?? 50);
-    if (from) q = q.gte("settled_date", from);
-    if (to) q = q.lte("settled_date", to);
+    let q = sb.from("settlements").select("id, client_name, loan_amount, lender, settlement_date, status, lead_source, security_address, lead_id").order("settlement_date", { ascending: false }).limit(limit ?? 50);
+    if (from) q = q.gte("settlement_date", from);
+    if (to) q = q.lte("settlement_date", to);
     const { data, error } = await q;
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };
     const total = (data ?? []).reduce((s, r) => s + (r.loan_amount || 0), 0);
