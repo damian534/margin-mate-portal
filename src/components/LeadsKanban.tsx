@@ -55,7 +55,7 @@ interface LeadsKanbanProps {
   onUpdateWipStatus?: (leadId: string, wipStatus: string) => void;
   tasksByLead?: Map<string, LeadTask[]>;
   taskDueFilter?: string;
-  docsByLead?: Map<string, { requested: number; completed: number; files: { path: string; name: string }[] }>;
+  docsByLead?: Map<string, { requested: number; completed: number; files: { path: string; name: string; label?: string }[] }>;
   onDownloadDocs?: (leadId: string) => void;
   onAddInStage?: (statusName: string) => void;
 }
