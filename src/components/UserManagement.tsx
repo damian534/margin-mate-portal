@@ -543,15 +543,21 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
                     <TableCell className="font-medium">{u.full_name || '—'}</TableCell>
                     <TableCell>{u.email || '—'}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{u.company_name || '—'}</TableCell>
-                    <TableCell>{getRoleBadge(u.role)}</TableCell>
+                    <TableCell>
+                      {u.role
+                        ? getRoleBadge(u.role)
+                        : u.pending_role
+                          ? <Badge variant="outline" className="text-muted-foreground">{u.pending_role.replace('_', ' ')} (pending)</Badge>
+                          : getRoleBadge(null)}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">{format(new Date(u.created_at), 'dd MMM yyyy')}</TableCell>
                     {isSuperAdmin && (
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {u.role !== 'super_admin' && u.user_id !== user?.id && (
                             <Select
-                              value={u.role || ''}
-                              onValueChange={(v) => promoteToRole(u.user_id, v as 'broker' | 'referral_partner' | 'broker_staff')}
+                              value={u.role || u.pending_role || ''}
+                              onValueChange={(v) => promoteToRole(u.user_id, v as 'broker' | 'referral_partner' | 'broker_staff', u.profile_id)}
                             >
                               <SelectTrigger className="w-40 h-8">
                                 <SelectValue placeholder="Set role" />
