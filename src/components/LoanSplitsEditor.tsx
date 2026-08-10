@@ -63,10 +63,9 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, onSettl
     ]);
     const list = (s as LoanSplit[]) || [];
     setSplits(list);
-    if (settled && !list.some(split => split.settled)) {
-      await supabase.from('leads').update({ status: 'approved', settled_date: null } as any).eq('id', leadId);
-      onSettlementStateChange?.(false, null);
-    }
+    // NOTE: never clear the lead's settled_date here. Simply opening/rendering the
+    // settlement section must not mutate the deal — the date is only changed by an
+    // explicit user action (toggling a split settled/unsettled).
     const names = Array.from(new Set(((l as { name: string }[]) || []).map(x => x.name)));
     setLenders(names);
     onTotalChange?.(list.reduce((sum, x) => sum + (x.amount || 0), 0));
@@ -158,11 +157,13 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, onSettl
   };
 
   const deleteSplit = async (id: string) => {
+    const removed = splits.find(s => s.id === id);
     const next = splits.filter(s => s.id !== id);
     setSplits(next); recomputeTotal(next);
     if (isPreviewMode || id.startsWith('preview-')) return;
     await supabase.from('loan_splits').delete().eq('id', id);
-    if (!next.some(s => s.settled)) {
+    // Only revert the lead when the split we removed was itself settled.
+    if (removed?.settled && !next.some(s => s.settled)) {
       await supabase.from('leads').update({ status: 'approved', settled_date: null } as any).eq('id', leadId);
       await markMatchingSettlementsBooked();
       onSettlementStateChange?.(false, null);
