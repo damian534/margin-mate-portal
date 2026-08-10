@@ -21,6 +21,7 @@ interface UserWithRole {
   email: string | null;
   full_name: string | null;
   role: string | null;
+  pending_role?: string | null;
   created_at: string;
   company_name: string | null;
   company_id: string | null;
@@ -71,15 +72,27 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
     setLoading(true);
     const { data: profiles } = await supabase.from('profiles').select('id, user_id, email, full_name, created_at, company_name, company_id');
     const { data: roles } = await supabase.from('user_roles').select('user_id, role');
+    const { data: invites } = await supabase
+      .from('invite_codes')
+      .select('profile_id, target_role, created_at')
+      .not('profile_id', 'is', null)
+      .order('created_at', { ascending: false });
 
     if (profiles) {
       const roleMap = new Map(roles?.map(r => [r.user_id, r.role]) || []);
+      const pendingMap = new Map<string, string>();
+      (invites || []).forEach(i => {
+        if (i.profile_id && !pendingMap.has(i.profile_id) && i.target_role) {
+          pendingMap.set(i.profile_id, i.target_role);
+        }
+      });
       const combined: UserWithRole[] = profiles.map(p => ({
         profile_id: p.id,
         user_id: p.user_id,
         email: p.email,
         full_name: p.full_name,
         role: p.user_id ? (roleMap.get(p.user_id) || null) : null,
+        pending_role: p.user_id ? null : (pendingMap.get(p.id) || null),
         created_at: p.created_at,
         company_name: p.company_name,
         company_id: p.company_id,
@@ -187,9 +200,37 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
     }
   };
 
-  const promoteToRole = async (userId: string | null, newRole: 'broker' | 'referral_partner' | 'broker_staff') => {
+  const promoteToRole = async (
+    userId: string | null,
+    newRole: 'broker' | 'referral_partner' | 'broker_staff',
+    profileId?: string,
+  ) => {
     if (!userId) {
-      toast.error('This user hasn\'t registered yet — role will be assigned when they sign up');
+      // Not registered yet — store the role on their invite so it applies at sign-up.
+      if (isPreviewMode) {
+        setUsers(prev => prev.map(u => u.profile_id === profileId ? { ...u, pending_role: newRole } : u));
+        toast.success('Pending role updated (preview)');
+        return;
+      }
+      if (!profileId) { toast.error('Could not update role'); return; }
+      const { data: invite } = await supabase
+        .from('invite_codes')
+        .select('id')
+        .eq('profile_id', profileId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!invite) {
+        toast.error('No invite found for this user — send them an invite first');
+        return;
+      }
+      const { error } = await supabase
+        .from('invite_codes')
+        .update({ target_role: newRole })
+        .eq('id', invite.id);
+      if (error) { toast.error('Failed to update role'); return; }
+      toast.success(`Role set to ${newRole.replace('_', ' ')} — applied when they register`);
+      fetchUsers();
       return;
     }
     if (isPreviewMode) {
@@ -389,8 +430,17 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
     try {
       if (!removeTarget.user_id && removeTarget.profile_id) {
         // Placeholder profile (never registered) — delete directly
-        const { error } = await supabase.from('profiles').delete().eq('id', removeTarget.profile_id);
-        if (error) { toast.error('Failed to remove user'); return; }
+        await supabase.from('invite_codes').delete().eq('profile_id', removeTarget.profile_id);
+        const { data: deleted, error } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('id', removeTarget.profile_id)
+          .select('id');
+        if (error) { toast.error(`Failed to remove user: ${error.message}`); return; }
+        if (!deleted || deleted.length === 0) {
+          toast.error("Couldn't remove this user — you don't have permission to delete this record");
+          return;
+        }
         toast.success('User removed');
       } else {
         const { data: { session } } = await supabase.auth.getSession();
@@ -502,15 +552,21 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
                     <TableCell className="font-medium">{u.full_name || '—'}</TableCell>
                     <TableCell>{u.email || '—'}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{u.company_name || '—'}</TableCell>
-                    <TableCell>{getRoleBadge(u.role)}</TableCell>
+                    <TableCell>
+                      {u.role
+                        ? getRoleBadge(u.role)
+                        : u.pending_role
+                          ? <Badge variant="outline" className="text-muted-foreground">{u.pending_role.replace('_', ' ')} (pending)</Badge>
+                          : getRoleBadge(null)}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">{format(new Date(u.created_at), 'dd MMM yyyy')}</TableCell>
                     {isSuperAdmin && (
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {u.role !== 'super_admin' && u.user_id !== user?.id && (
                             <Select
-                              value={u.role || ''}
-                              onValueChange={(v) => promoteToRole(u.user_id, v as 'broker' | 'referral_partner' | 'broker_staff')}
+                              value={u.role || u.pending_role || ''}
+                              onValueChange={(v) => promoteToRole(u.user_id, v as 'broker' | 'referral_partner' | 'broker_staff', u.profile_id)}
                             >
                               <SelectTrigger className="w-40 h-8">
                                 <SelectValue placeholder="Set role" />
