@@ -430,8 +430,17 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
     try {
       if (!removeTarget.user_id && removeTarget.profile_id) {
         // Placeholder profile (never registered) — delete directly
-        const { error } = await supabase.from('profiles').delete().eq('id', removeTarget.profile_id);
-        if (error) { toast.error('Failed to remove user'); return; }
+        await supabase.from('invite_codes').delete().eq('profile_id', removeTarget.profile_id);
+        const { data: deleted, error } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('id', removeTarget.profile_id)
+          .select('id');
+        if (error) { toast.error(`Failed to remove user: ${error.message}`); return; }
+        if (!deleted || deleted.length === 0) {
+          toast.error("Couldn't remove this user — you don't have permission to delete this record");
+          return;
+        }
         toast.success('User removed');
       } else {
         const { data: { session } } = await supabase.auth.getSession();
