@@ -21,6 +21,7 @@ interface UserWithRole {
   email: string | null;
   full_name: string | null;
   role: string | null;
+  pending_role?: string | null;
   created_at: string;
   company_name: string | null;
   company_id: string | null;
@@ -71,15 +72,27 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
     setLoading(true);
     const { data: profiles } = await supabase.from('profiles').select('id, user_id, email, full_name, created_at, company_name, company_id');
     const { data: roles } = await supabase.from('user_roles').select('user_id, role');
+    const { data: invites } = await supabase
+      .from('invite_codes')
+      .select('profile_id, target_role, created_at')
+      .not('profile_id', 'is', null)
+      .order('created_at', { ascending: false });
 
     if (profiles) {
       const roleMap = new Map(roles?.map(r => [r.user_id, r.role]) || []);
+      const pendingMap = new Map<string, string>();
+      (invites || []).forEach(i => {
+        if (i.profile_id && !pendingMap.has(i.profile_id) && i.target_role) {
+          pendingMap.set(i.profile_id, i.target_role);
+        }
+      });
       const combined: UserWithRole[] = profiles.map(p => ({
         profile_id: p.id,
         user_id: p.user_id,
         email: p.email,
         full_name: p.full_name,
         role: p.user_id ? (roleMap.get(p.user_id) || null) : null,
+        pending_role: p.user_id ? null : (pendingMap.get(p.id) || null),
         created_at: p.created_at,
         company_name: p.company_name,
         company_id: p.company_id,
