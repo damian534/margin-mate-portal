@@ -200,9 +200,37 @@ export function UserManagement({ companies = [], onRefreshReferrers }: UserManag
     }
   };
 
-  const promoteToRole = async (userId: string | null, newRole: 'broker' | 'referral_partner' | 'broker_staff') => {
+  const promoteToRole = async (
+    userId: string | null,
+    newRole: 'broker' | 'referral_partner' | 'broker_staff',
+    profileId?: string,
+  ) => {
     if (!userId) {
-      toast.error('This user hasn\'t registered yet — role will be assigned when they sign up');
+      // Not registered yet — store the role on their invite so it applies at sign-up.
+      if (isPreviewMode) {
+        setUsers(prev => prev.map(u => u.profile_id === profileId ? { ...u, pending_role: newRole } : u));
+        toast.success('Pending role updated (preview)');
+        return;
+      }
+      if (!profileId) { toast.error('Could not update role'); return; }
+      const { data: invite } = await supabase
+        .from('invite_codes')
+        .select('id')
+        .eq('profile_id', profileId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!invite) {
+        toast.error('No invite found for this user — send them an invite first');
+        return;
+      }
+      const { error } = await supabase
+        .from('invite_codes')
+        .update({ target_role: newRole })
+        .eq('id', invite.id);
+      if (error) { toast.error('Failed to update role'); return; }
+      toast.success(`Role set to ${newRole.replace('_', ' ')} — applied when they register`);
+      fetchUsers();
       return;
     }
     if (isPreviewMode) {
