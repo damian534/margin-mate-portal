@@ -160,6 +160,8 @@ export default function NegativeGearingCalculator() {
   // Growth
   const [growthRate, setGrowthRate] = useState(6);
   const [projectionPeriod, setProjectionPeriod] = useState(10);
+  const [lossIndexationRate, setLossIndexationRate] = useState(2.5);
+  const [sellingCostsPercent, setSellingCostsPercent] = useState(2.5);
   const [growthRateSource, setGrowthRateSource] = useState<'manual' | 'suburb'>('manual');
   const [selectedSuburb, setSelectedSuburb] = useState("");
   const [suburbState, setSuburbState] = useState<string>("VIC");
@@ -222,7 +224,8 @@ export default function NegativeGearingCalculator() {
     weeklyRent, propertyManagementFee: pmFee, annualRatesInsurance: ratesInsurance, maintenanceAllowance: maintenance, vacancyWeeks,
     capitalWorksDepreciation: capitalWorksDepr, plantEquipmentDepreciation: plantEquipDepr,
     annualGrowthRate: growthRate, projectionPeriod, stampDuty, state, additionalBuyingCosts: additionalCosts,
-  }), [a1Income, a1TaxRate, a1MedicareLevy, a1Ownership, a2Income, a2TaxRate, a2MedicareLevy, isJoint, purchasePrice, deposit, loanAmount, interestRate, loanType, loanTerm, weeklyRent, pmFee, ratesInsurance, maintenance, vacancyWeeks, capitalWorksDepr, plantEquipDepr, growthRate, projectionPeriod, stampDuty, state, additionalCosts]);
+    isNewBuild, lossIndexationRate, sellingCostsPercent,
+  }), [a1Income, a1TaxRate, a1MedicareLevy, a1Ownership, a2Income, a2TaxRate, a2MedicareLevy, isJoint, purchasePrice, deposit, loanAmount, interestRate, loanType, loanTerm, weeklyRent, pmFee, ratesInsurance, maintenance, vacancyWeeks, capitalWorksDepr, plantEquipDepr, growthRate, projectionPeriod, stampDuty, state, additionalCosts, isNewBuild, lossIndexationRate, sellingCostsPercent]);
 
   const results = useMemo(() => calculateResults(inputs), [inputs]);
   const isPositiveCashflow = results.afterTaxMonthlyHoldingCost <= 0;
