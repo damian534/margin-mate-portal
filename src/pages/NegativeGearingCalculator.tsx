@@ -338,11 +338,41 @@ export default function NegativeGearingCalculator() {
 
             {/* Loan */}
             <TabsContent value="loan" className="m-0 p-4 sm:p-6 space-y-4">
-              <NGInputField label="Deposit" id="deposit" value={deposit} onChange={(v) => { setManualLoan(null); setDeposit(v); }} prefix="$" step={5000} />
-              <NGInputField label="Loan Amount" id="loan" value={loanAmount} onChange={(v) => setManualLoan(v)} prefix="$" step={5000} helperText={`LVR: ${lvr.toFixed(2)}%`} />
+              <div className="p-3 rounded-lg border border-border/50 bg-secondary/30 space-y-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <Label htmlFor="borrow-full">Borrow full purchase cost</Label>
+                    <p className="text-xs text-muted-foreground">No deposit — finance 100% of the purchase.</p>
+                  </div>
+                  <Switch id="borrow-full" checked={borrowFullCost} onCheckedChange={setBorrowFullCost} />
+                </div>
+                {borrowFullCost && (
+                  <div className="flex items-center justify-between gap-4 pt-2 border-t border-border/50">
+                    <div>
+                      <Label htmlFor="finance-costs">Include acquisition costs</Label>
+                      <p className="text-xs text-muted-foreground">Stamp duty, legal and other purchase costs ({formatCurrency(acquisitionCosts)}).</p>
+                    </div>
+                    <Switch id="finance-costs" checked={financeAcquisitionCosts} onCheckedChange={setFinanceAcquisitionCosts} />
+                  </div>
+                )}
+              </div>
+              <NGInputField label="Deposit" id="deposit" value={borrowFullCost ? 0 : deposit} onChange={(v) => { setManualLoan(null); setDeposit(v); }} prefix="$" step={5000} disabled={borrowFullCost} />
+              <NGInputField label="Loan Amount" id="loan" value={loanAmount} onChange={(v) => setManualLoan(v)} prefix="$" step={5000} disabled={borrowFullCost} helperText={`LVR: ${lvr.toFixed(2)}%`} />
               <NGInputField label="Interest Rate" id="rate" value={interestRate} onChange={setInterestRate} suffix="% p.a." max={15} step={0.05} />
               <NGInputField label="Loan Term" id="term" value={loanTerm} onChange={setLoanTerm} suffix="years" min={1} max={30} />
-              <NGInputField label="Interest-Only Period" id="io" value={interestOnlyYears} onChange={setInterestOnlyYears} suffix="years" min={0} max={loanTerm} helperText="Principal & interest applies for the remainder of the term." />
+              <div className="space-y-2">
+                <Label>Repayment Type</Label>
+                <Select value={repaymentType} onValueChange={(v) => setRepaymentType(v as typeof repaymentType)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="principal-interest">Principal &amp; Interest</SelectItem>
+                    <SelectItem value="interest-only">Interest Only (then P&amp;I)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {repaymentType === "interest-only" && (
+                <NGInputField label="Interest-Only Period" id="io" value={interestOnlyYears} onChange={setInterestOnlyYears} suffix="years" min={0} max={loanTerm} helperText="Principal & interest applies for the remainder of the term." />
+              )}
               <div className="p-3 rounded-lg bg-secondary/50 border border-border/50 space-y-1 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">Year 1 interest</span><span className="font-medium">{formatCurrency(results.years[0]?.interestPaid ?? 0)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Year 1 principal repaid</span><span className="font-medium">{formatCurrency(results.years[0]?.principalRepaid ?? 0)}</span></div>
