@@ -29,6 +29,12 @@ export interface CalculatorInputs {
   plantEquipmentDepreciation: number;
   annualGrowthRate: number;
   projectionPeriod: number;
+  /** New builds keep immediate negative gearing; established purchases have losses quarantined */
+  isNewBuild: boolean;
+  /** Annual indexation applied to quarantined carried-forward losses (%) */
+  lossIndexationRate: number;
+  /** Agent/legal costs on sale (% of sale price) */
+  sellingCostsPercent: number;
 }
 
 export interface ApplicantResults {
@@ -36,6 +42,8 @@ export interface ApplicantResults {
   shareOfDeductions: number;
   netRentalPosition: number;
   estimatedTaxSaving: number;
+  carriedForwardLosses: number;
+  cgtPayable: number;
 }
 
 export interface YearlyProjection {
@@ -45,6 +53,25 @@ export interface YearlyProjection {
   equity: number;
   annualCashflow: number;
   cumulativeCashflow: number;
+  taxBenefit: number;
+  carriedForwardLosses: number;
+}
+
+export interface SaleAnalysis {
+  saleYear: number;
+  salePrice: number;
+  sellingCosts: number;
+  loanPayout: number;
+  costBase: number;
+  capitalWorksClaimed: number;
+  grossCapitalGain: number;
+  lossesAppliedToGain: number;
+  gainAfterLosses: number;
+  discountedGain: number;
+  cgtPayable: number;
+  netSaleProceeds: number;
+  netWealthAfterSale: number;
+  unusedLosses: number;
 }
 
 export interface CalculationResults {
@@ -74,6 +101,11 @@ export interface CalculationResults {
   propertyGrowth: number;
   netWealthCreated: number;
   yearlyProjections: YearlyProjection[];
+  negativeGearingEligible: boolean;
+  totalQuarantinedLosses: number;
+  lossesOffsetAgainstRent: number;
+  carriedForwardLossesAtSale: number;
+  saleAnalysis: SaleAnalysis;
 }
 
 function calculatePMT(rate: number, nper: number, pv: number): number {
