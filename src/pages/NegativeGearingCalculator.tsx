@@ -75,6 +75,9 @@ export default function NegativeGearingCalculator() {
   const [loanTerm, setLoanTerm] = useState(30);
   const [interestOnlyYears, setInterestOnlyYears] = useState(5);
   const [manualLoan, setManualLoan] = useState<number | null>(null);
+  const [repaymentType, setRepaymentType] = useState<"interest-only" | "principal-interest">("interest-only");
+  const [borrowFullCost, setBorrowFullCost] = useState(false);
+  const [financeAcquisitionCosts, setFinanceAcquisitionCosts] = useState(true);
 
   // ── Rental ──
   const [weeklyRent, setWeeklyRent] = useState(650);
@@ -140,14 +143,19 @@ export default function NegativeGearingCalculator() {
     [manualStampDuty, purchasePrice, state],
   );
   const acquisitionCosts = stampDuty + legalFees + buyersAgentFee + otherAcquisitionCosts;
-  const loanAmount = manualLoan ?? Math.max(0, purchasePrice - deposit);
+  const fullCostLoan = purchasePrice + (financeAcquisitionCosts ? acquisitionCosts : 0);
+  const loanAmount = borrowFullCost
+    ? fullCostLoan
+    : (manualLoan ?? Math.max(0, purchasePrice - deposit));
+  const effectiveDeposit = borrowFullCost ? 0 : deposit;
+  const effectiveInterestOnlyYears = repaymentType === "principal-interest" ? 0 : interestOnlyYears;
   const lvr = purchasePrice > 0 ? (loanAmount / purchasePrice) * 100 : 0;
   const grandfathered = isGrandfatheredByDate(new Date(purchaseDate));
 
   const baseInputs: EngineInputs = useMemo(() => ({
     propertyType, purchaseDate,
     purchasePrice, stampDuty, legalFees, buyersAgentFee, otherAcquisitionCosts, loanEstablishmentCosts,
-    deposit, loanAmount, interestRate, loanTerm, interestOnlyYears,
+    deposit: effectiveDeposit, loanAmount, interestRate, loanTerm, interestOnlyYears: effectiveInterestOnlyYears,
     weeklyRent, rentalGrowthRate, vacancyRatePercent, otherPropertyIncome,
     expenses: {
       managementFeePercent, lettingFeesWeeks, councilRates, waterCharges, strata,
@@ -167,7 +175,7 @@ export default function NegativeGearingCalculator() {
     cgtMethod,
     opportunityCostEnabled, alternativeReturnRate,
   }), [propertyType, purchaseDate, purchasePrice, stampDuty, legalFees, buyersAgentFee, otherAcquisitionCosts,
-      loanEstablishmentCosts, deposit, loanAmount, interestRate, loanTerm, interestOnlyYears, weeklyRent,
+      loanEstablishmentCosts, effectiveDeposit, loanAmount, interestRate, loanTerm, effectiveInterestOnlyYears, weeklyRent,
       rentalGrowthRate, vacancyRatePercent, otherPropertyIncome, managementFeePercent, lettingFeesWeeks,
       councilRates, waterCharges, strata, buildingInsurance, landlordInsurance, maintenance, repairs, landTax,
       accountingFees, complianceCosts, otherExpenses, indexExpenses, inflationRate, depreciationEnabled,
