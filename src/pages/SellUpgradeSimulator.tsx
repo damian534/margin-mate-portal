@@ -61,6 +61,10 @@ export default function SellUpgradeSimulator() {
   const [interestRate, setInterestRate] = useState('6.0');
   const loanTerm = 30;
 
+  // Target LVR planner
+  const [useTargetLvr, setUseTargetLvr] = useState(false);
+  const [targetLvr, setTargetLvr] = useState(80);
+
   const outputs = useMemo(() => {
     const chv = parseCurrency(currentHomeValue);
     const mo = parseCurrency(mortgageOwing);
@@ -90,14 +94,22 @@ export default function SellUpgradeSimulator() {
     const totalRepaid = monthlyRepayment * loanTerm * 12;
     const totalInterest = totalRepaid - loanRequired;
 
+    // --- Target LVR planning ---
+    const targetLoan = tp * (targetLvr / 100);
+    const fundsNeededForTarget = Math.max(0, totalPurchaseCost - targetLoan);
+    const extraSavingsRequired = Math.max(0, fundsNeededForTarget - totalFundsAvailable);
+    const surplusFunds = Math.max(0, totalFundsAvailable - fundsNeededForTarget);
+    const targetMonthlyRepayment = targetLoan > 0 ? calcRepayment(targetLoan, rate, loanTerm) : 0;
+
     return {
       sellingCosts, netSaleProceeds,
       stampDutyGross, stampDutyConcession, stampDuty,
       otherCosts, totalBuyingCosts, totalPurchaseCost,
       totalFundsAvailable, loanRequired, lvr, lmiApplies, sav,
       monthlyRepayment, fortnightlyRepayment, weeklyRepayment, totalRepaid, totalInterest,
+      targetLoan, fundsNeededForTarget, extraSavingsRequired, surplusFunds, targetMonthlyRepayment,
     };
-  }, [currentHomeValue, mortgageOwing, sellingCostPct, targetPurchasePrice, buyingState, isFirstHomeBuyer, otherBuyingCosts, savings, interestRate]);
+  }, [currentHomeValue, mortgageOwing, sellingCostPct, targetPurchasePrice, buyingState, isFirstHomeBuyer, otherBuyingCosts, savings, interestRate, targetLvr]);
 
   const handleSaveScenario = async () => {
     if (!outputs || !user || isPreviewMode) {
