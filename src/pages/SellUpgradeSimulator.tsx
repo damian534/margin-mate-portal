@@ -64,6 +64,7 @@ export default function SellUpgradeSimulator() {
   // Target LVR planner
   const [useTargetLvr, setUseTargetLvr] = useState(false);
   const [targetLvr, setTargetLvr] = useState(80);
+  const [targetLvrInput, setTargetLvrInput] = useState('80');
 
   const outputs = useMemo(() => {
     const chv = parseCurrency(currentHomeValue);
@@ -94,11 +95,12 @@ export default function SellUpgradeSimulator() {
     const totalRepaid = monthlyRepayment * loanTerm * 12;
     const totalInterest = totalRepaid - loanRequired;
 
-    // --- Target LVR planning ---
+    // --- Target LVR planning (measured against sale proceeds only, savings are the output) ---
     const targetLoan = tp * (targetLvr / 100);
     const fundsNeededForTarget = Math.max(0, totalPurchaseCost - targetLoan);
-    const extraSavingsRequired = Math.max(0, fundsNeededForTarget - totalFundsAvailable);
-    const surplusFunds = Math.max(0, totalFundsAvailable - fundsNeededForTarget);
+    const proceedsAvailable = Math.max(0, netSaleProceeds);
+    const extraSavingsRequired = Math.max(0, fundsNeededForTarget - proceedsAvailable);
+    const surplusFunds = Math.max(0, proceedsAvailable - fundsNeededForTarget);
     const targetMonthlyRepayment = targetLoan > 0 ? calcRepayment(targetLoan, rate, loanTerm) : 0;
 
     return {
