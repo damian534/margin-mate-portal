@@ -147,19 +147,25 @@ export function calculateResults(inputs: CalculatorInputs): CalculationResults {
   const totalDeductions = totalAnnualCashExpenses + totalDepreciation;
   const netRentalPosition = annualGrossRent - totalDeductions;
 
-  const calculateApplicantTaxSaving = (applicant: ApplicantDetails): ApplicantResults => {
+  // Under the new rules, only new builds can offset rental losses against other income.
+  // Established purchases have their losses quarantined, indexed, and carried forward.
+  const negativeGearingEligible = inputs.isNewBuild;
+  const effectiveRate = (a: ApplicantDetails) => (a.includeMedicareLevy ? a.marginalTaxRate + 2 : a.marginalTaxRate) / 100;
+
+  const applicantYear1 = (applicant: ApplicantDetails) => {
     const ownershipFraction = applicant.ownershipPercent / 100;
     const shareOfDeductions = totalDeductions * ownershipFraction;
     const shareOfRent = annualGrossRent * ownershipFraction;
     const applicantNetPosition = shareOfRent - shareOfDeductions;
-    const effectiveTaxRate = applicant.includeMedicareLevy ? applicant.marginalTaxRate + 2 : applicant.marginalTaxRate;
-    const taxSaving = applicantNetPosition < 0 ? Math.abs(applicantNetPosition) * (effectiveTaxRate / 100) : 0;
+    const taxSaving = negativeGearingEligible && applicantNetPosition < 0
+      ? Math.abs(applicantNetPosition) * effectiveRate(applicant)
+      : 0;
     return { ownershipPercent: applicant.ownershipPercent, shareOfDeductions, netRentalPosition: applicantNetPosition, estimatedTaxSaving: taxSaving };
   };
 
-  const applicant1Results = calculateApplicantTaxSaving(inputs.applicant1);
-  const applicant2Results = calculateApplicantTaxSaving(inputs.applicant2);
-  const estimatedTaxSaving = applicant1Results.estimatedTaxSaving + applicant2Results.estimatedTaxSaving;
+  const a1Year1 = applicantYear1(inputs.applicant1);
+  const a2Year1 = applicantYear1(inputs.applicant2);
+  const estimatedTaxSaving = a1Year1.estimatedTaxSaving + a2Year1.estimatedTaxSaving;
 
   const cashExpensesAfterRent = totalAnnualCashExpenses - annualGrossRent;
   const afterTaxAnnualCashflow = estimatedTaxSaving - cashExpensesAfterRent;
@@ -187,10 +193,6 @@ export function calculateResults(inputs: CalculatorInputs): CalculationResults {
   }
 
   const estimatedEquity = futurePropertyValue - futureLoanBalance;
-  const annualOutOfPocket = afterTaxAnnualCashflow < 0 ? Math.abs(afterTaxAnnualCashflow) : 0;
-  const totalCashInvested = inputs.deposit + inputs.stampDuty + inputs.additionalBuyingCosts + (annualOutOfPocket * inputs.projectionPeriod);
-  const simpleROI = totalCashInvested > 0 ? ((estimatedEquity - totalCashInvested) / totalCashInvested) * 100 : 0;
-  const totalTaxSaved = estimatedTaxSaving * inputs.projectionPeriod;
 
   let totalInterestPaid = 0;
   if (inputs.loanType === 'interest-only') {
@@ -222,10 +224,16 @@ export function calculateResults(inputs: CalculatorInputs): CalculationResults {
 
   const totalPrincipalPaidDown = loanAmount - futureLoanBalance;
   const propertyGrowth = futurePropertyValue - inputs.purchasePrice;
-  const netWealthCreated = (propertyGrowth + totalPrincipalPaidDown) - totalCashInvested;
 
   const yearlyProjections: YearlyProjection[] = [];
   let cumulativeCashflow = 0;
+  let totalOutOfPocket = 0;
+  let totalTaxSaved = 0;
+  let totalQuarantinedLosses = 0;
+  let lossesOffsetAgainstRent = 0;
+  const lossPools = [0, 0];
+  const applicants = [inputs.applicant1, inputs.applicant2];
+  const indexation = inputs.lossIndexationRate / 100;
 
   for (let year = 1; year <= inputs.projectionPeriod; year++) {
     const yearPropertyValue = inputs.purchasePrice * Math.pow(1 + inputs.annualGrowthRate / 100, year);
@@ -236,15 +244,32 @@ export function calculateResults(inputs: CalculatorInputs): CalculationResults {
     const yearTotalDeductions = yearCashExpenses + totalDepreciation;
 
     let yearTaxSaving = 0;
-    [inputs.applicant1, inputs.applicant2].forEach(applicant => {
+    applicants.forEach((applicant, i) => {
       const f = applicant.ownershipPercent / 100;
+      if (f <= 0) return;
       const pos = (yearAnnualGrossRent * f) - (yearTotalDeductions * f);
-      const rate = applicant.includeMedicareLevy ? applicant.marginalTaxRate + 2 : applicant.marginalTaxRate;
-      if (pos < 0) yearTaxSaving += Math.abs(pos) * (rate / 100);
+      const rate = effectiveRate(applicant);
+      if (pos < 0) {
+        if (negativeGearingEligible) {
+          yearTaxSaving += Math.abs(pos) * rate;
+        } else {
+          lossPools[i] += Math.abs(pos);
+          totalQuarantinedLosses += Math.abs(pos);
+        }
+      } else if (pos > 0) {
+        const offset = Math.min(pos, lossPools[i]);
+        lossPools[i] -= offset;
+        lossesOffsetAgainstRent += offset;
+        yearTaxSaving -= (pos - offset) * rate; // tax cost on positively geared income
+      }
+      // index the carried-forward loss balance
+      lossPools[i] *= 1 + indexation;
     });
+    totalTaxSaved += yearTaxSaving;
 
     const yearAfterTaxCashflow = yearTaxSaving - (yearCashExpenses - yearAnnualGrossRent);
     cumulativeCashflow += yearAfterTaxCashflow;
+    if (yearAfterTaxCashflow < 0) totalOutOfPocket += Math.abs(yearAfterTaxCashflow);
 
     let yearLoanBalance: number;
     if (inputs.loanType === 'interest-only') {
@@ -271,8 +296,60 @@ export function calculateResults(inputs: CalculatorInputs): CalculationResults {
       equity: yearPropertyValue - yearLoanBalance,
       annualCashflow: yearAfterTaxCashflow,
       cumulativeCashflow,
+      taxBenefit: yearTaxSaving,
+      carriedForwardLosses: lossPools[0] + lossPools[1],
     });
   }
+
+  const totalCashInvested = inputs.deposit + inputs.stampDuty + inputs.additionalBuyingCosts + totalOutOfPocket;
+  const simpleROI = totalCashInvested > 0 ? ((estimatedEquity - totalCashInvested) / totalCashInvested) * 100 : 0;
+  const netWealthCreated = (propertyGrowth + totalPrincipalPaidDown) - totalCashInvested;
+  const carriedForwardLossesAtSale = lossPools[0] + lossPools[1];
+
+  // ── Sale & CGT at the end of the projection period ──
+  const salePrice = futurePropertyValue;
+  const sellingCosts = salePrice * (inputs.sellingCostsPercent / 100);
+  const capitalWorksClaimed = inputs.capitalWorksDepreciation * inputs.projectionPeriod;
+  const costBase = inputs.purchasePrice + inputs.stampDuty + inputs.additionalBuyingCosts - capitalWorksClaimed;
+  const grossCapitalGain = Math.max(0, salePrice - sellingCosts - costBase);
+  const eligibleForDiscount = inputs.projectionPeriod >= 1;
+
+  let lossesAppliedToGain = 0;
+  let gainAfterLosses = 0;
+  let discountedGain = 0;
+  let totalCGT = 0;
+  const applicantCGT = [0, 0];
+
+  applicants.forEach((applicant, i) => {
+    const f = applicant.ownershipPercent / 100;
+    if (f <= 0) return;
+    const shareOfGain = grossCapitalGain * f;
+    const applied = Math.min(shareOfGain, lossPools[i]);
+    lossPools[i] -= applied;
+    lossesAppliedToGain += applied;
+    const netGain = shareOfGain - applied;
+    const taxable = eligibleForDiscount ? netGain * 0.5 : netGain;
+    gainAfterLosses += netGain;
+    discountedGain += taxable;
+    const cgt = taxable * effectiveRate(applicant);
+    applicantCGT[i] = cgt;
+    totalCGT += cgt;
+  });
+
+  const netSaleProceeds = salePrice - sellingCosts - futureLoanBalance - totalCGT;
+  const netWealthAfterSale = netSaleProceeds - totalCashInvested;
+
+  const saleAnalysis: SaleAnalysis = {
+    saleYear: inputs.projectionPeriod,
+    salePrice, sellingCosts, loanPayout: futureLoanBalance,
+    costBase, capitalWorksClaimed, grossCapitalGain,
+    lossesAppliedToGain, gainAfterLosses, discountedGain,
+    cgtPayable: totalCGT, netSaleProceeds, netWealthAfterSale,
+    unusedLosses: lossPools[0] + lossPools[1],
+  };
+
+  const applicant1Results: ApplicantResults = { ...a1Year1, carriedForwardLosses: 0, cgtPayable: applicantCGT[0] };
+  const applicant2Results: ApplicantResults = { ...a2Year1, carriedForwardLosses: 0, cgtPayable: applicantCGT[1] };
 
   return {
     loanAmount, annualInterest, annualLoanRepayment,
@@ -285,5 +362,8 @@ export function calculateResults(inputs: CalculatorInputs): CalculationResults {
     totalInterestPaid, totalOperatingExpenses, totalGrossRentReceived,
     totalPrincipalPaidDown, propertyGrowth, netWealthCreated,
     yearlyProjections,
+    negativeGearingEligible, totalQuarantinedLosses, lossesOffsetAgainstRent,
+    carriedForwardLossesAtSale,
+    saleAnalysis,
   };
 }
