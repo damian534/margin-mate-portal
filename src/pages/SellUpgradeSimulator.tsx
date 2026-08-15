@@ -1,124 +1,106 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { AppHeader } from '@/components/AppHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { ArrowLeft, Home, ShoppingCart, DollarSign, Percent, Info, Save } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { runSimulator, SimulatorInputs, SimulatorOutputs } from '@/lib/simulator-calculations';
-import { ArrowLeft, Download, Mail, Save, TrendingUp, DollarSign, Home, PiggyBank, Send, MinusCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { StateKey, stateCalcs, stateLabels, fhbNotes } from '@/lib/stampDutyRates';
 
 const fmt = (v: number) => `$${Math.round(v).toLocaleString()}`;
+const fmtPct = (v: number) => `${v.toFixed(1)}%`;
+function parseCurrency(val: string): number { return parseFloat(val.replace(/[^0-9.]/g, '')) || 0; }
+function formatInput(value: string): string { const num = parseCurrency(value); if (!num) return value.replace(/[^0-9.]/g, ''); return num.toLocaleString(); }
 
-// Calculate loan repayment per period
-function calcRepayment(principal: number, annualRate: number, years: number, frequency: 'monthly' | 'fortnightly' | 'weekly'): number {
-  if (principal <= 0 || annualRate <= 0) return 0;
-  const periodsPerYear = frequency === 'weekly' ? 52 : frequency === 'fortnightly' ? 26 : 12;
-  const totalPeriods = years * periodsPerYear;
-  const periodRate = annualRate / 100 / periodsPerYear;
-  return (principal * periodRate * Math.pow(1 + periodRate, totalPeriods)) / (Math.pow(1 + periodRate, totalPeriods) - 1);
-}
-
-// Currency input formatting helpers
-function formatCurrency(value: string): string {
-  const num = value.replace(/[^0-9]/g, '');
-  if (!num) return '';
-  return Number(num).toLocaleString();
-}
-
-function parseCurrency(formatted: string): string {
-  return formatted.replace(/[^0-9]/g, '');
-}
-
-function CurrencyInput({
-  value,
-  onChange,
-  placeholder,
-  label,
-}: {
-  value: string;
-  onChange: (raw: string) => void;
-  placeholder?: string;
-  label?: string;
-}) {
-  const displayValue = value ? formatCurrency(value) : '';
+function CurrencyInput({ value, onChange, placeholder, label }: { value: string; onChange: (v: string) => void; placeholder?: string; label?: string }) {
+  const displayValue = value ? formatInput(value) : '';
   return (
     <div>
       {label && <Label>{label}</Label>}
       <div className="relative">
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-        <Input
-          type="text"
-          inputMode="numeric"
-          className="pl-7"
-          placeholder={placeholder}
-          value={displayValue}
-          onChange={(e) => onChange(parseCurrency(e.target.value))}
-        />
+        <Input type="text" inputMode="numeric" className="pl-7" placeholder={placeholder} value={displayValue} onChange={(e) => onChange(e.target.value.replace(/[^0-9]/g, ''))} />
       </div>
     </div>
   );
 }
 
-export default function SellUpgradeSimulator() {
-  const { user, isPreviewMode } = useAuth();
-  const navigate = useNavigate();
+function calcRepayment(principal: number, annualRate: number, years: number): number {
+  const mr = annualRate / 100 / 12;
+  const n = years * 12;
+  if (mr === 0) return principal / n;
+  return (principal * mr * Math.pow(1 + mr, n)) / (Math.pow(1 + mr, n) - 1);
+}
 
-  // Inputs
-  const [currentHomeValue, setCurrentHomeValue] = useState<string>('');
-  const [mortgageOwing, setMortgageOwing] = useState<string>('');
-  const [sellingCostPercent, setSellingCostPercent] = useState<string>('3.0');
-  const [targetPurchasePrice, setTargetPurchasePrice] = useState<string>('');
-  const [growthPreset, setGrowthPreset] = useState<number>(5);
-  const [monthsToWait, setMonthsToWait] = useState<number>(6);
-  const [savings, setSavings] = useState<string>('');
-  const [homeValueAdjustment, setHomeValueAdjustment] = useState<number>(0);
-  const [repaymentRate, setRepaymentRate] = useState<string>('6.0');
+export default function SellUpgradeSimulator() {
+  const navigate = useNavigate();
+  const { user, isPreviewMode } = useAuth();
   const [saving, setSaving] = useState(false);
 
-  const buyingCostPercent = 6; // flat 6% covers stamp duty, conveyancing, legals etc.
-  const resultsRef = useRef<HTMLDivElement>(null);
-  const timelineMaxMonths = 36;
-  const timelineTicks = [0, 6, 12, 18, 24, 30, 36];
-  const timelineProgress = Math.min(100, Math.max(0, (monthsToWait / timelineMaxMonths) * 100));
+  // Selling inputs
+  const [currentHomeValue, setCurrentHomeValue] = useState('');
+  const [mortgageOwing, setMortgageOwing] = useState('');
+  const [sellingCostPct, setSellingCostPct] = useState(3.0);
 
-  const chvNum = parseFloat(currentHomeValue) || 0;
+  // Buying inputs
+  const [targetPurchasePrice, setTargetPurchasePrice] = useState('');
+  const [buyingState, setBuyingState] = useState<StateKey>('VIC');
+  const [isFirstHomeBuyer, setIsFirstHomeBuyer] = useState(false);
+  const [otherBuyingCosts, setOtherBuyingCosts] = useState('5000');
+  const [savings, setSavings] = useState('');
 
-  const inputs: SimulatorInputs | null = useMemo(() => {
-    const chv = parseFloat(currentHomeValue);
-    const mo = parseFloat(mortgageOwing);
-    const tp = parseFloat(targetPurchasePrice);
-    const sc = parseFloat(sellingCostPercent);
-    if (!chv || isNaN(mo) || !tp || !sc) return null;
+  // Loan inputs
+  const [interestRate, setInterestRate] = useState('6.0');
+  const loanTerm = 30;
+
+  const outputs = useMemo(() => {
+    const chv = parseCurrency(currentHomeValue);
+    const mo = parseCurrency(mortgageOwing);
+    const tp = parseCurrency(targetPurchasePrice);
+    if (!chv || !tp) return null;
+
+    const sellingCosts = chv * (sellingCostPct / 100);
+    const netSaleProceeds = chv - mo - sellingCosts;
+
+    const { duty: stampDutyGross, concession: stampDutyConcession } = stateCalcs[buyingState](tp, isFirstHomeBuyer);
+    const stampDuty = Math.max(0, stampDutyGross - stampDutyConcession);
+    const otherCosts = parseCurrency(otherBuyingCosts);
+    const totalBuyingCosts = stampDuty + otherCosts;
+    const totalPurchaseCost = tp + totalBuyingCosts;
+
+    const sav = parseCurrency(savings);
+    const totalFundsAvailable = Math.max(0, netSaleProceeds) + sav;
+
+    const loanRequired = Math.max(0, totalPurchaseCost - totalFundsAvailable);
+    const lvr = tp > 0 ? (loanRequired / tp) * 100 : 0;
+    const lmiApplies = lvr > 80;
+
+    const rate = parseFloat(interestRate) || 0;
+    const monthlyRepayment = loanRequired > 0 ? calcRepayment(loanRequired, rate, loanTerm) : 0;
+    const fortnightlyRepayment = (monthlyRepayment * 12) / 26;
+    const weeklyRepayment = (monthlyRepayment * 12) / 52;
+    const totalRepaid = monthlyRepayment * loanTerm * 12;
+    const totalInterest = totalRepaid - loanRequired;
+
     return {
-      currentHomeValue: chv,
-      mortgageOwing: mo,
-      sellingCostPercent: sc,
-      targetPurchasePrice: tp,
-      annualGrowthPercent: growthPreset,
-      monthsToWait,
-      buyingCostPercent,
-      savings: parseFloat(savings) || 0,
-      homeValueAdjustment,
-      repaymentRatePercent: parseFloat(repaymentRate) || 6,
-      loanTermYears: 30,
+      sellingCosts, netSaleProceeds,
+      stampDutyGross, stampDutyConcession, stampDuty,
+      otherCosts, totalBuyingCosts, totalPurchaseCost,
+      totalFundsAvailable, loanRequired, lvr, lmiApplies, sav,
+      monthlyRepayment, fortnightlyRepayment, weeklyRepayment, totalRepaid, totalInterest,
     };
-  }, [currentHomeValue, mortgageOwing, sellingCostPercent, targetPurchasePrice, growthPreset, monthsToWait, savings, homeValueAdjustment, repaymentRate]);
-
-  const outputs: SimulatorOutputs | null = useMemo(() => {
-    if (!inputs) return null;
-    return runSimulator(inputs);
-  }, [inputs]);
+  }, [currentHomeValue, mortgageOwing, sellingCostPct, targetPurchasePrice, buyingState, isFirstHomeBuyer, otherBuyingCosts, savings, interestRate]);
 
   const handleSaveScenario = async () => {
-    if (!inputs || !outputs || !user || isPreviewMode) {
+    if (!outputs || !user || isPreviewMode) {
       toast.info('Log in to save scenarios');
       return;
     }
@@ -126,646 +108,185 @@ export default function SellUpgradeSimulator() {
     const { error } = await supabase.from('tool_scenarios').insert({
       user_id: user.id,
       tool_name: 'sell_upgrade_simulator',
-      inputs: inputs as any,
+      inputs: {
+        currentHomeValue: parseCurrency(currentHomeValue),
+        mortgageOwing: parseCurrency(mortgageOwing),
+        sellingCostPct,
+        targetPurchasePrice: parseCurrency(targetPurchasePrice),
+        buyingState, isFirstHomeBuyer,
+        otherBuyingCosts: parseCurrency(otherBuyingCosts),
+        savings: parseCurrency(savings),
+        interestRate: parseFloat(interestRate) || 0,
+        loanTerm,
+      } as any,
       outputs: outputs as any,
     });
     setSaving(false);
-    if (error) {
-      toast.error('Failed to save scenario');
-    } else {
-      toast.success('Scenario saved');
-    }
+    if (error) toast.error('Failed to save scenario');
+    else toast.success('Scenario saved');
   };
-
-  const handleDownloadPDF = () => {
-    if (!inputs || !outputs) return;
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast.error('Please allow popups to download PDF');
-      return;
-    }
-    printWindow.document.write(`
-      <html>
-      <head>
-        <title>Sell & Upgrade Simulator - Margin Connect</title>
-        <style>
-          body { font-family: 'Helvetica Neue', Arial, sans-serif; padding: 40px; color: #1a1a1a; max-width: 800px; margin: 0 auto; }
-          h1 { font-size: 22px; margin-bottom: 4px; }
-          h2 { font-size: 16px; color: #666; font-weight: normal; margin-bottom: 24px; }
-          .brand { color: #c0392b; }
-          table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-          th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e5e5e5; font-size: 14px; }
-          th { background: #f9f9f9; font-weight: 600; }
-          .highlight { background: #fff3f0; font-weight: 700; }
-          .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
-          .summary-card { border: 1px solid #e5e5e5; border-radius: 8px; padding: 16px; }
-          .summary-card .label { font-size: 12px; color: #888; text-transform: uppercase; }
-          .summary-card .value { font-size: 22px; font-weight: 700; margin-top: 4px; }
-          .disclaimer { font-size: 11px; color: #999; margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e5e5; line-height: 1.5; }
-          @media print { body { padding: 20px; } }
-        </style>
-      </head>
-      <body>
-        <h1 class="brand">Margin Connect Tools</h1>
-        <h2>Sell & Upgrade Timeline Simulator</h2>
-
-        <div class="summary-grid">
-          <div class="summary-card">
-            <div class="label">Usable Equity (Now)</div>
-            <div class="value">${fmt(outputs.usableEquity)}</div>
-          </div>
-          <div class="summary-card">
-            <div class="label">Loan Required (Now)</div>
-            <div class="value">${fmt(outputs.loanRequiredNow)}</div>
-          </div>
-          <div class="summary-card">
-            <div class="label">Loan Required (${monthsToWait}mo)</div>
-            <div class="value">${fmt(outputs.futureLoanRequired)}</div>
-          </div>
-          <div class="summary-card">
-            <div class="label">Extra Loan from Waiting</div>
-            <div class="value" style="color: ${outputs.extraLoanFromWaiting > 0 ? '#c0392b' : '#27ae60'}">${fmt(outputs.extraLoanFromWaiting)}</div>
-          </div>
-        </div>
-
-        <h3>Inputs</h3>
-        <table>
-          <tr><td>Current Home Value</td><td>${fmt(inputs.currentHomeValue)}</td></tr>
-          ${inputs.homeValueAdjustment !== 0 ? `<tr><td>Sale Price Adjustment</td><td>${fmt(inputs.homeValueAdjustment)}</td></tr>` : ''}
-          <tr><td>Mortgage Owing</td><td>${fmt(inputs.mortgageOwing)}</td></tr>
-          <tr><td>Selling Cost</td><td>${inputs.sellingCostPercent}%</td></tr>
-          <tr><td>Target Purchase Price</td><td>${fmt(inputs.targetPurchasePrice)}</td></tr>
-          <tr><td>Buying Costs</td><td>${inputs.buyingCostPercent}%</td></tr>
-          ${inputs.savings > 0 ? `<tr><td>Savings</td><td>${fmt(inputs.savings)}</td></tr>` : ''}
-          <tr><td>Growth Assumption</td><td>${inputs.annualGrowthPercent}% p.a.</td></tr>
-          <tr><td>Wait Period</td><td>${inputs.monthsToWait} months</td></tr>
-        </table>
-
-        <h3>Comparison: Sell Now vs Wait ${monthsToWait} Months</h3>
-        <table>
-          <tr><th></th><th>Sell Now</th><th>Wait ${monthsToWait} months</th></tr>
-          <tr><td>Sell Home Value</td><td>${fmt(outputs.adjustedHomeValue)}</td><td>${fmt(outputs.futureHomeValue)}</td></tr>
-          <tr><td>Selling Costs</td><td>${fmt(outputs.sellingCosts)}</td><td>${fmt(outputs.futureSellingCosts)}</td></tr>
-          <tr><td>Mortgage Owing</td><td>${fmt(inputs.mortgageOwing)}</td><td>${fmt(inputs.mortgageOwing)}</td></tr>
-          <tr><td>Usable Equity</td><td>${fmt(outputs.usableEquity)}</td><td>${fmt(outputs.futureUsableEquity)}</td></tr>
-          <tr><td>Target Buy Price</td><td>${fmt(inputs.targetPurchasePrice)}</td><td>${fmt(outputs.futureTargetPrice)}</td></tr>
-          <tr><td>Buying Costs (${inputs.buyingCostPercent}%)</td><td>${fmt(outputs.purchaseCostsNow)}</td><td>${fmt(outputs.futurePurchaseCosts)}</td></tr>
-          ${inputs.savings > 0 ? `<tr><td>Client Savings</td><td colspan="2">${fmt(inputs.savings)}</td></tr>` : ''}
-          <tr><td>Total Funds Needed</td><td>${fmt(outputs.totalFundsNeededNow)}</td><td>${fmt(outputs.futureTotalFundsNeeded)}</td></tr>
-          <tr class="highlight"><td>Loan Required</td><td>${fmt(outputs.loanRequiredNow)}</td><td>${fmt(outputs.futureLoanRequired)}</td></tr>
-        </table>
-
-        <div class="disclaimer">
-          <strong>Important Note:</strong> This tool provides general information and estimates only. It does not constitute financial advice and does not consider your personal circumstances. Figures shown are indicative and may change based on lender assessment, market movements, and actual costs (including stamp duty and selling costs). Seek professional advice before making decisions.
-        </div>
-      </body>
-      </html>
-    `);
-    printWindow.document.close();
-    setTimeout(() => printWindow.print(), 500);
-  };
-
-  const handleEmailSummary = async () => {
-    if (!inputs || !outputs || !user) {
-      toast.info('Log in to email summaries');
-      return;
-    }
-    try {
-      const { error } = await supabase.functions.invoke('send-email', {
-        body: {
-          to: user.email,
-          subject: 'Sell & Upgrade Simulator Summary - Margin Connect',
-          html: `
-            <h2>Sell & Upgrade Timeline Simulator</h2>
-            <p><strong>Usable Equity (Now):</strong> ${fmt(outputs.usableEquity)}</p>
-            <p><strong>Loan Required (Now):</strong> ${fmt(outputs.loanRequiredNow)}</p>
-            <p><strong>Loan Required (${monthsToWait}mo):</strong> ${fmt(outputs.futureLoanRequired)}</p>
-            <p><strong>Extra Loan from Waiting:</strong> ${fmt(outputs.extraLoanFromWaiting)}</p>
-            ${inputs.savings > 0 ? `<p><strong>Client Savings Applied:</strong> ${fmt(inputs.savings)}</p>` : ''}
-            <hr/>
-            <p style="font-size:11px;color:#999;">This tool provides general information and estimates only. It does not constitute financial advice. Seek professional advice before making decisions.</p>
-          `,
-        },
-      });
-      if (error) throw error;
-      toast.success('Summary emailed to ' + user.email);
-    } catch {
-      toast.error('Failed to send email');
-    }
-  };
-
-  const comparisonRows = outputs && inputs ? [
-    { label: 'Sell Home Value', now: fmt(outputs.adjustedHomeValue), future: fmt(outputs.futureHomeValue) },
-    { label: 'Selling Costs', now: fmt(outputs.sellingCosts), future: fmt(outputs.futureSellingCosts) },
-    { label: 'Mortgage Owing', now: fmt(inputs.mortgageOwing), future: fmt(inputs.mortgageOwing) },
-    { label: 'Usable Equity', now: fmt(outputs.usableEquity), future: fmt(outputs.futureUsableEquity) },
-    { label: 'Target Buy Price', now: fmt(inputs.targetPurchasePrice), future: fmt(outputs.futureTargetPrice) },
-    { label: `Buying Costs (${buyingCostPercent}%)`, now: fmt(outputs.purchaseCostsNow), future: fmt(outputs.futurePurchaseCosts) },
-    ...(inputs.savings > 0 ? [{ label: 'Client Savings', now: fmt(inputs.savings), future: fmt(inputs.savings) }] : []),
-    { label: 'Total Funds Needed', now: fmt(outputs.totalFundsNeededNow), future: fmt(outputs.futureTotalFundsNeeded) },
-    { label: 'Loan Required', now: fmt(outputs.loanRequiredNow), future: fmt(outputs.futureLoanRequired), highlight: true },
-  ] : [];
-
-  // Home value adjustment slider range
-  const adjustmentMin = -100000;
-  const adjustmentMax = 0;
 
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
       <main className="container py-6 md:py-8 space-y-6 max-w-4xl">
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/tools')}>
-            <ArrowLeft className="w-4 h-4 mr-1" /> Tools
-          </Button>
-        </div>
-        <div>
-          <h1 className="text-2xl md:text-3xl font-heading font-bold">Sell & Upgrade Timeline Simulator</h1>
-          <p className="text-muted-foreground text-sm">Model what happens if a vendor sells now vs waits.</p>
-        </div>
-
-        {/* Inputs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* Section A – Current Home */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Home className="w-4 h-4 text-primary" /> Current Home
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <CurrencyInput
-                label="Current Home Value"
-                placeholder="e.g. 850,000"
-                value={currentHomeValue}
-                onChange={setCurrentHomeValue}
-              />
-              <CurrencyInput
-                label="Mortgage Owing"
-                placeholder="e.g. 400,000"
-                value={mortgageOwing}
-                onChange={setMortgageOwing}
-              />
-              <div>
-                <Label>Selling Cost %</Label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  value={sellingCostPercent}
-                  onChange={(e) => setSellingCostPercent(e.target.value)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Section B – Next Purchase */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-primary" /> Next Purchase
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <CurrencyInput
-                label="Target Purchase Price"
-                placeholder="e.g. 1,200,000"
-                value={targetPurchasePrice}
-                onChange={setTargetPurchasePrice}
-              />
-              <div>
-                <Label>Growth Assumption</Label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1">
-                  {[
-                    { label: 'Decline -3%', value: -3 },
-                    { label: 'Conservative 3%', value: 3 },
-                    { label: 'Balanced 5%', value: 5 },
-                    { label: 'Strong 7%', value: 7 },
-                  ].map((opt) => (
-                    <Button
-                      key={opt.value}
-                      variant={growthPreset === opt.value ? 'default' : 'outline'}
-                      size="sm"
-                      className="text-xs"
-                      onClick={() => setGrowthPreset(opt.value)}
-                    >
-                      {opt.label}
-                    </Button>
-                  ))}
-                </div>
-                <p className="text-[11px] text-muted-foreground mt-2">Use "Decline -3%" to model a falling market.</p>
-              </div>
-              <div className="pt-1">
-                <p className="text-xs text-muted-foreground">Buying costs (stamp duty, conveyancing, legals) calculated at {buyingCostPercent}%</p>
-              </div>
-            </CardContent>
-          </Card>
+        <Button variant="ghost" size="sm" onClick={() => navigate('/tools')}>
+          <ArrowLeft className="w-4 h-4 mr-1" /> Tools
+        </Button>
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-heading font-bold">Sell &amp; Buy Calculator</h1>
+            <p className="text-muted-foreground text-sm">Work out the loan you'll need when you sell your current home and buy the next one.</p>
+          </div>
+          {outputs && (
+            <Button variant="outline" size="sm" className="shrink-0" onClick={handleSaveScenario} disabled={saving}>
+              <Save className="w-4 h-4 mr-1" /> {saving ? 'Saving…' : 'Save scenario'}
+            </Button>
+          )}
         </div>
 
-        {/* Savings */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <PiggyBank className="w-4 h-4 text-primary" /> Client Savings
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CurrencyInput
-              label="Savings towards next purchase"
-              placeholder="e.g. 50,000"
-              value={savings}
-              onChange={setSavings}
-            />
-            <p className="text-xs text-muted-foreground mt-2">Any cash the client has saved that can go towards the purchase.</p>
-          </CardContent>
-        </Card>
-
-        {/* Home Value Adjustment Slider */}
-        {chvNum > 0 && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <MinusCircle className="w-4 h-4 text-primary" /> What If They Sell For Less?
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <Label className="text-sm">Adjusted Sale Price</Label>
-                  <span className="text-lg font-bold text-primary">
-                    {fmt(chvNum + homeValueAdjustment)}
-                    {homeValueAdjustment !== 0 && (
-                      <span className="text-sm font-normal text-destructive ml-2">
-                        ({fmt(homeValueAdjustment)})
-                      </span>
-                    )}
-                  </span>
-                </div>
-                <Slider
-                  value={[homeValueAdjustment]}
-                  onValueChange={([v]) => setHomeValueAdjustment(v)}
-                  min={adjustmentMin}
-                  max={adjustmentMax}
-                  step={25000}
-                  className="py-2"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                  <span>-$100k</span>
-                  <span>-$75k</span>
-                  <span>-$50k</span>
-                  <span>-$25k</span>
-                  <span>Full price</span>
-                </div>
-              </div>
-
-              {/* Repayment Impact */}
-              {outputs && (
-                <div className="space-y-3 pt-2 border-t">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-semibold">Repayment Impact (30yr loan)</Label>
-                    <div className="flex items-center gap-2">
-                      <Label className="text-xs text-muted-foreground">Rate %</Label>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        min="0.1"
-                        max="15"
-                        className="w-20 h-8 text-sm"
-                        value={repaymentRate}
-                        onChange={(e) => setRepaymentRate(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  {(() => {
-                    const rate = parseFloat(repaymentRate) || 6;
-                    const loan = outputs.loanRequiredNow;
-                    const monthly = calcRepayment(loan, rate, 30, 'monthly');
-                    const fortnightly = calcRepayment(loan, rate, 30, 'fortnightly');
-                    const weekly = calcRepayment(loan, rate, 30, 'weekly');
-
-                    // Also calculate at full price (no adjustment) for comparison
-                    const fullPriceInputs = { ...inputs!, homeValueAdjustment: 0 };
-                    const fullPriceOutputs = runSimulator(fullPriceInputs);
-                    const fullLoan = fullPriceOutputs.loanRequiredNow;
-                    const fullMonthly = calcRepayment(fullLoan, rate, 30, 'monthly');
-                    const fullFortnightly = calcRepayment(fullLoan, rate, 30, 'fortnightly');
-                    const fullWeekly = calcRepayment(fullLoan, rate, 30, 'weekly');
-
-                    const showDiff = homeValueAdjustment !== 0;
-
-                    return (
-                      <div className="space-y-3">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="w-[35%]">Frequency</TableHead>
-                              <TableHead>Repayment</TableHead>
-                              {showDiff && <TableHead>vs Full Price</TableHead>}
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {[
-                              { label: 'Monthly', val: monthly, full: fullMonthly },
-                              { label: 'Fortnightly', val: fortnightly, full: fullFortnightly },
-                              { label: 'Weekly', val: weekly, full: fullWeekly },
-                            ].map((r) => (
-                              <TableRow key={r.label}>
-                                <TableCell className="text-sm font-medium">{r.label}</TableCell>
-                                <TableCell className="text-sm font-semibold">{fmt(r.val)}</TableCell>
-                                {showDiff && (
-                                  <TableCell className="text-sm text-destructive">
-                                    +{fmt(r.val - r.full)}/
-                                    {r.label === 'Monthly' ? 'mo' : r.label === 'Fortnightly' ? 'fn' : 'wk'}
-                                  </TableCell>
-                                )}
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                        <p className="text-xs text-muted-foreground">
-                          Based on a loan of {fmt(loan)} at {rate}% over 30 years (P&I).
-                        </p>
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Timeline Slider */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-3">
-              <Label className="text-base font-semibold">Timeline: How long to wait?</Label>
-              <span className="text-lg font-bold text-primary">
-                {monthsToWait === 0 ? 'Move now' : `Wait: ${monthsToWait} month${monthsToWait !== 1 ? 's' : ''}`}
-              </span>
-            </div>
-            <div className="relative pt-3 pb-8">
-              <div className="pointer-events-none absolute inset-x-0 top-3 h-2 rounded-full bg-secondary">
-                <div className="h-full rounded-full bg-primary" style={{ width: `${timelineProgress}%` }} />
-              </div>
-              <div
-                className="pointer-events-none absolute top-1 h-6 w-6 -translate-x-1/2 rounded-full border-4 border-primary bg-background shadow-sm"
-                style={{ left: `${timelineProgress}%` }}
-              />
-              <input
-                type="range"
-                min={0}
-                max={timelineMaxMonths}
-                step={1}
-                value={monthsToWait}
-                onChange={(e) => setMonthsToWait(Number(e.target.value))}
-                className="absolute inset-x-0 top-0 h-8 w-full cursor-pointer opacity-0"
-                aria-label="Months to wait"
-              />
-              <div className="pointer-events-none absolute inset-x-0 top-2 flex h-4 items-center">
-                {timelineTicks.map((m) => (
-                  <span
-                    key={m}
-                    className="absolute h-3 w-px -translate-x-1/2 bg-border"
-                    style={{ left: `${(m / timelineMaxMonths) * 100}%` }}
-                  />
-                ))}
-              </div>
-              <span
-                className="pointer-events-none absolute top-10 -translate-x-1/2 whitespace-nowrap text-[11px] font-semibold text-primary"
-                style={{ left: `${timelineProgress}%` }}
-              >
-                {monthsToWait === 0 ? 'Now' : `${monthsToWait}mo`}
-              </span>
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 text-xs text-muted-foreground">
-                {timelineTicks.map((m) => (
-                  <span
-                    key={m}
-                    className="absolute -translate-x-1/2 whitespace-nowrap first:translate-x-0 last:-translate-x-full"
-                    style={{ left: `${(m / timelineMaxMonths) * 100}%` }}
-                  >
-                    {m === 0 ? 'Now' : `${m}mo`}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* OUTPUTS */}
-        {outputs && inputs && (
-          <div ref={resultsRef} className="space-y-5">
-            {/* Summary Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="pt-5 pb-4">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Usable Equity</p>
-                  <p className="text-xl font-bold mt-1">{fmt(outputs.usableEquity)}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-5 pb-4">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan Required (Now)</p>
-                  <p className="text-xl font-bold mt-1">{fmt(outputs.loanRequiredNow)}</p>
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    LVR: {inputs.targetPurchasePrice > 0 ? ((outputs.loanRequiredNow / inputs.targetPurchasePrice) * 100).toFixed(1) : '0.0'}%
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-5 pb-4">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Loan ({monthsToWait}mo)</p>
-                  <p className="text-xl font-bold mt-1">{fmt(outputs.futureLoanRequired)}</p>
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    LVR: {outputs.futureTargetPrice > 0 ? ((outputs.futureLoanRequired / outputs.futureTargetPrice) * 100).toFixed(1) : '0.0'}%
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className={outputs.extraLoanFromWaiting > 0 ? 'border-destructive/40 bg-destructive/5' : 'border-success/40 bg-success/5'}>
-                <CardContent className="pt-5 pb-4">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Extra Loan from Waiting</p>
-                  <p className={`text-xl font-bold mt-1 ${outputs.extraLoanFromWaiting > 0 ? 'text-destructive' : 'text-success'}`}>
-                    {outputs.extraLoanFromWaiting > 0 ? '+' : ''}{fmt(outputs.extraLoanFromWaiting)}
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Headline */}
-            {monthsToWait > 0 && (
-              <Card className="border-primary/30 bg-primary/5">
-                <CardContent className="pt-5 pb-4 text-center">
-                  <p className="text-sm text-muted-foreground mb-1">
-                    Waiting {monthsToWait} month{monthsToWait !== 1 ? 's' : ''} at {growthPreset}% growth could
-                    {outputs.extraLoanFromWaiting > 0 ? ' increase' : ' decrease'} the required loan by:
-                  </p>
-                  <p className={`text-3xl font-bold ${outputs.extraLoanFromWaiting > 0 ? 'text-destructive' : 'text-success'}`}>
-                    {outputs.extraLoanFromWaiting > 0 ? '+' : ''}{fmt(outputs.extraLoanFromWaiting)}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Cost of Waiting */}
-            {monthsToWait > 0 && (
-              <Card className={outputs.totalCostOfWaiting > 0 ? 'border-destructive/40 bg-destructive/5' : 'border-success/40 bg-success/5'}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Cost of Waiting {monthsToWait} Month{monthsToWait !== 1 ? 's' : ''}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Future Price</p>
-                      <p className="text-lg font-bold mt-1">{fmt(outputs.futureTargetPrice)}</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Extra: {outputs.extraPurchasePrice > 0 ? '+' : ''}{fmt(outputs.extraPurchasePrice)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Extra to Borrow</p>
-                      <p className="text-lg font-bold mt-1">
-                        {outputs.extraLoanFromWaiting > 0 ? '+' : ''}{fmt(outputs.extraLoanFromWaiting)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Extra Interest (30yr)</p>
-                      <p className="text-lg font-bold mt-1">{fmt(outputs.extraInterestOverTerm)}</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">@ {parseFloat(repaymentRate) || 6}% P&I</p>
-                    </div>
-                  </div>
-                  <Separator className="my-4" />
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold">Total Cost of Waiting</p>
-                    <p className={`text-2xl font-bold ${outputs.totalCostOfWaiting > 0 ? 'text-destructive' : 'text-success'}`}>
-                      {outputs.totalCostOfWaiting > 0 ? '+' : ''}{fmt(outputs.totalCostOfWaiting)}
-                    </p>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mt-2">
-                    Extra purchase price + extra interest paid over the life of the loan on the additional borrowing.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Comparison Table */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Sell Now vs Wait {monthsToWait} Months</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[40%]"></TableHead>
-                      <TableHead>Sell Now</TableHead>
-                      <TableHead>Wait {monthsToWait}mo</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {comparisonRows.map((row) => (
-                      <TableRow key={row.label} className={row.highlight ? 'bg-primary/5 font-semibold' : ''}>
-                        <TableCell className="text-sm">{row.label}</TableCell>
-                        <TableCell className="text-sm">{row.now}</TableCell>
-                        <TableCell className="text-sm">{row.future}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-
-            {/* Chart */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Loan Required Over Time</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={outputs.timeline}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis
-                        dataKey="month"
-                        tickFormatter={(v) => `${v}mo`}
-                        stroke="hsl(var(--muted-foreground))"
-                        fontSize={12}
-                      />
-                      <YAxis
-                        tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
-                        stroke="hsl(var(--muted-foreground))"
-                        fontSize={12}
-                      />
-                      <Tooltip
-                        formatter={(value: number) => [fmt(value), 'Loan Required']}
-                        labelFormatter={(label) => `Month ${label}`}
-                      />
-                      <ReferenceLine
-                        x={monthsToWait}
-                        stroke="hsl(var(--primary))"
-                        strokeDasharray="4 4"
-                        label={{ value: `${monthsToWait}mo`, position: 'top', fontSize: 11 }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="loanRequired"
-                        stroke="hsl(var(--primary))"
-                        strokeWidth={2}
-                        dot={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Actions */}
-            <div className="flex flex-wrap gap-3">
-              <Button onClick={handleDownloadPDF} variant="outline">
-                <Download className="w-4 h-4 mr-2" /> Download PDF
-              </Button>
-              <Button onClick={handleEmailSummary} variant="outline">
-                <Mail className="w-4 h-4 mr-2" /> Email Summary
-              </Button>
-              <Button onClick={handleSaveScenario} disabled={saving}>
-                <Save className="w-4 h-4 mr-2" /> {saving ? 'Saving...' : 'Save Scenario'}
-              </Button>
-            </div>
-
-            {/* Refer to Margin */}
-            <Card className="border-primary/30 bg-primary/5">
-              <CardContent className="pt-6 pb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div>
-                  <h3 className="font-semibold text-base">Ready to move forward?</h3>
-                  <p className="text-sm text-muted-foreground">Send this client to Margin Finance for a quick assessment.</p>
-                </div>
-                <Button
-                  size="lg"
-                  className="shrink-0"
-                  onClick={() => navigate('/submit-referral')}
-                >
-                  <Send className="w-4 h-4 mr-2" /> Refer to Margin
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Disclaimer */}
-            <Separator />
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              <strong>Important Note:</strong> This tool provides general information and estimates only.
-              It does not constitute financial advice and does not consider your personal circumstances.
-              Figures shown are indicative and may change based on lender assessment, market movements,
-              and actual costs (including stamp duty and selling costs). Seek professional advice before making decisions.
-            </p>
+        {/* Summary Cards */}
+        {outputs && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="bg-muted/30"><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground uppercase mb-1">Net Sale Proceeds</p><p className={`text-xl font-bold ${outputs.netSaleProceeds >= 0 ? 'text-success' : 'text-destructive'}`}>{fmt(outputs.netSaleProceeds)}</p></CardContent></Card>
+            <Card className="bg-muted/30"><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground uppercase mb-1">Loan Required</p><p className="text-xl font-bold">{fmt(outputs.loanRequired)}</p></CardContent></Card>
+            <Card className={outputs.lvr > 80 ? 'bg-destructive/5 border-destructive/20' : 'bg-success/5 border-success/20'}><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground uppercase mb-1">LVR</p><p className={`text-xl font-bold ${outputs.lvr > 80 ? 'text-destructive' : 'text-success'}`}>{fmtPct(outputs.lvr)}</p></CardContent></Card>
+            <Card className="bg-muted/30"><CardContent className="p-4 text-center"><p className="text-xs text-muted-foreground uppercase mb-1">Monthly Repayment</p><p className="text-xl font-bold">{fmt(outputs.monthlyRepayment)}</p></CardContent></Card>
           </div>
         )}
 
-        {!outputs && (
+        {outputs && outputs.lmiApplies && (
+          <div className="bg-warning/10 border border-warning/30 rounded-lg p-4 text-sm">
+            <strong>LMI may apply.</strong> The LVR is above 80%, which means Lenders Mortgage Insurance will likely be required. This can add thousands to the costs.
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* Selling */}
           <Card>
-            <CardContent className="py-12 text-center">
-              <DollarSign className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-              <p className="text-muted-foreground">Enter the property details above to see your results</p>
+            <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Home className="w-4 h-4 text-primary" /> Current Property</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <CurrencyInput label="Estimated Sale Price" placeholder="e.g. 850,000" value={currentHomeValue} onChange={setCurrentHomeValue} />
+              <CurrencyInput label="Mortgage Owing" placeholder="e.g. 400,000" value={mortgageOwing} onChange={setMortgageOwing} />
+              <div>
+                <div className="flex justify-between mb-1"><Label>Agent &amp; Selling Costs</Label><span className="text-sm font-semibold text-primary">{fmtPct(sellingCostPct)}</span></div>
+                <Slider value={[sellingCostPct]} onValueChange={([v]) => setSellingCostPct(v)} min={1} max={5} step={0.1} />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Buying */}
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><ShoppingCart className="w-4 h-4 text-primary" /> Next Property</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <CurrencyInput label="Purchase Price" placeholder="e.g. 1,200,000" value={targetPurchasePrice} onChange={setTargetPurchasePrice} />
+              <div>
+                <Label>Purchasing State</Label>
+                <Select value={buyingState} onValueChange={(v) => setBuyingState(v as StateKey)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{(Object.keys(stateLabels) as StateKey[]).map((s) => (<SelectItem key={s} value={s}>{stateLabels[s]}</SelectItem>))}</SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center justify-between">
+                <div><Label className="block">First Home Buyer</Label><p className="text-xs text-muted-foreground">Apply concessions if eligible</p></div>
+                <Switch checked={isFirstHomeBuyer} onCheckedChange={setIsFirstHomeBuyer} />
+              </div>
+              {isFirstHomeBuyer && (
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 flex gap-2"><Info className="w-4 h-4 text-primary shrink-0 mt-0.5" /><p className="text-xs text-muted-foreground">{fhbNotes[buyingState]}</p></div>
+              )}
+              <CurrencyInput label="Other Buying Costs (conveyancing, inspections)" placeholder="e.g. 5,000" value={otherBuyingCosts} onChange={setOtherBuyingCosts} />
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><DollarSign className="w-4 h-4 text-primary" /> Additional Savings</CardTitle></CardHeader>
+            <CardContent>
+              <CurrencyInput label="Cash savings to put towards the purchase" placeholder="e.g. 50,000" value={savings} onChange={setSavings} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Percent className="w-4 h-4 text-primary" /> Interest Rate</CardTitle></CardHeader>
+            <CardContent>
+              <div>
+                <Label>Rate (% p.a.)</Label>
+                <Input type="number" step="0.1" min="1" max="15" className="max-w-[120px]" value={interestRate} onChange={(e) => setInterestRate(e.target.value)} />
+                <p className="text-xs text-muted-foreground mt-1">Repayments based on 30-year P&amp;I loan</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Breakdown */}
+        {outputs && (
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-base">Transaction Breakdown</CardTitle></CardHeader>
+            <CardContent>
+              <div className="space-y-2 text-sm">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Selling</p>
+                <div className="flex justify-between"><span className="text-muted-foreground">Sale Price</span><span className="font-semibold">{fmt(parseCurrency(currentHomeValue))}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Less Mortgage</span><span className="font-semibold">-{fmt(parseCurrency(mortgageOwing))}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Less Selling Costs ({fmtPct(sellingCostPct)})</span><span className="font-semibold">-{fmt(outputs.sellingCosts)}</span></div>
+                <Separator />
+                <div className="flex justify-between font-bold"><span>Net Sale Proceeds</span><span className={outputs.netSaleProceeds >= 0 ? 'text-success' : 'text-destructive'}>{fmt(outputs.netSaleProceeds)}</span></div>
+
+                <div className="pt-4" />
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Buying in {stateLabels[buyingState]}</p>
+                <div className="flex justify-between"><span className="text-muted-foreground">Purchase Price</span><span className="font-semibold">{fmt(parseCurrency(targetPurchasePrice))}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Stamp Duty ({stateLabels[buyingState]})</span><span className="font-semibold">{fmt(outputs.stampDuty)}</span></div>
+                {isFirstHomeBuyer && outputs.stampDutyConcession > 0 && (
+                  <div className="flex justify-between"><span className="text-muted-foreground">FHB Concession Applied</span><span className="font-semibold text-success">-{fmt(outputs.stampDutyConcession)}</span></div>
+                )}
+                <div className="flex justify-between"><span className="text-muted-foreground">Other Costs</span><span className="font-semibold">{fmt(outputs.otherCosts)}</span></div>
+                <Separator />
+                <div className="flex justify-between font-bold"><span>Total Purchase Cost</span><span>{fmt(outputs.totalPurchaseCost)}</span></div>
+
+                <div className="pt-4" />
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Funding</p>
+                <div className="flex justify-between"><span className="text-muted-foreground">Net Sale Proceeds</span><span className="font-semibold">{fmt(outputs.netSaleProceeds)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Additional Savings</span><span className="font-semibold">{fmt(outputs.sav)}</span></div>
+                <Separator />
+                <div className="flex justify-between font-bold"><span>Total Funds Available</span><span className="text-success">{fmt(outputs.totalFundsAvailable)}</span></div>
+                <div className="flex justify-between font-bold text-lg pt-2"><span>Loan Required</span><span>{fmt(outputs.loanRequired)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Loan-to-Value Ratio (LVR)</span><span className={`font-bold ${outputs.lvr > 80 ? 'text-destructive' : 'text-success'}`}>{fmtPct(outputs.lvr)}</span></div>
+              </div>
             </CardContent>
           </Card>
         )}
+
+        {/* Repayments */}
+        {outputs && outputs.loanRequired > 0 && (
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-base">Estimated Repayments on {fmt(outputs.loanRequired)} loan</CardTitle></CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="text-center p-3 rounded-lg bg-primary/10 ring-2 ring-primary">
+                  <p className="text-xs text-muted-foreground uppercase">Monthly</p>
+                  <p className="text-lg font-bold">{fmt(outputs.monthlyRepayment)}</p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-muted">
+                  <p className="text-xs text-muted-foreground uppercase">Fortnightly</p>
+                  <p className="text-lg font-bold">{fmt(outputs.fortnightlyRepayment)}</p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-muted">
+                  <p className="text-xs text-muted-foreground uppercase">Weekly</p>
+                  <p className="text-lg font-bold">{fmt(outputs.weeklyRepayment)}</p>
+                </div>
+              </div>
+              <Separator className="my-3" />
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Loan Amount</span><span className="font-semibold">{fmt(outputs.loanRequired)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Interest Rate</span><span className="font-semibold">{fmtPct(parseFloat(interestRate) || 0)} p.a.</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Loan Term</span><span className="font-semibold">{loanTerm} years</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Total Repaid</span><span className="font-semibold">{fmt(outputs.totalRepaid)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Total Interest</span><span className="font-semibold">{fmt(outputs.totalInterest)}</span></div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <p className="text-xs text-muted-foreground leading-relaxed"><strong>Important Note:</strong> This tool provides general estimates only. It does not constitute financial advice. Stamp duty is calculated on published state rates and may not reflect all exemptions or surcharges.</p>
       </main>
     </div>
   );
