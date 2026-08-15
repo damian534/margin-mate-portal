@@ -127,10 +127,6 @@ export default function SellUpgradeSimulator() {
     }
   }, [useTargetLvr, outputs?.extraSavingsRequired]);
 
-  const handleSaveScenario = async () => {
-
-  };
-
   const handleDownloadPdf = async () => {
     if (!outputs) return;
     try {
@@ -156,7 +152,7 @@ export default function SellUpgradeSimulator() {
     }
   };
 
-  const handleSaveScenarioImpl = async () => {
+  const handleSaveScenario = async () => {
     if (!outputs || !user || isPreviewMode) {
       toast.info('Log in to save scenarios');
       return;
