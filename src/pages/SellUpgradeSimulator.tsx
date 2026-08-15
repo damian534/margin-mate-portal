@@ -241,9 +241,26 @@ export default function SellUpgradeSimulator() {
             </CardHeader>
             {useTargetLvr && (
               <CardContent className="space-y-4">
-                <div>
+              <div>
                   <div className="flex justify-between mb-1"><Label>Target LVR on the new loan</Label><span className="text-sm font-semibold text-primary">{fmtPct(targetLvr)}</span></div>
-                  <Slider value={[targetLvr]} onValueChange={([v]) => setTargetLvr(v)} min={50} max={95} step={1} />
+                  <div className="flex items-center gap-3">
+                    <Slider className="flex-1" value={[targetLvr]} onValueChange={([v]) => setTargetLvr(v)} min={50} max={95} step={1} />
+                    <div className="relative w-24">
+                      <Input
+                        type="number"
+                        min={50}
+                        max={95}
+                        step={1}
+                        value={Math.round(targetLvr)}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          if (!isNaN(val)) setTargetLvr(Math.min(95, Math.max(50, val)));
+                        }}
+                        className="pr-7"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                    </div>
+                  </div>
                   <p className="text-xs text-muted-foreground mt-1">80% or below avoids Lenders Mortgage Insurance.</p>
                 </div>
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
