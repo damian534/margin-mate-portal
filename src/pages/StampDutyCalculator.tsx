@@ -28,6 +28,7 @@ export default function StampDutyCalculator() {
   const [hasMortgage, setHasMortgage] = useState(true);
   const [useTargetLvr, setUseTargetLvr] = useState(false);
   const [targetLvr, setTargetLvr] = useState(80);
+  const [targetLvrInput, setTargetLvrInput] = useState('80');
   const [currentSavings, setCurrentSavings] = useState('');
 
   const results = useMemo(() => {
