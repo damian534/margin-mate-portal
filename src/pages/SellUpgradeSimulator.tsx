@@ -84,24 +84,28 @@ export default function SellUpgradeSimulator() {
     const sav = parseCurrency(savings);
     const totalFundsAvailable = Math.max(0, netSaleProceeds) + sav;
 
-    const loanRequired = Math.max(0, totalPurchaseCost - totalFundsAvailable);
-    const lvr = tp > 0 ? (loanRequired / tp) * 100 : 0;
-    const lmiApplies = lvr > 80;
-
     const rate = parseFloat(interestRate) || 0;
-    const monthlyRepayment = loanRequired > 0 ? calcRepayment(loanRequired, rate, loanTerm) : 0;
-    const fortnightlyRepayment = (monthlyRepayment * 12) / 26;
-    const weeklyRepayment = (monthlyRepayment * 12) / 52;
-    const totalRepaid = monthlyRepayment * loanTerm * 12;
-    const totalInterest = totalRepaid - loanRequired;
 
-    // --- Target LVR planning (measured against sale proceeds only, savings are the output) ---
+    // --- Target LVR planning ---
     const targetLoan = tp * (targetLvr / 100);
     const fundsNeededForTarget = Math.max(0, totalPurchaseCost - targetLoan);
     const proceedsAvailable = Math.max(0, netSaleProceeds);
     const extraSavingsRequired = Math.max(0, fundsNeededForTarget - proceedsAvailable);
     const surplusFunds = Math.max(0, proceedsAvailable - fundsNeededForTarget);
     const targetMonthlyRepayment = targetLoan > 0 ? calcRepayment(targetLoan, rate, loanTerm) : 0;
+
+    // When a target LVR is active, the headline figures follow that target
+    const loanRequired = useTargetLvr
+      ? Math.min(targetLoan, Math.max(0, totalPurchaseCost - proceedsAvailable))
+      : Math.max(0, totalPurchaseCost - totalFundsAvailable);
+    const lvr = tp > 0 ? (loanRequired / tp) * 100 : 0;
+    const lmiApplies = lvr > 80;
+
+    const monthlyRepayment = loanRequired > 0 ? calcRepayment(loanRequired, rate, loanTerm) : 0;
+    const fortnightlyRepayment = (monthlyRepayment * 12) / 26;
+    const weeklyRepayment = (monthlyRepayment * 12) / 52;
+    const totalRepaid = monthlyRepayment * loanTerm * 12;
+    const totalInterest = totalRepaid - loanRequired;
 
     return {
       sellingCosts, netSaleProceeds,
@@ -111,7 +115,7 @@ export default function SellUpgradeSimulator() {
       monthlyRepayment, fortnightlyRepayment, weeklyRepayment, totalRepaid, totalInterest,
       targetLoan, fundsNeededForTarget, extraSavingsRequired, surplusFunds, targetMonthlyRepayment,
     };
-  }, [currentHomeValue, mortgageOwing, sellingCostPct, targetPurchasePrice, buyingState, isFirstHomeBuyer, otherBuyingCosts, savings, interestRate, targetLvr]);
+  }, [currentHomeValue, mortgageOwing, sellingCostPct, targetPurchasePrice, buyingState, isFirstHomeBuyer, otherBuyingCosts, savings, interestRate, targetLvr, useTargetLvr]);
 
   // When a target LVR is set, the shortfall becomes the additional savings needed
   useEffect(() => {
