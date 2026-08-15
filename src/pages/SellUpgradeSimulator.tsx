@@ -8,12 +8,13 @@ import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Home, ShoppingCart, DollarSign, Percent, Info, Save, Target } from 'lucide-react';
+import { ArrowLeft, Home, ShoppingCart, DollarSign, Percent, Info, Save, Target, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { StateKey, stateCalcs, stateLabels, fhbNotes } from '@/lib/stampDutyRates';
+import { generateSellUpgradePdf } from '@/lib/pdf/calculatorPdf';
 
 const fmt = (v: number) => `$${Math.round(v).toLocaleString()}`;
 const fmtPct = (v: number) => `${v.toFixed(1)}%`;
@@ -126,6 +127,31 @@ export default function SellUpgradeSimulator() {
     }
   }, [useTargetLvr, outputs?.extraSavingsRequired]);
 
+  const handleDownloadPdf = async () => {
+    if (!outputs) return;
+    try {
+      await generateSellUpgradePdf({
+        inputs: {
+          currentHomeValue: parseCurrency(currentHomeValue),
+          mortgageOwing: parseCurrency(mortgageOwing),
+          sellingCostPct,
+          targetPurchasePrice: parseCurrency(targetPurchasePrice),
+          stateLabel: stateLabels[buyingState],
+          isFirstHomeBuyer,
+          otherBuyingCosts: parseCurrency(otherBuyingCosts),
+          savings: parseCurrency(savings),
+          interestRate: parseFloat(interestRate) || 0,
+          loanTerm,
+          useTargetLvr,
+          targetLvr,
+        },
+        outputs,
+      });
+    } catch {
+      toast.error('Could not generate the PDF');
+    }
+  };
+
   const handleSaveScenario = async () => {
     if (!outputs || !user || isPreviewMode) {
       toast.info('Log in to save scenarios');
@@ -166,9 +192,14 @@ export default function SellUpgradeSimulator() {
             <p className="text-muted-foreground text-sm">Work out the loan you'll need when you sell your current home and buy the next one.</p>
           </div>
           {outputs && (
-            <Button variant="outline" size="sm" className="shrink-0" onClick={handleSaveScenario} disabled={saving}>
-              <Save className="w-4 h-4 mr-1" /> {saving ? 'Saving…' : 'Save scenario'}
-            </Button>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button variant="outline" size="sm" onClick={handleDownloadPdf}>
+                <Download className="w-4 h-4 mr-1" /> Download PDF
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleSaveScenario} disabled={saving}>
+                <Save className="w-4 h-4 mr-1" /> {saving ? 'Saving…' : 'Save scenario'}
+              </Button>
+            </div>
           )}
         </div>
 

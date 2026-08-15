@@ -7,12 +7,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Home, Landmark, Info, Target } from 'lucide-react';
+import { ArrowLeft, Home, Landmark, Info, Target, Download } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { StateKey, stateCalcs, stateLabels, fhbNotes } from '@/lib/stampDutyRates';
 import { calculateGovFees } from '@/lib/govFees';
+import { generateStampDutyPdf } from '@/lib/pdf/calculatorPdf';
+import { toast } from 'sonner';
 
 const fmt = (v: number) => `$${Math.round(v).toLocaleString()}`;
 
@@ -68,6 +70,27 @@ export default function StampDutyCalculator() {
     setPurchasePrice(raw ? parseFloat(raw).toLocaleString() : '');
   };
 
+  const handleDownloadPdf = async () => {
+    if (!results) return;
+    try {
+      await generateStampDutyPdf({
+        inputs: {
+          purchasePrice: results.price,
+          stateLabel: stateLabels[state],
+          isFirstHomeBuyer,
+          hasMortgage,
+          useTargetLvr,
+          targetLvr,
+          savings: results.savings,
+        },
+        results,
+        stateLabels,
+      });
+    } catch {
+      toast.error('Could not generate the PDF');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
@@ -75,9 +98,16 @@ export default function StampDutyCalculator() {
         <Button variant="ghost" size="sm" onClick={() => navigate('/tools')}>
           <ArrowLeft className="w-4 h-4 mr-1" /> Tools
         </Button>
-        <div>
-          <h1 className="text-2xl md:text-3xl font-heading font-bold">Stamp Duty Calculator</h1>
-          <p className="text-muted-foreground text-sm">Estimate stamp duty plus title transfer and mortgage registration fees across Australia</p>
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-heading font-bold">Stamp Duty Calculator</h1>
+            <p className="text-muted-foreground text-sm">Estimate stamp duty plus title transfer and mortgage registration fees across Australia</p>
+          </div>
+          {results && (
+            <Button variant="outline" size="sm" className="shrink-0" onClick={handleDownloadPdf}>
+              <Download className="w-4 h-4 mr-1" /> Download PDF
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
