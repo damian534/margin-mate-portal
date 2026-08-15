@@ -28,6 +28,7 @@ export default function StampDutyCalculator() {
   const [hasMortgage, setHasMortgage] = useState(true);
   const [useTargetLvr, setUseTargetLvr] = useState(false);
   const [targetLvr, setTargetLvr] = useState(80);
+  const [targetLvrInput, setTargetLvrInput] = useState('80');
   const [currentSavings, setCurrentSavings] = useState('');
 
   const results = useMemo(() => {
@@ -223,32 +224,38 @@ export default function StampDutyCalculator() {
                   <div>
                     <div className="flex justify-between mb-1"><Label>Target LVR on the loan</Label><span className="text-sm font-semibold text-primary">{targetLvr.toFixed(0)}%</span></div>
                     <div className="flex items-center gap-3">
-                      <Slider className="flex-1" value={[targetLvr]} onValueChange={([v]) => setTargetLvr(v)} min={50} max={95} step={1} />
                       <div className="relative w-24">
                         <Input
                           type="number"
-                          min={50}
-                          max={95}
+                          min={10}
+                          max={100}
                           step={1}
-                          value={Math.round(targetLvr)}
+                          value={targetLvrInput}
                           onChange={(e) => {
+                            setTargetLvrInput(e.target.value);
                             const val = parseFloat(e.target.value);
-                            if (!isNaN(val)) setTargetLvr(Math.min(95, Math.max(50, val)));
+                            if (!isNaN(val) && val > 0 && val <= 100) setTargetLvr(val);
                           }}
+                          onBlur={() => setTargetLvrInput(String(targetLvr))}
                           className="pr-7"
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
                       </div>
+                      <Slider className="flex-1" value={[targetLvr]} onValueChange={([v]) => { setTargetLvr(v); setTargetLvrInput(String(v)); }} min={50} max={95} step={1} />
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">80% or below avoids Lenders Mortgage Insurance.</p>
                   </div>
                   <div>
-                    <Label>Savings Available</Label>
+                    <div className="flex items-center justify-between mb-1">
+                      <Label>Savings Available</Label>
+                      <button type="button" className="text-xs text-primary underline" onClick={() => setCurrentSavings(Math.round(results.cashRequired).toLocaleString())}>Use amount needed</button>
+                    </div>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                       <Input className="pl-7" placeholder="e.g. 150,000" value={currentSavings}
                         onChange={(e) => { const raw = e.target.value.replace(/[^0-9.]/g, ''); setCurrentSavings(raw ? parseFloat(raw).toLocaleString() : ''); }} />
                     </div>
+                    <p className="text-xs text-muted-foreground mt-1">{results.extraSavingsRequired > 0 ? `Shortfall of ${fmt(results.extraSavingsRequired)} to hit ${targetLvr.toFixed(0)}% LVR.` : `Surplus of ${fmt(results.surplusFunds)} at ${targetLvr.toFixed(0)}% LVR.`}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
