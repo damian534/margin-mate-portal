@@ -7,9 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, DollarSign, Home, Landmark, Info } from 'lucide-react';
+import { ArrowLeft, Home, Landmark, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { StateKey, stateCalcs, stateLabels, fhbNotes } from '@/lib/stampDutyRates';
+import { calculateGovFees } from '@/lib/govFees';
 
 const fmt = (v: number) => `$${Math.round(v).toLocaleString()}`;
 
