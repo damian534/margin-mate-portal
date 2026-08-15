@@ -288,39 +288,15 @@ export default function SellUpgradeSimulator() {
           </Card>
         </div>
 
-        {/* Breakdown */}
-        {outputs && (
+        {/* Target LVR summary */}
+        {outputs && useTargetLvr && (
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between gap-4">
-                <CardTitle className="text-base flex items-center gap-2"><Target className="w-4 h-4 text-primary" /> Target LVR Planner</CardTitle>
-                <Switch checked={useTargetLvr} onCheckedChange={setUseTargetLvr} />
+                <CardTitle className="text-base flex items-center gap-2"><Target className="w-4 h-4 text-primary" /> Target LVR Planner — {fmtPct(targetLvr)}</CardTitle>
               </div>
             </CardHeader>
-            {useTargetLvr && (
-              <CardContent className="space-y-4">
-              <div>
-                  <div className="flex justify-between mb-1"><Label>Target LVR on the new loan</Label><span className="text-sm font-semibold text-primary">{fmtPct(targetLvr)}</span></div>
-                  <div className="flex items-center gap-3">
-                    <Slider className="flex-1" value={[targetLvr]} onValueChange={([v]) => setTargetLvr(v)} min={50} max={95} step={1} />
-                    <div className="relative w-24">
-                      <Input
-                        type="number"
-                        min={50}
-                        max={95}
-                        step={1}
-                        value={Math.round(targetLvr)}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value);
-                          if (!isNaN(val)) setTargetLvr(Math.min(95, Math.max(50, val)));
-                        }}
-                        className="pr-7"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">80% or below avoids Lenders Mortgage Insurance.</p>
-                </div>
+            <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                   <div className="text-center p-3 rounded-lg bg-muted"><p className="text-xs text-muted-foreground uppercase">Loan at {fmtPct(targetLvr)}</p><p className="text-lg font-bold">{fmt(outputs.targetLoan)}</p></div>
                   <div className="text-center p-3 rounded-lg bg-muted"><p className="text-xs text-muted-foreground uppercase">Funds Needed</p><p className="text-lg font-bold">{fmt(outputs.fundsNeededForTarget)}</p></div>
@@ -332,13 +308,12 @@ export default function SellUpgradeSimulator() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between"><span className="text-muted-foreground">Total Purchase Cost</span><span className="font-semibold">{fmt(outputs.totalPurchaseCost)}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Less Loan at {fmtPct(targetLvr)} LVR</span><span className="font-semibold">-{fmt(outputs.targetLoan)}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Less Funds Available (proceeds + savings)</span><span className="font-semibold">-{fmt(outputs.totalFundsAvailable)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Less Net Sale Proceeds</span><span className="font-semibold">-{fmt(Math.max(0, outputs.netSaleProceeds))}</span></div>
                   <Separator />
                   <div className="flex justify-between font-bold"><span>{outputs.extraSavingsRequired > 0 ? 'Additional Savings Required' : 'Funds Left Over'}</span><span className={outputs.extraSavingsRequired > 0 ? 'text-warning' : 'text-success'}>{fmt(outputs.extraSavingsRequired > 0 ? outputs.extraSavingsRequired : outputs.surplusFunds)}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Monthly Repayment at target</span><span className="font-semibold">{fmt(outputs.targetMonthlyRepayment)}</span></div>
                 </div>
-              </CardContent>
-            )}
+            </CardContent>
           </Card>
         )}
 
