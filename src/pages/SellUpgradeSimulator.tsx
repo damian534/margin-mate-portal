@@ -225,8 +225,55 @@ export default function SellUpgradeSimulator() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <Card>
             <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><DollarSign className="w-4 h-4 text-primary" /> Additional Savings</CardTitle></CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <CurrencyInput label="Cash savings to put towards the purchase" placeholder="e.g. 50,000" value={savings} onChange={setSavings} />
+              {useTargetLvr && (
+                <p className="text-xs text-muted-foreground -mt-2">Auto-calculated from your target LVR below. Turn the target off to enter your own figure.</p>
+              )}
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2"><Target className="w-4 h-4 text-primary" /><Label className="cursor-pointer">Target LVR</Label></div>
+                <Switch checked={useTargetLvr} onCheckedChange={setUseTargetLvr} />
+              </div>
+              {useTargetLvr && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-28">
+                      <Input
+                        type="number"
+                        min={10}
+                        max={100}
+                        step={1}
+                        value={targetLvrInput}
+                        onChange={(e) => {
+                          setTargetLvrInput(e.target.value);
+                          const val = parseFloat(e.target.value);
+                          if (!isNaN(val) && val > 0 && val <= 100) setTargetLvr(val);
+                        }}
+                        onBlur={() => setTargetLvrInput(String(targetLvr))}
+                        className="pr-7"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                    </div>
+                    <Slider className="flex-1" value={[targetLvr]} onValueChange={([v]) => { setTargetLvr(v); setTargetLvrInput(String(v)); }} min={50} max={95} step={1} />
+                  </div>
+                  <p className="text-xs text-muted-foreground">80% or below avoids Lenders Mortgage Insurance.</p>
+                  {outputs && (
+                    outputs.extraSavingsRequired > 0 ? (
+                      <div className="rounded-lg p-3 bg-warning/10 ring-1 ring-warning/30">
+                        <p className="text-xs text-muted-foreground uppercase">Shortfall — savings required</p>
+                        <p className="text-lg font-bold text-warning">{fmt(outputs.extraSavingsRequired)}</p>
+                      </div>
+                    ) : (
+                      <div className="rounded-lg p-3 bg-success/10 ring-1 ring-success/30">
+                        <p className="text-xs text-muted-foreground uppercase">Surplus after settlement</p>
+                        <p className="text-lg font-bold text-success">{fmt(outputs.surplusFunds)}</p>
+                        <p className="text-xs text-muted-foreground mt-1">Sale proceeds already cover a {fmtPct(targetLvr)} LVR loan.</p>
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
           <Card>
