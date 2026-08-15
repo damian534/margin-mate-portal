@@ -113,6 +113,15 @@ export default function SellUpgradeSimulator() {
     };
   }, [currentHomeValue, mortgageOwing, sellingCostPct, targetPurchasePrice, buyingState, isFirstHomeBuyer, otherBuyingCosts, savings, interestRate, targetLvr]);
 
+  // When a target LVR is set, the shortfall becomes the additional savings needed
+  useEffect(() => {
+    if (!useTargetLvr || !outputs) return;
+    const required = Math.round(outputs.extraSavingsRequired);
+    if (Math.abs(parseCurrency(savings) - required) > 1) {
+      setSavings(required ? required.toLocaleString('en-AU') : '0');
+    }
+  }, [useTargetLvr, outputs?.extraSavingsRequired]);
+
   const handleSaveScenario = async () => {
     if (!outputs || !user || isPreviewMode) {
       toast.info('Log in to save scenarios');
