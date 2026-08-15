@@ -4,7 +4,7 @@
 // All maths runs at full precision; rounding is a display concern.
 // ─────────────────────────────────────────────────────────────
 import {
-  PropertyTaxCategory, taxRules, taxDelta, totalTax, marginalRate,
+  PropertyTaxCategory, taxRules, taxDelta, marginalRate,
   negativeGearingAllowed, isGrandfatheredByDate,
 } from "./taxRules";
 
