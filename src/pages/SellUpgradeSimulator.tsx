@@ -8,7 +8,7 @@ import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Home, ShoppingCart, DollarSign, Percent, Info, Save } from 'lucide-react';
+import { ArrowLeft, Home, ShoppingCart, DollarSign, Percent, Info, Save, Target } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -61,6 +61,10 @@ export default function SellUpgradeSimulator() {
   const [interestRate, setInterestRate] = useState('6.0');
   const loanTerm = 30;
 
+  // Target LVR planner
+  const [useTargetLvr, setUseTargetLvr] = useState(false);
+  const [targetLvr, setTargetLvr] = useState(80);
+
   const outputs = useMemo(() => {
     const chv = parseCurrency(currentHomeValue);
     const mo = parseCurrency(mortgageOwing);
@@ -90,14 +94,22 @@ export default function SellUpgradeSimulator() {
     const totalRepaid = monthlyRepayment * loanTerm * 12;
     const totalInterest = totalRepaid - loanRequired;
 
+    // --- Target LVR planning ---
+    const targetLoan = tp * (targetLvr / 100);
+    const fundsNeededForTarget = Math.max(0, totalPurchaseCost - targetLoan);
+    const extraSavingsRequired = Math.max(0, fundsNeededForTarget - totalFundsAvailable);
+    const surplusFunds = Math.max(0, totalFundsAvailable - fundsNeededForTarget);
+    const targetMonthlyRepayment = targetLoan > 0 ? calcRepayment(targetLoan, rate, loanTerm) : 0;
+
     return {
       sellingCosts, netSaleProceeds,
       stampDutyGross, stampDutyConcession, stampDuty,
       otherCosts, totalBuyingCosts, totalPurchaseCost,
       totalFundsAvailable, loanRequired, lvr, lmiApplies, sav,
       monthlyRepayment, fortnightlyRepayment, weeklyRepayment, totalRepaid, totalInterest,
+      targetLoan, fundsNeededForTarget, extraSavingsRequired, surplusFunds, targetMonthlyRepayment,
     };
-  }, [currentHomeValue, mortgageOwing, sellingCostPct, targetPurchasePrice, buyingState, isFirstHomeBuyer, otherBuyingCosts, savings, interestRate]);
+  }, [currentHomeValue, mortgageOwing, sellingCostPct, targetPurchasePrice, buyingState, isFirstHomeBuyer, otherBuyingCosts, savings, interestRate, targetLvr]);
 
   const handleSaveScenario = async () => {
     if (!outputs || !user || isPreviewMode) {
@@ -217,6 +229,43 @@ export default function SellUpgradeSimulator() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Breakdown */}
+        {outputs && (
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-4">
+                <CardTitle className="text-base flex items-center gap-2"><Target className="w-4 h-4 text-primary" /> Target LVR Planner</CardTitle>
+                <Switch checked={useTargetLvr} onCheckedChange={setUseTargetLvr} />
+              </div>
+            </CardHeader>
+            {useTargetLvr && (
+              <CardContent className="space-y-4">
+                <div>
+                  <div className="flex justify-between mb-1"><Label>Target LVR on the new loan</Label><span className="text-sm font-semibold text-primary">{fmtPct(targetLvr)}</span></div>
+                  <Slider value={[targetLvr]} onValueChange={([v]) => setTargetLvr(v)} min={50} max={95} step={1} />
+                  <p className="text-xs text-muted-foreground mt-1">80% or below avoids Lenders Mortgage Insurance.</p>
+                </div>
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div className="text-center p-3 rounded-lg bg-muted"><p className="text-xs text-muted-foreground uppercase">Loan at {fmtPct(targetLvr)}</p><p className="text-lg font-bold">{fmt(outputs.targetLoan)}</p></div>
+                  <div className="text-center p-3 rounded-lg bg-muted"><p className="text-xs text-muted-foreground uppercase">Funds Needed</p><p className="text-lg font-bold">{fmt(outputs.fundsNeededForTarget)}</p></div>
+                  <div className={`text-center p-3 rounded-lg col-span-2 lg:col-span-1 ${outputs.extraSavingsRequired > 0 ? 'bg-warning/10 ring-1 ring-warning/30' : 'bg-success/10 ring-1 ring-success/30'}`}>
+                    <p className="text-xs text-muted-foreground uppercase">{outputs.extraSavingsRequired > 0 ? 'Extra Savings Required' : 'Surplus Funds'}</p>
+                    <p className={`text-lg font-bold ${outputs.extraSavingsRequired > 0 ? 'text-warning' : 'text-success'}`}>{fmt(outputs.extraSavingsRequired > 0 ? outputs.extraSavingsRequired : outputs.surplusFunds)}</p>
+                  </div>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Total Purchase Cost</span><span className="font-semibold">{fmt(outputs.totalPurchaseCost)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Less Loan at {fmtPct(targetLvr)} LVR</span><span className="font-semibold">-{fmt(outputs.targetLoan)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Less Funds Available (proceeds + savings)</span><span className="font-semibold">-{fmt(outputs.totalFundsAvailable)}</span></div>
+                  <Separator />
+                  <div className="flex justify-between font-bold"><span>{outputs.extraSavingsRequired > 0 ? 'Additional Savings Required' : 'Funds Left Over'}</span><span className={outputs.extraSavingsRequired > 0 ? 'text-warning' : 'text-success'}>{fmt(outputs.extraSavingsRequired > 0 ? outputs.extraSavingsRequired : outputs.surplusFunds)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Monthly Repayment at target</span><span className="font-semibold">{fmt(outputs.targetMonthlyRepayment)}</span></div>
+                </div>
+              </CardContent>
+            )}
+          </Card>
+        )}
 
         {/* Breakdown */}
         {outputs && (

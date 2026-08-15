@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Home, Landmark, Info } from 'lucide-react';
+import { ArrowLeft, Home, Landmark, Info, Target } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { StateKey, stateCalcs, stateLabels, fhbNotes } from '@/lib/stampDutyRates';
@@ -25,6 +26,9 @@ export default function StampDutyCalculator() {
   const [state, setState] = useState<StateKey>('VIC');
   const [isFirstHomeBuyer, setIsFirstHomeBuyer] = useState(false);
   const [hasMortgage, setHasMortgage] = useState(true);
+  const [useTargetLvr, setUseTargetLvr] = useState(false);
+  const [targetLvr, setTargetLvr] = useState(80);
+  const [currentSavings, setCurrentSavings] = useState('');
 
   const results = useMemo(() => {
     const price = parseCurrency(purchasePrice);
@@ -47,8 +51,16 @@ export default function StampDutyCalculator() {
       };
     });
 
-    return { duty, concession, netDuty, dutyPercent, price, comparison, fees, totalGovCharges };
-  }, [purchasePrice, state, isFirstHomeBuyer, hasMortgage]);
+    // Target LVR planning
+    const targetLoan = price * (targetLvr / 100);
+    const depositRequired = Math.max(0, price - targetLoan);
+    const cashRequired = depositRequired + totalGovCharges;
+    const savings = parseCurrency(currentSavings);
+    const extraSavingsRequired = Math.max(0, cashRequired - savings);
+    const surplusFunds = Math.max(0, savings - cashRequired);
+
+    return { duty, concession, netDuty, dutyPercent, price, comparison, fees, totalGovCharges, targetLoan, depositRequired, cashRequired, savings, extraSavingsRequired, surplusFunds };
+  }, [purchasePrice, state, isFirstHomeBuyer, hasMortgage, targetLvr, currentSavings]);
 
   const handleCurrencyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/[^0-9.]/g, '');
@@ -195,6 +207,46 @@ export default function StampDutyCalculator() {
             </Card>
           )}
         </div>
+
+        {/* State Comparison Chart */}
+        {results && (
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-4">
+                <CardTitle className="text-base flex items-center gap-2"><Target className="w-4 h-4 text-primary" /> Target LVR &amp; Deposit Planner</CardTitle>
+                <Switch checked={useTargetLvr} onCheckedChange={setUseTargetLvr} />
+              </div>
+            </CardHeader>
+            {useTargetLvr && (
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <div className="flex justify-between mb-1"><Label>Target LVR on the loan</Label><span className="text-sm font-semibold text-primary">{targetLvr.toFixed(0)}%</span></div>
+                    <Slider value={[targetLvr]} onValueChange={([v]) => setTargetLvr(v)} min={50} max={95} step={1} />
+                    <p className="text-xs text-muted-foreground mt-1">80% or below avoids Lenders Mortgage Insurance.</p>
+                  </div>
+                  <div>
+                    <Label>Savings Available</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                      <Input className="pl-7" placeholder="e.g. 150,000" value={currentSavings}
+                        onChange={(e) => { const raw = e.target.value.replace(/[^0-9.]/g, ''); setCurrentSavings(raw ? parseFloat(raw).toLocaleString() : ''); }} />
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="text-center p-3 rounded-lg bg-muted"><p className="text-xs text-muted-foreground uppercase">Loan at {targetLvr.toFixed(0)}%</p><p className="text-lg font-bold">{fmt(results.targetLoan)}</p></div>
+                  <div className="text-center p-3 rounded-lg bg-muted"><p className="text-xs text-muted-foreground uppercase">Deposit Required</p><p className="text-lg font-bold">{fmt(results.depositRequired)}</p></div>
+                  <div className="text-center p-3 rounded-lg bg-muted"><p className="text-xs text-muted-foreground uppercase">Deposit + Gov Charges</p><p className="text-lg font-bold">{fmt(results.cashRequired)}</p></div>
+                  <div className={`text-center p-3 rounded-lg ${results.extraSavingsRequired > 0 ? 'bg-warning/10 ring-1 ring-warning/30' : 'bg-success/10 ring-1 ring-success/30'}`}>
+                    <p className="text-xs text-muted-foreground uppercase">{results.extraSavingsRequired > 0 ? 'Extra Savings Required' : 'Surplus Funds'}</p>
+                    <p className={`text-lg font-bold ${results.extraSavingsRequired > 0 ? 'text-warning' : 'text-success'}`}>{fmt(results.extraSavingsRequired > 0 ? results.extraSavingsRequired : results.surplusFunds)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            )}
+          </Card>
+        )}
 
         {/* State Comparison Chart */}
         {results && (
