@@ -1,0 +1,206 @@
+import type { FlowType, LeadEntity, LeadEntityFlow } from './types';
+
+export interface ApplicantIncome {
+  entityId: string;
+  name: string;
+  total: number;
+  byType: Record<string, number>;
+}
+
+export interface ServicingWarning {
+  kind: 'dead_end' | 'cycle' | 'orphan_flow' | 'excluded';
+  message: string;
+}
+
+export interface ServicingSummary {
+  applicants: ApplicantIncome[];
+  totalServiceable: number;
+  totalTrapped: number;
+  warnings: ServicingWarning[];
+}
+
+export function flowsForYear(flows: LeadEntityFlow[], fy: number): LeadEntityFlow[] {
+  return flows.filter(f => f.financial_year === fy);
+}
+
+/** Aggregate income landing on applicant entities for a financial year. */
+export function computeServicing(
+  entities: LeadEntity[],
+  flows: LeadEntityFlow[],
+  fy: number,
+): ServicingSummary {
+  const byId = new Map(entities.map(e => [e.id, e]));
+  const yearFlows = flowsForYear(flows, fy);
+  const applicants = new Map<string, ApplicantIncome>();
+  const warnings: ServicingWarning[] = [];
+  let totalTrapped = 0;
+
+  for (const e of entities) {
+    if (e.is_applicant) {
+      applicants.set(e.id, { entityId: e.id, name: e.name, total: 0, byType: {} });
+    }
+  }
+
+  for (const f of yearFlows) {
+    const to = byId.get(f.to_entity_id);
+    const from = byId.get(f.from_entity_id);
+    if (!to || !from) {
+      warnings.push({ kind: 'orphan_flow', message: 'A flow points at an entity that no longer exists.' });
+      continue;
+    }
+    if (!to.is_applicant) {
+      totalTrapped += f.amount;
+      continue;
+    }
+    if (!f.use_for_servicing) {
+      warnings.push({
+        kind: 'excluded',
+        message: `${formatMoney(f.amount)} from ${from.name} to ${to.name} is marked as not usable for servicing.`,
+      });
+      continue;
+    }
+    const acc = applicants.get(to.id)!;
+    acc.total += f.amount;
+    acc.byType[f.flow_type] = (acc.byType[f.flow_type] ?? 0) + f.amount;
+  }
+
+  // Money that stops at a non-applicant entity and is never passed on
+  for (const e of entities) {
+    if (e.is_applicant) continue;
+    const incoming = yearFlows.filter(f => f.to_entity_id === e.id);
+    const outgoing = yearFlows.filter(f => f.from_entity_id === e.id);
+    const inSum = sum(incoming.map(f => f.amount));
+    const outSum = sum(outgoing.map(f => f.amount));
+    if (inSum > 0 && outSum < inSum) {
+      warnings.push({
+        kind: 'dead_end',
+        message: `${formatMoney(inSum - outSum)} stays in ${e.name} (not an applicant) — not usable for servicing.`,
+      });
+    }
+  }
+
+  for (const cycle of detectCycles(entities, yearFlows)) {
+    warnings.push({ kind: 'cycle', message: `Circular distribution detected: ${cycle.join(' → ')}.` });
+  }
+
+  const list = [...applicants.values()].sort((a, b) => b.total - a.total);
+  return {
+    applicants: list,
+    totalServiceable: sum(list.map(a => a.total)),
+    totalTrapped,
+    warnings,
+  };
+}
+
+/** Upstream chain of entity ids feeding a target entity (breadth-first, cycle safe). */
+export function traceUpstream(
+  entityId: string,
+  flows: LeadEntityFlow[],
+  fy: number,
+): { entityIds: Set<string>; flowIds: Set<string> } {
+  const yearFlows = flowsForYear(flows, fy);
+  const entityIds = new Set<string>([entityId]);
+  const flowIds = new Set<string>();
+  const queue = [entityId];
+  while (queue.length) {
+    const current = queue.shift()!;
+    for (const f of yearFlows) {
+      if (f.to_entity_id !== current || flowIds.has(f.id)) continue;
+      flowIds.add(f.id);
+      if (!entityIds.has(f.from_entity_id)) {
+        entityIds.add(f.from_entity_id);
+        queue.push(f.from_entity_id);
+      }
+    }
+  }
+  return { entityIds, flowIds };
+}
+
+export function detectCycles(entities: LeadEntity[], flows: LeadEntityFlow[]): string[][] {
+  const nameOf = new Map(entities.map(e => [e.id, e.name]));
+  const adjacency = new Map<string, string[]>();
+  for (const f of flows) {
+    adjacency.set(f.from_entity_id, [...(adjacency.get(f.from_entity_id) ?? []), f.to_entity_id]);
+  }
+  const cycles: string[][] = [];
+  const seenKeys = new Set<string>();
+  const state = new Map<string, 0 | 1 | 2>();
+  const stack: string[] = [];
+
+  const visit = (node: string) => {
+    state.set(node, 1);
+    stack.push(node);
+    for (const next of adjacency.get(node) ?? []) {
+      if (state.get(next) === 1) {
+        const start = stack.indexOf(next);
+        const loop = stack.slice(start).concat(next);
+        const key = [...loop].sort().join('|');
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key);
+          cycles.push(loop.map(id => nameOf.get(id) ?? '?'));
+        }
+      } else if (!state.get(next)) {
+        visit(next);
+      }
+    }
+    stack.pop();
+    state.set(node, 2);
+  };
+
+  for (const e of entities) if (!state.get(e.id)) visit(e.id);
+  return cycles;
+}
+
+/** Simple layered layout: sources at the top, applicants at the bottom. */
+export function autoLayout(entities: LeadEntity[], flows: LeadEntityFlow[]) {
+  const depth = new Map<string, number>();
+  const incoming = new Map<string, string[]>();
+  for (const f of flows) {
+    incoming.set(f.to_entity_id, [...(incoming.get(f.to_entity_id) ?? []), f.from_entity_id]);
+  }
+  const resolve = (id: string, seen: Set<string>): number => {
+    if (depth.has(id)) return depth.get(id)!;
+    if (seen.has(id)) return 0;
+    seen.add(id);
+    const parents = incoming.get(id) ?? [];
+    const value = parents.length ? Math.max(...parents.map(p => resolve(p, seen))) + 1 : 0;
+    depth.set(id, value);
+    return value;
+  };
+  entities.forEach(e => resolve(e.id, new Set()));
+
+  const rows = new Map<number, LeadEntity[]>();
+  for (const e of entities) {
+    const d = depth.get(e.id) ?? 0;
+    rows.set(d, [...(rows.get(d) ?? []), e]);
+  }
+  const positions: Record<string, { x: number; y: number }> = {};
+  [...rows.keys()].sort((a, b) => a - b).forEach(d => {
+    (rows.get(d) ?? []).forEach((e, i) => {
+      positions[e.id] = { x: 40 + i * 260, y: 40 + d * 170 };
+    });
+  });
+  return positions;
+}
+
+export function sum(values: number[]): number {
+  return values.reduce((a, b) => a + b, 0);
+}
+
+export function formatMoney(value: number): string {
+  return `$${Math.round(value).toLocaleString()}`;
+}
+
+export const FLOW_TYPE_ORDER: FlowType[] = [
+  'trust_distribution', 'dividend', 'wages', 'director_fee',
+  'partnership_share', 'net_profit', 'retained_profit', 'other',
+];
+
+/** Australian FY label for a FY end year (2026 => "FY 2025/26"). */
+export function fyLabel(fy: number): string {
+  return `FY ${fy - 1}/${String(fy).slice(2)}`;
+}
+
+export function currentFinancialYear(now = new Date()): number {
+  return now.getMonth() >= 6 ? now.getFullYear() + 1 : now.getFullYear();
+}
