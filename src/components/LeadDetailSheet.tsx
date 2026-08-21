@@ -36,6 +36,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { CoApplicantPicker } from '@/components/CoApplicantPicker';
 import { ProfessionalContactsSection } from '@/components/ProfessionalContactsSection';
 import { SubjectToFinanceSection } from '@/components/SubjectToFinanceSection';
+import { EntityMapSection } from '@/components/lead/entity-map/EntityMapSection';
 import { PreApprovalSection } from '@/components/PreApprovalSection';
 import { MeetingNotesSection } from '@/components/MeetingNotesSection';
 import { LoanSplitsEditor } from '@/components/LoanSplitsEditor';
