@@ -1972,6 +1972,10 @@ export function LeadDetailSheet({
             />
           </div>
 
+          <EntityMapSection leadId={lead.id} isPreviewMode={isPreviewMode} />
+
+
+
           {/* Deal Setup + Pre-Approval — side by side when Pre Approval applies */}
           <div id="sec-status" className="scroll-mt-16" />
           <div className={lead.loan_purpose === 'pre_approval' ? "lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start space-y-4 lg:space-y-0 mb-3" : "mb-3"}>
