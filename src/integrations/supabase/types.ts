@@ -916,6 +916,197 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_entities: {
+        Row: {
+          abn: string | null
+          acn: string | null
+          created_at: string
+          entity_type: string
+          fy_end: string | null
+          id: string
+          is_applicant: boolean
+          lead_id: string
+          name: string
+          notes: string | null
+          position_x: number
+          position_y: number
+          sort_order: number
+          trustee_entity_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          abn?: string | null
+          acn?: string | null
+          created_at?: string
+          entity_type?: string
+          fy_end?: string | null
+          id?: string
+          is_applicant?: boolean
+          lead_id: string
+          name: string
+          notes?: string | null
+          position_x?: number
+          position_y?: number
+          sort_order?: number
+          trustee_entity_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          abn?: string | null
+          acn?: string | null
+          created_at?: string
+          entity_type?: string
+          fy_end?: string | null
+          id?: string
+          is_applicant?: boolean
+          lead_id?: string
+          name?: string
+          notes?: string | null
+          position_x?: number
+          position_y?: number
+          sort_order?: number
+          trustee_entity_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_entities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_entities_trustee_entity_id_fkey"
+            columns: ["trustee_entity_id"]
+            isOneToOne: false
+            referencedRelation: "lead_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_entity_flows: {
+        Row: {
+          amount: number
+          created_at: string
+          financial_year: number
+          flow_type: string
+          from_entity_id: string
+          id: string
+          lead_id: string
+          notes: string | null
+          to_entity_id: string
+          updated_at: string
+          use_for_servicing: boolean
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          financial_year: number
+          flow_type?: string
+          from_entity_id: string
+          id?: string
+          lead_id: string
+          notes?: string | null
+          to_entity_id: string
+          updated_at?: string
+          use_for_servicing?: boolean
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          financial_year?: number
+          flow_type?: string
+          from_entity_id?: string
+          id?: string
+          lead_id?: string
+          notes?: string | null
+          to_entity_id?: string
+          updated_at?: string
+          use_for_servicing?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_entity_flows_from_entity_id_fkey"
+            columns: ["from_entity_id"]
+            isOneToOne: false
+            referencedRelation: "lead_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_entity_flows_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_entity_flows_to_entity_id_fkey"
+            columns: ["to_entity_id"]
+            isOneToOne: false
+            referencedRelation: "lead_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_entity_roles: {
+        Row: {
+          created_at: string
+          entity_id: string
+          id: string
+          lead_id: string
+          percentage: number | null
+          person_entity_id: string | null
+          person_name: string | null
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          id?: string
+          lead_id: string
+          percentage?: number | null
+          person_entity_id?: string | null
+          person_name?: string | null
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          id?: string
+          lead_id?: string
+          percentage?: number | null
+          person_entity_id?: string | null
+          person_name?: string | null
+          role?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_entity_roles_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "lead_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_entity_roles_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_entity_roles_person_entity_id_fkey"
+            columns: ["person_entity_id"]
+            isOneToOne: false
+            referencedRelation: "lead_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_finance_extensions: {
         Row: {
           created_at: string
@@ -2056,6 +2247,8 @@ export type Database = {
         Args: { _referral_id: string }
         Returns: undefined
       }
+      can_manage_lead: { Args: { _lead_id: string }; Returns: boolean }
+      can_view_lead_partner: { Args: { _lead_id: string }; Returns: boolean }
       can_view_referrer_profile_for_referred_lead: {
         Args: {
           _profile_id: string
