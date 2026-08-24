@@ -246,10 +246,15 @@ export default function AdminCRM() {
   }, [leads, search, statusFilter, assigneeFilter, taskDueFilter, referrers, tasksByLead]);
 
   const fetchLeads = async () => {
-    const { data } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
+    const tenantId = effectiveBrokerId || user?.id;
+    let query = supabase.from('leads').select('*').order('created_at', { ascending: false });
+    // Only ever show the current broker/tenant's own deals (super admins included)
+    if (tenantId && !isPreviewMode) query = query.eq('broker_id', tenantId);
+    const { data } = await query;
     setLeads((data as Lead[]) || []);
     setLoading(false);
   };
+
 
   const fetchCompanies = async () => {
     const { data } = await supabase.from('companies').select('*').order('name');
