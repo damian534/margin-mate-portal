@@ -420,8 +420,9 @@ export function FundsPositionCalculator({
           </div>
 
           {/* Govt charges */}
-          <div className="bg-card p-3 space-y-3">
-            <p className="text-sm font-medium">Govt Charges</p>
+          <FundsSection title="Government charges" summary={money(r.govCharges)} icon={<Landmark className="h-4 w-4" />}>
+            <div className="space-y-3">
+
             <AutoField
               label="Total"
               field={i.govTotalOverride}
