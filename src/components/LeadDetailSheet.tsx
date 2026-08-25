@@ -27,7 +27,7 @@ import {
   Calendar, Plus, CheckCircle, Check, Clock, AlertTriangle,
   MessageSquare, Activity, ChevronDown, ChevronRight, Pencil, X, Save, FileDown,
   Search, ExternalLink, FileText, Copy, Flag, Settings as SettingsIcon,
-  Bold, Italic, List, ListOrdered, ListChecks, Pin, PinOff
+  Bold, Italic, List, ListOrdered, ListChecks, Pin, PinOff, ClipboardList
 } from 'lucide-react';
 import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectionPanel';
 import { ReferLeadDialog } from '@/components/ReferLeadDialog';
@@ -42,6 +42,8 @@ import { MeetingNotesSection } from '@/components/MeetingNotesSection';
 import { LoanSplitsEditor } from '@/components/LoanSplitsEditor';
 import { SectionCard } from '@/components/lead/SectionCard';
 import { ClientFileTabs, type ClientFileTab } from '@/components/lead/tabs/ClientFileTabs';
+import { FactFindWizardDialog } from '@/components/lead/FactFindWizardDialog';
+
 import { ClientsTab } from '@/components/lead/tabs/ClientsTab';
 import { AddressesTab } from '@/components/lead/tabs/AddressesTab';
 import { EmploymentIdTab } from '@/components/lead/tabs/EmploymentIdTab';
@@ -284,6 +286,9 @@ export function LeadDetailSheet({
     }
   }, [showTaskForm, user?.id]);
   const [activeTab, setActiveTab] = useState<ClientFileTab>('summary');
+  const [factFindOpen, setFactFindOpen] = useState(false);
+  const [factFindVersion, setFactFindVersion] = useState(0);
+
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<{ id: string; title: string; dueDate: string } | null>(null);
   const [taskNoteText, setTaskNoteText] = useState('');
@@ -1307,9 +1312,19 @@ export function LeadDetailSheet({
           </div>
         </div>
 
-        <ClientFileTabs value={activeTab} onChange={setActiveTab} />
+        <ClientFileTabs
+          value={activeTab}
+          onChange={setActiveTab}
+          action={!isPreviewMode ? (
+            <Button size="sm" className="gap-1.5 h-8 text-xs" onClick={() => setFactFindOpen(true)}>
+              <ClipboardList className="w-3.5 h-3.5" />
+              Fact find (call mode)
+            </Button>
+          ) : undefined}
+        />
 
-        <div className="p-6 pb-2">
+        <div className="p-6 pb-2" key={`tabbody-${factFindVersion}`}>
+
           {activeTab === 'summary' && (<>
           {/* Referral Partner */}
           <div id="sec-referrals" className="scroll-mt-16 mb-3 rounded-lg border border-border bg-muted/20 overflow-hidden">
@@ -2543,6 +2558,20 @@ export function LeadDetailSheet({
           })()}
         </DialogContent>
       </Dialog>
+      <FactFindWizardDialog
+        open={factFindOpen}
+        onOpenChange={setFactFindOpen}
+        leadId={lead.id}
+        isPreviewMode={isPreviewMode}
+        prefill={{
+          email: lead.email ?? undefined,
+          phone: lead.phone ?? undefined,
+          firstName: lead.first_name ?? undefined,
+          lastName: lead.last_name ?? undefined,
+        }}
+        onComplete={() => setFactFindVersion(v => v + 1)}
+      />
     </Sheet>
+
   );
 }
