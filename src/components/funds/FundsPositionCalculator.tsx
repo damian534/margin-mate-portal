@@ -476,8 +476,9 @@ export function FundsPositionCalculator({
           </div>
 
           {/* Fees */}
-          <div className="bg-card p-3 space-y-3">
-            <p className="text-sm font-medium">Fees</p>
+          <FundsSection title="Fees" summary={money(r.fees)} icon={<Receipt className="h-4 w-4" />}>
+            <div className="space-y-3">
+
             <div className="rounded-md border bg-muted/40 px-2 py-1.5">
               <span className="text-[11px] uppercase text-muted-foreground">Total Fees</span>
               <p className="font-semibold">{money(r.fees)}</p>
