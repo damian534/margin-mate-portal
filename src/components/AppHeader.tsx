@@ -36,6 +36,7 @@ export function AppHeader() {
           <nav className="flex items-center gap-2">
 
             {user ? (
+              hideNavLinks ? null : (
               <>
                 <Button
                   variant="outline"
@@ -97,6 +98,7 @@ export function AppHeader() {
                   </Button>
                 )}
               </>
+              )
             ) : (
               <>
                 <Button variant="ghost" size="sm" onClick={() => navigate('/login')}>
