@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Plus, Upload, FileText, CheckCircle2, XCircle, Clock, Trash2, Download, UserPlus, Users, Sparkles, Send, Mail, AlertTriangle } from 'lucide-react';
+import { Plus, Upload, FileText, CheckCircle2, XCircle, Clock, Trash2, Download, UserPlus, Users, Sparkles, Send, Mail, AlertTriangle, FileDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
 import { RequestMirDialog } from './RequestMirDialog';
@@ -126,6 +126,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   const [newApplicantEmail, setNewApplicantEmail] = useState('');
   const [newApplicantPhone, setNewApplicantPhone] = useState('');
   const [isRequesting, setIsRequesting] = useState(false);
+  const [isZipping, setIsZipping] = useState(false);
   const [addingTo, setAddingTo] = useState<{ section: string; applicantId: string | null } | null>(null);
   const [newDocName, setNewDocName] = useState('');
   const [newDocDescription, setNewDocDescription] = useState('');
