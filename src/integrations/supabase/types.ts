@@ -334,6 +334,41 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_financials: {
+        Row: {
+          contact_id: string
+          created_at: string
+          data: Json
+          id: string
+          section: string
+          updated_at: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          data?: Json
+          id?: string
+          section: string
+          updated_at?: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          data?: Json
+          id?: string
+          section?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_financials_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           audience_tags: string[]
