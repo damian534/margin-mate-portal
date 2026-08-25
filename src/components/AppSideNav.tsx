@@ -36,15 +36,21 @@ interface AppSideNavProps {
 
 export function AppSideNav({ activeTab, onSelectTab, pendingReferralsCount = 0 }: AppSideNavProps) {
   const [navOpen, setNavOpen] = usePersistedState<boolean>('crm.nav.open', true);
-  const { signOut, isPreviewMode, isBrokerOrAdmin } = useAuth();
+  const { signOut, isPreviewMode, isBrokerOrAdmin, role } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { isToolEnabled } = useToolVisibility();
 
   const suffix = isPreviewMode ? '?preview=true' : '';
   const onCrm = pathname === '/admin';
+  const isSuperAdmin = role === 'super_admin';
+
+  const visibleTools = TOOLS.filter(
+    t => (isSuperAdmin || isToolEnabled(t.id)) && (!t.brokerOnly || isBrokerOrAdmin),
+  );
+  const onTools = pathname.startsWith('/tools');
 
   const links = [
-    { label: 'Tools', icon: Wrench, path: '/tools', onClick: () => navigate(`/tools${suffix}`) },
     ...(isBrokerOrAdmin
       ? [
           { label: 'Settlements', icon: Landmark, path: '/admin/settlements', onClick: () => navigate(`/admin/settlements${suffix}`) },
@@ -53,6 +59,7 @@ export function AppSideNav({ activeTab, onSelectTab, pendingReferralsCount = 0 }
       : []),
     ...(!isPreviewMode ? [{ label: 'Sign Out', icon: LogOut, path: '', onClick: signOut }] : []),
   ];
+
 
   return (
     <aside
