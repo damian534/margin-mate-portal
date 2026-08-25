@@ -57,6 +57,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn } from '@/lib/utils';
 import { WIP_STATUSES } from './WIPDashboard';
 import { useWipStatuses } from '@/hooks/useWipStatuses';
+import { FundsSnapshotCard } from '@/components/funds/FundsSnapshotCard';
 
 // Circular tick checkbox used for tasks
 const TaskCircleCheck = ({
@@ -2295,6 +2296,17 @@ export function LeadDetailSheet({
           </div>
           )}
 
+
+          {/* Latest saved funding position */}
+          {activeTab === 'summary' && (
+            <FundsSnapshotCard
+              leadId={lead.id}
+              clientName={lead.opportunity_name || [lead.first_name, lead.last_name].filter(Boolean).join(' ')}
+              referralPartnerId={lead.referral_partner_id}
+              isPreviewMode={isPreviewMode}
+              className="mt-3"
+            />
+          )}
 
           {/* Read-only info */}
           {activeTab === 'summary' && (

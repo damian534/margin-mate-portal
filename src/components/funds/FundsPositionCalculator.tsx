@@ -77,7 +77,7 @@ export function FundsPositionCalculator({
   const r = useMemo(() => calculateFundsPosition(i), [i]);
   const warnings = useMemo(() => validateFundsPosition(i, r), [i, r]);
 
-  const { scenarios, save, remove } = useFundsScenarios(leadId, !isPreviewMode);
+  const { scenarios, save, restore, remove } = useFundsScenarios(leadId, !isPreviewMode);
   const [compareOpen, setCompareOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
   const [lenderPickerOpen, setLenderPickerOpen] = useState(false);
@@ -593,6 +593,8 @@ export function FundsPositionCalculator({
       <SavedScenariosPanel
         scenarios={scenarios}
         hideDeal={Boolean(leadId)}
+        clientName={clientName}
+        onRestore={restore}
         onCompare={() => setCompareOpen(true)}
         onLoad={s => {
           setI(s.inputs);

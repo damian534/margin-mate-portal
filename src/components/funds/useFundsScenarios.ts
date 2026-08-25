@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateFundsPosition } from '@/lib/fundsPosition/calc';
 import type { FundsPositionInputs, FundsPositionResult } from '@/lib/fundsPosition/types';
@@ -12,10 +12,50 @@ export interface SavedFundsScenario {
   createdAt: string;
   inputs: FundsPositionInputs;
   result: FundsPositionResult;
+  /** 1 = first save, incrementing with every re-save under the same name. */
+  version: number;
+}
+
+/** All versions saved under one scenario name (newest first). */
+export interface FundsScenarioGroup {
+  key: string;
+  name: string;
+  leadId: string | null;
+  latest: SavedFundsScenario;
+  versions: SavedFundsScenario[];
 }
 
 const money = (n: number) =>
   `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n || 0)).toLocaleString('en-AU')}`;
+
+export const scenarioGroupKey = (s: { name: string; leadId: string | null }) =>
+  `${s.leadId ?? 'none'}::${s.name.trim().toLowerCase()}`;
+
+/** Groups saved rows into version histories, newest version first. */
+export function groupFundsScenarios(rows: SavedFundsScenario[]): FundsScenarioGroup[] {
+  const map = new Map<string, SavedFundsScenario[]>();
+  rows.forEach(s => {
+    const key = scenarioGroupKey(s);
+    map.set(key, [...(map.get(key) ?? []), s]);
+  });
+
+  return Array.from(map.entries())
+    .map(([key, list]) => {
+      const versions = [...list].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+      const total = versions.length;
+      versions.forEach((v, idx) => {
+        v.version = total - idx;
+      });
+      return { key, name: versions[0].name, leadId: versions[0].leadId, latest: versions[0], versions };
+    })
+    .sort(
+      (a, b) =>
+        new Date(b.latest.createdAt).getTime() - new Date(a.latest.createdAt).getTime(),
+    );
+}
+
 
 /** Saved funding-position scenarios for the signed-in broker, optionally scoped to a deal. */
 export function useFundsScenarios(leadId?: string | null, enabled = true) {
@@ -46,7 +86,9 @@ export function useFundsScenarios(leadId?: string | null, enabled = true) {
           createdAt: row.created_at as string,
           inputs,
           result: (row.outputs as FundsPositionResult) ?? calculateFundsPosition(inputs),
+          version: 1,
         } as SavedFundsScenario;
+
       })
       .filter(Boolean) as SavedFundsScenario[];
 
@@ -62,7 +104,7 @@ export function useFundsScenarios(leadId?: string | null, enabled = true) {
       name: string,
       inputs: FundsPositionInputs,
       result: FundsPositionResult,
-      options?: { leadId?: string | null; addNote?: boolean },
+      options?: { leadId?: string | null; addNote?: boolean; noteLabel?: string },
     ) => {
       const { data: auth } = await supabase.auth.getUser();
       const userId = auth?.user?.id;
@@ -83,8 +125,9 @@ export function useFundsScenarios(leadId?: string | null, enabled = true) {
           lead_id: targetLead,
           author_id: userId,
           content:
-            `💰 Funding position saved — "${name}" · Property ${money(result.propertyValue)} · ` +
-            `Loan ${money(result.totalLoan)} (${result.totalLVR.toFixed(2)}% LVR) · ` +
+            `💰 ${options.noteLabel ?? 'Funding position saved'} — "${name}" · Property ${money(result.propertyValue)} · ` +
+            `Loan ${money(result.totalLoan)} (${result.totalLVR.toFixed(2)}% LVR)` +
+            `${result.lmi > 0 ? ` · LMI ${money(result.lmi + result.lmiStampDuty)}${inputs.lenderName ? ` (${inputs.lenderName})` : ''}` : ''} · ` +
             `${result.netSurplus < 0 ? 'Shortfall' : 'Surplus'} ${money(Math.abs(result.netSurplus))}`,
         } as any);
       }
@@ -92,6 +135,20 @@ export function useFundsScenarios(leadId?: string | null, enabled = true) {
       await load();
     },
     [leadId, load],
+  );
+
+  /** Roll a scenario back by re-saving an older version as the newest one. */
+  const restore = useCallback(
+    async (scenario: SavedFundsScenario) => {
+      await save(scenario.name, scenario.inputs, scenario.result, {
+        leadId: scenario.leadId,
+        addNote: Boolean(scenario.leadId),
+        noteLabel: `Funding position rolled back to the version from ${new Date(
+          scenario.createdAt,
+        ).toLocaleString('en-AU')}`,
+      });
+    },
+    [save],
   );
 
   const remove = useCallback(
@@ -104,6 +161,8 @@ export function useFundsScenarios(leadId?: string | null, enabled = true) {
   );
 
   const scenarios = leadId ? allScenarios.filter(s => s.leadId === leadId) : allScenarios;
+  const groups = useMemo(() => groupFundsScenarios(scenarios), [scenarios]);
 
-  return { scenarios, allScenarios, loading, load, save, remove };
+  return { scenarios, allScenarios, groups, loading, load, save, restore, remove };
 }
+
