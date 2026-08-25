@@ -142,6 +142,8 @@ export function FinancialPositionEditor({ leadId, contactId, token, isPreviewMod
 
   const aggregates = useMemo(() => computeFactFindAggregates(data), [data]);
 
+  useEffect(() => { onAggregates?.(aggregates); }, [aggregates, onAggregates]);
+
   if (!loaded) {
     return <div className="py-12 text-center text-sm text-muted-foreground">Loading…</div>;
   }
@@ -151,24 +153,26 @@ export function FinancialPositionEditor({ leadId, contactId, token, isPreviewMod
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-1">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full border-2 border-primary/40 flex items-center justify-center">
-            <Wallet className="w-5 h-5 text-primary" />
+      {!hideHeader && (
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-1">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full border-2 border-primary/40 flex items-center justify-center">
+              <Wallet className="w-5 h-5 text-primary" />
+            </div>
+            <h2 className="text-xl font-semibold text-primary">Financials</h2>
           </div>
-          <h2 className="text-xl font-semibold text-primary">Financials</h2>
+          <div className="flex items-center gap-1.5 text-sm">
+            <Wallet className="w-4 h-4 text-primary" />
+            <span className="font-semibold text-primary">{fmtCurrency(aggregates.netPosition)}</span>
+            <span className="text-muted-foreground">Net Worth</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-sm">
+            <Coins className="w-4 h-4 text-primary" />
+            <span className="font-semibold text-primary">{fmtCurrency(aggregates.totalIncome)}</span>
+            <span className="text-muted-foreground">Total Income</span>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5 text-sm">
-          <Wallet className="w-4 h-4 text-primary" />
-          <span className="font-semibold text-primary">{fmtCurrency(aggregates.netPosition)}</span>
-          <span className="text-muted-foreground">Net Worth</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-sm">
-          <Coins className="w-4 h-4 text-primary" />
-          <span className="font-semibold text-primary">{fmtCurrency(aggregates.totalIncome)}</span>
-          <span className="text-muted-foreground">Total Income</span>
-        </div>
-      </div>
+      )}
 
       {/* Tabs */}
       <UnderlineTabs<TabKey>
