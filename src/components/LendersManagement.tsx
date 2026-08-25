@@ -13,8 +13,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import {
   Plus, Trash2, Building2, Search, CheckCircle2, Circle, Mail, Phone,
-  KeyRound, User, FileText, Eye, EyeOff, Copy
+  KeyRound, User, FileText, Eye, EyeOff, Copy, Percent
 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { LMI_PROVIDERS, quoteLmi, type LmiProviderKey } from '@/lib/fundsPosition/lmiProviders';
 
 interface Lender {
   id: string;
@@ -37,6 +39,90 @@ interface Lender {
   settlement_conditions: string | null;
   progress_payments: string | null;
   notes: string | null;
+  lmi_provider: string | null;
+  lmi_multiplier: number | null;
+  lmi_max_lvr: number | null;
+  lmi_max_capitalised_lvr: number | null;
+  lmi_waiver_max_lvr: number | null;
+  lmi_waiver_notes: string | null;
+  lmi_notes: string | null;
+}
+
+/** LMI settings block shown in the lender detail sheet. */
+function LmiSettings({ lender, onChange }: { lender: Lender; onChange: (patch: Partial<Lender>) => void }) {
+  const profile = {
+    provider: (lender.lmi_provider ?? 'generic') as LmiProviderKey,
+    multiplier: Number(lender.lmi_multiplier ?? 1) || 1,
+    maxLvr: Number(lender.lmi_max_lvr ?? 95) || 95,
+    maxCapitalisedLvr: Number(lender.lmi_max_capitalised_lvr ?? 97) || 97,
+    waiverMaxLvr: lender.lmi_waiver_max_lvr == null ? null : Number(lender.lmi_waiver_max_lvr),
+    waiverNotes: lender.lmi_waiver_notes,
+    customTable: null,
+  };
+  const sample = quoteLmi(profile, 760000, 95, false);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 pb-1 border-b border-border">
+        <Percent className="w-4 h-4 text-primary" />
+        <h4 className="text-sm font-semibold">LMI Pricing</h4>
+      </div>
+
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground">LMI Provider</Label>
+        <Select value={profile.provider} onValueChange={(v) => onChange({ lmi_provider: v })}>
+          <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {LMI_PROVIDERS.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Premium loading (1 = table rate)</Label>
+          <Input type="number" step="0.01" className="h-8 text-sm" value={profile.multiplier}
+            onChange={(e) => onChange({ lmi_multiplier: Number(e.target.value) })} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Max LVR with LMI (%)</Label>
+          <Input type="number" step="0.05" className="h-8 text-sm" value={profile.maxLvr}
+            onChange={(e) => onChange({ lmi_max_lvr: Number(e.target.value) })} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Max LVR incl. capitalised LMI (%)</Label>
+          <Input type="number" step="0.05" className="h-8 text-sm" value={profile.maxCapitalisedLvr}
+            onChange={(e) => onChange({ lmi_max_capitalised_lvr: Number(e.target.value) })} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Waiver up to LVR (%)</Label>
+          <Input type="number" step="0.05" className="h-8 text-sm" placeholder="none"
+            value={profile.waiverMaxLvr ?? ''}
+            onChange={(e) => onChange({ lmi_waiver_max_lvr: e.target.value === '' ? null : Number(e.target.value) })} />
+        </div>
+      </div>
+
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground">Waiver / policy notes (e.g. medico, legal, accountants)</Label>
+        <Textarea rows={2} className="text-sm" value={lender.lmi_waiver_notes ?? ''}
+          onChange={(e) => onChange({ lmi_waiver_notes: e.target.value || null })} />
+      </div>
+
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground">LMI notes</Label>
+        <Textarea rows={2} className="text-sm" value={lender.lmi_notes ?? ''}
+          onChange={(e) => onChange({ lmi_notes: e.target.value || null })} />
+      </div>
+
+      <p className="text-[11px] text-muted-foreground">
+        Sample: $760,000 loan at 95% LVR ={' '}
+        {sample.eligible
+          ? sample.waived ? 'waived' : `$${Math.round(sample.premium).toLocaleString('en-AU')} (${sample.ratePct.toFixed(3)}%)`
+          : 'outside policy'}
+        . Indicative only — confirm with the lender's quote.
+      </p>
+    </div>
+  );
 }
 
 const FIELD_GROUPS: { title: string; icon: any; fields: { key: keyof Lender; label: string; multi?: boolean; type?: string }[] }[] = [
@@ -252,6 +338,8 @@ export function LendersManagement() {
                   <Switch checked={selected.is_accredited}
                     onCheckedChange={(v) => updateLender(selected.id, { is_accredited: v })} />
                 </div>
+
+                <LmiSettings lender={selected} onChange={(patch) => updateLender(selected.id, patch)} />
 
                 {FIELD_GROUPS.map(group => (
                   <div key={group.title} className="space-y-2">

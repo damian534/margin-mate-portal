@@ -1,6 +1,7 @@
 import { stateCalcs } from '@/lib/stampDutyRates';
 import { calculateGovFees, type GovFeeState } from '@/lib/govFees';
 import { estimateLmi, lmiStampDuty } from './lmi';
+import { quoteLmi } from './lmiProviders';
 import type { FundsPositionInputs, FundsPositionResult } from './types';
 
 const num = (n: number) => (isFinite(n) && !isNaN(n) ? n : 0);
@@ -53,6 +54,10 @@ export function calculateFundsPosition(i: FundsPositionInputs): FundsPositionRes
 
   let lmi = 0;
   let lmiDuty = 0;
+  let lmiRatePct = 0;
+  let lmiWaived = false;
+  let lmiEligible = true;
+  let lmiNote: string | null = null;
   let stampDuty = 0;
   let concession = 0;
   let transferFee = 0;
@@ -83,12 +88,28 @@ export function calculateFundsPosition(i: FundsPositionInputs): FundsPositionRes
     }
 
     // --- LMI ---------------------------------------------------------------
+    lmiRatePct = 0;
+    lmiWaived = false;
+    lmiEligible = true;
+    lmiNote = null;
     if (i.fhgScheme || baseLVR <= 80) {
       lmi = 0;
+      lmiWaived = i.fhgScheme && baseLVR > 80;
+      if (lmiWaived) lmiNote = 'Covered by the Home Guarantee Scheme';
     } else if (!i.lmiOverride.auto) {
       lmi = num(i.lmiOverride.value);
+      lmiRatePct = baseLoan > 0 ? (lmi / baseLoan) * 100 : 0;
+      lmiNote = 'Manual override';
+    } else if (i.lenderLmi) {
+      const q = quoteLmi(i.lenderLmi, baseLoan, baseLVR, i.purpose === 'investment');
+      lmi = q.premium;
+      lmiRatePct = q.ratePct;
+      lmiWaived = q.waived;
+      lmiEligible = q.eligible;
+      lmiNote = q.note;
     } else {
       lmi = estimateLmi(baseLoan, baseLVR, i.purpose === 'investment');
+      lmiRatePct = baseLoan > 0 ? (lmi / baseLoan) * 100 : 0;
     }
     lmiDuty = lmi > 0 && i.includeLmiStampDuty ? lmiStampDuty(lmi, i.state) : 0;
     const lmiTotal = lmi + lmiDuty;
@@ -136,6 +157,10 @@ export function calculateFundsPosition(i: FundsPositionInputs): FundsPositionRes
     totalLoan,
     totalLVR,
     lmi,
+    lmiRatePct,
+    lmiWaived,
+    lmiEligible,
+    lmiNote,
     lmiStampDuty: lmiDuty,
     lmiCapitalised,
     lmiPayable: i.capitaliseLMI ? 0 : lmiTotal,
@@ -179,6 +204,9 @@ export const defaultFundsInputs = (): FundsPositionInputs => ({
   termYears: 30,
   ioYears: 0,
   repaymentType: 'pi',
+  lenderId: null,
+  lenderName: null,
+  lenderLmi: null,
   capitaliseLMI: false,
   lmiOverride: { value: 0, auto: true },
   includeLmiStampDuty: true,

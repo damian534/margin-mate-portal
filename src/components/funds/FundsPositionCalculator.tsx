@@ -13,6 +13,8 @@ import { MoneyInput } from './MoneyInput';
 import { useFundsScenarios } from './useFundsScenarios';
 import { FundsScenarioCompare } from './FundsScenarioCompare';
 import { EmailFundsPositionDialog } from './EmailFundsPositionDialog';
+import { LenderLmiCompare } from './LenderLmiCompare';
+import { useLenderLmi } from '@/hooks/useLenderLmi';
 import { calculateFundsPosition, defaultFundsInputs, sumFundsBreakdown } from '@/lib/fundsPosition/calc';
 import { validateFundsPosition, type FundsWarning } from '@/lib/fundsPosition/warnings';
 import { downloadFundsPositionPdf } from '@/lib/pdf/fundsPositionPdf';
@@ -69,6 +71,7 @@ export function FundsPositionCalculator({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leadId]);
 
+  const { lenders: lmiLenders } = useLenderLmi(true);
   const r = useMemo(() => calculateFundsPosition(i), [i]);
   const warnings = useMemo(() => validateFundsPosition(i, r), [i, r]);
 
@@ -211,6 +214,32 @@ export function FundsPositionCalculator({
                     <SelectItem value="property_only">Property Only</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-1 sm:col-span-2">
+                <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Lender (LMI pricing)</label>
+                <Select
+                  value={i.lenderId ?? 'generic'}
+                  onValueChange={v => {
+                    if (v === 'generic') {
+                      setI(prev => ({ ...prev, lenderId: null, lenderName: null, lenderLmi: null }));
+                      return;
+                    }
+                    const l = lmiLenders.find(x => x.lenderId === v);
+                    if (l) setI(prev => ({ ...prev, lenderId: l.lenderId, lenderName: l.lenderName, lenderLmi: l }));
+                  }}
+                >
+                  <SelectTrigger><SelectValue placeholder="Market average" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="generic">Market average (no lender selected)</SelectItem>
+                    {lmiLenders.map(l => (
+                      <SelectItem key={l.lenderId} value={l.lenderId}>{l.lenderName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  Premiums come from each lender's LMI settings (Settings → Lenders).
+                </p>
               </div>
             </div>
 
@@ -356,6 +385,13 @@ export function FundsPositionCalculator({
             <div className="rounded-md border bg-muted/40 px-2 py-1.5">
               <span className="text-[11px] uppercase text-muted-foreground">LMI Being Applied</span>
               <p className="font-semibold">{money(r.lmi + r.lmiStampDuty)}</p>
+              <p className="text-[11px] text-muted-foreground">
+                {i.lenderName ? `${i.lenderName}` : 'Market average'}
+                {r.lmiRatePct > 0 ? ` · ${r.lmiRatePct.toFixed(3)}% of base loan` : ''}
+              </p>
+              {r.lmiNote && (
+                <p className={`text-[11px] ${r.lmiEligible ? 'text-muted-foreground' : 'text-destructive'}`}>{r.lmiNote}</p>
+              )}
             </div>
             <label className="flex items-center justify-between text-sm">
               <span>Capitalise LMI</span>
@@ -489,6 +525,17 @@ export function FundsPositionCalculator({
           </div>
         </CardContent>
       </Card>
+
+      {r.baseLVR > 80 && (
+        <LenderLmiCompare
+          baseLoan={r.baseLoan}
+          lvr={r.baseLVR}
+          investment={i.purpose === 'investment'}
+          selectedLenderId={i.lenderId}
+          onSelect={l => setI(prev => ({ ...prev, lenderId: l.lenderId, lenderName: l.lenderName, lenderLmi: l }))}
+        />
+      )}
+
 
       <p className="text-xs text-muted-foreground">
         Estimates only. Stamp duty, government fees and LMI premiums are indicative and must be confirmed

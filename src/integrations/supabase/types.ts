@@ -1694,6 +1694,14 @@ export type Database = {
           id: string
           is_accredited: boolean
           is_active: boolean
+          lmi_max_capitalised_lvr: number
+          lmi_max_lvr: number
+          lmi_multiplier: number
+          lmi_notes: string | null
+          lmi_provider: string
+          lmi_rate_table: Json | null
+          lmi_waiver_max_lvr: number | null
+          lmi_waiver_notes: string | null
           login_id: string | null
           login_password: string | null
           mortgage_docs_esign: string | null
@@ -1719,6 +1727,14 @@ export type Database = {
           id?: string
           is_accredited?: boolean
           is_active?: boolean
+          lmi_max_capitalised_lvr?: number
+          lmi_max_lvr?: number
+          lmi_multiplier?: number
+          lmi_notes?: string | null
+          lmi_provider?: string
+          lmi_rate_table?: Json | null
+          lmi_waiver_max_lvr?: number | null
+          lmi_waiver_notes?: string | null
           login_id?: string | null
           login_password?: string | null
           mortgage_docs_esign?: string | null
@@ -1744,6 +1760,14 @@ export type Database = {
           id?: string
           is_accredited?: boolean
           is_active?: boolean
+          lmi_max_capitalised_lvr?: number
+          lmi_max_lvr?: number
+          lmi_multiplier?: number
+          lmi_notes?: string | null
+          lmi_provider?: string
+          lmi_rate_table?: Json | null
+          lmi_waiver_max_lvr?: number | null
+          lmi_waiver_notes?: string | null
           login_id?: string | null
           login_password?: string | null
           mortgage_docs_esign?: string | null

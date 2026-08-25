@@ -1,4 +1,5 @@
 import type { StateKey } from '@/lib/stampDutyRates';
+import type { LenderLmiProfile } from './lmiProviders';
 
 /** A value that can either be typed in (manual) or derived by the engine (auto). */
 export interface AutoValue {
@@ -47,6 +48,10 @@ export interface FundsPositionInputs {
   repaymentType: RepaymentType;
 
   // LMI
+  /** selected lender (drives LMI pricing) */
+  lenderId?: string | null;
+  lenderName?: string | null;
+  lenderLmi?: LenderLmiProfile | null;
   capitaliseLMI: boolean;
   lmiOverride: AutoValue; // auto=true -> calculated
   includeLmiStampDuty: boolean;
@@ -77,6 +82,10 @@ export interface FundsPositionResult {
   totalLoan: number;
   totalLVR: number;
   lmi: number;
+  lmiRatePct: number;
+  lmiWaived: boolean;
+  lmiEligible: boolean;
+  lmiNote: string | null;
   lmiStampDuty: number;
   lmiCapitalised: number;
   lmiPayable: number;
