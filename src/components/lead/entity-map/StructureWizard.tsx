@@ -286,7 +286,7 @@ export function StructureWizard({
 
   const NEW_RECIPIENT_TYPES: EntityType[] = ['individual', 'company', 'discretionary_trust', 'unit_trust', 'partnership', 'smsf'];
 
-  const PeopleList = ({
+  const peopleList = ({
     rows, setter, amountLabel, showApplicant = true, recipientPicker = false,
   }: {
     rows: PersonRow[];
