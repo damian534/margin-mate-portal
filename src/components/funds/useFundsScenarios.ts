@@ -104,7 +104,7 @@ export function useFundsScenarios(leadId?: string | null, enabled = true) {
       name: string,
       inputs: FundsPositionInputs,
       result: FundsPositionResult,
-      options?: { leadId?: string | null; addNote?: boolean },
+      options?: { leadId?: string | null; addNote?: boolean; noteLabel?: string },
     ) => {
       const { data: auth } = await supabase.auth.getUser();
       const userId = auth?.user?.id;
@@ -125,8 +125,9 @@ export function useFundsScenarios(leadId?: string | null, enabled = true) {
           lead_id: targetLead,
           author_id: userId,
           content:
-            `💰 Funding position saved — "${name}" · Property ${money(result.propertyValue)} · ` +
-            `Loan ${money(result.totalLoan)} (${result.totalLVR.toFixed(2)}% LVR) · ` +
+            `💰 ${options.noteLabel ?? 'Funding position saved'} — "${name}" · Property ${money(result.propertyValue)} · ` +
+            `Loan ${money(result.totalLoan)} (${result.totalLVR.toFixed(2)}% LVR)` +
+            `${result.lmi > 0 ? ` · LMI ${money(result.lmi + result.lmiStampDuty)}${inputs.lenderName ? ` (${inputs.lenderName})` : ''}` : ''} · ` +
             `${result.netSurplus < 0 ? 'Shortfall' : 'Surplus'} ${money(Math.abs(result.netSurplus))}`,
         } as any);
       }
@@ -134,6 +135,20 @@ export function useFundsScenarios(leadId?: string | null, enabled = true) {
       await load();
     },
     [leadId, load],
+  );
+
+  /** Roll a scenario back by re-saving an older version as the newest one. */
+  const restore = useCallback(
+    async (scenario: SavedFundsScenario) => {
+      await save(scenario.name, scenario.inputs, scenario.result, {
+        leadId: scenario.leadId,
+        addNote: Boolean(scenario.leadId),
+        noteLabel: `Funding position rolled back to the version from ${new Date(
+          scenario.createdAt,
+        ).toLocaleString('en-AU')}`,
+      });
+    },
+    [save],
   );
 
   const remove = useCallback(
@@ -146,6 +161,8 @@ export function useFundsScenarios(leadId?: string | null, enabled = true) {
   );
 
   const scenarios = leadId ? allScenarios.filter(s => s.leadId === leadId) : allScenarios;
+  const groups = useMemo(() => groupFundsScenarios(scenarios), [scenarios]);
 
-  return { scenarios, allScenarios, loading, load, save, remove };
+  return { scenarios, allScenarios, groups, loading, load, save, restore, remove };
 }
+
