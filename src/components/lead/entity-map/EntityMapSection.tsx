@@ -264,35 +264,10 @@ export function EntityMapSection({ leadId, leadName, isPreviewMode = false, read
               </div>
             )}
 
-            <Separator />
+            <p className="text-xs text-muted-foreground">
+              Click any card on the map to see its directors, beneficiaries and income in a pop-up.
+            </p>
 
-            {/* Entity detail list */}
-            <div className="space-y-3">
-              {entities.map(en => (
-                <div key={en.id} className="rounded-md border p-3 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{en.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {ENTITY_TYPE_LABELS[en.entity_type]}
-                        {en.trustee_entity_id && ` · Trustee: ${entities.find(e => e.id === en.trustee_entity_id)?.name ?? '—'}`}
-                      </p>
-                    </div>
-                    {!readOnly && (
-                      <Button size="sm" variant="ghost" onClick={() => setEntityDialog({ open: true, entity: en })}>Edit</Button>
-                    )}
-                  </div>
-                  <RolesEditor
-                    entity={en}
-                    entities={entities}
-                    roles={roles}
-                    readOnly={readOnly}
-                    onAdd={addRole}
-                    onRemove={removeRole}
-                  />
-                </div>
-              ))}
-            </div>
           </>
         )}
       </div>
