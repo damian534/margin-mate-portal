@@ -13,12 +13,17 @@ type TabKey = 'employment' | 'assets' | 'liabilities' | 'income';
 type AllData = Record<string, Record<string, any>>;
 
 interface Props {
-  leadId: string;
+  /** Scope the financial position to a deal… */
+  leadId?: string;
+  /** …or straight to a contact (no deal required). */
+  contactId?: string;
   /** Client-portal token: when present, save via edge function instead of direct supabase write */
   token?: string;
   isPreviewMode?: boolean;
   readOnly?: boolean;
   onChange?: () => void;
+  /** Hide the built-in header (net worth / income summary) */
+  hideHeader?: boolean;
 }
 
 const num = (v: any) => {
@@ -27,7 +32,7 @@ const num = (v: any) => {
   return isFinite(n) ? n : 0;
 };
 
-export function FinancialPositionEditor({ leadId, token, isPreviewMode, readOnly, onChange }: Props) {
+export function FinancialPositionEditor({ leadId, contactId, token, isPreviewMode, readOnly, onChange, hideHeader }: Props) {
   const [tab, setTab] = useState<TabKey>('employment');
   const [data, setData] = useState<AllData>({});
   const [loaded, setLoaded] = useState(false);
