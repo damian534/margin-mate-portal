@@ -77,6 +77,12 @@ const App = () => (
                 <AdminCRM />
               </ProtectedRoute>
             } />
+            <Route path="/admin/clients/:contactId" element={
+              <ProtectedRoute requiredRole="broker_or_admin">
+                <ClientProfile />
+              </ProtectedRoute>
+            } />
+
             <Route path="/admin/settings" element={
               <ProtectedRoute requiredRole="broker_or_admin">
                 <AdminSettings />
