@@ -1694,6 +1694,7 @@ export type Database = {
           id: string
           is_accredited: boolean
           is_active: boolean
+          lmi_fee_label: string | null
           lmi_max_capitalised_lvr: number
           lmi_max_lvr: number
           lmi_multiplier: number
@@ -1727,6 +1728,7 @@ export type Database = {
           id?: string
           is_accredited?: boolean
           is_active?: boolean
+          lmi_fee_label?: string | null
           lmi_max_capitalised_lvr?: number
           lmi_max_lvr?: number
           lmi_multiplier?: number
@@ -1760,6 +1762,7 @@ export type Database = {
           id?: string
           is_accredited?: boolean
           is_active?: boolean
+          lmi_fee_label?: string | null
           lmi_max_capitalised_lvr?: number
           lmi_max_lvr?: number
           lmi_multiplier?: number

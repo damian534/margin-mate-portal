@@ -7,14 +7,16 @@ export interface LenderWithLmi extends LenderLmiProfile {
   lenderId: string;
   lenderName: string;
   isAccredited: boolean;
+  feeLabel: string | null;
 }
 
 const toProfile = (row: any): LenderWithLmi => ({
   lenderId: row.id,
   lenderName: row.name,
   isAccredited: !!row.is_accredited,
+  feeLabel: row.lmi_fee_label ?? null,
   provider: (row.lmi_provider ?? 'generic') as LmiProviderKey,
-  multiplier: Number(row.lmi_multiplier ?? 1) || 1,
+  multiplier: row.lmi_multiplier == null ? 1 : Number(row.lmi_multiplier),
   maxLvr: Number(row.lmi_max_lvr ?? 95) || 95,
   maxCapitalisedLvr: Number(row.lmi_max_capitalised_lvr ?? 97) || 97,
   waiverMaxLvr: row.lmi_waiver_max_lvr == null ? null : Number(row.lmi_waiver_max_lvr),
@@ -22,6 +24,7 @@ const toProfile = (row: any): LenderWithLmi => ({
   customTable: (row.lmi_rate_table as RateTable | null) ?? null,
   notes: row.lmi_notes ?? null,
 });
+
 
 /** Lenders for the current broker with their LMI pricing profile. */
 export function useLenderLmi(accreditedOnly = true) {
