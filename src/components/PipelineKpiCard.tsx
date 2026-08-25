@@ -1,6 +1,3 @@
-import { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { LucideIcon } from 'lucide-react';
 
 interface Props {
@@ -9,54 +6,35 @@ interface Props {
   accent: string;
   volume: number;
   count: number;
-  initialTarget: number;
-  onTargetChange: (v: number) => void;
+  period?: string;
 }
 
-export function PipelineKpiCard({ label, Icon, accent, volume, count, initialTarget, onTargetChange }: Props) {
-  const [target, setTarget] = useState<number>(initialTarget);
-  const diff = volume - target;
-  const surplus = diff >= 0;
+const TONES: Record<string, string> = {
+  primary: 'from-[hsl(var(--primary))] to-[hsl(var(--primary)/0.75)]',
+  success: 'from-[hsl(var(--success))] to-[hsl(var(--success)/0.75)]',
+  warning: 'from-[hsl(var(--warning))] to-[hsl(var(--warning)/0.75)]',
+  accent: 'from-[hsl(var(--brand-black))] to-[hsl(var(--brand-black)/0.8)]',
+};
 
+export function PipelineKpiCard({ label, Icon, accent, volume, count, period = 'This Month' }: Props) {
   return (
-    <Card>
-      <CardContent className="pt-6 space-y-3">
-        <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-lg bg-${accent}/10 flex items-center justify-center`}>
-            <Icon className={`w-5 h-5 text-${accent}`} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-2xl font-bold leading-tight truncate">${volume.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground">{label} · {count} {count === 1 ? 'application' : 'applications'}</p>
-          </div>
+    <div className="rounded-2xl overflow-hidden border shadow-sm">
+      <div className={`bg-gradient-to-br ${TONES[accent] ?? TONES.primary} text-primary-foreground px-5 pt-4 pb-6`}>
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold tracking-wide uppercase opacity-90">{label}</p>
+          <Icon className="w-4 h-4 opacity-80" />
         </div>
-        <div className="pt-2 border-t space-y-1.5">
-          <div className="flex items-center justify-between gap-2">
-            <label className="text-[11px] uppercase tracking-wider text-muted-foreground">Target</label>
-            <div className="relative w-32">
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
-              <Input
-                type="text"
-                inputMode="numeric"
-                className="h-7 pl-5 pr-2 text-xs text-right"
-                value={target ? target.toLocaleString() : ''}
-                placeholder="0"
-                onChange={(e) => {
-                  const raw = e.target.value.replace(/[^0-9]/g, '');
-                  const v = raw ? parseInt(raw, 10) : 0;
-                  setTarget(v);
-                  onTargetChange(v);
-                }}
-              />
-            </div>
-          </div>
-          {target > 0 && (
-            <p className={`text-xs font-medium ${surplus ? 'text-success' : 'text-destructive'}`}>
-              {surplus ? 'Surplus' : 'Deficit'}: ${Math.abs(diff).toLocaleString()}
-            </p>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+        <p className="mt-6 text-4xl font-semibold tabular-nums leading-none">
+          <span className="text-2xl align-top opacity-80">$</span>
+          {volume.toLocaleString()}
+        </p>
+        <p className="mt-3 text-sm opacity-90">
+          {count} {count === 1 ? 'Transaction' : 'Transactions'}
+        </p>
+      </div>
+      <div className="bg-muted/60 px-5 py-2.5 text-center text-xs font-medium text-muted-foreground">
+        {period}
+      </div>
+    </div>
   );
 }

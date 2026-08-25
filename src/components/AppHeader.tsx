@@ -1,5 +1,6 @@
 import { Logo } from './Logo';
 import { PreviewBanner } from './PreviewBanner';
+import { GlobalClientSearch } from './GlobalClientSearch';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -17,14 +18,20 @@ export function AppHeader() {
     <>
       <PreviewBanner />
       <header className="border-b bg-card py-4">
-        <div className="container flex items-center justify-between">
+        <div className="container flex items-center gap-4 justify-between">
           <button onClick={() => {
             const suffix = isPreviewMode ? '?preview=true' : '';
             navigate(`/${suffix}`);
-          }} className="flex items-center">
+          }} className="flex items-center shrink-0">
             <Logo className="h-32" />
           </button>
+          {user && isAdminTeam && (
+            <div className="hidden md:block flex-1 max-w-md">
+              <GlobalClientSearch />
+            </div>
+          )}
           <nav className="flex items-center gap-2">
+
             {user ? (
               <>
                 <Button
