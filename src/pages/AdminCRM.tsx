@@ -40,7 +40,7 @@ import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Filter, ListTodo, 
 import { Briefcase, Wrench, Landmark, Settings2, LogOut } from 'lucide-react';
 import { EDMPlatform } from '@/components/EDMPlatform';
 import { Mail as MailIcon } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { isPast, isToday, isTomorrow } from 'date-fns';
 
 type TaskDueFilter = 'all_leads' | 'overdue' | 'today' | 'tomorrow' | 'later' | 'no_tasks';
