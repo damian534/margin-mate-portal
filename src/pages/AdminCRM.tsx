@@ -108,9 +108,8 @@ interface LeadSource {
 }
 
 
-  const navigate = useNavigate();
-
 export default function AdminCRM() {
+  const navigate = useNavigate();
   const { user, isPreviewMode, effectiveBrokerId, isBrokerOrAdmin, signOut } = useAuth();
   const { statuses, addStatus, updateStatus: updateLeadStatus, deleteStatus, reorderStatuses } = useLeadStatuses();
   const [leads, setLeads] = useState<Lead[]>([]);
