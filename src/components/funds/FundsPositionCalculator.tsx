@@ -15,7 +15,6 @@ import { useFundsScenarios } from './useFundsScenarios';
 import { FundsScenarioCompare } from './FundsScenarioCompare';
 import { EmailFundsPositionDialog } from './EmailFundsPositionDialog';
 import { LenderLmiCompare } from './LenderLmiCompare';
-import { useLenderLmi } from '@/hooks/useLenderLmi';
 import { calculateFundsPosition, defaultFundsInputs, sumFundsBreakdown } from '@/lib/fundsPosition/calc';
 import { validateFundsPosition, type FundsWarning } from '@/lib/fundsPosition/warnings';
 import { downloadFundsPositionPdf } from '@/lib/pdf/fundsPositionPdf';
@@ -72,7 +71,6 @@ export function FundsPositionCalculator({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leadId]);
 
-  const { lenders: lmiLenders } = useLenderLmi(true);
   const r = useMemo(() => calculateFundsPosition(i), [i]);
   const warnings = useMemo(() => validateFundsPosition(i, r), [i, r]);
 
