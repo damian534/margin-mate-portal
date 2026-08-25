@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Plus, Upload, FileText, CheckCircle2, XCircle, Clock, Trash2, Download, UserPlus, Users, Sparkles, Send, Mail, AlertTriangle } from 'lucide-react';
+import { Plus, Upload, FileText, CheckCircle2, XCircle, Clock, Trash2, Download, UserPlus, Users, Sparkles, Send, Mail, AlertTriangle, FileDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
 import { RequestMirDialog } from './RequestMirDialog';
@@ -126,6 +126,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   const [newApplicantEmail, setNewApplicantEmail] = useState('');
   const [newApplicantPhone, setNewApplicantPhone] = useState('');
   const [isRequesting, setIsRequesting] = useState(false);
+  const [isZipping, setIsZipping] = useState(false);
   const [addingTo, setAddingTo] = useState<{ section: string; applicantId: string | null } | null>(null);
   const [newDocName, setNewDocName] = useState('');
   const [newDocDescription, setNewDocDescription] = useState('');
@@ -549,6 +550,53 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
     if (data?.signedUrl) window.open(data.signedUrl, '_blank');
   };
 
+  /** Every uploaded file across all document requests, foldered by checklist item. */
+  const allUploadedFiles = documents.flatMap(d => {
+    const files = (d.files || []).map(f => ({ path: f.file_path, name: f.file_name, label: d.name }));
+    if (!files.length && d.file_path) files.push({ path: d.file_path, name: d.file_name || 'document', label: d.name });
+    return files;
+  });
+  const uploadedFileCount = allUploadedFiles.length;
+
+  const downloadAllAsZip = async () => {
+    if (isPreviewMode) { toast.info('Not available in preview'); return; }
+    if (!uploadedFileCount) { toast.error('No uploaded documents'); return; }
+    setIsZipping(true);
+    try {
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      const used = new Set<string>();
+      for (const f of allUploadedFiles) {
+        const { data, error } = await supabase.storage.from('client-documents').download(f.path);
+        if (error || !data) continue;
+        const folder = f.label ? `${f.label.replace(/[\\/]/g, '-')}/` : '';
+        const dot = f.name.lastIndexOf('.');
+        const base = dot > 0 ? f.name.slice(0, dot) : f.name;
+        const ext = dot > 0 ? f.name.slice(dot) : '';
+        let candidate = `${folder}${f.name}`;
+        let i = 2;
+        while (used.has(candidate)) { candidate = `${folder}${base} (${i})${ext}`; i++; }
+        used.add(candidate);
+        zip.file(candidate, data);
+      }
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${(primaryApplicantName || 'client').replace(/[^a-z0-9]+/gi, '_')}_documents.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Downloaded');
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to build ZIP');
+    } finally {
+      setIsZipping(false);
+    }
+  };
+
+
+
   const deleteUploadedFile = async (docId: string, file: DocumentRequestFile) => {
     if (isPreviewMode) {
       setDocuments(prev => prev.map(d => d.id === docId ? { ...d, files: (d.files || []).filter(f => f.id !== file.id) } : d));
@@ -877,6 +925,17 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs gap-1.5"
+            onClick={downloadAllAsZip}
+            disabled={isZipping || uploadedFileCount === 0}
+            title="Download every uploaded document as a ZIP"
+          >
+            <FileDown className="w-3.5 h-3.5" /> {isZipping ? 'Preparing…' : `Download all (${uploadedFileCount})`}
+          </Button>
+
           <Button
             size="sm"
             variant="outline"
