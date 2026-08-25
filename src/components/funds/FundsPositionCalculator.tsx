@@ -397,6 +397,19 @@ export function FundsPositionCalculator({
               <span>Capitalise LMI</span>
               <Switch checked={i.capitaliseLMI} onCheckedChange={v => set('capitaliseLMI', v)} />
             </label>
+            <div className="space-y-1">
+              <span className="text-[11px] uppercase text-muted-foreground">Which Lender</span>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-between font-normal"
+                onClick={() => setLenderPickerOpen(true)}
+              >
+                <span className="truncate">{i.lenderName ?? 'Market average'}</span>
+                <ChevronDown className="h-4 w-4 opacity-60" />
+              </Button>
+            </div>
+
             <p className="text-[11px] text-muted-foreground">
               {i.capitaliseLMI ? 'LMI is added on top of the base loan' : 'LMI is excluded from the loan and paid upfront'}
             </p>
