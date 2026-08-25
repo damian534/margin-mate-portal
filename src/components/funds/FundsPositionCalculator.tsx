@@ -368,14 +368,11 @@ export function FundsPositionCalculator({
       </div>
 
       {/* ---------------- Calculation breakdown ---------------- */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Calculation Breakdown</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-px bg-border md:grid-cols-4 rounded-lg overflow-hidden border">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 items-start">
           {/* LMI */}
-          <div className="bg-card p-3 space-y-3">
-            <p className="text-sm font-medium">LMI</p>
+          <FundsSection title="LMI" summary={money(r.lmi + r.lmiStampDuty)} icon={<ShieldCheck className="h-4 w-4" />}>
+            <div className="space-y-3">
+
             <div className="rounded-md border bg-muted/40 px-2 py-1.5">
               <span className="text-[11px] uppercase text-muted-foreground">LMI Being Applied</span>
               <p className="font-semibold">{money(r.lmi + r.lmiStampDuty)}</p>
