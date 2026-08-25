@@ -165,8 +165,9 @@ export function FundsPositionCalculator({
               <Briefcase className="w-4 h-4 mr-1" /> Save to deal
             </Button>
           )}
-
+          <Button variant="outline" size="sm" onClick={() => setCompareOpen(true)}>
             <Columns3 className="w-4 h-4 mr-1" /> Compare
+
           </Button>
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="w-4 h-4 mr-1" /> PDF
