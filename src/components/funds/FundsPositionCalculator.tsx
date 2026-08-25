@@ -516,7 +516,7 @@ function WarningsPanel({ warnings }: { warnings: FundsWarning[] }) {
   const sorted = [...warnings].sort((a, b) => order[a.level] - order[b.level]);
   const tone = {
     error: { cls: 'border-destructive/40 bg-destructive/5 text-destructive', Icon: AlertCircle },
-    warning: { cls: 'border-warning/40 bg-warning/10 text-warning-foreground', Icon: AlertTriangle },
+    warning: { cls: 'border-warning/50 bg-warning/10 text-foreground', Icon: AlertTriangle },
     info: { cls: 'border-border bg-muted/40 text-muted-foreground', Icon: Info },
   };
   return (
