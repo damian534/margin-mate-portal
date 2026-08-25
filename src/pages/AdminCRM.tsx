@@ -37,10 +37,10 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { notifyPartnerStatusChange } from '@/lib/notifications';
 import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign, Contact as ContactIcon, CalendarClock, Share2, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
-import { Briefcase } from 'lucide-react';
+import { Briefcase, Wrench, Landmark, Settings2, LogOut } from 'lucide-react';
 import { EDMPlatform } from '@/components/EDMPlatform';
 import { Mail as MailIcon } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { isPast, isToday, isTomorrow } from 'date-fns';
 
 type TaskDueFilter = 'all_leads' | 'overdue' | 'today' | 'tomorrow' | 'later' | 'no_tasks';
@@ -108,9 +108,9 @@ interface LeadSource {
 }
 
 
-
 export default function AdminCRM() {
-  const { user, isPreviewMode, effectiveBrokerId } = useAuth();
+  const navigate = useNavigate();
+  const { user, isPreviewMode, effectiveBrokerId, isBrokerOrAdmin, signOut } = useAuth();
   const { statuses, addStatus, updateStatus: updateLeadStatus, deleteStatus, reorderStatuses } = useLeadStatuses();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
@@ -746,6 +746,34 @@ export default function AdminCRM() {
                   );
                 })}
               </nav>
+              {(() => {
+                const suffix = isPreviewMode ? '?preview=true' : '';
+                const links = [
+                  { label: 'Tools', icon: Wrench, onClick: () => navigate(`/tools${suffix}`) },
+                  ...(isBrokerOrAdmin
+                    ? [
+                        { label: 'Settlements', icon: Landmark, onClick: () => navigate(`/admin/settlements${suffix}`) },
+                        { label: 'Settings', icon: Settings2, onClick: () => navigate(`/admin/settings${suffix}`) },
+                      ]
+                    : []),
+                  ...(!isPreviewMode ? [{ label: 'Sign Out', icon: LogOut, onClick: signOut }] : []),
+                ];
+                return (
+                  <nav className="px-2 pb-6 space-y-1 border-t pt-3">
+                    {links.map(l => (
+                      <button
+                        key={l.label}
+                        onClick={l.onClick}
+                        title={l.label}
+                        className={`w-full flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors ${navOpen ? '' : 'justify-center'}`}
+                      >
+                        <l.icon className="w-4 h-4 shrink-0" />
+                        {navOpen && <span className="truncate">{l.label}</span>}
+                      </button>
+                    ))}
+                  </nav>
+                );
+              })()}
             </aside>
           );
         })()}
@@ -766,7 +794,7 @@ export default function AdminCRM() {
             return { count: arr.length, volume: arr.reduce((s, l) => s + (l.loan_amount || 0), 0) };
           };
           const items = [
-            { key: 'lodged', label: 'Lodged', icon: TrendingUp, accent: 'primary', ...calc('lodged_date') },
+            { key: 'lodged', label: 'Lodged', icon: TrendingUp, accent: 'info', ...calc('lodged_date') },
             { key: 'approved', label: 'Approved', icon: CheckCircle, accent: 'warning', ...calc('approved_date') },
             { key: 'settled', label: 'Settled', icon: DollarSign, accent: 'success', ...calc('settled_date') },
           ];

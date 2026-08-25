@@ -53,6 +53,8 @@
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
+    --info: 214 84% 50%;
+    --info-foreground: 0 0% 100%;
   }
 
   .dark {
@@ -75,6 +77,8 @@
     --border: 0 0% 18%;
     --input: 0 0% 18%;
     --ring: 2 76% 48%;
+    --info: 214 84% 55%;
+    --info-foreground: 0 0% 100%;
     --sidebar-background: 0 0% 5%;
     --sidebar-foreground: 0 0% 90%;
     --sidebar-primary: 2 76% 48%;

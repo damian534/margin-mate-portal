@@ -3,14 +3,17 @@ import { PreviewBanner } from './PreviewBanner';
 import { GlobalClientSearch } from './GlobalClientSearch';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { LogOut, LayoutDashboard, Wrench, Settings2, Landmark } from 'lucide-react';
 
 export function AppHeader() {
   const { user, role, signOut, isPreviewMode, isBrokerOrAdmin } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   const isAdminTeam = isBrokerOrAdmin || role === 'broker_staff';
+  // The CRM dashboard has its own side navigation — avoid duplicating links up here.
+  const hideNavLinks = pathname === '/admin';
 
   const navBtn = "h-9 px-3 rounded-md border border-border bg-background hover:bg-muted hover:text-foreground transition-colors";
 
@@ -33,6 +36,7 @@ export function AppHeader() {
           <nav className="flex items-center gap-2">
 
             {user ? (
+              hideNavLinks ? null : (
               <>
                 <Button
                   variant="outline"
@@ -94,6 +98,7 @@ export function AppHeader() {
                   </Button>
                 )}
               </>
+              )
             ) : (
               <>
                 <Button variant="ghost" size="sm" onClick={() => navigate('/login')}>
