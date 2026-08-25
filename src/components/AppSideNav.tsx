@@ -2,11 +2,18 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   TrendingUp, Briefcase, ListTodo, Contact as ContactIcon, Building2, Share2,
   Mail as MailIcon, BarChart3, Wrench, Landmark, Settings2, LogOut,
-  PanelLeftClose, PanelLeftOpen,
+  PanelLeftClose, PanelLeftOpen, ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import { TOOLS } from '@/lib/toolsCatalog';
+import { useToolVisibility } from '@/hooks/useToolVisibility';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+
 
 export const CRM_NAV_TABS = [
   { value: 'leads', label: 'Leads', icon: TrendingUp },
@@ -29,15 +36,21 @@ interface AppSideNavProps {
 
 export function AppSideNav({ activeTab, onSelectTab, pendingReferralsCount = 0 }: AppSideNavProps) {
   const [navOpen, setNavOpen] = usePersistedState<boolean>('crm.nav.open', true);
-  const { signOut, isPreviewMode, isBrokerOrAdmin } = useAuth();
+  const { signOut, isPreviewMode, isBrokerOrAdmin, role } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { isToolEnabled } = useToolVisibility();
 
   const suffix = isPreviewMode ? '?preview=true' : '';
   const onCrm = pathname === '/admin';
+  const isSuperAdmin = role === 'super_admin';
+
+  const visibleTools = TOOLS.filter(
+    t => (isSuperAdmin || isToolEnabled(t.id)) && (!t.brokerOnly || isBrokerOrAdmin),
+  );
+  const onTools = pathname.startsWith('/tools');
 
   const links = [
-    { label: 'Tools', icon: Wrench, path: '/tools', onClick: () => navigate(`/tools${suffix}`) },
     ...(isBrokerOrAdmin
       ? [
           { label: 'Settlements', icon: Landmark, path: '/admin/settlements', onClick: () => navigate(`/admin/settlements${suffix}`) },
@@ -46,6 +59,7 @@ export function AppSideNav({ activeTab, onSelectTab, pendingReferralsCount = 0 }
       : []),
     ...(!isPreviewMode ? [{ label: 'Sign Out', icon: LogOut, path: '', onClick: signOut }] : []),
   ];
+
 
   return (
     <aside
@@ -93,6 +107,41 @@ export function AppSideNav({ activeTab, onSelectTab, pendingReferralsCount = 0 }
       </nav>
 
       <nav className="px-2 pb-6 space-y-1 border-t pt-3">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              title="Tools"
+              className={`w-full flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+                onTools ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              } ${navOpen ? '' : 'justify-center'}`}
+            >
+              <Wrench className="w-4 h-4 shrink-0" />
+              {navOpen && (
+                <>
+                  <span className="truncate">Tools</span>
+                  <ChevronDown className="w-3.5 h-3.5 ml-auto shrink-0 opacity-60" />
+                </>
+              )}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" side="right" className="w-72">
+            <DropdownMenuLabel>Tools</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {visibleTools.map(tool => (
+              <DropdownMenuItem key={tool.id} onSelect={() => navigate(`${tool.path}${suffix}`)}>
+                <tool.icon className="w-4 h-4 mr-2 shrink-0 text-primary" />
+                <span className="truncate">{tool.name}</span>
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => navigate(`/tools${suffix}`)}>
+              <Wrench className="w-4 h-4 mr-2 shrink-0" />
+              All tools
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+
         {links.map(l => {
           const isActive = !!l.path && pathname === l.path;
           return (
