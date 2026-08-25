@@ -71,6 +71,7 @@ export function FundsPositionCalculator({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leadId]);
 
+  const { lenders: lmiLenders } = useLenderLmi(true);
   const r = useMemo(() => calculateFundsPosition(i), [i]);
   const warnings = useMemo(() => validateFundsPosition(i, r), [i, r]);
 
@@ -221,11 +222,11 @@ export function FundsPositionCalculator({
                   value={i.lenderId ?? 'generic'}
                   onValueChange={v => {
                     if (v === 'generic') {
-                      setInputs(prev => ({ ...prev, lenderId: null, lenderName: null, lenderLmi: null }));
+                      setI(prev => ({ ...prev, lenderId: null, lenderName: null, lenderLmi: null }));
                       return;
                     }
                     const l = lmiLenders.find(x => x.lenderId === v);
-                    if (l) setInputs(prev => ({ ...prev, lenderId: l.lenderId, lenderName: l.lenderName, lenderLmi: l }));
+                    if (l) setI(prev => ({ ...prev, lenderId: l.lenderId, lenderName: l.lenderName, lenderLmi: l }));
                   }}
                 >
                   <SelectTrigger><SelectValue placeholder="Market average" /></SelectTrigger>
