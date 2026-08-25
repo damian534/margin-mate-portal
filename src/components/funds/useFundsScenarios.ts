@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateFundsPosition } from '@/lib/fundsPosition/calc';
 import type { FundsPositionInputs, FundsPositionResult } from '@/lib/fundsPosition/types';
