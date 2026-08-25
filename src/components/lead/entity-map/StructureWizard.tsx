@@ -114,12 +114,14 @@ export function StructureWizard({
       case 'The trust': return trustName.trim().length > 1;
       case `The ${mainLabel}`: return trustName.trim().length > 1;
       case 'Trustee': return trusteeName.trim().length > 1 && directors.some(d => d.name.trim());
-      case 'Who receives income': return beneficiaries.some(b => b.name.trim());
+      case 'Who receives income': return beneficiaries.some(b => b.existingId || b.name.trim());
       default: return true;
     }
   };
 
-  const distributed = beneficiaries.reduce((a, b) => a + (b.name.trim() ? b.amount : 0), 0);
+  const rowIsFilled = (b: PersonRow) => !!(b.existingId || b.name.trim());
+  const distributed = beneficiaries.reduce((a, b) => a + (rowIsFilled(b) ? b.amount : 0), 0);
+
   const incoming = hasTradingCo ? tradingProfit : entityProfit;
 
   const updatePerson = (
