@@ -20,6 +20,9 @@ interface Props {
   clientName?: string;
   defaultTo?: string | null;
   defaultRecipientName?: string | null;
+  /** Saved scenario this update comes from. */
+  scenarioName?: string;
+  versionLabel?: string;
 }
 
 const money = (n: number) =>
@@ -34,6 +37,8 @@ export function EmailFundsPositionDialog({
   clientName,
   defaultTo,
   defaultRecipientName,
+  scenarioName,
+  versionLabel,
 }: Props) {
   const [to, setTo] = useState('');
   const [subject, setSubject] = useState('');
@@ -43,17 +48,28 @@ export function EmailFundsPositionDialog({
   useEffect(() => {
     if (!open) return;
     setTo(defaultTo ?? '');
-    setSubject(`Funding position${clientName ? ` — ${clientName}` : ''}`);
-    setMessage(
-      `Hi ${defaultRecipientName || 'there'},\n\nPlease find attached the funding position${
-        clientName ? ` for ${clientName}` : ''
-      }.\n\nTotal loan: ${money(result.totalLoan)} at ${result.totalLVR.toFixed(2)}% LVR\n${
-        result.netSurplus < 0
-          ? `Funds to complete: ${money(Math.abs(result.netSurplus))}`
-          : `Net surplus: ${money(result.netSurplus)}`
-      }\n\nHappy to walk through it any time.`,
+    setSubject(
+      `Funding position update${clientName ? ` — ${clientName}` : ''}${
+        versionLabel ? ` (${versionLabel})` : ''
+      }`,
     );
-  }, [open, defaultTo, defaultRecipientName, clientName, result]);
+    const lmiTotal = result.lmi + result.lmiStampDuty;
+    setMessage(
+      `Hi ${defaultRecipientName || 'there'},\n\nHere's the latest funding position${
+        clientName ? ` for ${clientName}` : ''
+      }${scenarioName ? ` — "${scenarioName}"${versionLabel ? ` ${versionLabel}` : ''}` : ''}.\n\n` +
+        `Property value: ${money(result.propertyValue)}\n` +
+        `Total loan: ${money(result.totalLoan)} at ${result.totalLVR.toFixed(2)}% LVR (base ${result.baseLVR.toFixed(2)}%)\n` +
+        `Lender: ${inputs.lenderName ?? 'Market average'}\n` +
+        `LMI: ${lmiTotal > 0 ? `${money(lmiTotal)}${inputs.capitaliseLMI ? ' (capitalised)' : ''}` : 'Not applicable'}\n` +
+        `${
+          result.netSurplus < 0
+            ? `Funds to complete: ${money(Math.abs(result.netSurplus))}`
+            : `Net surplus: ${money(result.netSurplus)}`
+        }\n\nThe full breakdown is attached. Happy to walk through it any time.`,
+    );
+  }, [open, defaultTo, defaultRecipientName, clientName, result, inputs, scenarioName, versionLabel]);
+
 
   const send = async () => {
     const email = to.trim();
