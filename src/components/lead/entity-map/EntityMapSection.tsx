@@ -208,6 +208,12 @@ export function EntityMapSection({ leadId, isPreviewMode = false, readOnly = fal
               onFlowClick={f => !readOnly && setFlowDialog({ open: true, flow: f })}
               onAutoLayout={tidyUp}
             />
+            {yearFlows.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                No income was recorded for {fyLabel(fy)}
+                {flows.length > 0 && ' — try another financial year above'}. The dashed lines still show who controls what.
+              </p>
+            )}
             {focusId && (
               <p className="text-xs text-muted-foreground">
                 Showing the income chain feeding <span className="font-medium">{entities.find(e => e.id === focusId)?.name}</span>. Click the entity again to clear.
