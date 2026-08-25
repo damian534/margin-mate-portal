@@ -1,4 +1,4 @@
-import type { FlowType, LeadEntity, LeadEntityFlow } from './types';
+import { ROLE_LABELS, type FlowType, type LeadEntity, type LeadEntityFlow, type LeadEntityRole, type RoleType } from './types';
 
 export interface ApplicantIncome {
   entityId: string;
