@@ -274,13 +274,13 @@ function EmploymentTab({ ctx }: { ctx: Ctx }) {
 /* ─── ASSETS TAB ────────────────────────────────────────────────────────── */
 
 const HOME_FIELDS: WizardField[] = [
-  { key: 'home_address', label: 'Property Address', type: 'text' },
+  { key: 'home_address', label: 'Property Address', type: 'address' },
   { key: 'home_value', label: 'Estimated Value', type: 'currency', half: true },
   { key: 'home_purchase_price', label: 'Purchase Price', type: 'currency', half: true },
 ];
 
 const IP_FIELDS: WizardField[] = [
-  { key: 'address', label: 'Property Address', type: 'text' },
+  { key: 'address', label: 'Property Address', type: 'address' },
   { key: 'estimated_value', label: 'Estimated Value', type: 'currency', half: true },
   { key: 'rental_income', label: 'Rental (gross monthly)', type: 'currency', half: true },
 ];
@@ -313,9 +313,26 @@ const OTHER_ASSETS_FIELDS: WizardField[] = [
   { key: 'superannuation', label: 'Superannuation', type: 'currency', half: true },
   { key: 'shares_investments', label: 'Shares / Managed Funds', type: 'currency', half: true },
   { key: 'crypto', label: 'Cryptocurrency', type: 'currency', half: true },
-  { key: 'other_assets_value', label: 'Other Assets Value', type: 'currency', half: true },
-  { key: 'other_assets_description', label: 'Description', type: 'text' },
 ];
+
+const OTHER_ASSET_TYPES = [
+  { value: 'shares', label: 'Shares / Managed Funds' },
+  { value: 'superannuation', label: 'Superannuation' },
+  { value: 'crypto', label: 'Cryptocurrency' },
+  { value: 'home_contents', label: 'Home Contents' },
+  { value: 'boat_caravan', label: 'Boat / Caravan' },
+  { value: 'business', label: 'Business / Goodwill' },
+  { value: 'life_insurance', label: 'Life Insurance (surrender value)' },
+  { value: 'receivable', label: 'Money Owed to Applicant' },
+  { value: 'other', label: 'Other' },
+];
+
+const OTHER_ASSET_ITEM: WizardField[] = [
+  { key: 'asset_type', label: 'Asset Type', type: 'select', half: true, options: OTHER_ASSET_TYPES },
+  { key: 'value', label: 'Value', type: 'currency', half: true },
+  { key: 'description', label: 'Description', type: 'text' },
+];
+
 
 /** Find the next available numbered section index (1..max). */
 function nextNumberedIndex(data: AllData, prefix: string, predicate: (d: any) => boolean, max: number) {
