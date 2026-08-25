@@ -24,6 +24,8 @@ interface Props {
   onChange?: () => void;
   /** Hide the built-in header (net worth / income summary) */
   hideHeader?: boolean;
+  /** Receive live totals (for an external summary panel) */
+  onAggregates?: (a: ReturnType<typeof computeFactFindAggregates>) => void;
 }
 
 const num = (v: any) => {
