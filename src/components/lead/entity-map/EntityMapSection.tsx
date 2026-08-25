@@ -216,7 +216,7 @@ export function EntityMapSection({ leadId, leadName, isPreviewMode = false, read
               roles={roles}
               highlight={highlight}
               readOnly={readOnly}
-              onNodeClick={en => setFocusId(prev => (prev === en.id ? null : en.id))}
+              onNodeClick={en => setDetailsId(en.id)}
               onNodeMoved={moveNode}
               onFlowClick={f => !readOnly && setFlowDialog({ open: true, flow: f })}
               onAutoLayout={tidyUp}
