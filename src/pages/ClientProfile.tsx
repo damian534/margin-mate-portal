@@ -11,7 +11,7 @@ import { ClientDealsTab } from '@/components/client/ClientDealsTab';
 import { ClientDocumentsTab } from '@/components/client/ClientDocumentsTab';
 import { AddressesTab } from '@/components/lead/tabs/AddressesTab';
 import { EmploymentIdTab } from '@/components/lead/tabs/EmploymentIdTab';
-import { FinancialsTab } from '@/components/lead/tabs/FinancialsTab';
+import { ClientFinancialsTab } from '@/components/client/ClientFinancialsTab';
 import { CommunicationsTab } from '@/components/lead/tabs/CommunicationsTab';
 
 type TabKey = 'overview' | 'deals' | 'profile' | 'financials' | 'documents' | 'activity';
