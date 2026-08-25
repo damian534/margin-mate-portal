@@ -1531,6 +1531,7 @@ export type Database = {
       }
       leads: {
         Row: {
+          application_reference: string | null
           approved_date: string | null
           assigned_to: string | null
           broker_id: string | null
@@ -1577,6 +1578,7 @@ export type Database = {
           wip_status: string | null
         }
         Insert: {
+          application_reference?: string | null
           approved_date?: string | null
           assigned_to?: string | null
           broker_id?: string | null
@@ -1623,6 +1625,7 @@ export type Database = {
           wip_status?: string | null
         }
         Update: {
+          application_reference?: string | null
           approved_date?: string | null
           assigned_to?: string | null
           broker_id?: string | null

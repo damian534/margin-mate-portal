@@ -96,6 +96,7 @@ interface Lead {
   first_name: string;
   last_name: string;
   opportunity_name?: string | null;
+  application_reference?: string | null;
   email: string | null;
   phone: string | null;
   loan_amount: number | null;
@@ -1263,7 +1264,7 @@ export function LeadDetailSheet({
             </SheetTitle>
           </SheetHeader>
 
-          <div className="mb-3 grid grid-cols-1 sm:grid-cols-[1fr,auto] items-end gap-3">
+          <div className="mb-3 grid grid-cols-1 sm:grid-cols-[1fr,1fr,auto] items-end gap-3">
             <div className="min-w-0">
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">Lead Source</Label>
               <Select
@@ -1299,6 +1300,21 @@ export function LeadDetailSheet({
                   <Button size="sm" variant="ghost" className="h-8" onClick={() => { setAddingSource(false); setNewSourceLabel(''); }}>Cancel</Button>
                 </div>
               )}
+            </div>
+            <div className="min-w-0">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Application Reference No.</Label>
+              <Input
+                value={lead.application_reference ?? ''}
+                placeholder="e.g. APP-123456"
+                className="mt-1 h-9"
+                onChange={(e) => onLeadChange?.({ ...lead, application_reference: e.target.value })}
+                onBlur={async (e) => {
+                  const v = e.target.value.trim() || null;
+                  if (!isPreviewMode) {
+                    await supabase.from('leads').update({ application_reference: v } as any).eq('id', lead.id);
+                  }
+                }}
+              />
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {!isPreviewMode && lead.broker_id === user?.id && (
