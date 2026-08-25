@@ -1315,6 +1315,7 @@ export function LeadDetailSheet({
                   }
                 }}
               />
+            </div>
             <div className="flex items-center gap-2 shrink-0">
               {!isPreviewMode && lead.broker_id === user?.id && (
                 <ReferLeadDialog
