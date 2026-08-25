@@ -294,6 +294,19 @@ export function StructureWizard({
         if (error) throw error;
       }
 
+      // Tidy the drawing so it reads top-to-bottom like an org chart
+      const [eRes, fRes, rRes] = await Promise.all([
+        supabase.from('lead_entities').select('*').eq('lead_id', leadId),
+        supabase.from('lead_entity_flows').select('*').eq('lead_id', leadId),
+        supabase.from('lead_entity_roles').select('*').eq('lead_id', leadId),
+      ]);
+      const allEntities = (eRes.data ?? []) as unknown as LeadEntity[];
+      const allFlows = (fRes.data ?? []) as unknown as LeadEntityFlow[];
+      const allRoles = (rRes.data ?? []) as unknown as LeadEntityRole[];
+      const layout = autoLayout(allEntities, allFlows.filter(f => f.financial_year === primaryYear), allRoles);
+      await Promise.all(Object.entries(layout).map(([id, pt]) =>
+        supabase.from('lead_entities').update({ position_x: pt.x, position_y: pt.y } as any).eq('id', id)));
+
       toast.success('Structure created');
       onOpenChange(false);
       onCompleted();
