@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import { ArrowLeft, ArrowRight, Building2, Info, Plus, Trash2, Users, Wand2 } from 'lucide-react';
 import { fyLabel, formatMoney } from '@/lib/entityMap/servicing';
-import type { EntityType, LeadEntity } from '@/lib/entityMap/types';
+import { ENTITY_TYPE_LABELS, type EntityType, type LeadEntity } from '@/lib/entityMap/types';
 
 interface Props {
   open: boolean;
