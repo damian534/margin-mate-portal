@@ -692,91 +692,12 @@ export default function AdminCRM() {
       <AppHeader />
       <div className="flex w-full items-start">
         {/* Collapsible side navigation */}
-        {(() => {
-          const navTabs = [
-            { value: 'leads', label: 'Leads', icon: TrendingUp },
-            { value: 'wip', label: 'WIP', icon: Briefcase },
-            { value: 'tasks', label: 'Tasks', icon: ListTodo },
-            { value: 'contacts', label: 'Contacts', icon: ContactIcon },
-            { value: 'partners', label: 'Partners', icon: Building2 },
-            { value: 'broker_referrals', label: 'Broker Referrals', icon: Share2 },
-            { value: 'edm', label: 'Email Campaigns', icon: MailIcon },
-            { value: 'pipeline_report', label: 'Pipeline Report', icon: BarChart3 },
-            { value: 'reports', label: 'Reports', icon: BarChart3 },
-          ];
-          return (
-            <aside
-              className={`sticky top-0 shrink-0 border-r bg-card min-h-[calc(100vh-1px)] transition-all duration-200 ${navOpen ? 'w-56' : 'w-16'}`}
-            >
-              <div className="flex items-center justify-between px-3 py-3">
-                {navOpen && <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Menu</span>}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 ml-auto"
-                  onClick={() => setNavOpen(!navOpen)}
-                  aria-label={navOpen ? 'Collapse menu' : 'Expand menu'}
-                >
-                  {navOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
-                </Button>
-              </div>
-              <nav className="px-2 pb-6 space-y-1">
-                {navTabs.map(tab => {
-                  const isActive = activeTab === tab.value;
-                  const showBadge = tab.value === 'broker_referrals' && pendingReferralsCount > 0;
-                  return (
-                    <button
-                      key={tab.value}
-                      onClick={() => setActiveTab(tab.value)}
-                      title={tab.label}
-                      className={`w-full flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
-                        isActive
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                      } ${navOpen ? '' : 'justify-center'}`}
-                    >
-                      <tab.icon className="w-4 h-4 shrink-0" />
-                      {navOpen && <span className="truncate">{tab.label}</span>}
-                      {showBadge && (
-                        <span className={`min-w-[16px] h-[16px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 ${navOpen ? 'ml-auto' : 'absolute'}`}>
-                          {pendingReferralsCount}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </nav>
-              {(() => {
-                const suffix = isPreviewMode ? '?preview=true' : '';
-                const links = [
-                  { label: 'Tools', icon: Wrench, onClick: () => navigate(`/tools${suffix}`) },
-                  ...(isBrokerOrAdmin
-                    ? [
-                        { label: 'Settlements', icon: Landmark, onClick: () => navigate(`/admin/settlements${suffix}`) },
-                        { label: 'Settings', icon: Settings2, onClick: () => navigate(`/admin/settings${suffix}`) },
-                      ]
-                    : []),
-                  ...(!isPreviewMode ? [{ label: 'Sign Out', icon: LogOut, onClick: signOut }] : []),
-                ];
-                return (
-                  <nav className="px-2 pb-6 space-y-1 border-t pt-3">
-                    {links.map(l => (
-                      <button
-                        key={l.label}
-                        onClick={l.onClick}
-                        title={l.label}
-                        className={`w-full flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors ${navOpen ? '' : 'justify-center'}`}
-                      >
-                        <l.icon className="w-4 h-4 shrink-0" />
-                        {navOpen && <span className="truncate">{l.label}</span>}
-                      </button>
-                    ))}
-                  </nav>
-                );
-              })()}
-            </aside>
-          );
-        })()}
+        <AppSideNav
+          activeTab={activeTab}
+          onSelectTab={setActiveTab}
+          pendingReferralsCount={pendingReferralsCount}
+        />
+
 
       <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-8 xl:px-10 py-8 space-y-6">
         {/* Monthly Pipeline KPIs */}
