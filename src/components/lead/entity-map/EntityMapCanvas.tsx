@@ -150,7 +150,7 @@ export function EntityMapCanvas({
     }
   };
 
-  /** Money arrows: entity bottom -> entity top, with an amount pill. */
+  /** Money arrows: entity bottom -> entity top, with an amount pill placed clear of the nodes. */
   const edges = flows.map(f => {
     const a = pos(f.from_entity_id);
     const b = pos(f.to_entity_id);
@@ -161,22 +161,41 @@ export function EntityMapCanvas({
     return {
       flow: f,
       d: `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`,
-      lx: (x1 + x2) / 2,
-      ly: midY,
+      lx: x1 + (x2 - x1) * 0.78,
+      ly: y1 + (y2 - y1) * 0.62,
       dim,
     };
   });
 
-  /** Dashed control / ownership lines (who runs what). */
-  const controlEdges = structuralEdges(roles, entities, flows).map(e => {
+  /**
+   * Dashed control / ownership lines (who runs what).
+   * Lines that travel upward (a director who is also paid by the trust) are routed
+   * down the side of the chart so they never cross the entity cards.
+   */
+  const controlEdges = structuralEdges(roles, entities, flows).map((e, i) => {
     const a = pos(e.from);
     const b = pos(e.to);
-    const x1 = a.x + NODE_W / 2, y1 = a.y + NODE_H;
-    const x2 = b.x + NODE_W / 2, y2 = b.y - 6;
-    const midY = (y1 + y2) / 2;
     const dim = !!highlight;
-    return { ...e, d: `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`, lx: (x1 + x2) / 2, ly: midY, dim };
+    if (b.y > a.y + NODE_H / 2) {
+      const x1 = a.x + NODE_W / 2, y1 = a.y + NODE_H;
+      const x2 = b.x + NODE_W / 2, y2 = b.y - 6;
+      const midY = (y1 + y2) / 2;
+      return {
+        ...e, dim,
+        d: `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`,
+        lx: x1 + (x2 - x1) * 0.72, ly: y1 + (y2 - y1) * 0.5,
+      };
+    }
+    const lane = Math.max(a.x, b.x) + NODE_W + 70 + i * 34;
+    const sx = a.x + NODE_W, sy = a.y + NODE_H / 2;
+    const tx = b.x + NODE_W + 6, ty = b.y + NODE_H / 2;
+    return {
+      ...e, dim,
+      d: `M ${sx} ${sy} C ${lane} ${sy}, ${lane} ${ty}, ${tx} ${ty}`,
+      lx: lane, ly: (sy + ty) / 2 + i * 24,
+    };
   });
+
 
   return (
     <div className="relative">
