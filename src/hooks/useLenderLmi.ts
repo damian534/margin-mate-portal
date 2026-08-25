@@ -16,7 +16,7 @@ const toProfile = (row: any): LenderWithLmi => ({
   isAccredited: !!row.is_accredited,
   feeLabel: row.lmi_fee_label ?? null,
   provider: (row.lmi_provider ?? 'generic') as LmiProviderKey,
-  multiplier: Number(row.lmi_multiplier ?? 1) || 1,
+  multiplier: row.lmi_multiplier == null ? 1 : Number(row.lmi_multiplier),
   maxLvr: Number(row.lmi_max_lvr ?? 95) || 95,
   maxCapitalisedLvr: Number(row.lmi_max_capitalised_lvr ?? 97) || 97,
   waiverMaxLvr: row.lmi_waiver_max_lvr == null ? null : Number(row.lmi_waiver_max_lvr),

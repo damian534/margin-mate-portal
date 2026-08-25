@@ -180,6 +180,6 @@ export function quoteLmi(
 
   const table = tableFor(profile);
   if (!table) return base;
-  const ratePct = rateFromTable(table, lvr, baseLoan) * (profile.multiplier || 1) * (investment ? 1.1 : 1);
+  const ratePct = rateFromTable(table, lvr, baseLoan) * (profile.multiplier ?? 1) * (investment ? 1.1 : 1);
   return { ...base, ratePct, premium: baseLoan * (ratePct / 100) };
 }
