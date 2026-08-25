@@ -107,6 +107,41 @@ export function AppSideNav({ activeTab, onSelectTab, pendingReferralsCount = 0 }
       </nav>
 
       <nav className="px-2 pb-6 space-y-1 border-t pt-3">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              title="Tools"
+              className={`w-full flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+                onTools ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              } ${navOpen ? '' : 'justify-center'}`}
+            >
+              <Wrench className="w-4 h-4 shrink-0" />
+              {navOpen && (
+                <>
+                  <span className="truncate">Tools</span>
+                  <ChevronDown className="w-3.5 h-3.5 ml-auto shrink-0 opacity-60" />
+                </>
+              )}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" side="right" className="w-72">
+            <DropdownMenuLabel>Tools</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {visibleTools.map(tool => (
+              <DropdownMenuItem key={tool.id} onSelect={() => navigate(`${tool.path}${suffix}`)}>
+                <tool.icon className="w-4 h-4 mr-2 shrink-0 text-primary" />
+                <span className="truncate">{tool.name}</span>
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => navigate(`/tools${suffix}`)}>
+              <Wrench className="w-4 h-4 mr-2 shrink-0" />
+              All tools
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+
         {links.map(l => {
           const isActive = !!l.path && pathname === l.path;
           return (
