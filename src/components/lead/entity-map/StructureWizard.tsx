@@ -405,7 +405,7 @@ export function StructureWizard({
 
   const body = () => {
     switch (stepKey) {
-      case 'Structure':
+      case 'structure':
         return (
           <div className="space-y-3">
             <Hint>Start with how the client's business is set up. Not sure? Their tax return cover page or accountant's letter will say.</Hint>
@@ -427,7 +427,356 @@ export function StructureWizard({
           </div>
         );
 
-      case 'The trust':
+      case 'main':
+        if (!isTrust) return (
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">{kind === 'sole_trader' ? 'Business / client name' : `${mainLabel[0].toUpperCase()}${mainLabel.slice(1)} name`}</Label>
+              <Input value={trustName} onChange={e => setTrustName(e.target.value)} placeholder={kind === 'company' ? 'e.g. Smith Building Pty Ltd' : 'e.g. Smith & Co'} />
+            </div>
+            <Hint>This entity sits in the centre of the map — income flows in from the top and out to people at the bottom.</Hint>
+          </div>
+        );
+        return (
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Trust name</Label>
+              <Input autoFocus value={trustName} onChange={e => setTrustName(e.target.value)} placeholder="e.g. Smith Family Trust" />
+            </div>
+            <div className="grid gap-2">
+              {TRUST_TYPES.map(t => (
+                <button
+                  key={t.value}
+                  onClick={() => setTrustType(t.value)}
+                  className={cn(
+                    'text-left rounded-md border p-3 transition-colors',
+                    trustType === t.value ? 'border-primary bg-primary/5' : 'hover:bg-muted/50',
+                  )}
+                >
+                  <p className="text-sm font-medium">{t.label}</p>
+                  <p className="text-xs text-muted-foreground">{t.blurb}</p>
+                </button>
+              ))}
+            </div>
+            <Hint>The trust sits in the middle of the map. Next we'll add who controls it, then who the income goes to.</Hint>
+          </div>
+        );
+
+      case 'trustee': return trusteeName.trim().length > 1 && directors.some(d => d.name.trim());
+      case 'people': return beneficiaries.some(b => b.existingId || b.name.trim());
+      default: return true;
+    }
+  };
+
+  const rowIsFilled = (b: PersonRow) => !!(b.existingId || b.name.trim());
+  const distributed = beneficiaries.reduce((a, b) => a + (rowIsFilled(b) ? b.amount : 0), 0);
+
+  const incoming = hasTradingCo ? tradingProfit : entityProfit;
+
+  const updatePerson = (
+    setter: React.Dispatch<React.SetStateAction<PersonRow[]>>,
+    key: string, patch: Partial<PersonRow>,
+  ) => setter(rows => rows.map(r => (r.key === key ? { ...r, ...patch } : r)));
+
+
+  const build = async () => {
+    if (isPreviewMode) { toast.success('Structure created (preview)'); onOpenChange(false); return; }
+    setSaving(true);
+    try {
+      const created: Record<string, string> = {};
+      let order = existingEntities.length;
+
+      const insertEntity = async (row: {
+        key: string; name: string; entity_type: EntityType; is_applicant?: boolean;
+        trustee_entity_id?: string | null; x: number; y: number;
+      }) => {
+        const { data, error } = await supabase.from('lead_entities').insert({
+          lead_id: leadId,
+          name: row.name.trim(),
+          entity_type: row.entity_type,
+          is_applicant: !!row.is_applicant,
+          trustee_entity_id: row.trustee_entity_id ?? null,
+          position_x: row.x,
+          position_y: row.y,
+          sort_order: order++,
+        } as any).select('id').single();
+        if (error) throw error;
+        created[row.key] = (data as any).id as string;
+        return created[row.key];
+      };
+
+      const dirRows = directors.filter(d => d.name.trim());
+      const benRows = beneficiaries.filter(rowIsFilled);
+
+      // Directors of the corporate trustee (top row)
+      if (isTrust && trusteeKind === 'corporate') {
+        for (let i = 0; i < dirRows.length; i++) {
+          await insertEntity({ key: `dir-${dirRows[i].key}`, name: dirRows[i].name, entity_type: 'individual', x: 40 + i * 230, y: 0 });
+        }
+      }
+
+      // Trustee
+      let trusteeId: string | null = null;
+      if (isTrust) {
+        if (trusteeKind === 'corporate') {
+          trusteeId = await insertEntity({ key: 'trustee', name: trusteeName, entity_type: 'company', x: 60, y: 170 });
+        } else {
+          trusteeId = await insertEntity({ key: 'trustee', name: trusteeName, entity_type: 'individual', x: 60, y: 170 });
+        }
+      }
+
+      // Trading company (income source)
+      let tradingId: string | null = null;
+      if (hasTradingCo) {
+        tradingId = await insertEntity({ key: 'trading', name: tradingName || 'Trading company', entity_type: 'company', x: 460, y: 170 });
+      }
+
+      // Main entity in the centre
+      const mainType: EntityType = isTrust ? trustType
+        : kind === 'company' ? 'company'
+        : kind === 'partnership' ? 'partnership' : 'individual';
+      const mainId = await insertEntity({
+        key: 'main',
+        name: trustName,
+        entity_type: mainType,
+        is_applicant: kind === 'sole_trader',
+        trustee_entity_id: trusteeId,
+        x: 460, y: 340,
+      });
+
+      // People / entities receiving income (bottom row)
+      for (let i = 0; i < benRows.length; i++) {
+        const b = benRows[i];
+        if (b.existingId) {
+          created[`ben-${b.key}`] = b.existingId;
+          continue;
+        }
+        await insertEntity({
+          key: `ben-${b.key}`, name: b.name, entity_type: b.entityType || 'individual',
+          is_applicant: b.isApplicant, x: 40 + i * 230, y: 520,
+        });
+      }
+
+      // Roles
+      const roleRows: any[] = [];
+      if (isTrust && trusteeId) {
+        roleRows.push({ lead_id: leadId, entity_id: mainId, person_entity_id: trusteeId, person_name: trusteeName.trim(), role: 'trustee' });
+        if (trusteeKind === 'corporate') {
+          for (const d of dirRows) {
+            roleRows.push({
+              lead_id: leadId, entity_id: trusteeId, person_entity_id: created[`dir-${d.key}`],
+              person_name: d.name.trim(), role: 'director',
+            });
+          }
+        }
+      }
+      for (const b of benRows) {
+        roleRows.push({
+          lead_id: leadId, entity_id: mainId, person_entity_id: created[`ben-${b.key}`],
+          person_name: (b.existingId ? existingEntities.find(e => e.id === b.existingId)?.name : b.name)?.trim() ?? null,
+          role: isTrust ? (trustType === 'unit_trust' ? 'unit_holder' : 'beneficiary')
+            : kind === 'partnership' ? 'partner' : 'shareholder',
+        });
+      }
+
+      if (roleRows.length) {
+        const { error } = await supabase.from('lead_entity_roles').insert(roleRows as any);
+        if (error) throw error;
+      }
+
+      // Flows
+      const flowRows: any[] = [];
+      if (tradingId && tradingProfit > 0) {
+        flowRows.push({
+          lead_id: leadId, from_entity_id: tradingId, to_entity_id: mainId,
+          financial_year: financialYear, amount: tradingProfit, flow_type: 'net_profit', use_for_servicing: true,
+        });
+      }
+      for (const b of benRows) {
+        if (b.amount > 0) {
+          flowRows.push({
+            lead_id: leadId, from_entity_id: mainId, to_entity_id: created[`ben-${b.key}`],
+            financial_year: financialYear, amount: b.amount,
+            flow_type: isTrust ? 'trust_distribution' : kind === 'partnership' ? 'partnership_share' : 'wages',
+            use_for_servicing: true,
+          });
+        }
+      }
+      if (flowRows.length) {
+        const { error } = await supabase.from('lead_entity_flows').insert(flowRows as any);
+        if (error) throw error;
+      }
+
+      toast.success('Structure created');
+      onOpenChange(false);
+      onCompleted();
+    } catch {
+      toast.error('Could not create the structure');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const Hint = ({ children }: { children: React.ReactNode }) => (
+    <p className="flex gap-2 text-xs text-muted-foreground">
+      <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+      <span>{children}</span>
+    </p>
+  );
+
+  const NEW_RECIPIENT_TYPES: EntityType[] = ['individual', 'company', 'discretionary_trust', 'unit_trust', 'partnership', 'smsf'];
+
+  const peopleList = ({
+    rows, setter, amountLabel, showApplicant = true, recipientPicker = false,
+  }: {
+    rows: PersonRow[];
+    setter: React.Dispatch<React.SetStateAction<PersonRow[]>>;
+    amountLabel?: string;
+    showApplicant?: boolean;
+    recipientPicker?: boolean;
+  }) => (
+    <div className="space-y-2">
+      {rows.map((r, i) => {
+        const chosen = r.existingId ? existingEntities.find(e => e.id === r.existingId) ?? null : null;
+        const options = existingEntities.filter(
+          e => e.id === r.existingId || !rows.some(x => x.existingId === e.id),
+        );
+        return (
+          <div key={r.key} className="rounded-md border p-3 space-y-2">
+            {recipientPicker && (
+              <div className="flex items-center gap-2">
+                <Select
+                  value={r.existingId ? `existing:${r.existingId}` : `new:${r.entityType}`}
+                  onValueChange={v => {
+                    if (v.startsWith('existing:')) {
+                      const id = v.slice(9);
+                      const ent = existingEntities.find(e => e.id === id);
+                      updatePerson(setter, r.key, {
+                        existingId: id,
+                        name: ent?.name ?? '',
+                        entityType: (ent?.entity_type as EntityType) ?? 'individual',
+                        isApplicant: !!ent?.is_applicant,
+                      });
+                    } else {
+                      updatePerson(setter, r.key, { existingId: null, entityType: v.slice(4) as EntityType });
+                    }
+                  }}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent className="max-h-64">
+                    {options.length > 0 && (
+                      <>
+                        <div className="px-2 py-1 text-[11px] uppercase tracking-wide text-muted-foreground">Already on the map</div>
+                        {options.map(e => (
+                          <SelectItem key={e.id} value={`existing:${e.id}`}>
+                            {e.name} · {ENTITY_TYPE_LABELS[e.entity_type as EntityType]}
+                          </SelectItem>
+                        ))}
+                      </>
+                    )}
+                    <div className="px-2 py-1 text-[11px] uppercase tracking-wide text-muted-foreground">Add new</div>
+                    {NEW_RECIPIENT_TYPES.map(t => (
+                      <SelectItem key={t} value={`new:${t}`}>New {ENTITY_TYPE_LABELS[t].toLowerCase()}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {rows.length > 1 && (
+                  <Button variant="ghost" size="icon" onClick={() => setter(list => list.filter(x => x.key !== r.key))}>
+                    <Trash2 className="w-4 h-4 text-muted-foreground" />
+                  </Button>
+                )}
+              </div>
+            )}
+            {!chosen && (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={r.name}
+                  placeholder={
+                    !recipientPicker || r.entityType === 'individual'
+                      ? 'Full name'
+                      : `${ENTITY_TYPE_LABELS[r.entityType]} name`
+                  }
+                  onChange={e => updatePerson(setter, r.key, { name: e.target.value })}
+                />
+                {!recipientPicker && rows.length > 1 && (
+                  <Button variant="ghost" size="icon" onClick={() => setter(list => list.filter(x => x.key !== r.key))}>
+                    <Trash2 className="w-4 h-4 text-muted-foreground" />
+                  </Button>
+                )}
+              </div>
+            )}
+            {(amountLabel || showApplicant) && (
+              <div className="flex flex-wrap items-center gap-3">
+                {amountLabel && (
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs whitespace-nowrap">{amountLabel}</Label>
+                    <Input
+                      className="w-36"
+                      inputMode="numeric"
+                      value={fmtInput(r.amount)}
+                      placeholder="0"
+                      onChange={e => updatePerson(setter, r.key, { amount: money(e.target.value) })}
+                    />
+                  </div>
+                )}
+                {showApplicant && (r.existingId ? true : r.entityType === 'individual') && (
+                  <label className="flex items-center gap-2 text-xs">
+                    <Checkbox checked={r.isApplicant} onCheckedChange={v => updatePerson(setter, r.key, { isApplicant: !!v })} />
+                    On the loan application
+                  </label>
+                )}
+              </div>
+            )}
+            {recipientPicker && !chosen && r.entityType !== 'individual' && (
+              <p className="text-[11px] text-muted-foreground">
+                Income landing in a company or trust is only usable for servicing if that entity is on the loan, or if it distributes on to an applicant.
+              </p>
+            )}
+
+          </div>
+        );
+      })}
+      <Button variant="outline" size="sm" onClick={() => setter(list => [...list, blankPerson()])}>
+        <Plus className="w-3.5 h-3.5 mr-1" /> Add another
+      </Button>
+    </div>
+  );
+
+
+  const body = () => {
+    switch (stepKey) {
+      case 'structure':
+        return (
+          <div className="space-y-3">
+            <Hint>Start with how the client's business is set up. Not sure? Their tax return cover page or accountant's letter will say.</Hint>
+            <div className="grid gap-2">
+              {STRUCTURE_OPTIONS.map(o => (
+                <button
+                  key={o.value}
+                  onClick={() => setKind(o.value)}
+                  className={cn(
+                    'text-left rounded-md border p-3 transition-colors',
+                    kind === o.value ? 'border-primary bg-primary/5' : 'hover:bg-muted/50',
+                  )}
+                >
+                  <p className="text-sm font-medium">{o.label}</p>
+                  <p className="text-xs text-muted-foreground">{o.blurb}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'main':
+        if (!isTrust) return (
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">{kind === 'sole_trader' ? 'Business / client name' : `${mainLabel[0].toUpperCase()}${mainLabel.slice(1)} name`}</Label>
+              <Input value={trustName} onChange={e => setTrustName(e.target.value)} placeholder={kind === 'company' ? 'e.g. Smith Building Pty Ltd' : 'e.g. Smith & Co'} />
+            </div>
+            <Hint>This entity sits in the centre of the map — income flows in from the top and out to people at the bottom.</Hint>
+          </div>
+        );
         return (
           <div className="space-y-3">
             <div>
@@ -464,7 +813,7 @@ export function StructureWizard({
           </div>
         );
 
-      case 'Trustee':
+      case 'trustee':
         return (
           <div className="space-y-4">
             <Hint>Every trust has a trustee — the entity that legally controls it. Usually a Pty Ltd company set up just for that job.</Hint>
@@ -497,7 +846,7 @@ export function StructureWizard({
               <div className="space-y-2">
                 <Label className="text-xs">Directors of the trustee company</Label>
                 <Hint>These are the people who actually control the trust — lenders will want them as guarantors.</Hint>
-                <PeopleList rows={directors} setter={setDirectors} showApplicant={false} />
+                {peopleList({ rows: directors, setter: setDirectors, showApplicant: false })}
               </div>
             )}
           </div>
@@ -526,7 +875,7 @@ export function StructureWizard({
           </div>
         );
 
-      case 'Where income comes from':
+      case 'income':
         return (
           <div className="space-y-3">
             <Hint>Does a separate trading company earn the money and pass its profit up, or does this entity trade itself?</Hint>
