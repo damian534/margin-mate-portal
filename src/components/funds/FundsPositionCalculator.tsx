@@ -284,14 +284,13 @@ export function FundsPositionCalculator({
         </Card>
 
         {/* ---------------- Right: solvable figures ---------------- */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Position</CardTitle>
-            <p className="text-xs text-muted-foreground">
-              Switch a field on to type your own number — anything left off is solved for you.
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-2">
+        <FundsSection
+          title="Position & loan"
+          subtitle="Switch a field on to type your own number — anything left off is solved for you."
+          icon={<Wallet className="h-4 w-4" />}
+        >
+          <div className="space-y-2">
+
             <AutoField
               label="Property Value"
               field={i.propertyValue}
