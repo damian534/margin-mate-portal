@@ -257,14 +257,16 @@ export function StructureWizard({
       if (tradingId && tradingProfit > 0) {
         flowRows.push({
           lead_id: leadId, from_entity_id: tradingId, to_entity_id: mainId,
-          financial_year: financialYear, amount: tradingProfit, flow_type: 'net_profit', use_for_servicing: true,
+          financial_year: primaryYear, amount: tradingProfit, flow_type: 'net_profit', use_for_servicing: true,
         });
       }
       for (const b of benRows) {
-        if (b.amount > 0) {
+        for (const y of years) {
+          const amt = b.amounts[y] || 0;
+          if (amt <= 0) continue;
           flowRows.push({
             lead_id: leadId, from_entity_id: mainId, to_entity_id: created[`ben-${b.key}`],
-            financial_year: financialYear, amount: b.amount,
+            financial_year: y, amount: amt,
             flow_type: isTrust ? 'trust_distribution' : kind === 'partnership' ? 'partnership_share' : 'wages',
             use_for_servicing: true,
           });
@@ -591,13 +593,13 @@ export function StructureWizard({
                   <Input value={tradingName} onChange={e => setTradingName(e.target.value)} placeholder="e.g. Smith Building Pty Ltd" />
                 </div>
                 <div>
-                  <Label className="text-xs">Net profit to the {mainLabel} ({fyLabel(financialYear)})</Label>
+                  <Label className="text-xs">Net profit to the {mainLabel} ({fyLabel(primaryYear)})</Label>
                   <Input inputMode="numeric" value={fmtInput(tradingProfit)} onChange={e => setTradingProfit(money(e.target.value))} placeholder="0" />
                 </div>
               </div>
             ) : (
               <div>
-                <Label className="text-xs">Net profit for {fyLabel(financialYear)} (optional)</Label>
+                <Label className="text-xs">Net profit for {fyLabel(primaryYear)} (optional)</Label>
                 <Input inputMode="numeric" value={fmtInput(entityProfit)} onChange={e => setEntityProfit(money(e.target.value))} placeholder="0" className="sm:w-48" />
               </div>
             )}
@@ -631,7 +633,7 @@ export function StructureWizard({
                       {ex ? ' · existing' : ''}
                       {b.isApplicant ? ' · applicant' : ''}
                     </span>
-                    <span className="tabular-nums">{formatMoney(b.amount)}</span>
+                    <span className="tabular-nums">{formatMoney(rowTotal(b))}</span>
                   </p>
                 );
               })}
