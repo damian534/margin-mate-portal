@@ -5,26 +5,29 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Network, AlertTriangle, Building2, Wand2 } from 'lucide-react';
+import { Plus, Network, AlertTriangle, Building2, Wand2, Download } from 'lucide-react';
 import { SectionCard } from '@/components/lead/SectionCard';
 import { useLeadEntities } from '@/hooks/useLeadEntities';
 import { EntityMapCanvas } from './EntityMapCanvas';
 import { EntityDialog } from './EntityDialog';
+import { EntityDetailsDialog } from './EntityDetailsDialog';
 import { FlowDialog } from './FlowDialog';
-import { RolesEditor } from './RolesEditor';
 import { StructureWizard } from './StructureWizard';
 import {
   autoLayout, computeServicing, currentFinancialYear, formatMoney, fyLabel, traceUpstream,
 } from '@/lib/entityMap/servicing';
+import { downloadStructureChart } from '@/lib/entityMap/exportChart';
 import { ENTITY_TYPE_LABELS, type LeadEntity, type LeadEntityFlow, type LeadEntityRole } from '@/lib/entityMap/types';
 
 interface Props {
   leadId: string;
+  leadName?: string;
   isPreviewMode?: boolean;
   readOnly?: boolean;
 }
 
-export function EntityMapSection({ leadId, isPreviewMode = false, readOnly = false }: Props) {
+export function EntityMapSection({ leadId, leadName, isPreviewMode = false, readOnly = false }: Props) {
+
   const { entities, roles, flows, loading, refresh } = useLeadEntities(leadId, isPreviewMode);
   const [fy, setFy] = useState(currentFinancialYear());
   const [entityDialog, setEntityDialog] = useState<{ open: boolean; entity: LeadEntity | null }>({ open: false, entity: null });
