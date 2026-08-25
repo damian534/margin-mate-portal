@@ -1307,9 +1307,19 @@ export function LeadDetailSheet({
           </div>
         </div>
 
-        <ClientFileTabs value={activeTab} onChange={setActiveTab} />
+        <ClientFileTabs
+          value={activeTab}
+          onChange={setActiveTab}
+          action={!isPreviewMode ? (
+            <Button size="sm" className="gap-1.5 h-8 text-xs" onClick={() => setFactFindOpen(true)}>
+              <ClipboardList className="w-3.5 h-3.5" />
+              Fact find (call mode)
+            </Button>
+          ) : undefined}
+        />
 
-        <div className="p-6 pb-2">
+        <div className="p-6 pb-2" key={`tabbody-${factFindVersion}`}>
+
           {activeTab === 'summary' && (<>
           {/* Referral Partner */}
           <div id="sec-referrals" className="scroll-mt-16 mb-3 rounded-lg border border-border bg-muted/20 overflow-hidden">
