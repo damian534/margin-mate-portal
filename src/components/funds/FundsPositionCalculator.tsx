@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
@@ -7,14 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Plus, Trash2, RotateCcw, Save, Columns3, Download, Mail, AlertTriangle, AlertCircle, Info, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, RotateCcw, Save, Columns3, Download, Mail, AlertTriangle, AlertCircle, Info, ChevronDown, Settings2, Wallet, ShieldCheck, Landmark, PiggyBank, Receipt, ListChecks, Briefcase } from 'lucide-react';
 import { toast } from 'sonner';
 import { AutoField } from './AutoField';
 import { MoneyInput } from './MoneyInput';
 import { useFundsScenarios } from './useFundsScenarios';
 import { FundsScenarioCompare } from './FundsScenarioCompare';
+import { FundsSection } from './FundsSection';
+import { SavedScenariosPanel } from './SavedScenariosPanel';
+import { SaveToDealDialog, type DealOption } from './SaveToDealDialog';
 import { EmailFundsPositionDialog } from './EmailFundsPositionDialog';
 import { LenderLmiCompare } from './LenderLmiCompare';
+
 import { calculateFundsPosition, defaultFundsInputs, sumFundsBreakdown } from '@/lib/fundsPosition/calc';
 import { validateFundsPosition, type FundsWarning } from '@/lib/fundsPosition/warnings';
 import { downloadFundsPositionPdf } from '@/lib/pdf/fundsPositionPdf';
