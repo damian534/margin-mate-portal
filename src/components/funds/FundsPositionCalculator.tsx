@@ -280,8 +280,9 @@ export function FundsPositionCalculator({
                 <MoneyInput label="Valuation" value={i.valuation} onChange={v => set('valuation', v)} />
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </FundsSection>
+
 
         {/* ---------------- Right: solvable figures ---------------- */}
         <FundsSection
