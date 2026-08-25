@@ -434,7 +434,9 @@ export function FundsPositionCalculator({
               <Row label="Mortgage Registration" value={money(r.mortgageRegistrationFee)} />
               <Row label="Transfer Fee" value={money(r.transferFee)} />
             </div>
-          </div>
+            </div>
+          </FundsSection>
+
 
           {/* Funds available */}
           <FundsSection title="Funds available" summary={money(r.fundsAvailable)} icon={<PiggyBank className="h-4 w-4" />}>
