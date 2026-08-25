@@ -503,23 +503,47 @@ export const MORTGAGE_STEPS: WizardStep[] = [
     subtitle: 'Co-borrower address details.',
     sectionKey: 'mff_second_address',
     condition: (all) => all.mff_welcome?.has_second_applicant === 'yes',
-    fields: [
+    fields: (() => {
+      const notSame = (d: Record<string, any>) => d.same_as_primary !== 'yes';
+      return [
       { key: 'same_as_primary', label: 'Same address as primary applicant?', type: 'radio', options: YES_NO },
-      { key: 'current_address', label: 'Current Residential Address', type: 'text', condition: (d) => d.same_as_primary !== 'yes' },
-      { key: 'current_suburb', label: 'Suburb', type: 'text', half: true, condition: (d) => d.same_as_primary !== 'yes' },
-      { key: 'current_state', label: 'State', type: 'select', half: true, options: STATES, condition: (d) => d.same_as_primary !== 'yes' },
-      { key: 'current_postcode', label: 'Postcode', type: 'text', half: true, condition: (d) => d.same_as_primary !== 'yes' },
-      { key: 'years_at_address', label: 'Years at Address', type: 'number', half: true, placeholder: '0', condition: (d) => d.same_as_primary !== 'yes' },
-      { key: 'months_at_address', label: 'Months at Address', type: 'number', half: true, placeholder: '0', condition: (d) => d.same_as_primary !== 'yes' },
-      { key: 'residential_status', label: 'Residential Status', type: 'select', condition: (d) => d.same_as_primary !== 'yes', options: RESIDENTIAL_STATUS_OPTIONS },
-      { key: 'rent_amount', label: 'Rent / Board Amount (monthly)', type: 'currency', condition: (d) => d.same_as_primary !== 'yes' && (d.residential_status === 'renting' || d.residential_status === 'boarding') },
-      { key: 'mailing_address', label: 'Mailing Address (if different)', type: 'text', placeholder: 'Leave blank if same', condition: (d) => d.same_as_primary !== 'yes' },
-      { key: 'heading_prev', label: 'Previous Address', type: 'heading', condition: (d) => d.same_as_primary !== 'yes' && Number(d.years_at_address || 0) < 3 },
-      { key: 'previous_address', label: 'Previous Address', type: 'text', condition: (d) => d.same_as_primary !== 'yes' && Number(d.years_at_address || 0) < 3 },
-      { key: 'previous_suburb', label: 'Suburb', type: 'text', half: true, condition: (d) => d.same_as_primary !== 'yes' && Number(d.years_at_address || 0) < 3 },
-      { key: 'previous_state', label: 'State', type: 'select', half: true, options: STATES, condition: (d) => d.same_as_primary !== 'yes' && Number(d.years_at_address || 0) < 3 },
-      { key: 'previous_postcode', label: 'Postcode', type: 'text', half: true, condition: (d) => d.same_as_primary !== 'yes' && Number(d.years_at_address || 0) < 3 },
-    ],
+      { key: 'info_history', label: 'We need at least 3 years of continuous address history for every applicant.', type: 'info', condition: notSame },
+      { key: 'current_address', label: 'Current Residential Address', type: 'address', condition: notSame },
+      { key: 'current_suburb', label: 'Suburb', type: 'text', half: true, condition: notSame },
+      { key: 'current_state', label: 'State', type: 'select', half: true, options: STATES, condition: notSame },
+      { key: 'current_postcode', label: 'Postcode', type: 'text', half: true, condition: notSame },
+      { key: 'years_at_address', label: 'Years at Address', type: 'number', half: true, placeholder: '0', condition: notSame },
+      { key: 'months_at_address', label: 'Months at Address', type: 'number', half: true, placeholder: '0', condition: notSame },
+      { key: 'residential_status', label: 'Residential Status', type: 'select', condition: notSame, options: RESIDENTIAL_STATUS_OPTIONS },
+      { key: 'rent_amount', label: 'Rent / Board Amount (monthly)', type: 'currency', condition: (d) => notSame(d) && (d.residential_status === 'renting' || d.residential_status === 'boarding') },
+      { key: 'mailing_address', label: 'Mailing Address (if different)', type: 'address', placeholder: 'Leave blank if same', condition: notSame },
+
+      { key: 'heading_prev', label: 'Previous Address (1)', type: 'heading', condition: (d) => notSame(d) && needsPrevAddress(d, 1) },
+      { key: 'previous_address', label: 'Previous Address', type: 'address', condition: (d) => notSame(d) && needsPrevAddress(d, 1) },
+      { key: 'previous_suburb', label: 'Suburb', type: 'text', half: true, condition: (d) => notSame(d) && needsPrevAddress(d, 1) },
+      { key: 'previous_state', label: 'State', type: 'select', half: true, options: STATES, condition: (d) => notSame(d) && needsPrevAddress(d, 1) },
+      { key: 'previous_postcode', label: 'Postcode', type: 'text', half: true, condition: (d) => notSame(d) && needsPrevAddress(d, 1) },
+      { key: 'previous_years', label: 'Years at Previous', type: 'number', half: true, placeholder: '0', condition: (d) => notSame(d) && needsPrevAddress(d, 1) },
+      { key: 'previous_months', label: 'Months at Previous', type: 'number', half: true, placeholder: '0', condition: (d) => notSame(d) && needsPrevAddress(d, 1) },
+
+      { key: 'heading_prev2', label: 'Previous Address (2)', type: 'heading', condition: (d) => notSame(d) && needsPrevAddress(d, 2) },
+      { key: 'previous2_address', label: 'Previous Address', type: 'address', condition: (d) => notSame(d) && needsPrevAddress(d, 2) },
+      { key: 'previous2_suburb', label: 'Suburb', type: 'text', half: true, condition: (d) => notSame(d) && needsPrevAddress(d, 2) },
+      { key: 'previous2_state', label: 'State', type: 'select', half: true, options: STATES, condition: (d) => notSame(d) && needsPrevAddress(d, 2) },
+      { key: 'previous2_postcode', label: 'Postcode', type: 'text', half: true, condition: (d) => notSame(d) && needsPrevAddress(d, 2) },
+      { key: 'previous2_years', label: 'Years at Previous', type: 'number', half: true, placeholder: '0', condition: (d) => notSame(d) && needsPrevAddress(d, 2) },
+      { key: 'previous2_months', label: 'Months at Previous', type: 'number', half: true, placeholder: '0', condition: (d) => notSame(d) && needsPrevAddress(d, 2) },
+
+      { key: 'heading_prev3', label: 'Previous Address (3)', type: 'heading', condition: (d) => notSame(d) && needsPrevAddress(d, 3) },
+      { key: 'previous3_address', label: 'Previous Address', type: 'address', condition: (d) => notSame(d) && needsPrevAddress(d, 3) },
+      { key: 'previous3_suburb', label: 'Suburb', type: 'text', half: true, condition: (d) => notSame(d) && needsPrevAddress(d, 3) },
+      { key: 'previous3_state', label: 'State', type: 'select', half: true, options: STATES, condition: (d) => notSame(d) && needsPrevAddress(d, 3) },
+      { key: 'previous3_postcode', label: 'Postcode', type: 'text', half: true, condition: (d) => notSame(d) && needsPrevAddress(d, 3) },
+      { key: 'previous3_years', label: 'Years at Previous', type: 'number', half: true, placeholder: '0', condition: (d) => notSame(d) && needsPrevAddress(d, 3) },
+      { key: 'previous3_months', label: 'Months at Previous', type: 'number', half: true, placeholder: '0', condition: (d) => notSame(d) && needsPrevAddress(d, 3) },
+      ];
+    })(),
+
   },
 
   // ═══════════════════════════════════════════════════════
