@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 export type ClientFileTab =
@@ -29,7 +30,7 @@ interface Props {
   value: ClientFileTab;
   onChange: (tab: ClientFileTab) => void;
   /** Optional action rendered at the right end of the strip (e.g. broker fact find entry). */
-  action?: React.ReactNode;
+  action?: ReactNode;
 }
 
 /** Horizontal tab strip across the top of the client file. */
