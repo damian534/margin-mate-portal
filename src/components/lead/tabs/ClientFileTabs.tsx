@@ -28,18 +28,22 @@ export const CLIENT_FILE_TABS: { key: ClientFileTab; label: string }[] = [
 interface Props {
   value: ClientFileTab;
   onChange: (tab: ClientFileTab) => void;
+  /** Optional action rendered at the right end of the strip (e.g. broker fact find entry). */
+  action?: React.ReactNode;
 }
 
 /** Horizontal tab strip across the top of the client file. */
-export function ClientFileTabs({ value, onChange }: Props) {
+export function ClientFileTabs({ value, onChange, action }: Props) {
   return (
     <div className="sticky top-0 z-20 bg-background border-b">
+      <div className="flex items-stretch gap-2 px-4">
       <div
-        className="flex items-stretch gap-1 overflow-x-auto px-4"
+        className="flex flex-1 items-stretch gap-1 overflow-x-auto min-w-0"
         style={{ scrollbarWidth: 'thin' }}
         role="tablist"
         aria-label="Client file sections"
       >
+
         {CLIENT_FILE_TABS.map(t => {
           const active = t.key === value;
           return (
