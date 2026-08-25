@@ -65,6 +65,9 @@ export function ClientFileTabs({ value, onChange, action }: Props) {
           );
         })}
       </div>
+      {action && <div className="flex items-center shrink-0 py-1.5">{action}</div>}
+      </div>
     </div>
+
   );
 }
