@@ -97,24 +97,33 @@ export function StructureWizard({
     : kind === 'company' ? 'company'
     : kind === 'partnership' ? 'partnership' : 'business';
 
-  // Steps: 0 structure, 1 main entity, 2 trustee (trust only), 3 people, 4 income source, 5 review
-  const steps = useMemo(
+  // Step keys drive the flow; labels are display-only
+  const steps = useMemo<string[]>(
     () => (isTrust
-      ? ['Structure', 'The trust', 'Trustee', 'Who receives income', 'Where income comes from', 'Review']
-      : ['Structure', `The ${mainLabel}`, 'Who receives income', 'Where income comes from', 'Review']),
-    [isTrust, mainLabel],
+      ? ['structure', 'main', 'trustee', 'people', 'amounts', 'income', 'review']
+      : ['structure', 'main', 'people', 'amounts', 'income', 'review']),
+    [isTrust],
   );
 
-  const stepKey = steps[step];
   const peopleLabel = isTrust ? 'Beneficiaries' : kind === 'partnership' ? 'Partners' : 'People paid by the business';
+
+  const STEP_LABELS: Record<string, string> = {
+    structure: 'Structure',
+    main: isTrust ? 'The trust' : `The ${mainLabel}`,
+    trustee: 'Trustee',
+    people: isTrust ? 'Beneficiaries' : peopleLabel,
+    amounts: isTrust ? 'Distributions' : 'Amounts paid',
+    income: 'Where income comes from',
+    review: 'Review',
+  };
+
+  const stepKey = steps[step];
 
   const canNext = () => {
     switch (stepKey) {
-      case 'Structure': return true;
-      case 'The trust': return trustName.trim().length > 1;
-      case `The ${mainLabel}`: return trustName.trim().length > 1;
-      case 'Trustee': return trusteeName.trim().length > 1 && directors.some(d => d.name.trim());
-      case 'Who receives income': return beneficiaries.some(b => b.existingId || b.name.trim());
+      case 'main': return trustName.trim().length > 1;
+      case 'trustee': return trusteeName.trim().length > 1 && directors.some(d => d.name.trim());
+      case 'people': return beneficiaries.some(b => b.existingId || b.name.trim());
       default: return true;
     }
   };
@@ -128,6 +137,7 @@ export function StructureWizard({
     setter: React.Dispatch<React.SetStateAction<PersonRow[]>>,
     key: string, patch: Partial<PersonRow>,
   ) => setter(rows => rows.map(r => (r.key === key ? { ...r, ...patch } : r)));
+
 
   const build = async () => {
     if (isPreviewMode) { toast.success('Structure created (preview)'); onOpenChange(false); return; }
