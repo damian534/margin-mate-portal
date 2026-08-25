@@ -1186,6 +1186,8 @@ export default function AdminCRM() {
 
         </Tabs>
       </main>
+      </div>
+
 
       {/* Lead Detail Sheet */}
       <LeadDetailSheet
