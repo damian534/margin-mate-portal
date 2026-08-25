@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Columns3, Trash2, FolderOpen } from 'lucide-react';
-import type { SavedFundsScenario } from './useFundsScenarios';
+import { Columns3, Trash2, FolderOpen, Download, History } from 'lucide-react';
+import { toast } from 'sonner';
+import { downloadFundsPositionPdf } from '@/lib/pdf/fundsPositionPdf';
+import { ScenarioVersionsDialog } from './ScenarioVersionsDialog';
+import { groupFundsScenarios, type FundsScenarioGroup, type SavedFundsScenario } from './useFundsScenarios';
 
 const money = (n: number) =>
   `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n || 0)).toLocaleString('en-AU')}`;
@@ -15,11 +18,36 @@ interface Props {
   onCompare: () => void;
   /** Hide the deal column when already inside a deal. */
   hideDeal?: boolean;
+  /** Roll a scenario back by re-saving an older version. */
+  onRestore?: (s: SavedFundsScenario) => Promise<void> | void;
+  clientName?: string;
 }
 
 /** Dedicated list of every saved funding position, with the deal it belongs to. */
-export function SavedScenariosPanel({ scenarios, onLoad, onDelete, onCompare, hideDeal }: Props) {
+export function SavedScenariosPanel({
+  scenarios,
+  onLoad,
+  onDelete,
+  onCompare,
+  hideDeal,
+  onRestore,
+  clientName,
+}: Props) {
   const [dealNames, setDealNames] = useState<Record<string, string>>({});
+  const [versionsGroup, setVersionsGroup] = useState<FundsScenarioGroup | null>(null);
+  const groups = useMemo(() => groupFundsScenarios(scenarios), [scenarios]);
+
+  const exportPdf = async (s: SavedFundsScenario) => {
+    try {
+      await downloadFundsPositionPdf(s.inputs, s.result, {
+        clientName,
+        scenarioName: `${s.name} v${s.version}`,
+      });
+      toast.success('PDF downloaded');
+    } catch {
+      toast.error('Could not generate the PDF');
+    }
+  };
 
   useEffect(() => {
     const ids = Array.from(new Set(scenarios.map(s => s.leadId).filter(Boolean))) as string[];
@@ -45,7 +73,8 @@ export function SavedScenariosPanel({ scenarios, onLoad, onDelete, onCompare, hi
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">Saved funding positions</p>
           <p className="text-[11px] text-muted-foreground">
-            {scenarios.length} saved {scenarios.length === 1 ? 'scenario' : 'scenarios'}
+            {groups.length} saved {groups.length === 1 ? 'position' : 'positions'} · {scenarios.length}{' '}
+            {scenarios.length === 1 ? 'version' : 'versions'}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={onCompare}>
@@ -59,33 +88,58 @@ export function SavedScenariosPanel({ scenarios, onLoad, onDelete, onCompare, hi
         </p>
       ) : (
         <div className="divide-y">
-          {scenarios.map(s => (
-            <div key={s.id} className="flex flex-wrap items-center gap-2 px-4 py-2.5">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{s.name}</p>
-                <p className="text-[11px] text-muted-foreground">
-                  {new Date(s.createdAt).toLocaleDateString('en-AU')} · Loan {money(s.result.totalLoan)} ·{' '}
-                  {s.result.totalLVR.toFixed(2)}% LVR ·{' '}
-                  <span className={s.result.netSurplus < 0 ? 'text-destructive' : 'text-success'}>
-                    {money(Math.abs(s.result.netSurplus))} {s.result.netSurplus < 0 ? 'shortfall' : 'surplus'}
-                  </span>
-                </p>
-              </div>
-              {!hideDeal && (
-                <Badge variant={s.leadId ? 'secondary' : 'outline'} className="text-[10px]">
-                  {s.leadId ? dealNames[s.leadId] ?? 'Deal' : 'No deal'}
+          {groups.map(g => {
+            const s = g.latest;
+            return (
+              <div key={g.key} className="flex flex-wrap items-center gap-2 px-4 py-2.5">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{s.name}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {new Date(s.createdAt).toLocaleDateString('en-AU')} · Loan {money(s.result.totalLoan)} ·{' '}
+                    {s.result.totalLVR.toFixed(2)}% LVR ·{' '}
+                    <span className={s.result.netSurplus < 0 ? 'text-destructive' : 'text-success'}>
+                      {money(Math.abs(s.result.netSurplus))} {s.result.netSurplus < 0 ? 'shortfall' : 'surplus'}
+                    </span>
+                  </p>
+                </div>
+                <Badge variant="outline" className="text-[10px]">
+                  v{s.version}
                 </Badge>
-              )}
-              <Button variant="ghost" size="sm" onClick={() => onLoad(s)}>
-                Load
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => onDelete(s.id)} aria-label="Delete scenario">
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
+                {!hideDeal && (
+                  <Badge variant={s.leadId ? 'secondary' : 'outline'} className="text-[10px]">
+                    {s.leadId ? dealNames[s.leadId] ?? 'Deal' : 'No deal'}
+                  </Badge>
+                )}
+                <Button variant="ghost" size="sm" onClick={() => setVersionsGroup(g)}>
+                  <History className="mr-1 h-3.5 w-3.5" /> History
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => exportPdf(s)}>
+                  <Download className="mr-1 h-3.5 w-3.5" /> PDF
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => onLoad(s)}>
+                  Load
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => onDelete(s.id)} aria-label="Delete scenario">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            );
+          })}
         </div>
       )}
+
+      <ScenarioVersionsDialog
+        open={Boolean(versionsGroup)}
+        onOpenChange={o => !o && setVersionsGroup(null)}
+        group={versionsGroup}
+        clientName={clientName}
+        onLoad={s => {
+          onLoad(s);
+          setVersionsGroup(null);
+        }}
+        onRestore={onRestore}
+        onDelete={onDelete}
+      />
     </section>
   );
 }
