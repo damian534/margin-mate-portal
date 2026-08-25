@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -34,8 +34,19 @@ export function EntityMapSection({ leadId, isPreviewMode = false, readOnly = fal
 
   const years = useMemo(() => {
     const base = currentFinancialYear();
-    return [base + 1, base, base - 1, base - 2, base - 3];
-  }, []);
+    const set = new Set<number>([base + 1, base, base - 1, base - 2, base - 3, ...flows.map(f => f.financial_year)]);
+    return [...set].sort((a, b) => b - a);
+  }, [flows]);
+
+  // Land on a year that actually has data so the map is never blank on open.
+  const autoPicked = useRef(false);
+  useEffect(() => {
+    if (autoPicked.current || !flows.length) return;
+    autoPicked.current = true;
+    if (!flows.some(f => f.financial_year === fy)) {
+      setFy(Math.max(...flows.map(f => f.financial_year)));
+    }
+  }, [flows, fy]);
 
   const servicing = useMemo(() => computeServicing(entities, flows, fy), [entities, flows, fy]);
   const yearFlows = useMemo(() => flows.filter(f => f.financial_year === fy), [flows, fy]);
@@ -135,7 +146,7 @@ export function EntityMapSection({ leadId, isPreviewMode = false, readOnly = fal
 
   const tidyUp = async () => {
     if (guard()) return;
-    const positions = autoLayout(entities, yearFlows);
+    const positions = autoLayout(entities, yearFlows, roles);
     await Promise.all(
       Object.entries(positions).map(([id, p]) =>
         supabase.from('lead_entities').update({ position_x: p.x, position_y: p.y } as any).eq('id', id),
@@ -189,6 +200,7 @@ export function EntityMapSection({ leadId, isPreviewMode = false, readOnly = fal
             <EntityMapCanvas
               entities={entities}
               flows={yearFlows}
+              roles={roles}
               highlight={highlight}
               readOnly={readOnly}
               onNodeClick={en => setFocusId(prev => (prev === en.id ? null : en.id))}
@@ -196,6 +208,12 @@ export function EntityMapSection({ leadId, isPreviewMode = false, readOnly = fal
               onFlowClick={f => !readOnly && setFlowDialog({ open: true, flow: f })}
               onAutoLayout={tidyUp}
             />
+            {yearFlows.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                No income was recorded for {fyLabel(fy)}
+                {flows.length > 0 && ' — try another financial year above'}. The dashed lines still show who controls what.
+              </p>
+            )}
             {focusId && (
               <p className="text-xs text-muted-foreground">
                 Showing the income chain feeding <span className="font-medium">{entities.find(e => e.id === focusId)?.name}</span>. Click the entity again to clear.

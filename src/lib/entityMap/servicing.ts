@@ -1,4 +1,4 @@
-import type { FlowType, LeadEntity, LeadEntityFlow } from './types';
+import { ROLE_LABELS, type FlowType, type LeadEntity, type LeadEntityFlow, type LeadEntityRole, type RoleType } from './types';
 
 export interface ApplicantIncome {
   entityId: string;
@@ -151,18 +151,61 @@ export function detectCycles(entities: LeadEntity[], flows: LeadEntityFlow[]): s
   return cycles;
 }
 
-/** Simple layered layout: sources at the top, applicants at the bottom. */
-export function autoLayout(entities: LeadEntity[], flows: LeadEntityFlow[]) {
-  const depth = new Map<string, number>();
-  const incoming = new Map<string, string[]>();
-  for (const f of flows) {
-    incoming.set(f.to_entity_id, [...(incoming.get(f.to_entity_id) ?? []), f.from_entity_id]);
+export interface StructuralEdge {
+  id: string;
+  from: string;
+  to: string;
+  label: string;
+}
+
+const CONTROL_ROLES: RoleType[] = ['director', 'shareholder', 'trustee', 'appointor', 'partner', 'employee'];
+
+/**
+ * Control/ownership relationships drawn as dashed lines.
+ * Control always points downward: person -> company -> trust.
+ * Beneficiary style roles are rendered only when no money flow already shows the link.
+ */
+export function structuralEdges(roles: LeadEntityRole[], entities: LeadEntity[], flows: LeadEntityFlow[]): StructuralEdge[] {
+  const ids = new Set(entities.map(e => e.id));
+  const moneyPairs = new Set(flows.map(f => `${f.from_entity_id}->${f.to_entity_id}`));
+  const out: StructuralEdge[] = [];
+  for (const r of roles) {
+    if (!r.person_entity_id || !ids.has(r.person_entity_id) || !ids.has(r.entity_id)) continue;
+    const isControl = CONTROL_ROLES.includes(r.role);
+    const from = isControl ? r.person_entity_id : r.entity_id;
+    const to = isControl ? r.entity_id : r.person_entity_id;
+    if (from === to) continue;
+    if (!isControl && moneyPairs.has(`${from}->${to}`)) continue;
+    out.push({ id: r.id, from, to, label: ROLE_LABELS[r.role] ?? r.role });
   }
+  return out;
+}
+
+export const LAYOUT = { nodeW: 210, nodeH: 84, gapX: 46, gapY: 116, padding: 48 };
+
+/**
+ * Layered layout: whoever controls or pays sits above whoever receives.
+ * Rows are centred so the structure reads top-to-bottom like an org chart.
+ */
+export function autoLayout(
+  entities: LeadEntity[],
+  flows: LeadEntityFlow[],
+  roles: LeadEntityRole[] = [],
+) {
+  const edges: { from: string; to: string }[] = [
+    ...flows.map(f => ({ from: f.from_entity_id, to: f.to_entity_id })),
+    ...structuralEdges(roles, entities, flows).map(e => ({ from: e.from, to: e.to })),
+  ];
+
+  const incoming = new Map<string, string[]>();
+  for (const e of edges) incoming.set(e.to, [...(incoming.get(e.to) ?? []), e.from]);
+
+  const depth = new Map<string, number>();
   const resolve = (id: string, seen: Set<string>): number => {
     if (depth.has(id)) return depth.get(id)!;
     if (seen.has(id)) return 0;
     seen.add(id);
-    const parents = incoming.get(id) ?? [];
+    const parents = (incoming.get(id) ?? []).filter(p => p !== id);
     const value = parents.length ? Math.max(...parents.map(p => resolve(p, seen))) + 1 : 0;
     depth.set(id, value);
     return value;
@@ -174,14 +217,30 @@ export function autoLayout(entities: LeadEntity[], flows: LeadEntityFlow[]) {
     const d = depth.get(e.id) ?? 0;
     rows.set(d, [...(rows.get(d) ?? []), e]);
   }
+
+  const { nodeW, gapX, gapY, nodeH, padding } = LAYOUT;
+  const widest = Math.max(...[...rows.values()].map(r => r.length), 1);
+  const canvasW = widest * (nodeW + gapX) - gapX;
   const positions: Record<string, { x: number; y: number }> = {};
+
+  // Order each row by the average x of its parents so lines cross as little as possible.
   [...rows.keys()].sort((a, b) => a - b).forEach(d => {
-    (rows.get(d) ?? []).forEach((e, i) => {
-      positions[e.id] = { x: 40 + i * 260, y: 40 + d * 170 };
+    const row = (rows.get(d) ?? []).slice().sort((a, b) => {
+      const px = (id: string) => {
+        const parents = (incoming.get(id) ?? []).map(p => positions[p]?.x).filter(v => v !== undefined) as number[];
+        return parents.length ? sum(parents) / parents.length : Number.MAX_SAFE_INTEGER;
+      };
+      return px(a.id) - px(b.id);
+    });
+    const rowW = row.length * (nodeW + gapX) - gapX;
+    const startX = padding + (canvasW - rowW) / 2;
+    row.forEach((e, i) => {
+      positions[e.id] = { x: Math.round(startX + i * (nodeW + gapX)), y: padding + d * (nodeH + gapY) };
     });
   });
   return positions;
 }
+
 
 export function sum(values: number[]): number {
   return values.reduce((a, b) => a + b, 0);

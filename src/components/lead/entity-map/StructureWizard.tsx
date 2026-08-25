@@ -9,8 +9,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { ArrowLeft, ArrowRight, Building2, Info, Plus, Trash2, Users, Wand2 } from 'lucide-react';
-import { fyLabel, formatMoney } from '@/lib/entityMap/servicing';
-import { ENTITY_TYPE_LABELS, type EntityType, type LeadEntity } from '@/lib/entityMap/types';
+import { autoLayout, fyLabel, formatMoney } from '@/lib/entityMap/servicing';
+import { ENTITY_TYPE_LABELS, type EntityType, type LeadEntity, type LeadEntityFlow, type LeadEntityRole } from '@/lib/entityMap/types';
 
 interface Props {
   open: boolean;
@@ -154,10 +154,25 @@ export function StructureWizard({
       const created: Record<string, string> = {};
       let order = existingEntities.length;
 
+      const norm = (v: string) => v.trim().toLowerCase();
+      /** name -> id, so the same person is never drawn twice on the map. */
+      const byName = new Map<string, string>(existingEntities.map(e => [norm(e.name), e.id]));
+
       const insertEntity = async (row: {
         key: string; name: string; entity_type: EntityType; is_applicant?: boolean;
         trustee_entity_id?: string | null; x: number; y: number;
       }) => {
+        const existingId = byName.get(norm(row.name));
+        if (existingId) {
+          created[row.key] = existingId;
+          const patch: Record<string, unknown> = {};
+          if (row.is_applicant) patch.is_applicant = true;
+          if (row.trustee_entity_id) patch.trustee_entity_id = row.trustee_entity_id;
+          if (Object.keys(patch).length) {
+            await supabase.from('lead_entities').update(patch as any).eq('id', existingId);
+          }
+          return existingId;
+        }
         const { data, error } = await supabase.from('lead_entities').insert({
           lead_id: leadId,
           name: row.name.trim(),
@@ -170,8 +185,10 @@ export function StructureWizard({
         } as any).select('id').single();
         if (error) throw error;
         created[row.key] = (data as any).id as string;
+        byName.set(norm(row.name), created[row.key]);
         return created[row.key];
       };
+
 
       const dirRows = directors.filter(d => d.name.trim());
       const benRows = beneficiaries.filter(rowIsFilled);
@@ -276,6 +293,19 @@ export function StructureWizard({
         const { error } = await supabase.from('lead_entity_flows').insert(flowRows as any);
         if (error) throw error;
       }
+
+      // Tidy the drawing so it reads top-to-bottom like an org chart
+      const [eRes, fRes, rRes] = await Promise.all([
+        supabase.from('lead_entities').select('*').eq('lead_id', leadId),
+        supabase.from('lead_entity_flows').select('*').eq('lead_id', leadId),
+        supabase.from('lead_entity_roles').select('*').eq('lead_id', leadId),
+      ]);
+      const allEntities = (eRes.data ?? []) as unknown as LeadEntity[];
+      const allFlows = (fRes.data ?? []) as unknown as LeadEntityFlow[];
+      const allRoles = (rRes.data ?? []) as unknown as LeadEntityRole[];
+      const layout = autoLayout(allEntities, allFlows.filter(f => f.financial_year === primaryYear), allRoles);
+      await Promise.all(Object.entries(layout).map(([id, pt]) =>
+        supabase.from('lead_entities').update({ position_x: pt.x, position_y: pt.y } as any).eq('id', id)));
 
       toast.success('Structure created');
       onOpenChange(false);
