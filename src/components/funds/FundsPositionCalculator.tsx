@@ -76,6 +76,8 @@ export function FundsPositionCalculator({
   const [compareOpen, setCompareOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
   const [scenarioName, setScenarioName] = useState('');
+  const [rateDraft, setRateDraft] = useState<string | null>(null);
+
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
