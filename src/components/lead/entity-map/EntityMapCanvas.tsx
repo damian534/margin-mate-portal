@@ -273,14 +273,15 @@ export function EntityMapCanvas({
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerUp}
                 onClick={() => { if (!drag.current?.moved) onNodeClick(en); }}
-                style={{ left: p.x, top: p.y, width: NODE_W, minHeight: NODE_H }}
+                style={{ left: p.x, top: p.y, width: NODE_W, height: NODE_H }}
                 className={cn(
-                  'absolute rounded-xl border-2 bg-background p-2.5 shadow-md select-none transition-shadow hover:shadow-lg',
+                  'absolute overflow-hidden rounded-xl border-2 bg-background p-2.5 shadow-md select-none transition-shadow hover:shadow-lg',
                   readOnly ? 'cursor-pointer' : 'cursor-move',
                   tone.box,
                   en.is_applicant && 'ring-2 ring-primary/40',
                   dim && 'opacity-20',
                 )}
+
               >
                 <div className="flex items-start gap-2">
                   <div className={cn('w-6 h-6 rounded-md flex items-center justify-center shrink-0', tone.chip)}>

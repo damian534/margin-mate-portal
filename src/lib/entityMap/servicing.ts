@@ -219,12 +219,12 @@ export function autoLayout(
   }
 
   const { nodeW, gapX, gapY, nodeH, padding } = LAYOUT;
-  const widest = Math.max(...[...rows.values()].map(r => r.length), 1);
-  const canvasW = widest * (nodeW + gapX) - gapX;
+  const step = nodeW + gapX;
   const positions: Record<string, { x: number; y: number }> = {};
+  const ordered = [...rows.keys()].sort((a, b) => a - b);
 
-  // Order each row by the average x of its parents so lines cross as little as possible.
-  [...rows.keys()].sort((a, b) => a - b).forEach(d => {
+  // Pass 1: lay each row out left-to-right, ordered by the average x of its parents.
+  ordered.forEach(d => {
     const row = (rows.get(d) ?? []).slice().sort((a, b) => {
       const px = (id: string) => {
         const parents = (incoming.get(id) ?? []).map(p => positions[p]?.x).filter(v => v !== undefined) as number[];
@@ -232,14 +232,48 @@ export function autoLayout(
       };
       return px(a.id) - px(b.id);
     });
-    const rowW = row.length * (nodeW + gapX) - gapX;
-    const startX = padding + (canvasW - rowW) / 2;
+    rows.set(d, row);
     row.forEach((e, i) => {
-      positions[e.id] = { x: Math.round(startX + i * (nodeW + gapX)), y: padding + d * (nodeH + gapY) };
+      positions[e.id] = { x: i * step, y: d * (nodeH + gapY) };
+    });
+  });
+
+  // Pass 2: pull each node under the centre of its parents, then push apart so
+  // cards in a row never overlap. Keeps the chart visually aligned column-wise.
+  ordered.forEach(d => {
+    const row = rows.get(d) ?? [];
+    if (!row.length) return;
+    const desired = row.map(e => {
+      const parents = (incoming.get(e.id) ?? [])
+        .map(p => positions[p]?.x)
+        .filter(v => v !== undefined) as number[];
+      return parents.length ? sum(parents) / parents.length : positions[e.id].x;
+    });
+    // enforce minimum spacing left-to-right
+    for (let i = 0; i < row.length; i++) {
+      if (i > 0) desired[i] = Math.max(desired[i], desired[i - 1] + step);
+    }
+    row.forEach((e, i) => { positions[e.id] = { x: desired[i], y: positions[e.id].y }; });
+  });
+
+  // Centre every row against the widest row and normalise to the padding origin.
+  const rowSpans = ordered.map(d => {
+    const row = rows.get(d) ?? [];
+    const xs = row.map(e => positions[e.id].x);
+    return { d, min: Math.min(...xs), max: Math.max(...xs) + nodeW };
+  });
+  const totalMin = Math.min(...rowSpans.map(r => r.min));
+  const totalMax = Math.max(...rowSpans.map(r => r.max));
+  const canvasW = totalMax - totalMin;
+  rowSpans.forEach(({ d, min, max }) => {
+    const shift = padding - totalMin + (canvasW - (max - min)) / 2 - (min - totalMin);
+    (rows.get(d) ?? []).forEach(e => {
+      positions[e.id] = { x: Math.round(positions[e.id].x + shift), y: Math.round(positions[e.id].y + padding) };
     });
   });
   return positions;
 }
+
 
 
 export function sum(values: number[]): number {
