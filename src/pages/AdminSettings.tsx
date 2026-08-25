@@ -11,14 +11,12 @@ import { LeadSourcesManagement } from '@/components/LeadSourcesManagement';
 import { LendersManagement } from '@/components/LendersManagement';
 import { FactFindToggle } from '@/components/FactFindToggle';
 import { MilestoneEmailsManagement } from '@/components/MilestoneEmailsManagement';
-import { ClaudeIntegrationSettings } from '@/components/ClaudeIntegrationSettings';
 import { EmailSignatureSettings } from '@/components/EmailSignatureSettings';
-import { ZapierIntegrationSettings } from '@/components/ZapierIntegrationSettings';
 import { BankStatementsSettings } from '@/components/BankStatementsSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
-import { KeyRound, UserCog, Settings2, FileText, ListChecks, Tag, Building2, ClipboardList, Mail, Bot, PenLine, Zap, Banknote } from 'lucide-react';
+import { KeyRound, UserCog, Settings2, FileText, ListChecks, Tag, Building2, ClipboardList, Mail, PenLine, Banknote } from 'lucide-react';
 
 export default function AdminSettings() {
   const { isPreviewMode, role } = useAuth();
@@ -51,10 +49,6 @@ export default function AdminSettings() {
     ...(role !== 'broker_staff'
       ? [{ value: 'milestone-emails', label: 'Milestone Emails', icon: Mail }]
       : []),
-    ...(role !== 'broker_staff'
-      ? [{ value: 'claude', label: 'Claude Co-Work', icon: Bot }]
-      : []),
-    { value: 'zapier', label: 'Zapier', icon: Zap },
     { value: 'signature', label: 'Email Signature', icon: PenLine },
     { value: 'bank-statements', label: 'Bank Statements Link', icon: Banknote },
   ];
@@ -101,8 +95,6 @@ export default function AdminSettings() {
         {activeSection === 'lenders' && <LendersManagement />}
         {activeSection === 'fact-find' && <FactFindToggle />}
         {activeSection === 'milestone-emails' && role !== 'broker_staff' && <MilestoneEmailsManagement />}
-        {activeSection === 'claude' && role !== 'broker_staff' && <ClaudeIntegrationSettings />}
-        {activeSection === 'zapier' && <ZapierIntegrationSettings />}
         {activeSection === 'signature' && <EmailSignatureSettings />}
         {activeSection === 'bank-statements' && <BankStatementsSettings />}
       </main>
