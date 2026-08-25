@@ -651,7 +651,7 @@ export function StructureWizard({
       <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Wand2 className="w-4 h-4" /> Guided structure setup</DialogTitle>
-          <DialogDescription>Step {step + 1} of {steps.length} · {stepKey}</DialogDescription>
+          <DialogDescription>Step {step + 1} of {steps.length} · {STEP_LABELS[stepKey]}</DialogDescription>
         </DialogHeader>
 
         <div className="flex gap-1">
