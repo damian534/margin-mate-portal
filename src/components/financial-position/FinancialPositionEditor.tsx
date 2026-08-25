@@ -54,11 +54,19 @@ export function FinancialPositionEditor({ leadId, contactId, token, isPreviewMod
             json.fact_find?.forEach((r: any) => { map[r.section] = r.data ?? {}; });
             if (!cancelled) setData(map);
           }
+        } else if (contactId && !leadId) {
+          const { data: rows } = await supabase
+            .from('contact_financials')
+            .select('section, data')
+            .eq('contact_id', contactId);
+          const map: AllData = {};
+          (rows as any[])?.forEach(r => { map[r.section] = r.data ?? {}; });
+          if (!cancelled) setData(map);
         } else {
           const { data: rows } = await supabase
             .from('fact_find_responses')
             .select('section, data')
-            .eq('lead_id', leadId);
+            .eq('lead_id', leadId!);
           const map: AllData = {};
           (rows as any[])?.forEach(r => { map[r.section] = r.data ?? {}; });
           if (!cancelled) setData(map);
@@ -70,7 +78,7 @@ export function FinancialPositionEditor({ leadId, contactId, token, isPreviewMod
       }
     })();
     return () => { cancelled = true; };
-  }, [leadId, token, isPreviewMode]);
+  }, [leadId, contactId, token, isPreviewMode]);
 
   // ── Persist a single section (debounced)
   const persistSection = useCallback((sectionKey: string, sectionData: Record<string, any>) => {
@@ -84,19 +92,25 @@ export function FinancialPositionEditor({ leadId, contactId, token, isPreviewMod
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token, action: 'save_fact_find', section: sectionKey, data: sectionData, completed: false }),
           });
+        } else if (contactId && !leadId) {
+          const { error } = await supabase.from('contact_financials').upsert(
+            { contact_id: contactId, section: sectionKey, data: sectionData as any },
+            { onConflict: 'contact_id,section' }
+          );
+          if (error) { console.error(error); toast.error(`Failed to save: ${error.message}`); }
         } else {
           const { error } = await supabase.from('fact_find_responses').upsert(
-            { lead_id: leadId, section: sectionKey, data: sectionData as any, completed: false, updated_by: 'broker' },
+            { lead_id: leadId!, section: sectionKey, data: sectionData as any, completed: false, updated_by: 'broker' },
             { onConflict: 'lead_id,section' }
           );
-          if (error) toast.error('Failed to save');
+          if (error) { console.error(error); toast.error(`Failed to save: ${error.message}`); }
         }
         onChange?.();
       } catch {
         toast.error('Save error');
       }
     }, 600);
-  }, [leadId, token, readOnly, isPreviewMode, onChange]);
+  }, [leadId, contactId, token, readOnly, isPreviewMode, onChange]);
 
   /** Update a single field in a section. */
   const updateField = useCallback((sectionKey: string, fieldKey: string, value: any) => {
