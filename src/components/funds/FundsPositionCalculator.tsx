@@ -504,8 +504,8 @@ export function FundsPositionCalculator({
               <MoneyInput label="Total Fees" value={i.feesTotal} onChange={v => set('feesTotal', v)} />
             )}
           </div>
-        </CardContent>
-      </Card>
+      </div>
+
 
       {/* ---------------- Funds to complete summary ---------------- */}
       <FundsSection
