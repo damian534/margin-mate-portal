@@ -364,6 +364,21 @@ function AssetsTab({ ctx }: { ctx: Ctx }) {
     ctx.replaceSection(`mff_ip_${idx}`, {});
   };
 
+  const savings = (ctx.data.mff_assets_savings?.savings_accounts ?? []) as any[];
+  const savingsTotal = savings.reduce((s, x) => s + num(x.balance), 0);
+
+  const vehicles = (ctx.data.mff_assets_vehicles?.vehicles ?? []) as any[];
+  const vehiclesTotal = vehicles.reduce((s, x) => s + num(x.value), 0);
+
+  const otherItems = (ctx.data.mff_assets_other?.other_assets ?? []) as any[];
+  const otherSection = ctx.data.mff_assets_other ?? {};
+  const otherTotal =
+    otherItems.reduce((s, x) => s + num(x.value), 0) +
+    num(otherSection.home_contents) +
+    num(otherSection.superannuation) +
+    num(otherSection.shares_investments) +
+    num(otherSection.crypto);
+
   return (
     <>
       <FinancialGroupCard label="Owner-occupied home" total={homeValue} onAdd={null} defaultOpen={!!home.home_address}>
@@ -387,9 +402,67 @@ function AssetsTab({ ctx }: { ctx: Ctx }) {
           />
         ))}
       </FinancialGroupCard>
+
+      <FinancialGroupCard
+        label="Cash & savings"
+        total={savingsTotal}
+        onAdd={ctx.readOnly ? null : () =>
+          ctx.updateList('mff_assets_savings', 'savings_accounts', [...savings, {}], { has_savings: 'yes' })
+        }
+        addLabel="Add account"
+      >
+        <RepeatableList
+          sectionKey="mff_assets_savings"
+          listKey="savings_accounts"
+          items={savings}
+          fields={SAVINGS_FIELDS}
+          ctx={ctx}
+          itemTitle={(it, i) => it.institution || `Account ${i + 1}`}
+        />
+      </FinancialGroupCard>
+
+      <FinancialGroupCard
+        label="Vehicles"
+        total={vehiclesTotal}
+        onAdd={ctx.readOnly ? null : () =>
+          ctx.updateList('mff_assets_vehicles', 'vehicles', [...vehicles, {}], { has_vehicles: 'yes' })
+        }
+        addLabel="Add vehicle"
+      >
+        <RepeatableList
+          sectionKey="mff_assets_vehicles"
+          listKey="vehicles"
+          items={vehicles}
+          fields={VEHICLE_FIELDS}
+          ctx={ctx}
+          itemTitle={(it, i) => it.make_model || `Vehicle ${i + 1}`}
+        />
+      </FinancialGroupCard>
+
+      <FinancialGroupCard
+        label="Other assets"
+        total={otherTotal}
+        onAdd={ctx.readOnly ? null : () =>
+          ctx.updateList('mff_assets_other', 'other_assets', [...otherItems, {}])
+        }
+        addLabel="Add asset"
+      >
+        <FieldGrid fields={OTHER_ASSETS_FIELDS} sectionKey="mff_assets_other" ctx={ctx} />
+        <RepeatableList
+          sectionKey="mff_assets_other"
+          listKey="other_assets"
+          items={otherItems}
+          fields={OTHER_ASSET_ITEM}
+          ctx={ctx}
+          itemTitle={(it, i) =>
+            it.description || OTHER_ASSET_TYPES.find(o => o.value === it.asset_type)?.label || `Asset ${i + 1}`
+          }
+        />
+      </FinancialGroupCard>
     </>
   );
 }
+
 
 /* ─── LIABILITIES TAB ───────────────────────────────────────────────────── */
 
