@@ -9,6 +9,7 @@ export type ClientFileTab =
   | 'financials'
   | 'consent'
   | 'lending'
+  | 'funding'
   | 'documents'
   | 'notes'
   | 'communications';
@@ -21,6 +22,7 @@ export const CLIENT_FILE_TABS: { key: ClientFileTab; label: string }[] = [
   { key: 'financials', label: 'Financials' },
   { key: 'consent', label: 'Privacy Consent' },
   { key: 'lending', label: 'Lending' },
+  { key: 'funding', label: 'Funds Position' },
   { key: 'documents', label: 'Documents' },
   { key: 'notes', label: 'Notes' },
   { key: 'communications', label: 'Communications' },
