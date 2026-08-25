@@ -526,46 +526,42 @@ export function StructureWizard({
         );
 
       case 'amounts': {
-        const filled = beneficiaries.filter(rowIsFilled);
         return (
           <div className="space-y-3">
             <Hint>
               {isTrust
-                ? `Now enter what each beneficiary actually received in ${fyLabel(financialYear)}. Leave a beneficiary at 0 if they received nothing.`
-                : `Enter what each person was paid in ${fyLabel(financialYear)}.`}
+                ? 'Choose the financial years you are assessing (most lenders want the last two), then enter what each beneficiary actually received in each year.'
+                : 'Choose the financial years you are assessing, then enter what each person was paid in each year.'}
             </Hint>
-            {filled.length === 0 && <p className="text-xs text-muted-foreground">Go back and add at least one {isTrust ? 'beneficiary' : 'recipient'}.</p>}
-            <div className="space-y-2">
-              {filled.map(b => {
-                const ex = b.existingId ? existingEntities.find(e => e.id === b.existingId) : null;
-                const label = ex?.name ?? b.name;
-                const type = (ex?.entity_type as EntityType) ?? b.entityType;
-                return (
-                  <div key={b.key} className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3">
-                    <div className="min-w-0">
-                      <p className="text-sm truncate">{label}</p>
-                      <p className="text-[11px] text-muted-foreground">{ENTITY_TYPE_LABELS[type]}{b.isApplicant ? ' · on the loan' : ''}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Label className="text-xs whitespace-nowrap">{fyLabel(financialYear)}</Label>
-                      <Input
-                        className="w-36"
-                        inputMode="numeric"
-                        value={fmtInput(b.amount)}
-                        placeholder="0"
-                        onChange={e => updatePerson(setBeneficiaries, b.key, { amount: money(e.target.value) })}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+            <div>
+              <Label className="text-xs">Financial year(s)</Label>
+              <div className="mt-1 flex flex-wrap gap-2">
+                {YEAR_CHOICES.map(y => (
+                  <button
+                    key={y}
+                    onClick={() => toggleYear(y)}
+                    className={cn(
+                      'rounded-full border px-3 py-1 text-xs transition-colors',
+                      years.includes(y) ? 'border-primary bg-primary/10 text-primary' : 'hover:bg-muted/50',
+                    )}
+                  >
+                    {fyLabel(y)}
+                  </button>
+                ))}
+              </div>
             </div>
+            <Label className="text-xs">{peopleLabel} & amounts</Label>
+            <Hint>Someone missing? Add the other person, trust or company that received a distribution right here.</Hint>
+            {peopleList({
+              rows: beneficiaries, setter: setBeneficiaries, recipientPicker: true, amountYears: years,
+            })}
             {distributed > 0 && (
-              <p className="text-xs text-muted-foreground">Total distributed: {formatMoney(distributed)}</p>
+              <p className="text-xs text-muted-foreground">Total distributed across selected years: {formatMoney(distributed)}</p>
             )}
           </div>
         );
       }
+
 
 
       case 'income':
