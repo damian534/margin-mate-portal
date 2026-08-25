@@ -28,7 +28,8 @@ interface PersonRow {
   key: string;
   name: string;
   isApplicant: boolean;
-  amount: number;
+  /** Amount received per financial year (key = FY end year). */
+  amounts: Record<number, number>;
   /** Existing entity on the map that receives this share (null = create a new one). */
   existingId: string | null;
   /** Entity type to create when existingId is null. */
@@ -37,7 +38,7 @@ interface PersonRow {
 
 const uid = () => Math.random().toString(36).slice(2);
 const blankPerson = (): PersonRow => ({
-  key: uid(), name: '', isApplicant: true, amount: 0, existingId: null, entityType: 'individual',
+  key: uid(), name: '', isApplicant: true, amounts: {}, existingId: null, entityType: 'individual',
 });
 
 
@@ -74,6 +75,7 @@ export function StructureWizard({
   const [tradingName, setTradingName] = useState('');
   const [tradingProfit, setTradingProfit] = useState(0);
   const [entityProfit, setEntityProfit] = useState(0);
+  const [years, setYears] = useState<number[]>([financialYear]);
 
   useEffect(() => {
     if (!open) return;
@@ -89,7 +91,8 @@ export function StructureWizard({
     setTradingName('');
     setTradingProfit(0);
     setEntityProfit(0);
-  }, [open]);
+    setYears([financialYear]);
+  }, [open, financialYear]);
 
   const isTrust = kind === 'trust';
   const mainLabel = isTrust
@@ -129,9 +132,14 @@ export function StructureWizard({
   };
 
   const rowIsFilled = (b: PersonRow) => !!(b.existingId || b.name.trim());
-  const distributed = beneficiaries.reduce((a, b) => a + (rowIsFilled(b) ? b.amount : 0), 0);
+  const rowTotal = (b: PersonRow) => years.reduce((a, y) => a + (b.amounts[y] || 0), 0);
+  const distributed = beneficiaries.reduce((a, b) => a + (rowIsFilled(b) ? rowTotal(b) : 0), 0);
 
   const incoming = hasTradingCo ? tradingProfit : entityProfit;
+  const primaryYear = years.length ? Math.max(...years) : financialYear;
+  const YEAR_CHOICES = [financialYear - 3, financialYear - 2, financialYear - 1, financialYear];
+  const toggleYear = (y: number) =>
+    setYears(list => (list.includes(y) ? list.filter(v => v !== y) : [...list, y].sort((a, b) => a - b)));
 
   const updatePerson = (
     setter: React.Dispatch<React.SetStateAction<PersonRow[]>>,
@@ -249,14 +257,16 @@ export function StructureWizard({
       if (tradingId && tradingProfit > 0) {
         flowRows.push({
           lead_id: leadId, from_entity_id: tradingId, to_entity_id: mainId,
-          financial_year: financialYear, amount: tradingProfit, flow_type: 'net_profit', use_for_servicing: true,
+          financial_year: primaryYear, amount: tradingProfit, flow_type: 'net_profit', use_for_servicing: true,
         });
       }
       for (const b of benRows) {
-        if (b.amount > 0) {
+        for (const y of years) {
+          const amt = b.amounts[y] || 0;
+          if (amt <= 0) continue;
           flowRows.push({
             lead_id: leadId, from_entity_id: mainId, to_entity_id: created[`ben-${b.key}`],
-            financial_year: financialYear, amount: b.amount,
+            financial_year: y, amount: amt,
             flow_type: isTrust ? 'trust_distribution' : kind === 'partnership' ? 'partnership_share' : 'wages',
             use_for_servicing: true,
           });
@@ -287,11 +297,11 @@ export function StructureWizard({
   const NEW_RECIPIENT_TYPES: EntityType[] = ['individual', 'company', 'discretionary_trust', 'unit_trust', 'partnership', 'smsf'];
 
   const peopleList = ({
-    rows, setter, amountLabel, showApplicant = true, recipientPicker = false,
+    rows, setter, amountYears, showApplicant = true, recipientPicker = false,
   }: {
     rows: PersonRow[];
     setter: React.Dispatch<React.SetStateAction<PersonRow[]>>;
-    amountLabel?: string;
+    amountYears?: number[];
     showApplicant?: boolean;
     recipientPicker?: boolean;
   }) => (
@@ -365,20 +375,20 @@ export function StructureWizard({
                 )}
               </div>
             )}
-            {(amountLabel || showApplicant) && (
+            {(amountYears?.length || showApplicant) && (
               <div className="flex flex-wrap items-center gap-3">
-                {amountLabel && (
-                  <div className="flex items-center gap-2">
-                    <Label className="text-xs whitespace-nowrap">{amountLabel}</Label>
+                {(amountYears ?? []).map(y => (
+                  <div key={y} className="flex items-center gap-2">
+                    <Label className="text-xs whitespace-nowrap">{fyLabel(y)}</Label>
                     <Input
-                      className="w-36"
+                      className="w-32"
                       inputMode="numeric"
-                      value={fmtInput(r.amount)}
+                      value={fmtInput(r.amounts[y] || 0)}
                       placeholder="0"
-                      onChange={e => updatePerson(setter, r.key, { amount: money(e.target.value) })}
+                      onChange={e => updatePerson(setter, r.key, { amounts: { ...r.amounts, [y]: money(e.target.value) } })}
                     />
                   </div>
-                )}
+                ))}
                 {showApplicant && (r.existingId ? true : r.entityType === 'individual') && (
                   <label className="flex items-center gap-2 text-xs">
                     <Checkbox checked={r.isApplicant} onCheckedChange={v => updatePerson(setter, r.key, { isApplicant: !!v })} />
@@ -518,46 +528,42 @@ export function StructureWizard({
         );
 
       case 'amounts': {
-        const filled = beneficiaries.filter(rowIsFilled);
         return (
           <div className="space-y-3">
             <Hint>
               {isTrust
-                ? `Now enter what each beneficiary actually received in ${fyLabel(financialYear)}. Leave a beneficiary at 0 if they received nothing.`
-                : `Enter what each person was paid in ${fyLabel(financialYear)}.`}
+                ? 'Choose the financial years you are assessing (most lenders want the last two), then enter what each beneficiary actually received in each year.'
+                : 'Choose the financial years you are assessing, then enter what each person was paid in each year.'}
             </Hint>
-            {filled.length === 0 && <p className="text-xs text-muted-foreground">Go back and add at least one {isTrust ? 'beneficiary' : 'recipient'}.</p>}
-            <div className="space-y-2">
-              {filled.map(b => {
-                const ex = b.existingId ? existingEntities.find(e => e.id === b.existingId) : null;
-                const label = ex?.name ?? b.name;
-                const type = (ex?.entity_type as EntityType) ?? b.entityType;
-                return (
-                  <div key={b.key} className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3">
-                    <div className="min-w-0">
-                      <p className="text-sm truncate">{label}</p>
-                      <p className="text-[11px] text-muted-foreground">{ENTITY_TYPE_LABELS[type]}{b.isApplicant ? ' · on the loan' : ''}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Label className="text-xs whitespace-nowrap">{fyLabel(financialYear)}</Label>
-                      <Input
-                        className="w-36"
-                        inputMode="numeric"
-                        value={fmtInput(b.amount)}
-                        placeholder="0"
-                        onChange={e => updatePerson(setBeneficiaries, b.key, { amount: money(e.target.value) })}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+            <div>
+              <Label className="text-xs">Financial year(s)</Label>
+              <div className="mt-1 flex flex-wrap gap-2">
+                {YEAR_CHOICES.map(y => (
+                  <button
+                    key={y}
+                    onClick={() => toggleYear(y)}
+                    className={cn(
+                      'rounded-full border px-3 py-1 text-xs transition-colors',
+                      years.includes(y) ? 'border-primary bg-primary/10 text-primary' : 'hover:bg-muted/50',
+                    )}
+                  >
+                    {fyLabel(y)}
+                  </button>
+                ))}
+              </div>
             </div>
+            <Label className="text-xs">{peopleLabel} & amounts</Label>
+            <Hint>Someone missing? Add the other person, trust or company that received a distribution right here.</Hint>
+            {peopleList({
+              rows: beneficiaries, setter: setBeneficiaries, recipientPicker: true, amountYears: years,
+            })}
             {distributed > 0 && (
-              <p className="text-xs text-muted-foreground">Total distributed: {formatMoney(distributed)}</p>
+              <p className="text-xs text-muted-foreground">Total distributed across selected years: {formatMoney(distributed)}</p>
             )}
           </div>
         );
       }
+
 
 
       case 'income':
@@ -587,13 +593,13 @@ export function StructureWizard({
                   <Input value={tradingName} onChange={e => setTradingName(e.target.value)} placeholder="e.g. Smith Building Pty Ltd" />
                 </div>
                 <div>
-                  <Label className="text-xs">Net profit to the {mainLabel} ({fyLabel(financialYear)})</Label>
+                  <Label className="text-xs">Net profit to the {mainLabel} ({fyLabel(primaryYear)})</Label>
                   <Input inputMode="numeric" value={fmtInput(tradingProfit)} onChange={e => setTradingProfit(money(e.target.value))} placeholder="0" />
                 </div>
               </div>
             ) : (
               <div>
-                <Label className="text-xs">Net profit for {fyLabel(financialYear)} (optional)</Label>
+                <Label className="text-xs">Net profit for {fyLabel(primaryYear)} (optional)</Label>
                 <Input inputMode="numeric" value={fmtInput(entityProfit)} onChange={e => setEntityProfit(money(e.target.value))} placeholder="0" className="sm:w-48" />
               </div>
             )}
@@ -627,7 +633,7 @@ export function StructureWizard({
                       {ex ? ' · existing' : ''}
                       {b.isApplicant ? ' · applicant' : ''}
                     </span>
-                    <span className="tabular-nums">{formatMoney(b.amount)}</span>
+                    <span className="tabular-nums">{formatMoney(rowTotal(b))}</span>
                   </p>
                 );
               })}
