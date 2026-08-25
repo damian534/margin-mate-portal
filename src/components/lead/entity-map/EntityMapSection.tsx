@@ -33,7 +33,9 @@ export function EntityMapSection({ leadId, leadName, isPreviewMode = false, read
   const [entityDialog, setEntityDialog] = useState<{ open: boolean; entity: LeadEntity | null }>({ open: false, entity: null });
   const [flowDialog, setFlowDialog] = useState<{ open: boolean; flow: LeadEntityFlow | null }>({ open: false, flow: null });
   const [focusId, setFocusId] = useState<string | null>(null);
+  const [detailsId, setDetailsId] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
+
 
   const years = useMemo(() => {
     const base = currentFinancialYear();
