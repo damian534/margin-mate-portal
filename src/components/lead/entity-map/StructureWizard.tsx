@@ -75,6 +75,7 @@ export function StructureWizard({
   const [tradingName, setTradingName] = useState('');
   const [tradingProfit, setTradingProfit] = useState(0);
   const [entityProfit, setEntityProfit] = useState(0);
+  const [years, setYears] = useState<number[]>([financialYear]);
 
   useEffect(() => {
     if (!open) return;
@@ -90,7 +91,8 @@ export function StructureWizard({
     setTradingName('');
     setTradingProfit(0);
     setEntityProfit(0);
-  }, [open]);
+    setYears([financialYear]);
+  }, [open, financialYear]);
 
   const isTrust = kind === 'trust';
   const mainLabel = isTrust
@@ -134,6 +136,10 @@ export function StructureWizard({
   const distributed = beneficiaries.reduce((a, b) => a + (rowIsFilled(b) ? rowTotal(b) : 0), 0);
 
   const incoming = hasTradingCo ? tradingProfit : entityProfit;
+  const primaryYear = years.length ? Math.max(...years) : financialYear;
+  const YEAR_CHOICES = [financialYear - 3, financialYear - 2, financialYear - 1, financialYear];
+  const toggleYear = (y: number) =>
+    setYears(list => (list.includes(y) ? list.filter(v => v !== y) : [...list, y].sort((a, b) => a - b)));
 
   const updatePerson = (
     setter: React.Dispatch<React.SetStateAction<PersonRow[]>>,
@@ -289,11 +295,11 @@ export function StructureWizard({
   const NEW_RECIPIENT_TYPES: EntityType[] = ['individual', 'company', 'discretionary_trust', 'unit_trust', 'partnership', 'smsf'];
 
   const peopleList = ({
-    rows, setter, amountLabel, showApplicant = true, recipientPicker = false,
+    rows, setter, amountYears, showApplicant = true, recipientPicker = false,
   }: {
     rows: PersonRow[];
     setter: React.Dispatch<React.SetStateAction<PersonRow[]>>;
-    amountLabel?: string;
+    amountYears?: number[];
     showApplicant?: boolean;
     recipientPicker?: boolean;
   }) => (
@@ -367,20 +373,20 @@ export function StructureWizard({
                 )}
               </div>
             )}
-            {(amountLabel || showApplicant) && (
+            {(amountYears?.length || showApplicant) && (
               <div className="flex flex-wrap items-center gap-3">
-                {amountLabel && (
-                  <div className="flex items-center gap-2">
-                    <Label className="text-xs whitespace-nowrap">{amountLabel}</Label>
+                {(amountYears ?? []).map(y => (
+                  <div key={y} className="flex items-center gap-2">
+                    <Label className="text-xs whitespace-nowrap">{fyLabel(y)}</Label>
                     <Input
-                      className="w-36"
+                      className="w-32"
                       inputMode="numeric"
-                      value={fmtInput(r.amount)}
+                      value={fmtInput(r.amounts[y] || 0)}
                       placeholder="0"
-                      onChange={e => updatePerson(setter, r.key, { amount: money(e.target.value) })}
+                      onChange={e => updatePerson(setter, r.key, { amounts: { ...r.amounts, [y]: money(e.target.value) } })}
                     />
                   </div>
-                )}
+                ))}
                 {showApplicant && (r.existingId ? true : r.entityType === 'individual') && (
                   <label className="flex items-center gap-2 text-xs">
                     <Checkbox checked={r.isApplicant} onCheckedChange={v => updatePerson(setter, r.key, { isApplicant: !!v })} />
