@@ -689,7 +689,67 @@ export default function AdminCRM() {
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
-      <main className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 py-8 space-y-6">
+      <div className="flex w-full items-start">
+        {/* Collapsible side navigation */}
+        {(() => {
+          const navTabs = [
+            { value: 'leads', label: 'Leads', icon: TrendingUp },
+            { value: 'wip', label: 'WIP', icon: Briefcase },
+            { value: 'tasks', label: 'Tasks', icon: ListTodo },
+            { value: 'contacts', label: 'Contacts', icon: ContactIcon },
+            { value: 'partners', label: 'Partners', icon: Building2 },
+            { value: 'broker_referrals', label: 'Broker Referrals', icon: Share2 },
+            { value: 'edm', label: 'Email Campaigns', icon: MailIcon },
+            { value: 'pipeline_report', label: 'Pipeline Report', icon: BarChart3 },
+            { value: 'reports', label: 'Reports', icon: BarChart3 },
+          ];
+          return (
+            <aside
+              className={`sticky top-0 shrink-0 border-r bg-card min-h-[calc(100vh-1px)] transition-all duration-200 ${navOpen ? 'w-56' : 'w-16'}`}
+            >
+              <div className="flex items-center justify-between px-3 py-3">
+                {navOpen && <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Menu</span>}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 ml-auto"
+                  onClick={() => setNavOpen(!navOpen)}
+                  aria-label={navOpen ? 'Collapse menu' : 'Expand menu'}
+                >
+                  {navOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
+                </Button>
+              </div>
+              <nav className="px-2 pb-6 space-y-1">
+                {navTabs.map(tab => {
+                  const isActive = activeTab === tab.value;
+                  const showBadge = tab.value === 'broker_referrals' && pendingReferralsCount > 0;
+                  return (
+                    <button
+                      key={tab.value}
+                      onClick={() => setActiveTab(tab.value)}
+                      title={tab.label}
+                      className={`w-full flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      } ${navOpen ? '' : 'justify-center'}`}
+                    >
+                      <tab.icon className="w-4 h-4 shrink-0" />
+                      {navOpen && <span className="truncate">{tab.label}</span>}
+                      {showBadge && (
+                        <span className={`min-w-[16px] h-[16px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 ${navOpen ? 'ml-auto' : 'absolute'}`}>
+                          {pendingReferralsCount}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
+            </aside>
+          );
+        })()}
+
+      <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-8 xl:px-10 py-8 space-y-6">
         {/* Monthly Pipeline KPIs */}
         {(() => {
           const now = new Date();
@@ -706,19 +766,12 @@ export default function AdminCRM() {
           };
           const items = [
             { key: 'lodged', label: 'Lodged', icon: TrendingUp, accent: 'primary', ...calc('lodged_date') },
-            { key: 'approved', label: 'Approved', icon: CheckCircle, accent: 'success', ...calc('approved_date') },
+            { key: 'approved', label: 'Approved', icon: CheckCircle, accent: 'warning', ...calc('approved_date') },
             { key: 'settled', label: 'Settled', icon: DollarSign, accent: 'success', ...calc('settled_date') },
           ];
-          const targetKey = (k: string) => `pipeline_target_${k}_${effectiveBrokerId || 'me'}`;
-          const getTarget = (k: string) => {
-            const v = typeof window !== 'undefined' ? window.localStorage.getItem(targetKey(k)) : null;
-            return v ? parseInt(v, 10) || 0 : 0;
-          };
           return (
             <div>
-              <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wider">
-                This month · {now.toLocaleString('en-AU', { month: 'long', year: 'numeric' })}
-              </p>
+              <h1 className="text-2xl font-semibold tracking-tight mb-4">Account Overview Dashboard</h1>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {items.map((s) => (
                   <PipelineKpiCard
@@ -728,8 +781,7 @@ export default function AdminCRM() {
                     accent={s.accent}
                     volume={s.volume}
                     count={s.count}
-                    initialTarget={getTarget(s.key)}
-                    onTargetChange={(v) => window.localStorage.setItem(targetKey(s.key), String(v))}
+                    period={`This Month · ${now.toLocaleString('en-AU', { month: 'long', year: 'numeric' })}`}
                   />
                 ))}
               </div>
@@ -739,69 +791,7 @@ export default function AdminCRM() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          {/* Navigation: primary tabs + dropdown for the rest */}
-          {(() => {
-            const primaryTabs = [
-              { value: 'leads', label: 'Leads', icon: TrendingUp },
-              { value: 'wip', label: 'WIP', icon: Briefcase },
-              { value: 'tasks', label: 'Tasks', icon: ListTodo },
-            ];
-            const moreTabs = [
-              { value: 'contacts', label: 'Contacts', icon: ContactIcon },
-              { value: 'partners', label: 'Partners', icon: Building2 },
-              { value: 'broker_referrals', label: 'Broker Referrals', icon: Share2 },
-              { value: 'edm', label: 'Email Campaigns', icon: MailIcon },
-              { value: 'pipeline_report', label: 'Pipeline Report', icon: BarChart3 },
-              { value: 'reports', label: 'Reports', icon: BarChart3 },
-            ];
-            return (
-              <div className="space-y-3">
-                {/* Hero primary tabs */}
-                <div className="flex flex-wrap items-stretch gap-2">
-                  {primaryTabs.map((tab) => (
-                    <button
-                      key={tab.value}
-                      onClick={() => setActiveTab(tab.value)}
-                      className={`flex flex-col items-center gap-1.5 rounded-xl border px-4 py-4 text-sm font-medium transition-all flex-1 min-w-[110px]
-                        ${activeTab === tab.value
-                          ? 'border-primary bg-primary/5 text-primary shadow-sm'
-                          : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground'
-                        }`}
-                    >
-                      <tab.icon className="w-5 h-5" />
-                      <span className="text-xs">{tab.label}</span>
-                    </button>
-                  ))}
-                </div>
-                {/* Secondary sub-buttons */}
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {moreTabs.map((tab) => {
-                    const isActive = activeTab === tab.value;
-                    const showBadge = tab.value === 'broker_referrals' && pendingReferralsCount > 0;
-                    return (
-                      <button
-                        key={tab.value}
-                        onClick={() => setActiveTab(tab.value)}
-                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all
-                          ${isActive
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground'
-                          }`}
-                      >
-                        <tab.icon className="w-3.5 h-3.5" />
-                        <span>{tab.label}</span>
-                        {showBadge && (
-                          <span className="ml-1 min-w-[16px] h-[16px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
-                            {pendingReferralsCount}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })()}
+
 
           <TabsContent value="leads" className="space-y-4 mt-4">
             {/* Toolbar */}
