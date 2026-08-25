@@ -41,6 +41,14 @@ import { PreApprovalSection } from '@/components/PreApprovalSection';
 import { MeetingNotesSection } from '@/components/MeetingNotesSection';
 import { LoanSplitsEditor } from '@/components/LoanSplitsEditor';
 import { SectionCard } from '@/components/lead/SectionCard';
+import { ClientFileTabs, type ClientFileTab } from '@/components/lead/tabs/ClientFileTabs';
+import { ClientsTab } from '@/components/lead/tabs/ClientsTab';
+import { AddressesTab } from '@/components/lead/tabs/AddressesTab';
+import { EmploymentIdTab } from '@/components/lead/tabs/EmploymentIdTab';
+import { FinancialsTab } from '@/components/lead/tabs/FinancialsTab';
+import { ConsentTab } from '@/components/lead/tabs/ConsentTab';
+import { CommunicationsTab } from '@/components/lead/tabs/CommunicationsTab';
+
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
@@ -275,7 +283,7 @@ export function LeadDetailSheet({
       setNewTaskAssignee(user.id);
     }
   }, [showTaskForm, user?.id]);
-  const [activeTab, setActiveTab] = useState('timeline');
+  const [activeTab, setActiveTab] = useState<ClientFileTab>('summary');
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<{ id: string; title: string; dueDate: string } | null>(null);
   const [taskNoteText, setTaskNoteText] = useState('');
@@ -1297,10 +1305,15 @@ export function LeadDetailSheet({
               )}
             </div>
           </div>
+        </div>
 
-          {/* Tasks Hero — focal point for daily action */}
-          {/* Referral Partner — moved above Applicants */}
+        <ClientFileTabs value={activeTab} onChange={setActiveTab} />
+
+        <div className="p-6 pb-2">
+          {activeTab === 'summary' && (<>
+          {/* Referral Partner */}
           <div id="sec-referrals" className="scroll-mt-16 mb-3 rounded-lg border border-border bg-muted/20 overflow-hidden">
+
             <div className="px-3 py-2 bg-muted/40 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Users className="w-3.5 h-3.5 text-primary" />
@@ -1530,9 +1543,13 @@ export function LeadDetailSheet({
               }}
             />)}
           </div>
+          </>)}
 
+
+          {activeTab === 'summary' && (<>
           {/* Expand / Collapse all sections */}
           <div className="flex justify-end mb-2">
+
             <Button
               variant="outline"
               size="sm"
@@ -1741,10 +1758,14 @@ export function LeadDetailSheet({
             isPreviewMode={isPreviewMode}
           />
           </div>
+          </>)}
+
 
           <div id="sec-tabs" className="scroll-mt-16" />
           <div id="sec-activity" className="scroll-mt-16" />
+          {activeTab === 'notes' && (
           <SectionCard
+
             icon={Activity}
             title="Timeline"
             tone="neutral"
@@ -1953,8 +1974,10 @@ export function LeadDetailSheet({
               </ScrollArea>
             </div>
           </SectionCard>
+          )}
 
           {/* Professional Contacts + Subject to Finance — side by side on large screens */}
+          {activeTab === 'lending' && (
           <div className="lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start space-y-4 lg:space-y-0 mb-3">
             <ProfessionalContactsSection
               leadId={lead.id}
@@ -1972,14 +1995,17 @@ export function LeadDetailSheet({
               onChange={(updates) => onLeadChange?.({ ...lead, ...updates })}
             />
           </div>
+          )}
 
-          <EntityMapSection leadId={lead.id} leadName={[lead.first_name, lead.last_name].filter(Boolean).join(' ')} isPreviewMode={isPreviewMode} />
-
-
+          {activeTab === 'financials' && (
+            <EntityMapSection leadId={lead.id} leadName={[lead.first_name, lead.last_name].filter(Boolean).join(' ')} isPreviewMode={isPreviewMode} />
+          )}
 
           {/* Deal Setup + Pre-Approval — side by side when Pre Approval applies */}
           <div id="sec-status" className="scroll-mt-16" />
+          {activeTab === 'lending' && (
           <div className={lead.loan_purpose === 'pre_approval' ? "lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start space-y-4 lg:space-y-0 mb-3" : "mb-3"}>
+
           <SectionCard
             icon={SettingsIcon}
             title="Deal Setup"
@@ -2164,9 +2190,13 @@ export function LeadDetailSheet({
             />
           )}
           </div>
+          )}
+
 
           {/* Loan Splits + Deal Milestones — side by side on large screens */}
+          {activeTab === 'lending' && (
           <div className="lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start space-y-4 lg:space-y-0 mb-3">
+
             <LoanSplitsEditor
               leadId={lead.id}
               isPreviewMode={isPreviewMode}
@@ -2247,8 +2277,11 @@ export function LeadDetailSheet({
             );
           })()}
           </div>
+          )}
+
 
           {/* Read-only info */}
+          {activeTab === 'summary' && (
           <div className="grid grid-cols-2 gap-3 text-sm mt-2">
             {lead.loan_amount && (
               <div className="flex items-center gap-2">
@@ -2267,12 +2300,48 @@ export function LeadDetailSheet({
               </div>
             )}
           </div>
+          )}
+
+          {activeTab === 'clients' && (
+            <ClientsTab
+              leadId={lead.id}
+              isPreviewMode={isPreviewMode}
+              leadName={[lead.first_name, lead.last_name].filter(Boolean).join(' ')}
+              leadEmail={lead.email ?? null}
+              leadPhone={lead.phone ?? null}
+              onOpenContact={onOpenContact}
+              primaryContactId={lead.source_contact_id ?? null}
+            />
+          )}
+          {activeTab === 'addresses' && (
+            <AddressesTab leadId={lead.id} isPreviewMode={isPreviewMode} />
+          )}
+          {activeTab === 'employment' && (
+            <EmploymentIdTab leadId={lead.id} isPreviewMode={isPreviewMode} />
+          )}
+          {activeTab === 'financials' && (
+            <FinancialsTab leadId={lead.id} isPreviewMode={isPreviewMode} />
+          )}
+          {activeTab === 'consent' && (
+            <ConsentTab leadId={lead.id} isPreviewMode={isPreviewMode} />
+          )}
+          {activeTab === 'communications' && (
+            <CommunicationsTab
+              leadId={lead.id}
+              isPreviewMode={isPreviewMode}
+              clientEmail={lead.email ?? null}
+              clientPhone={lead.phone ?? null}
+            />
+          )}
 
         </div>
 
-        <div className="p-6 space-y-5">
+
+        <div className="px-6 pb-6 space-y-5">
           {/* Documents */}
+          {activeTab === 'documents' && (
           <SectionCard
+
             icon={FileText}
             title="Documents"
             tone="neutral"
@@ -2329,9 +2398,12 @@ export function LeadDetailSheet({
                 }}
               />
           </SectionCard>
+          )}
 
           {/* Commission */}
+          {activeTab === 'lending' && (
           <SectionCard
+
             icon={DollarSign}
             title="Commission"
             tone="neutral"
@@ -2415,6 +2487,8 @@ export function LeadDetailSheet({
               </div>
             </div>
           </SectionCard>
+          )}
+
 
           <Separator />
 

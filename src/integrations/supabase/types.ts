@@ -880,6 +880,53 @@ export type Database = {
           },
         ]
       }
+      lead_addresses: {
+        Row: {
+          address: string
+          address_type: string
+          applicant_id: string | null
+          created_at: string
+          display_order: number
+          id: string
+          lead_id: string
+          ownership_status: string | null
+          updated_at: string
+          years_at_address: number | null
+        }
+        Insert: {
+          address: string
+          address_type?: string
+          applicant_id?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          lead_id: string
+          ownership_status?: string | null
+          updated_at?: string
+          years_at_address?: number | null
+        }
+        Update: {
+          address?: string
+          address_type?: string
+          applicant_id?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          lead_id?: string
+          ownership_status?: string | null
+          updated_at?: string
+          years_at_address?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_addresses_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_applicants: {
         Row: {
           created_at: string
@@ -915,6 +962,112 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      lead_communications: {
+        Row: {
+          body: string | null
+          channel: string
+          created_at: string
+          created_by: string | null
+          direction: string
+          id: string
+          lead_id: string
+          occurred_at: string
+          participant_contact: string | null
+          participant_name: string | null
+          resend_id: string | null
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          id?: string
+          lead_id: string
+          occurred_at?: string
+          participant_contact?: string | null
+          participant_name?: string | null
+          resend_id?: string | null
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          id?: string
+          lead_id?: string
+          occurred_at?: string
+          participant_contact?: string | null
+          participant_name?: string | null
+          resend_id?: string | null
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_communications_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_consents: {
+        Row: {
+          applicant_id: string | null
+          captured_via: string | null
+          consent_type: string
+          created_at: string
+          evidence: string | null
+          granted: boolean
+          granted_at: string | null
+          id: string
+          lead_id: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          applicant_id?: string | null
+          captured_via?: string | null
+          consent_type: string
+          created_at?: string
+          evidence?: string | null
+          granted?: boolean
+          granted_at?: string | null
+          id?: string
+          lead_id: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          applicant_id?: string | null
+          captured_via?: string | null
+          consent_type?: string
+          created_at?: string
+          evidence?: string | null
+          granted?: boolean
+          granted_at?: string | null
+          id?: string
+          lead_id?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_consents_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lead_entities: {
         Row: {
