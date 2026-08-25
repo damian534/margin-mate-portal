@@ -161,6 +161,7 @@ export default function AdminCRM() {
   const [docsByLead, setDocsByLead] = useState<Map<string, { requested: number; completed: number; files: { path: string; name: string; label: string }[] }>>(new Map());
   const [pendingReferralsCount, setPendingReferralsCount] = useState(0);
   const [stageAddDialog, setStageAddDialog] = useState<{ kind: 'lead' | 'wip'; name: string } | null>(null);
+  const [navOpen, setNavOpen] = usePersistedState<boolean>('crm.nav.open', true);
 
   useEffect(() => {
     if (!user || isPreviewMode) return;
