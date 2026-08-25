@@ -11,6 +11,7 @@ interface Props {
 
 const TONES: Record<string, string> = {
   primary: 'from-[hsl(var(--primary))] to-[hsl(var(--primary)/0.75)]',
+  info: 'from-[hsl(var(--info))] to-[hsl(var(--info)/0.75)]',
   success: 'from-[hsl(var(--success))] to-[hsl(var(--success)/0.75)]',
   warning: 'from-[hsl(var(--warning))] to-[hsl(var(--warning)/0.75)]',
   accent: 'from-[hsl(var(--brand-black))] to-[hsl(var(--brand-black)/0.8)]',
