@@ -2,17 +2,19 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   TrendingUp, Briefcase, ListTodo, Contact as ContactIcon, Building2, Share2,
   Mail as MailIcon, BarChart3, Wrench, Landmark, Settings2, LogOut,
-  PanelLeftClose, PanelLeftOpen, ChevronDown,
+  PanelLeftClose, PanelLeftOpen, ChevronDown, Star, type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import { useFavourites } from '@/hooks/useFavourites';
 import { TOOLS } from '@/lib/toolsCatalog';
 import { useToolVisibility } from '@/hooks/useToolVisibility';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+
 
 
 export const CRM_NAV_TABS = [
@@ -60,6 +62,65 @@ export function AppSideNav({ activeTab, onSelectTab, pendingReferralsCount = 0 }
     ...(!isPreviewMode ? [{ label: 'Sign Out', icon: LogOut, path: '', onClick: signOut }] : []),
   ];
 
+  const { favourites, isFavourite, toggleFavourite } = useFavourites();
+
+  interface FavEntry { id: string; label: string; icon: LucideIcon; onClick: () => void; isActive: boolean }
+
+  const favouritable: FavEntry[] = [
+    ...CRM_NAV_TABS.map(tab => ({
+      id: `tab:${tab.value}`,
+      label: tab.label,
+      icon: tab.icon,
+      isActive: onCrm && activeTab === tab.value,
+      onClick: () => {
+        if (onSelectTab) onSelectTab(tab.value);
+        else navigate(`/admin?tab=${tab.value}${isPreviewMode ? '&preview=true' : ''}`);
+      },
+    })),
+    ...visibleTools.map(tool => ({
+      id: `tool:${tool.id}`,
+      label: tool.name,
+      icon: tool.icon,
+      isActive: pathname === tool.path,
+      onClick: () => navigate(`${tool.path}${suffix}`),
+    })),
+    ...links
+      .filter(l => !!l.path)
+      .map(l => ({
+        id: `link:${l.path}`,
+        label: l.label,
+        icon: l.icon,
+        isActive: pathname === l.path,
+        onClick: l.onClick,
+      })),
+  ];
+
+  const favouriteEntries = favourites
+    .map(id => favouritable.find(e => e.id === id))
+    .filter((e): e is FavEntry => !!e);
+
+  const StarToggle = ({ id, className = '' }: { id: string; className?: string }) => (
+    <button
+      type="button"
+      title={isFavourite(id) ? 'Remove from favourites' : 'Add to favourites'}
+      aria-label={isFavourite(id) ? 'Remove from favourites' : 'Add to favourites'}
+      onClick={e => {
+        e.stopPropagation();
+        e.preventDefault();
+        toggleFavourite(id);
+      }}
+      className={`ml-auto shrink-0 rounded p-0.5 transition-colors ${
+        isFavourite(id) ? 'text-amber-500' : 'text-muted-foreground/40 hover:text-amber-500'
+      } ${className}`}
+    >
+      <Star className="w-3.5 h-3.5" fill={isFavourite(id) ? 'currentColor' : 'none'} />
+    </button>
+  );
+
+  const rowClass = (isActive: boolean) =>
+    `group w-full flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+      isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+    } ${navOpen ? '' : 'justify-center'}`;
 
   return (
     <aside
@@ -78,30 +139,56 @@ export function AppSideNav({ activeTab, onSelectTab, pendingReferralsCount = 0 }
         </Button>
       </div>
 
+      {favouriteEntries.length > 0 && (
+        <nav className="px-2 pb-3 mb-1 space-y-1 border-b">
+          {navOpen && (
+            <div className="px-1 pb-1 flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+              <Star className="w-3 h-3 text-amber-500" fill="currentColor" /> Favourites
+            </div>
+          )}
+          {favouriteEntries.map(entry => (
+            <div key={entry.id} className={rowClass(entry.isActive)}>
+              <button onClick={entry.onClick} title={entry.label} className="flex items-center gap-3 min-w-0 flex-1">
+                <entry.icon className="w-4 h-4 shrink-0" />
+                {navOpen && <span className="truncate text-left">{entry.label}</span>}
+              </button>
+              {navOpen && <StarToggle id={entry.id} />}
+            </div>
+          ))}
+        </nav>
+      )}
+
+
+
       <nav className="px-2 pb-6 space-y-1">
         {CRM_NAV_TABS.map(tab => {
           const isActive = onCrm && activeTab === tab.value;
           const showBadge = tab.value === 'broker_referrals' && pendingReferralsCount > 0;
           return (
-            <button
-              key={tab.value}
-              onClick={() => {
-                if (onSelectTab) onSelectTab(tab.value);
-                else navigate(`/admin?tab=${tab.value}${isPreviewMode ? '&preview=true' : ''}`);
-              }}
-              title={tab.label}
-              className={`w-full flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
-                isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              } ${navOpen ? '' : 'justify-center'}`}
-            >
-              <tab.icon className="w-4 h-4 shrink-0" />
-              {navOpen && <span className="truncate">{tab.label}</span>}
+            <div key={tab.value} className={rowClass(isActive)}>
+              <button
+                onClick={() => {
+                  if (onSelectTab) onSelectTab(tab.value);
+                  else navigate(`/admin?tab=${tab.value}${isPreviewMode ? '&preview=true' : ''}`);
+                }}
+                title={tab.label}
+                className="flex items-center gap-3 min-w-0 flex-1"
+              >
+                <tab.icon className="w-4 h-4 shrink-0" />
+                {navOpen && <span className="truncate text-left">{tab.label}</span>}
+              </button>
               {showBadge && (
-                <span className={`min-w-[16px] h-[16px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 ${navOpen ? 'ml-auto' : 'absolute'}`}>
+                <span className="min-w-[16px] h-[16px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 shrink-0">
                   {pendingReferralsCount}
                 </span>
               )}
-            </button>
+              {navOpen && (
+                <StarToggle
+                  id={`tab:${tab.value}`}
+                  className={isFavourite(`tab:${tab.value}`) ? '' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'}
+                />
+              )}
+            </div>
           );
         })}
       </nav>
@@ -131,6 +218,7 @@ export function AppSideNav({ activeTab, onSelectTab, pendingReferralsCount = 0 }
               <DropdownMenuItem key={tool.id} onSelect={() => navigate(`${tool.path}${suffix}`)}>
                 <tool.icon className="w-4 h-4 mr-2 shrink-0 text-primary" />
                 <span className="truncate">{tool.name}</span>
+                <StarToggle id={`tool:${tool.id}`} />
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
@@ -145,20 +233,22 @@ export function AppSideNav({ activeTab, onSelectTab, pendingReferralsCount = 0 }
         {links.map(l => {
           const isActive = !!l.path && pathname === l.path;
           return (
-            <button
-              key={l.label}
-              onClick={l.onClick}
-              title={l.label}
-              className={`w-full flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
-                isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              } ${navOpen ? '' : 'justify-center'}`}
-            >
-              <l.icon className="w-4 h-4 shrink-0" />
-              {navOpen && <span className="truncate">{l.label}</span>}
-            </button>
+            <div key={l.label} className={rowClass(isActive)}>
+              <button onClick={l.onClick} title={l.label} className="flex items-center gap-3 min-w-0 flex-1">
+                <l.icon className="w-4 h-4 shrink-0" />
+                {navOpen && <span className="truncate text-left">{l.label}</span>}
+              </button>
+              {navOpen && !!l.path && (
+                <StarToggle
+                  id={`link:${l.path}`}
+                  className={isFavourite(`link:${l.path}`) ? '' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'}
+                />
+              )}
+            </div>
           );
         })}
       </nav>
+
     </aside>
   );
 }
