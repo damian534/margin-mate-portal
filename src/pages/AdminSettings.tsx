@@ -11,14 +11,12 @@ import { LeadSourcesManagement } from '@/components/LeadSourcesManagement';
 import { LendersManagement } from '@/components/LendersManagement';
 import { FactFindToggle } from '@/components/FactFindToggle';
 import { MilestoneEmailsManagement } from '@/components/MilestoneEmailsManagement';
-import { ClaudeIntegrationSettings } from '@/components/ClaudeIntegrationSettings';
 import { EmailSignatureSettings } from '@/components/EmailSignatureSettings';
-import { ZapierIntegrationSettings } from '@/components/ZapierIntegrationSettings';
 import { BankStatementsSettings } from '@/components/BankStatementsSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
-import { KeyRound, UserCog, Settings2, FileText, ListChecks, Tag, Building2, ClipboardList, Mail, Bot, PenLine, Zap, Banknote } from 'lucide-react';
+import { KeyRound, UserCog, Settings2, FileText, ListChecks, Tag, Building2, ClipboardList, Mail, PenLine, Banknote } from 'lucide-react';
 
 export default function AdminSettings() {
   const { isPreviewMode, role } = useAuth();
