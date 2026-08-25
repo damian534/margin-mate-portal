@@ -95,8 +95,6 @@ export default function AdminSettings() {
         {activeSection === 'lenders' && <LendersManagement />}
         {activeSection === 'fact-find' && <FactFindToggle />}
         {activeSection === 'milestone-emails' && role !== 'broker_staff' && <MilestoneEmailsManagement />}
-        {activeSection === 'claude' && role !== 'broker_staff' && <ClaudeIntegrationSettings />}
-        {activeSection === 'zapier' && <ZapierIntegrationSettings />}
         {activeSection === 'signature' && <EmailSignatureSettings />}
         {activeSection === 'bank-statements' && <BankStatementsSettings />}
       </main>
