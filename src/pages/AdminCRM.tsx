@@ -110,7 +110,7 @@ interface LeadSource {
 
 
 export default function AdminCRM() {
-  const { user, isPreviewMode, effectiveBrokerId } = useAuth();
+  const { user, isPreviewMode, effectiveBrokerId, isBrokerOrAdmin, signOut } = useAuth();
   const { statuses, addStatus, updateStatus: updateLeadStatus, deleteStatus, reorderStatuses } = useLeadStatuses();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
