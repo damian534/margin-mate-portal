@@ -1,0 +1,1 @@
+ALTER TABLE public.lenders ADD COLUMN IF NOT EXISTS lmi_fee_label text;
