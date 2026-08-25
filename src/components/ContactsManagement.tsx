@@ -60,6 +60,8 @@ export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openCon
   const [addOpen, setAddOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const navigate = useNavigate();
+
 
   // Open a specific contact when openContactId changes
   useEffect(() => {
