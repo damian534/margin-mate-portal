@@ -14,9 +14,12 @@ export interface SavedFundsScenario {
   result: FundsPositionResult;
 }
 
+const money = (n: number) =>
+  `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n || 0)).toLocaleString('en-AU')}`;
+
 /** Saved funding-position scenarios for the signed-in broker, optionally scoped to a deal. */
 export function useFundsScenarios(leadId?: string | null, enabled = true) {
-  const [scenarios, setScenarios] = useState<SavedFundsScenario[]>([]);
+  const [allScenarios, setAllScenarios] = useState<SavedFundsScenario[]>([]);
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
@@ -27,7 +30,7 @@ export function useFundsScenarios(leadId?: string | null, enabled = true) {
       .select('id, inputs, outputs, created_at')
       .eq('tool_name', FUNDS_TOOL_NAME)
       .order('created_at', { ascending: false })
-      .limit(100);
+      .limit(200);
     setLoading(false);
     if (error || !data) return;
 
@@ -47,25 +50,45 @@ export function useFundsScenarios(leadId?: string | null, enabled = true) {
       })
       .filter(Boolean) as SavedFundsScenario[];
 
-    setScenarios(leadId ? rows.filter(s => s.leadId === leadId) : rows);
-  }, [enabled, leadId]);
+    setAllScenarios(rows);
+  }, [enabled]);
 
   useEffect(() => {
     load();
   }, [load]);
 
   const save = useCallback(
-    async (name: string, inputs: FundsPositionInputs, result: FundsPositionResult) => {
+    async (
+      name: string,
+      inputs: FundsPositionInputs,
+      result: FundsPositionResult,
+      options?: { leadId?: string | null; addNote?: boolean },
+    ) => {
       const { data: auth } = await supabase.auth.getUser();
       const userId = auth?.user?.id;
       if (!userId) throw new Error('Not signed in');
+
+      const targetLead = options?.leadId !== undefined ? options.leadId : leadId ?? null;
+
       const { error } = await supabase.from('tool_scenarios').insert({
         user_id: userId,
         tool_name: FUNDS_TOOL_NAME,
-        inputs: { name, leadId: leadId ?? null, inputs } as any,
+        inputs: { name, leadId: targetLead, inputs } as any,
         outputs: result as any,
       } as any);
       if (error) throw error;
+
+      if (targetLead && options?.addNote) {
+        await supabase.from('notes').insert({
+          lead_id: targetLead,
+          author_id: userId,
+          content:
+            `💰 Funding position saved — "${name}" · Property ${money(result.propertyValue)} · ` +
+            `Loan ${money(result.totalLoan)} (${result.totalLVR.toFixed(2)}% LVR) · ` +
+            `${result.netSurplus < 0 ? 'Shortfall' : 'Surplus'} ${money(Math.abs(result.netSurplus))}`,
+        } as any);
+      }
+
       await load();
     },
     [leadId, load],
@@ -80,5 +103,7 @@ export function useFundsScenarios(leadId?: string | null, enabled = true) {
     [load],
   );
 
-  return { scenarios, loading, load, save, remove };
+  const scenarios = leadId ? allScenarios.filter(s => s.leadId === leadId) : allScenarios;
+
+  return { scenarios, allScenarios, loading, load, save, remove };
 }
