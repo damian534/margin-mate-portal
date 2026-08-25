@@ -9,8 +9,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { ArrowLeft, ArrowRight, Building2, Info, Plus, Trash2, Users, Wand2 } from 'lucide-react';
-import { fyLabel, formatMoney } from '@/lib/entityMap/servicing';
-import { ENTITY_TYPE_LABELS, type EntityType, type LeadEntity } from '@/lib/entityMap/types';
+import { autoLayout, fyLabel, formatMoney } from '@/lib/entityMap/servicing';
+import { ENTITY_TYPE_LABELS, type EntityType, type LeadEntity, type LeadEntityFlow, type LeadEntityRole } from '@/lib/entityMap/types';
 
 interface Props {
   open: boolean;
