@@ -12,8 +12,8 @@ export function AppHeader() {
   const { pathname } = useLocation();
 
   const isAdminTeam = isBrokerOrAdmin || role === 'broker_staff';
-  // The CRM dashboard has its own side navigation — avoid duplicating links up here.
-  const hideNavLinks = pathname === '/admin';
+  // The CRM dashboard has its own side navigation, and the landing page keeps a clean header.
+  const hideNavLinks = pathname === '/admin' || pathname === '/';
 
   const navBtn = "h-9 px-3 rounded-md border border-border bg-background hover:bg-muted hover:text-foreground transition-colors";
 
