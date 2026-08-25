@@ -746,6 +746,34 @@ export default function AdminCRM() {
                   );
                 })}
               </nav>
+              {(() => {
+                const suffix = isPreviewMode ? '?preview=true' : '';
+                const links = [
+                  { label: 'Tools', icon: Wrench, onClick: () => navigate(`/tools${suffix}`) },
+                  ...(isBrokerOrAdmin
+                    ? [
+                        { label: 'Settlements', icon: Landmark, onClick: () => navigate(`/admin/settlements${suffix}`) },
+                        { label: 'Settings', icon: Settings2, onClick: () => navigate(`/admin/settings${suffix}`) },
+                      ]
+                    : []),
+                  ...(!isPreviewMode ? [{ label: 'Sign Out', icon: LogOut, onClick: signOut }] : []),
+                ];
+                return (
+                  <nav className="px-2 pb-6 space-y-1 border-t pt-3">
+                    {links.map(l => (
+                      <button
+                        key={l.label}
+                        onClick={l.onClick}
+                        title={l.label}
+                        className={`w-full flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors ${navOpen ? '' : 'justify-center'}`}
+                      >
+                        <l.icon className="w-4 h-4 shrink-0" />
+                        {navOpen && <span className="truncate">{l.label}</span>}
+                      </button>
+                    ))}
+                  </nav>
+                );
+              })()}
             </aside>
           );
         })()}
