@@ -530,8 +530,9 @@ export function FundsPositionCalculator({
               tone={shortfall ? 'text-destructive' : 'text-success'}
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </FundsSection>
+
 
       <Dialog open={lenderPickerOpen} onOpenChange={setLenderPickerOpen}>
         <DialogContent className="max-w-3xl p-0">
