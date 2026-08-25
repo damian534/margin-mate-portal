@@ -97,24 +97,33 @@ export function StructureWizard({
     : kind === 'company' ? 'company'
     : kind === 'partnership' ? 'partnership' : 'business';
 
-  // Steps: 0 structure, 1 main entity, 2 trustee (trust only), 3 people, 4 income source, 5 review
-  const steps = useMemo(
+  // Step keys drive the flow; labels are display-only
+  const steps = useMemo<string[]>(
     () => (isTrust
-      ? ['Structure', 'The trust', 'Trustee', 'Who receives income', 'Where income comes from', 'Review']
-      : ['Structure', `The ${mainLabel}`, 'Who receives income', 'Where income comes from', 'Review']),
-    [isTrust, mainLabel],
+      ? ['structure', 'main', 'trustee', 'people', 'amounts', 'income', 'review']
+      : ['structure', 'main', 'people', 'amounts', 'income', 'review']),
+    [isTrust],
   );
 
-  const stepKey = steps[step];
   const peopleLabel = isTrust ? 'Beneficiaries' : kind === 'partnership' ? 'Partners' : 'People paid by the business';
+
+  const STEP_LABELS: Record<string, string> = {
+    structure: 'Structure',
+    main: isTrust ? 'The trust' : `The ${mainLabel}`,
+    trustee: 'Trustee',
+    people: isTrust ? 'Beneficiaries' : peopleLabel,
+    amounts: isTrust ? 'Distributions' : 'Amounts paid',
+    income: 'Where income comes from',
+    review: 'Review',
+  };
+
+  const stepKey = steps[step];
 
   const canNext = () => {
     switch (stepKey) {
-      case 'Structure': return true;
-      case 'The trust': return trustName.trim().length > 1;
-      case `The ${mainLabel}`: return trustName.trim().length > 1;
-      case 'Trustee': return trusteeName.trim().length > 1 && directors.some(d => d.name.trim());
-      case 'Who receives income': return beneficiaries.some(b => b.existingId || b.name.trim());
+      case 'main': return trustName.trim().length > 1;
+      case 'trustee': return trusteeName.trim().length > 1 && directors.some(d => d.name.trim());
+      case 'people': return beneficiaries.some(b => b.existingId || b.name.trim());
       default: return true;
     }
   };
@@ -128,6 +137,7 @@ export function StructureWizard({
     setter: React.Dispatch<React.SetStateAction<PersonRow[]>>,
     key: string, patch: Partial<PersonRow>,
   ) => setter(rows => rows.map(r => (r.key === key ? { ...r, ...patch } : r)));
+
 
   const build = async () => {
     if (isPreviewMode) { toast.success('Structure created (preview)'); onOpenChange(false); return; }
@@ -276,7 +286,7 @@ export function StructureWizard({
 
   const NEW_RECIPIENT_TYPES: EntityType[] = ['individual', 'company', 'discretionary_trust', 'unit_trust', 'partnership', 'smsf'];
 
-  const PeopleList = ({
+  const peopleList = ({
     rows, setter, amountLabel, showApplicant = true, recipientPicker = false,
   }: {
     rows: PersonRow[];
@@ -340,7 +350,6 @@ export function StructureWizard({
             {!chosen && (
               <div className="flex items-center gap-2">
                 <Input
-                  autoFocus={i === rows.length - 1 && !r.name}
                   value={r.name}
                   placeholder={
                     !recipientPicker || r.entityType === 'individual'
@@ -356,19 +365,21 @@ export function StructureWizard({
                 )}
               </div>
             )}
-            {amountLabel && (
+            {(amountLabel || showApplicant) && (
               <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs whitespace-nowrap">{amountLabel}</Label>
-                  <Input
-                    className="w-36"
-                    inputMode="numeric"
-                    value={fmtInput(r.amount)}
-                    placeholder="0"
-                    onChange={e => updatePerson(setter, r.key, { amount: money(e.target.value) })}
-                  />
-                </div>
-                {showApplicant && (
+                {amountLabel && (
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs whitespace-nowrap">{amountLabel}</Label>
+                    <Input
+                      className="w-36"
+                      inputMode="numeric"
+                      value={fmtInput(r.amount)}
+                      placeholder="0"
+                      onChange={e => updatePerson(setter, r.key, { amount: money(e.target.value) })}
+                    />
+                  </div>
+                )}
+                {showApplicant && (r.existingId ? true : r.entityType === 'individual') && (
                   <label className="flex items-center gap-2 text-xs">
                     <Checkbox checked={r.isApplicant} onCheckedChange={v => updatePerson(setter, r.key, { isApplicant: !!v })} />
                     On the loan application
@@ -376,11 +387,12 @@ export function StructureWizard({
                 )}
               </div>
             )}
-            {recipientPicker && r.entityType !== 'individual' && (
+            {recipientPicker && !chosen && r.entityType !== 'individual' && (
               <p className="text-[11px] text-muted-foreground">
                 Income landing in a company or trust is only usable for servicing if that entity is on the loan, or if it distributes on to an applicant.
               </p>
             )}
+
           </div>
         );
       })}
@@ -393,7 +405,7 @@ export function StructureWizard({
 
   const body = () => {
     switch (stepKey) {
-      case 'Structure':
+      case 'structure':
         return (
           <div className="space-y-3">
             <Hint>Start with how the client's business is set up. Not sure? Their tax return cover page or accountant's letter will say.</Hint>
@@ -415,7 +427,16 @@ export function StructureWizard({
           </div>
         );
 
-      case 'The trust':
+      case 'main':
+        if (!isTrust) return (
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">{kind === 'sole_trader' ? 'Business / client name' : `${mainLabel[0].toUpperCase()}${mainLabel.slice(1)} name`}</Label>
+              <Input value={trustName} onChange={e => setTrustName(e.target.value)} placeholder={kind === 'company' ? 'e.g. Smith Building Pty Ltd' : 'e.g. Smith & Co'} />
+            </div>
+            <Hint>This entity sits in the centre of the map — income flows in from the top and out to people at the bottom.</Hint>
+          </div>
+        );
         return (
           <div className="space-y-3">
             <div>
@@ -440,19 +461,7 @@ export function StructureWizard({
             <Hint>The trust sits in the middle of the map. Next we'll add who controls it, then who the income goes to.</Hint>
           </div>
         );
-
-      case `The ${mainLabel}`:
-        return (
-          <div className="space-y-3">
-            <div>
-              <Label className="text-xs">{kind === 'sole_trader' ? 'Business / client name' : `${mainLabel[0].toUpperCase()}${mainLabel.slice(1)} name`}</Label>
-              <Input autoFocus value={trustName} onChange={e => setTrustName(e.target.value)} placeholder={kind === 'company' ? 'e.g. Smith Building Pty Ltd' : 'e.g. Smith & Co'} />
-            </div>
-            <Hint>This entity sits in the centre of the map — income flows in from the top and out to people at the bottom.</Hint>
-          </div>
-        );
-
-      case 'Trustee':
+      case 'trustee':
         return (
           <div className="space-y-4">
             <Hint>Every trust has a trustee — the entity that legally controls it. Usually a Pty Ltd company set up just for that job.</Hint>
@@ -485,36 +494,73 @@ export function StructureWizard({
               <div className="space-y-2">
                 <Label className="text-xs">Directors of the trustee company</Label>
                 <Hint>These are the people who actually control the trust — lenders will want them as guarantors.</Hint>
-                <PeopleList rows={directors} setter={setDirectors} showApplicant={false} />
+                {peopleList({ rows: directors, setter: setDirectors, showApplicant: false })}
               </div>
             )}
           </div>
         );
 
-      case 'Who receives income':
+      case 'people':
         return (
           <div className="space-y-3">
             <Hint>
               {isTrust
-                ? `Who did ${trustName || 'the trust'} distribute to in ${fyLabel(financialYear)}? Only people on the loan can have their share used for servicing.`
-                : `Who is paid by ${trustName || 'the business'} — wages, dividends or profit share?`}
+                ? `Who are the beneficiaries of ${trustName || 'the trust'}? These are everyone who can receive a distribution — we'll set what they actually received next.`
+                : `Who can be paid by ${trustName || 'the business'} — wages, dividends or profit share?`}
             </Hint>
             <Hint>
-              Pick someone already on the map, or add a new person — and if the share went to another trust or company, choose that
+              Pick someone already on the map, or add a new person — and if a beneficiary is another trust or company, choose that
               entity type here and it will be created and linked for you.
             </Hint>
             <Label className="text-xs">{peopleLabel}</Label>
-            <PeopleList
-              rows={beneficiaries}
-              setter={setBeneficiaries}
-              amountLabel={`${fyLabel(financialYear)} amount`}
-              recipientPicker
-            />
-
+            {peopleList({ rows: beneficiaries, setter: setBeneficiaries, recipientPicker: true })}
           </div>
         );
 
-      case 'Where income comes from':
+      case 'amounts': {
+        const filled = beneficiaries.filter(rowIsFilled);
+        return (
+          <div className="space-y-3">
+            <Hint>
+              {isTrust
+                ? `Now enter what each beneficiary actually received in ${fyLabel(financialYear)}. Leave a beneficiary at 0 if they received nothing.`
+                : `Enter what each person was paid in ${fyLabel(financialYear)}.`}
+            </Hint>
+            {filled.length === 0 && <p className="text-xs text-muted-foreground">Go back and add at least one {isTrust ? 'beneficiary' : 'recipient'}.</p>}
+            <div className="space-y-2">
+              {filled.map(b => {
+                const ex = b.existingId ? existingEntities.find(e => e.id === b.existingId) : null;
+                const label = ex?.name ?? b.name;
+                const type = (ex?.entity_type as EntityType) ?? b.entityType;
+                return (
+                  <div key={b.key} className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3">
+                    <div className="min-w-0">
+                      <p className="text-sm truncate">{label}</p>
+                      <p className="text-[11px] text-muted-foreground">{ENTITY_TYPE_LABELS[type]}{b.isApplicant ? ' · on the loan' : ''}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs whitespace-nowrap">{fyLabel(financialYear)}</Label>
+                      <Input
+                        className="w-36"
+                        inputMode="numeric"
+                        value={fmtInput(b.amount)}
+                        placeholder="0"
+                        onChange={e => updatePerson(setBeneficiaries, b.key, { amount: money(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {distributed > 0 && (
+              <p className="text-xs text-muted-foreground">Total distributed: {formatMoney(distributed)}</p>
+            )}
+          </div>
+        );
+      }
+
+
+      case 'income':
         return (
           <div className="space-y-3">
             <Hint>Does a separate trading company earn the money and pass its profit up, or does this entity trade itself?</Hint>
@@ -605,7 +651,7 @@ export function StructureWizard({
       <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Wand2 className="w-4 h-4" /> Guided structure setup</DialogTitle>
-          <DialogDescription>Step {step + 1} of {steps.length} · {stepKey}</DialogDescription>
+          <DialogDescription>Step {step + 1} of {steps.length} · {STEP_LABELS[stepKey]}</DialogDescription>
         </DialogHeader>
 
         <div className="flex gap-1">
