@@ -569,12 +569,23 @@ export function StructureWizard({
             </div>
             <div className="rounded-md border p-3 space-y-1">
               <p className="flex items-center gap-2 font-medium"><Users className="w-4 h-4" /> {peopleLabel}</p>
-              {beneficiaries.filter(b => b.name.trim()).map(b => (
-                <p key={b.key} className="flex justify-between text-xs">
-                  <span>{b.name}{b.isApplicant ? ' · applicant' : ''}</span>
-                  <span className="tabular-nums">{formatMoney(b.amount)}</span>
-                </p>
-              ))}
+              {beneficiaries.filter(rowIsFilled).map(b => {
+                const ex = b.existingId ? existingEntities.find(e => e.id === b.existingId) : null;
+                const label = ex?.name ?? b.name;
+                const type = (ex?.entity_type as EntityType) ?? b.entityType;
+                return (
+                  <p key={b.key} className="flex justify-between gap-2 text-xs">
+                    <span className="truncate">
+                      {label}
+                      {type !== 'individual' ? ` · ${ENTITY_TYPE_LABELS[type]}` : ''}
+                      {ex ? ' · existing' : ''}
+                      {b.isApplicant ? ' · applicant' : ''}
+                    </span>
+                    <span className="tabular-nums">{formatMoney(b.amount)}</span>
+                  </p>
+                );
+              })}
+
             </div>
             {incoming > 0 && (
               <p className="text-xs text-muted-foreground">
