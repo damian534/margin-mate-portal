@@ -138,6 +138,21 @@ export default function AdminCRM() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
+  // Deep link: /admin?lead=<id> opens that deal card once leads are loaded
+  useEffect(() => {
+    const leadParam = searchParams.get('lead');
+    if (!leadParam || !leads.length) return;
+    const found = leads.find(l => l.id === leadParam);
+    if (found) {
+      setSelectedLead(found);
+      setSheetOpen(true);
+    }
+    const next = new URLSearchParams(searchParams);
+    next.delete('lead');
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, leads]);
+
   const [reportReferrerId, setReportReferrerId] = useState<string | null>(null);
   const [taskDueFilter, setTaskDueFilter] = usePersistedState<TaskDueFilter>('crm.leads.taskDueFilter', 'all_leads');
   const [leadTasks, setLeadTasks] = useState<LeadTask[]>([]);
