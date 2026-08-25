@@ -108,6 +108,7 @@ interface LeadSource {
 }
 
 
+  const navigate = useNavigate();
 
 export default function AdminCRM() {
   const { user, isPreviewMode, effectiveBrokerId, isBrokerOrAdmin, signOut } = useAuth();
