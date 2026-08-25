@@ -6,7 +6,8 @@ import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, RotateCcw, Save, Columns3, Download, Mail, AlertTriangle, AlertCircle, Info } from 'lucide-react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Plus, Trash2, RotateCcw, Save, Columns3, Download, Mail, AlertTriangle, AlertCircle, Info, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { AutoField } from './AutoField';
 import { MoneyInput } from './MoneyInput';
@@ -78,6 +79,7 @@ export function FundsPositionCalculator({
   const { scenarios, save, remove } = useFundsScenarios(leadId, !isPreviewMode);
   const [compareOpen, setCompareOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
+  const [lenderPickerOpen, setLenderPickerOpen] = useState(false);
   const [scenarioName, setScenarioName] = useState('');
   const [rateDraft, setRateDraft] = useState<string | null>(null);
 
