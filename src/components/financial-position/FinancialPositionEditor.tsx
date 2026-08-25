@@ -13,12 +13,19 @@ type TabKey = 'employment' | 'assets' | 'liabilities' | 'income';
 type AllData = Record<string, Record<string, any>>;
 
 interface Props {
-  leadId: string;
+  /** Scope the financial position to a deal… */
+  leadId?: string;
+  /** …or straight to a contact (no deal required). */
+  contactId?: string;
   /** Client-portal token: when present, save via edge function instead of direct supabase write */
   token?: string;
   isPreviewMode?: boolean;
   readOnly?: boolean;
   onChange?: () => void;
+  /** Hide the built-in header (net worth / income summary) */
+  hideHeader?: boolean;
+  /** Receive live totals (for an external summary panel) */
+  onAggregates?: (a: ReturnType<typeof computeFactFindAggregates>) => void;
 }
 
 const num = (v: any) => {
@@ -27,7 +34,7 @@ const num = (v: any) => {
   return isFinite(n) ? n : 0;
 };
 
-export function FinancialPositionEditor({ leadId, token, isPreviewMode, readOnly, onChange }: Props) {
+export function FinancialPositionEditor({ leadId, contactId, token, isPreviewMode, readOnly, onChange, hideHeader, onAggregates }: Props) {
   const [tab, setTab] = useState<TabKey>('employment');
   const [data, setData] = useState<AllData>({});
   const [loaded, setLoaded] = useState(false);
@@ -49,11 +56,19 @@ export function FinancialPositionEditor({ leadId, token, isPreviewMode, readOnly
             json.fact_find?.forEach((r: any) => { map[r.section] = r.data ?? {}; });
             if (!cancelled) setData(map);
           }
+        } else if (contactId && !leadId) {
+          const { data: rows } = await supabase
+            .from('contact_financials')
+            .select('section, data')
+            .eq('contact_id', contactId);
+          const map: AllData = {};
+          (rows as any[])?.forEach(r => { map[r.section] = r.data ?? {}; });
+          if (!cancelled) setData(map);
         } else {
           const { data: rows } = await supabase
             .from('fact_find_responses')
             .select('section, data')
-            .eq('lead_id', leadId);
+            .eq('lead_id', leadId!);
           const map: AllData = {};
           (rows as any[])?.forEach(r => { map[r.section] = r.data ?? {}; });
           if (!cancelled) setData(map);
@@ -65,7 +80,7 @@ export function FinancialPositionEditor({ leadId, token, isPreviewMode, readOnly
       }
     })();
     return () => { cancelled = true; };
-  }, [leadId, token, isPreviewMode]);
+  }, [leadId, contactId, token, isPreviewMode]);
 
   // ── Persist a single section (debounced)
   const persistSection = useCallback((sectionKey: string, sectionData: Record<string, any>) => {
@@ -79,19 +94,25 @@ export function FinancialPositionEditor({ leadId, token, isPreviewMode, readOnly
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token, action: 'save_fact_find', section: sectionKey, data: sectionData, completed: false }),
           });
+        } else if (contactId && !leadId) {
+          const { error } = await supabase.from('contact_financials').upsert(
+            { contact_id: contactId, section: sectionKey, data: sectionData as any },
+            { onConflict: 'contact_id,section' }
+          );
+          if (error) { console.error(error); toast.error(`Failed to save: ${error.message}`); }
         } else {
           const { error } = await supabase.from('fact_find_responses').upsert(
-            { lead_id: leadId, section: sectionKey, data: sectionData as any, completed: false, updated_by: 'broker' },
+            { lead_id: leadId!, section: sectionKey, data: sectionData as any, completed: false, updated_by: 'broker' },
             { onConflict: 'lead_id,section' }
           );
-          if (error) toast.error('Failed to save');
+          if (error) { console.error(error); toast.error(`Failed to save: ${error.message}`); }
         }
         onChange?.();
       } catch {
         toast.error('Save error');
       }
     }, 600);
-  }, [leadId, token, readOnly, isPreviewMode, onChange]);
+  }, [leadId, contactId, token, readOnly, isPreviewMode, onChange]);
 
   /** Update a single field in a section. */
   const updateField = useCallback((sectionKey: string, fieldKey: string, value: any) => {
@@ -123,6 +144,8 @@ export function FinancialPositionEditor({ leadId, token, isPreviewMode, readOnly
 
   const aggregates = useMemo(() => computeFactFindAggregates(data), [data]);
 
+  useEffect(() => { onAggregates?.(aggregates); }, [aggregates, onAggregates]);
+
   if (!loaded) {
     return <div className="py-12 text-center text-sm text-muted-foreground">Loading…</div>;
   }
@@ -132,24 +155,26 @@ export function FinancialPositionEditor({ leadId, token, isPreviewMode, readOnly
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-1">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full border-2 border-primary/40 flex items-center justify-center">
-            <Wallet className="w-5 h-5 text-primary" />
+      {!hideHeader && (
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-1">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full border-2 border-primary/40 flex items-center justify-center">
+              <Wallet className="w-5 h-5 text-primary" />
+            </div>
+            <h2 className="text-xl font-semibold text-primary">Financials</h2>
           </div>
-          <h2 className="text-xl font-semibold text-primary">Financials</h2>
+          <div className="flex items-center gap-1.5 text-sm">
+            <Wallet className="w-4 h-4 text-primary" />
+            <span className="font-semibold text-primary">{fmtCurrency(aggregates.netPosition)}</span>
+            <span className="text-muted-foreground">Net Worth</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-sm">
+            <Coins className="w-4 h-4 text-primary" />
+            <span className="font-semibold text-primary">{fmtCurrency(aggregates.totalIncome)}</span>
+            <span className="text-muted-foreground">Total Income</span>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5 text-sm">
-          <Wallet className="w-4 h-4 text-primary" />
-          <span className="font-semibold text-primary">{fmtCurrency(aggregates.netPosition)}</span>
-          <span className="text-muted-foreground">Net Worth</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-sm">
-          <Coins className="w-4 h-4 text-primary" />
-          <span className="font-semibold text-primary">{fmtCurrency(aggregates.totalIncome)}</span>
-          <span className="text-muted-foreground">Total Income</span>
-        </div>
-      </div>
+      )}
 
       {/* Tabs */}
       <UnderlineTabs<TabKey>

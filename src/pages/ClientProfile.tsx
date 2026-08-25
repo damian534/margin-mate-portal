@@ -11,7 +11,7 @@ import { ClientDealsTab } from '@/components/client/ClientDealsTab';
 import { ClientDocumentsTab } from '@/components/client/ClientDocumentsTab';
 import { AddressesTab } from '@/components/lead/tabs/AddressesTab';
 import { EmploymentIdTab } from '@/components/lead/tabs/EmploymentIdTab';
-import { FinancialsTab } from '@/components/lead/tabs/FinancialsTab';
+import { ClientFinancialsTab } from '@/components/client/ClientFinancialsTab';
 import { CommunicationsTab } from '@/components/lead/tabs/CommunicationsTab';
 
 type TabKey = 'overview' | 'deals' | 'profile' | 'financials' | 'documents' | 'activity';
@@ -105,11 +105,11 @@ export default function ClientProfile() {
         )}
 
         {tab === 'financials' && (
-          primaryLeadId ? (
-            <FinancialsTab leadId={primaryLeadId} isPreviewMode={isPreviewMode} />
-          ) : (
-            <p className="text-sm text-muted-foreground py-8 text-center">No deal linked yet, so there is nothing to show.</p>
-          )
+          <ClientFinancialsTab
+            contactId={contact.id}
+            clientName={`${contact.first_name} ${contact.last_name}`.trim()}
+            isPreviewMode={isPreviewMode}
+          />
         )}
 
         {tab === 'documents' && <ClientDocumentsTab deals={deals} documents={documents} onOpenDeal={openDeal} />}
