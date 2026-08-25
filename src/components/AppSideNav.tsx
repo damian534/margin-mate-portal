@@ -62,6 +62,65 @@ export function AppSideNav({ activeTab, onSelectTab, pendingReferralsCount = 0 }
     ...(!isPreviewMode ? [{ label: 'Sign Out', icon: LogOut, path: '', onClick: signOut }] : []),
   ];
 
+  const { favourites, isFavourite, toggleFavourite } = useFavourites();
+
+  interface FavEntry { id: string; label: string; icon: LucideIcon; onClick: () => void; isActive: boolean }
+
+  const favouritable: FavEntry[] = [
+    ...CRM_NAV_TABS.map(tab => ({
+      id: `tab:${tab.value}`,
+      label: tab.label,
+      icon: tab.icon,
+      isActive: onCrm && activeTab === tab.value,
+      onClick: () => {
+        if (onSelectTab) onSelectTab(tab.value);
+        else navigate(`/admin?tab=${tab.value}${isPreviewMode ? '&preview=true' : ''}`);
+      },
+    })),
+    ...visibleTools.map(tool => ({
+      id: `tool:${tool.id}`,
+      label: tool.name,
+      icon: tool.icon,
+      isActive: pathname === tool.path,
+      onClick: () => navigate(`${tool.path}${suffix}`),
+    })),
+    ...links
+      .filter(l => !!l.path)
+      .map(l => ({
+        id: `link:${l.path}`,
+        label: l.label,
+        icon: l.icon,
+        isActive: pathname === l.path,
+        onClick: l.onClick,
+      })),
+  ];
+
+  const favouriteEntries = favourites
+    .map(id => favouritable.find(e => e.id === id))
+    .filter((e): e is FavEntry => !!e);
+
+  const StarToggle = ({ id, className = '' }: { id: string; className?: string }) => (
+    <button
+      type="button"
+      title={isFavourite(id) ? 'Remove from favourites' : 'Add to favourites'}
+      aria-label={isFavourite(id) ? 'Remove from favourites' : 'Add to favourites'}
+      onClick={e => {
+        e.stopPropagation();
+        e.preventDefault();
+        toggleFavourite(id);
+      }}
+      className={`ml-auto shrink-0 rounded p-0.5 transition-colors ${
+        isFavourite(id) ? 'text-amber-500' : 'text-muted-foreground/40 hover:text-amber-500'
+      } ${className}`}
+    >
+      <Star className="w-3.5 h-3.5" fill={isFavourite(id) ? 'currentColor' : 'none'} />
+    </button>
+  );
+
+  const rowClass = (isActive: boolean) =>
+    `group w-full flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+      isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+    } ${navOpen ? '' : 'justify-center'}`;
 
   return (
     <aside
@@ -79,6 +138,27 @@ export function AppSideNav({ activeTab, onSelectTab, pendingReferralsCount = 0 }
           {navOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
         </Button>
       </div>
+
+      {favouriteEntries.length > 0 && (
+        <nav className="px-2 pb-3 mb-1 space-y-1 border-b">
+          {navOpen && (
+            <div className="px-1 pb-1 flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+              <Star className="w-3 h-3 text-amber-500" fill="currentColor" /> Favourites
+            </div>
+          )}
+          {favouriteEntries.map(entry => (
+            <div key={entry.id} className={rowClass(entry.isActive)}>
+              <button onClick={entry.onClick} title={entry.label} className="flex items-center gap-3 min-w-0 flex-1">
+                <entry.icon className="w-4 h-4 shrink-0" />
+                {navOpen && <span className="truncate text-left">{entry.label}</span>}
+              </button>
+              {navOpen && <StarToggle id={entry.id} />}
+            </div>
+          ))}
+        </nav>
+      )}
+
+
 
       <nav className="px-2 pb-6 space-y-1">
         {CRM_NAV_TABS.map(tab => {
