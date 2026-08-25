@@ -218,29 +218,20 @@ export function FundsPositionCalculator({
 
               <div className="space-y-1 sm:col-span-2">
                 <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Lender (LMI pricing)</label>
-                <Select
-                  value={i.lenderId ?? 'generic'}
-                  onValueChange={v => {
-                    if (v === 'generic') {
-                      setI(prev => ({ ...prev, lenderId: null, lenderName: null, lenderLmi: null }));
-                      return;
-                    }
-                    const l = lmiLenders.find(x => x.lenderId === v);
-                    if (l) setI(prev => ({ ...prev, lenderId: l.lenderId, lenderName: l.lenderName, lenderLmi: l }));
-                  }}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-between font-normal"
+                  onClick={() => setLenderPickerOpen(true)}
                 >
-                  <SelectTrigger><SelectValue placeholder="Market average" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="generic">Market average (no lender selected)</SelectItem>
-                    {lmiLenders.map(l => (
-                      <SelectItem key={l.lenderId} value={l.lenderId}>{l.lenderName}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <span className="truncate">{i.lenderName ?? 'Market average (no lender selected)'}</span>
+                  <ChevronDown className="h-4 w-4 opacity-60" />
+                </Button>
                 <p className="text-[11px] text-muted-foreground">
-                  Premiums come from each lender's LMI settings (Settings → Lenders).
+                  Opens a side-by-side LMI comparison across your accredited lenders.
                 </p>
               </div>
+
             </div>
 
             <div className="rounded-lg border p-3 space-y-2">
