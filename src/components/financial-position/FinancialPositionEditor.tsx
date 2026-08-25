@@ -274,13 +274,13 @@ function EmploymentTab({ ctx }: { ctx: Ctx }) {
 /* ─── ASSETS TAB ────────────────────────────────────────────────────────── */
 
 const HOME_FIELDS: WizardField[] = [
-  { key: 'home_address', label: 'Property Address', type: 'text' },
+  { key: 'home_address', label: 'Property Address', type: 'address' },
   { key: 'home_value', label: 'Estimated Value', type: 'currency', half: true },
   { key: 'home_purchase_price', label: 'Purchase Price', type: 'currency', half: true },
 ];
 
 const IP_FIELDS: WizardField[] = [
-  { key: 'address', label: 'Property Address', type: 'text' },
+  { key: 'address', label: 'Property Address', type: 'address' },
   { key: 'estimated_value', label: 'Estimated Value', type: 'currency', half: true },
   { key: 'rental_income', label: 'Rental (gross monthly)', type: 'currency', half: true },
 ];
@@ -313,9 +313,26 @@ const OTHER_ASSETS_FIELDS: WizardField[] = [
   { key: 'superannuation', label: 'Superannuation', type: 'currency', half: true },
   { key: 'shares_investments', label: 'Shares / Managed Funds', type: 'currency', half: true },
   { key: 'crypto', label: 'Cryptocurrency', type: 'currency', half: true },
-  { key: 'other_assets_value', label: 'Other Assets Value', type: 'currency', half: true },
-  { key: 'other_assets_description', label: 'Description', type: 'text' },
 ];
+
+const OTHER_ASSET_TYPES = [
+  { value: 'shares', label: 'Shares / Managed Funds' },
+  { value: 'superannuation', label: 'Superannuation' },
+  { value: 'crypto', label: 'Cryptocurrency' },
+  { value: 'home_contents', label: 'Home Contents' },
+  { value: 'boat_caravan', label: 'Boat / Caravan' },
+  { value: 'business', label: 'Business / Goodwill' },
+  { value: 'life_insurance', label: 'Life Insurance (surrender value)' },
+  { value: 'receivable', label: 'Money Owed to Applicant' },
+  { value: 'other', label: 'Other' },
+];
+
+const OTHER_ASSET_ITEM: WizardField[] = [
+  { key: 'asset_type', label: 'Asset Type', type: 'select', half: true, options: OTHER_ASSET_TYPES },
+  { key: 'value', label: 'Value', type: 'currency', half: true },
+  { key: 'description', label: 'Description', type: 'text' },
+];
+
 
 /** Find the next available numbered section index (1..max). */
 function nextNumberedIndex(data: AllData, prefix: string, predicate: (d: any) => boolean, max: number) {
@@ -364,6 +381,21 @@ function AssetsTab({ ctx }: { ctx: Ctx }) {
     ctx.replaceSection(`mff_ip_${idx}`, {});
   };
 
+  const savings = (ctx.data.mff_assets_savings?.savings_accounts ?? []) as any[];
+  const savingsTotal = savings.reduce((s, x) => s + num(x.balance), 0);
+
+  const vehicles = (ctx.data.mff_assets_vehicles?.vehicles ?? []) as any[];
+  const vehiclesTotal = vehicles.reduce((s, x) => s + num(x.value), 0);
+
+  const otherItems = (ctx.data.mff_assets_other?.other_assets ?? []) as any[];
+  const otherSection = ctx.data.mff_assets_other ?? {};
+  const otherTotal =
+    otherItems.reduce((s, x) => s + num(x.value), 0) +
+    num(otherSection.home_contents) +
+    num(otherSection.superannuation) +
+    num(otherSection.shares_investments) +
+    num(otherSection.crypto);
+
   return (
     <>
       <FinancialGroupCard label="Owner-occupied home" total={homeValue} onAdd={null} defaultOpen={!!home.home_address}>
@@ -387,9 +419,67 @@ function AssetsTab({ ctx }: { ctx: Ctx }) {
           />
         ))}
       </FinancialGroupCard>
+
+      <FinancialGroupCard
+        label="Cash & savings"
+        total={savingsTotal}
+        onAdd={ctx.readOnly ? null : () =>
+          ctx.updateList('mff_assets_savings', 'savings_accounts', [...savings, {}], { has_savings: 'yes' })
+        }
+        addLabel="Add account"
+      >
+        <RepeatableList
+          sectionKey="mff_assets_savings"
+          listKey="savings_accounts"
+          items={savings}
+          fields={SAVINGS_FIELDS}
+          ctx={ctx}
+          itemTitle={(it, i) => it.institution || `Account ${i + 1}`}
+        />
+      </FinancialGroupCard>
+
+      <FinancialGroupCard
+        label="Vehicles"
+        total={vehiclesTotal}
+        onAdd={ctx.readOnly ? null : () =>
+          ctx.updateList('mff_assets_vehicles', 'vehicles', [...vehicles, {}], { has_vehicles: 'yes' })
+        }
+        addLabel="Add vehicle"
+      >
+        <RepeatableList
+          sectionKey="mff_assets_vehicles"
+          listKey="vehicles"
+          items={vehicles}
+          fields={VEHICLE_FIELDS}
+          ctx={ctx}
+          itemTitle={(it, i) => it.make_model || `Vehicle ${i + 1}`}
+        />
+      </FinancialGroupCard>
+
+      <FinancialGroupCard
+        label="Other assets"
+        total={otherTotal}
+        onAdd={ctx.readOnly ? null : () =>
+          ctx.updateList('mff_assets_other', 'other_assets', [...otherItems, {}])
+        }
+        addLabel="Add asset"
+      >
+        <FieldGrid fields={OTHER_ASSETS_FIELDS} sectionKey="mff_assets_other" ctx={ctx} />
+        <RepeatableList
+          sectionKey="mff_assets_other"
+          listKey="other_assets"
+          items={otherItems}
+          fields={OTHER_ASSET_ITEM}
+          ctx={ctx}
+          itemTitle={(it, i) =>
+            it.description || OTHER_ASSET_TYPES.find(o => o.value === it.asset_type)?.label || `Asset ${i + 1}`
+          }
+        />
+      </FinancialGroupCard>
     </>
   );
 }
+
 
 /* ─── LIABILITIES TAB ───────────────────────────────────────────────────── */
 

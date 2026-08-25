@@ -70,6 +70,17 @@ export function computeFactFindAggregates(
     const a = sections[`mff_savings_${i}`];
     if (a && a.has_account === 'yes') totalAssets += num(a.balance);
   }
+  // Manually-entered lists (broker profile editor)
+  totalAssets += sumRepeatable(sections.mff_assets_savings?.savings_accounts, 'balance');
+  totalAssets += sumRepeatable(sections.mff_assets_vehicles?.vehicles, 'value');
+  totalAssets += sumRepeatable(sections.mff_assets_other?.other_assets, 'value');
+  const manualOther = sections.mff_assets_other || {};
+  totalAssets +=
+    num(manualOther.home_contents) +
+    num(manualOther.superannuation) +
+    num(manualOther.shares_investments) +
+    num(manualOther.crypto);
+
   // Other assets
   const other = sections.mff_other_assets || {};
   totalAssets +=
@@ -78,6 +89,7 @@ export function computeFactFindAggregates(
     num(other.shares_investments) +
     num(other.crypto) +
     num(other.other_assets_value);
+
 
   // ── Liabilities ──
   let totalLiabilities = num(home.home_loan_balance);
