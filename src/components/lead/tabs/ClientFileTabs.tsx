@@ -17,16 +17,13 @@ export type ClientFileTab =
 export const CLIENT_FILE_TABS: { key: ClientFileTab; label: string }[] = [
   { key: 'summary', label: 'Summary' },
   { key: 'clients', label: 'Clients' },
-  { key: 'addresses', label: 'Addresses' },
-  { key: 'employment', label: 'Employment / ID' },
-  { key: 'financials', label: 'Financials' },
-  { key: 'consent', label: 'Privacy Consent' },
   { key: 'lending', label: 'Lending' },
   { key: 'funding', label: 'Funds Position' },
   { key: 'documents', label: 'Documents' },
   { key: 'notes', label: 'Notes' },
   { key: 'communications', label: 'Communications' },
 ];
+
 
 interface Props {
   value: ClientFileTab;
