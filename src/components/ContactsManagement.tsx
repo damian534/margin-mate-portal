@@ -153,8 +153,15 @@ export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openCon
     if (isPreviewMode) return;
     const { error } = await supabase.from('contacts').update({ [field]: value } as any).eq('id', selectedContact.id);
     if (error) { toast.error('Failed to update'); return; }
+    // Keep linked deals in sync so deal cards don't keep showing the old name/phone
+    if (field === 'first_name' || field === 'last_name' || field === 'phone') {
+      const leadPatch: Record<string, any> =
+        field === 'phone' ? { phone: value || null } : { [field]: value };
+      await supabase.from('leads').update(leadPatch as any).eq('source_contact_id', selectedContact.id);
+    }
     onRefresh();
   };
+
 
   const handleDelete = async () => {
     if (!selectedContact) return;
