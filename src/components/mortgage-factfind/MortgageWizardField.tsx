@@ -187,6 +187,25 @@ export function MortgageWizardField({ field, value, onChange, data, readOnly }: 
     );
   }
 
+  if (field.type === 'address') {
+    return (
+      <div>
+        <Label className="text-sm font-medium text-foreground">{field.label}</Label>
+        {field.description && <p className="text-xs text-muted-foreground mt-1">{field.description}</p>}
+        <div className="mt-2">
+          <AddressAutocomplete
+            value={val}
+            onChange={(v) => onChange(field.key, v)}
+            placeholder={field.placeholder || 'Start typing an Australian address...'}
+            disabled={readOnly}
+            className="h-12 rounded-xl border-border text-sm"
+          />
+        </div>
+      </div>
+    );
+  }
+
+
   // text, number, email, tel, date
   return (
     <div>
