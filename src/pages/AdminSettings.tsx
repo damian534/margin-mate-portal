@@ -49,10 +49,6 @@ export default function AdminSettings() {
     ...(role !== 'broker_staff'
       ? [{ value: 'milestone-emails', label: 'Milestone Emails', icon: Mail }]
       : []),
-    ...(role !== 'broker_staff'
-      ? [{ value: 'claude', label: 'Claude Co-Work', icon: Bot }]
-      : []),
-    { value: 'zapier', label: 'Zapier', icon: Zap },
     { value: 'signature', label: 'Email Signature', icon: PenLine },
     { value: 'bank-statements', label: 'Bank Statements Link', icon: Banknote },
   ];
