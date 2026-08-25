@@ -1,5 +1,40 @@
 import { WizardStep } from './types';
 
+/** Minimum history lenders require, in months. */
+export const MIN_HISTORY_MONTHS = 36;
+
+const months = (years: any, mths: any = 0) =>
+  Math.max(0, Number(years || 0) * 12 + Number(mths || 0));
+
+/** Total address history captured so far (current + previous 1..3). */
+export const addressMonthsCovered = (d: Record<string, any>) =>
+  months(d.years_at_address, d.months_at_address) +
+  months(d.previous_years, d.previous_months) +
+  months(d.previous2_years, d.previous2_months) +
+  months(d.previous3_years, d.previous3_months);
+
+/** Should previous address block N (1-3) be shown? */
+const needsPrevAddress = (d: Record<string, any>, n: 1 | 2 | 3) => {
+  let covered = months(d.years_at_address, d.months_at_address);
+  if (n >= 2) covered += months(d.previous_years, d.previous_months);
+  if (n >= 3) covered += months(d.previous2_years, d.previous2_months);
+  return covered < MIN_HISTORY_MONTHS;
+};
+
+/** Total employment history captured so far (current + previous 1..2). */
+export const employmentMonthsCovered = (d: Record<string, any>) =>
+  months(d.current_role_years, d.current_role_months) +
+  months(d.prev_years, d.prev_months) +
+  months(d.prev2_years, d.prev2_months);
+
+/** Should previous employment block N (1-2) be shown? */
+const needsPrevEmployment = (d: Record<string, any>, n: 1 | 2) => {
+  let covered = months(d.current_role_years, d.current_role_months);
+  if (n >= 2) covered += months(d.prev_years, d.prev_months);
+  return covered < MIN_HISTORY_MONTHS;
+};
+
+
 const YES_NO = [
   { value: 'yes', label: 'Yes' },
   { value: 'no', label: 'No' },
