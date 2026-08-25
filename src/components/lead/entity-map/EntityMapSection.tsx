@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Network, AlertTriangle, Building2, Wand2, Download } from 'lucide-react';
 import { SectionCard } from '@/components/lead/SectionCard';
@@ -17,7 +16,7 @@ import {
   autoLayout, computeServicing, currentFinancialYear, formatMoney, fyLabel, traceUpstream,
 } from '@/lib/entityMap/servicing';
 import { downloadStructureChart } from '@/lib/entityMap/exportChart';
-import { ENTITY_TYPE_LABELS, type LeadEntity, type LeadEntityFlow, type LeadEntityRole } from '@/lib/entityMap/types';
+import { type LeadEntity, type LeadEntityFlow, type LeadEntityRole } from '@/lib/entityMap/types';
 
 interface Props {
   leadId: string;

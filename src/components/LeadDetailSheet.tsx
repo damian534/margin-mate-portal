@@ -1973,7 +1973,7 @@ export function LeadDetailSheet({
             />
           </div>
 
-          <EntityMapSection leadId={lead.id} isPreviewMode={isPreviewMode} />
+          <EntityMapSection leadId={lead.id} leadName={[lead.first_name, lead.last_name].filter(Boolean).join(' ')} isPreviewMode={isPreviewMode} />
 
 
 
