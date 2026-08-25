@@ -417,7 +417,9 @@ export function FundsPositionCalculator({
               computed={r.lmi}
               onChange={f => set('lmiOverride', f)}
             />
-          </div>
+            </div>
+          </FundsSection>
+
 
           {/* Govt charges */}
           <FundsSection title="Government charges" summary={money(r.govCharges)} icon={<Landmark className="h-4 w-4" />}>
