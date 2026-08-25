@@ -13,7 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import {
   Plus, Trash2, Building2, Search, CheckCircle2, Circle, Mail, Phone,
-  KeyRound, User, FileText, Eye, EyeOff, Copy, ShieldPercent
+  KeyRound, User, FileText, Eye, EyeOff, Copy, Percent
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LMI_PROVIDERS, quoteLmi, type LmiProviderKey } from '@/lib/fundsPosition/lmiProviders';
@@ -64,7 +64,7 @@ function LmiSettings({ lender, onChange }: { lender: Lender; onChange: (patch: P
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 pb-1 border-b border-border">
-        <ShieldPercent className="w-4 h-4 text-primary" />
+        <Percent className="w-4 h-4 text-primary" />
         <h4 className="text-sm font-semibold">LMI Pricing</h4>
       </div>
 
