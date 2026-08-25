@@ -2556,6 +2556,20 @@ export function LeadDetailSheet({
           })()}
         </DialogContent>
       </Dialog>
+      <FactFindWizardDialog
+        open={factFindOpen}
+        onOpenChange={setFactFindOpen}
+        leadId={lead.id}
+        isPreviewMode={isPreviewMode}
+        prefill={{
+          email: lead.email ?? undefined,
+          phone: lead.phone ?? undefined,
+          firstName: lead.first_name ?? undefined,
+          lastName: lead.last_name ?? undefined,
+        }}
+        onComplete={() => setFactFindVersion(v => v + 1)}
+      />
     </Sheet>
+
   );
 }
