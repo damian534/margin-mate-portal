@@ -473,7 +473,9 @@ export function FundsPositionCalculator({
                 </Button>
               </div>
             )}
-          </div>
+            </div>
+          </FundsSection>
+
 
           {/* Fees */}
           <FundsSection title="Fees" summary={money(r.fees)} icon={<Receipt className="h-4 w-4" />}>
