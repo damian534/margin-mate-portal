@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { SectionCard } from '@/components/lead/SectionCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { AddressAutocomplete } from '@/components/ui/address-autocomplete';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Home, Plus, Trash2, Download } from 'lucide-react';
@@ -119,12 +120,20 @@ export function AddressesTab({ leadId, isPreviewMode }: Props) {
     toast.success(`Imported ${toInsert.length} address${toInsert.length === 1 ? '' : 'es'}`);
   };
 
+  const yearsCovered = rows
+    .filter(r => r.address_type !== 'mailing')
+    .reduce((s, r) => s + Number({ ...r, ...draft[r.id] }.years_at_address || 0), 0);
+  const historyOk = yearsCovered >= 3;
+
   return (
     <SectionCard
       icon={Home}
       title="Addresses"
       tone="neutral"
-      subtitle={rows.length ? `${rows.length} on file` : 'No addresses recorded'}
+      subtitle={rows.length
+        ? `${rows.length} on file · ${yearsCovered.toFixed(1)} yrs history${historyOk ? ' ✓' : ' — 3 yrs required'}`
+        : 'No addresses recorded'}
+
       rightSlot={
         <div className="flex gap-1.5">
           {canImport && (
@@ -151,9 +160,11 @@ export function AddressesTab({ leadId, isPreviewMode }: Props) {
               <div key={row.id} className="rounded-lg border bg-background p-3 space-y-2">
                 <div>
                   <Label className="text-[11px] text-muted-foreground">Address</Label>
-                  <Input className="h-9" value={d.address ?? ''} placeholder="Full address"
-                    onChange={e => patch(row.id, { address: e.target.value })} />
+                  <AddressAutocomplete value={d.address ?? ''} className="h-9"
+                    placeholder="Start typing an Australian address..."
+                    onChange={v => patch(row.id, { address: v })} />
                 </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
                   <div>
                     <Label className="text-[11px] text-muted-foreground">Type</Label>

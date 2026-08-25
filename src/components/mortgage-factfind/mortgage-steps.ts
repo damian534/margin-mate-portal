@@ -1,5 +1,40 @@
 import { WizardStep } from './types';
 
+/** Minimum history lenders require, in months. */
+export const MIN_HISTORY_MONTHS = 36;
+
+const months = (years: any, mths: any = 0) =>
+  Math.max(0, Number(years || 0) * 12 + Number(mths || 0));
+
+/** Total address history captured so far (current + previous 1..3). */
+export const addressMonthsCovered = (d: Record<string, any>) =>
+  months(d.years_at_address, d.months_at_address) +
+  months(d.previous_years, d.previous_months) +
+  months(d.previous2_years, d.previous2_months) +
+  months(d.previous3_years, d.previous3_months);
+
+/** Should previous address block N (1-3) be shown? */
+const needsPrevAddress = (d: Record<string, any>, n: 1 | 2 | 3) => {
+  let covered = months(d.years_at_address, d.months_at_address);
+  if (n >= 2) covered += months(d.previous_years, d.previous_months);
+  if (n >= 3) covered += months(d.previous2_years, d.previous2_months);
+  return covered < MIN_HISTORY_MONTHS;
+};
+
+/** Total employment history captured so far (current + previous 1..2). */
+export const employmentMonthsCovered = (d: Record<string, any>) =>
+  months(d.current_role_years, d.current_role_months) +
+  months(d.prev_years, d.prev_months) +
+  months(d.prev2_years, d.prev2_months);
+
+/** Should previous employment block N (1-2) be shown? */
+const needsPrevEmployment = (d: Record<string, any>, n: 1 | 2) => {
+  let covered = months(d.current_role_years, d.current_role_months);
+  if (n >= 2) covered += months(d.prev_years, d.prev_months);
+  return covered < MIN_HISTORY_MONTHS;
+};
+
+
 const YES_NO = [
   { value: 'yes', label: 'Yes' },
   { value: 'no', label: 'No' },
@@ -293,26 +328,46 @@ export const MORTGAGE_STEPS: WizardStep[] = [
   {
     id: 'primary_address',
     title: 'Primary Applicant – Address Details',
-    subtitle: 'Your current and previous addresses.',
+    subtitle: 'Lenders require a minimum of 3 years of address history.',
     sectionKey: 'mff_primary_address',
     fields: [
-      { key: 'current_address', label: 'Current Residential Address', type: 'text', required: true, placeholder: 'Full street address' },
+      { key: 'info_history', label: 'We need at least 3 years of continuous address history. Keep adding previous addresses until 3 years is covered.', type: 'info' },
+      { key: 'current_address', label: 'Current Residential Address', type: 'address', required: true, placeholder: 'Start typing an Australian address...' },
       { key: 'current_suburb', label: 'Suburb', type: 'text', half: true },
       { key: 'current_state', label: 'State', type: 'select', half: true, options: STATES },
       { key: 'current_postcode', label: 'Postcode', type: 'text', half: true },
-      { key: 'years_at_address', label: 'Years at Address', type: 'number', half: true, placeholder: '0' },
+      { key: 'years_at_address', label: 'Years at Address', type: 'number', half: true, required: true, placeholder: '0' },
       { key: 'months_at_address', label: 'Months at Address', type: 'number', half: true, placeholder: '0' },
       { key: 'residential_status', label: 'Residential Status', type: 'select', options: RESIDENTIAL_STATUS_OPTIONS },
       { key: 'rent_amount', label: 'Rent / Board Amount (monthly)', type: 'currency', condition: (d) => d.residential_status === 'renting' || d.residential_status === 'boarding' },
-      { key: 'mailing_address', label: 'Mailing Address (if different)', type: 'text', placeholder: 'Leave blank if same as above' },
-      { key: 'heading_prev', label: 'Previous Address', type: 'heading', condition: (d) => Number(d.years_at_address || 0) < 3 },
-      { key: 'previous_address', label: 'Previous Address', type: 'text', condition: (d) => Number(d.years_at_address || 0) < 3 },
-      { key: 'previous_suburb', label: 'Suburb', type: 'text', half: true, condition: (d) => Number(d.years_at_address || 0) < 3 },
-      { key: 'previous_state', label: 'State', type: 'select', half: true, options: STATES, condition: (d) => Number(d.years_at_address || 0) < 3 },
-      { key: 'previous_postcode', label: 'Postcode', type: 'text', half: true, condition: (d) => Number(d.years_at_address || 0) < 3 },
-      { key: 'previous_years', label: 'Years at Previous', type: 'number', half: true, placeholder: '0', condition: (d) => Number(d.years_at_address || 0) < 3 },
+      { key: 'mailing_address', label: 'Mailing Address (if different)', type: 'address', placeholder: 'Leave blank if same as above' },
+
+      { key: 'heading_prev', label: 'Previous Address (1)', type: 'heading', condition: (d) => needsPrevAddress(d, 1) },
+      { key: 'previous_address', label: 'Previous Address', type: 'address', required: true, condition: (d) => needsPrevAddress(d, 1) },
+      { key: 'previous_suburb', label: 'Suburb', type: 'text', half: true, condition: (d) => needsPrevAddress(d, 1) },
+      { key: 'previous_state', label: 'State', type: 'select', half: true, options: STATES, condition: (d) => needsPrevAddress(d, 1) },
+      { key: 'previous_postcode', label: 'Postcode', type: 'text', half: true, condition: (d) => needsPrevAddress(d, 1) },
+      { key: 'previous_years', label: 'Years at Previous', type: 'number', half: true, required: true, placeholder: '0', condition: (d) => needsPrevAddress(d, 1) },
+      { key: 'previous_months', label: 'Months at Previous', type: 'number', half: true, placeholder: '0', condition: (d) => needsPrevAddress(d, 1) },
+
+      { key: 'heading_prev2', label: 'Previous Address (2)', type: 'heading', condition: (d) => needsPrevAddress(d, 2) },
+      { key: 'previous2_address', label: 'Previous Address', type: 'address', required: true, condition: (d) => needsPrevAddress(d, 2) },
+      { key: 'previous2_suburb', label: 'Suburb', type: 'text', half: true, condition: (d) => needsPrevAddress(d, 2) },
+      { key: 'previous2_state', label: 'State', type: 'select', half: true, options: STATES, condition: (d) => needsPrevAddress(d, 2) },
+      { key: 'previous2_postcode', label: 'Postcode', type: 'text', half: true, condition: (d) => needsPrevAddress(d, 2) },
+      { key: 'previous2_years', label: 'Years at Previous', type: 'number', half: true, required: true, placeholder: '0', condition: (d) => needsPrevAddress(d, 2) },
+      { key: 'previous2_months', label: 'Months at Previous', type: 'number', half: true, placeholder: '0', condition: (d) => needsPrevAddress(d, 2) },
+
+      { key: 'heading_prev3', label: 'Previous Address (3)', type: 'heading', condition: (d) => needsPrevAddress(d, 3) },
+      { key: 'previous3_address', label: 'Previous Address', type: 'address', required: true, condition: (d) => needsPrevAddress(d, 3) },
+      { key: 'previous3_suburb', label: 'Suburb', type: 'text', half: true, condition: (d) => needsPrevAddress(d, 3) },
+      { key: 'previous3_state', label: 'State', type: 'select', half: true, options: STATES, condition: (d) => needsPrevAddress(d, 3) },
+      { key: 'previous3_postcode', label: 'Postcode', type: 'text', half: true, condition: (d) => needsPrevAddress(d, 3) },
+      { key: 'previous3_years', label: 'Years at Previous', type: 'number', half: true, required: true, placeholder: '0', condition: (d) => needsPrevAddress(d, 3) },
+      { key: 'previous3_months', label: 'Months at Previous', type: 'number', half: true, placeholder: '0', condition: (d) => needsPrevAddress(d, 3) },
     ],
   },
+
 
   // ═══════════════════════════════════════════════════════
   //  7. PRIMARY APPLICANT – EMPLOYMENT & INCOME
@@ -328,7 +383,7 @@ export const MORTGAGE_STEPS: WizardStep[] = [
       // PAYG
       { key: 'heading_payg', label: 'PAYG Details', type: 'heading', condition: (d) => d.employment_type?.startsWith('payg') },
       { key: 'employer_name', label: 'Employer Name', type: 'text', condition: (d) => d.employment_type?.startsWith('payg') || d.employment_type === 'contractor' },
-      { key: 'employer_address', label: 'Employer Address', type: 'text', condition: (d) => d.employment_type?.startsWith('payg') },
+      { key: 'employer_address', label: 'Employer Address', type: 'address', condition: (d) => d.employment_type?.startsWith('payg') },
       { key: 'job_title', label: 'Job Title / Position', type: 'text', half: true, condition: (d) => d.employment_type?.startsWith('payg') || d.employment_type === 'contractor' },
       { key: 'industry', label: 'Industry', type: 'text', half: true, condition: (d) => d.employment_type?.startsWith('payg') || d.employment_type === 'contractor' || d.employment_type === 'self_employed' },
       { key: 'start_date', label: 'Start Date', type: 'date', half: true, condition: (d) => d.employment_type?.startsWith('payg') || d.employment_type === 'contractor' },
@@ -348,13 +403,29 @@ export const MORTGAGE_STEPS: WizardStep[] = [
       ]},
       { key: 'years_trading', label: 'Years Trading', type: 'number', half: true, placeholder: '0', condition: (d) => d.employment_type === 'self_employed' },
       { key: 'gst_registered', label: 'GST Registered?', type: 'radio', options: YES_NO, condition: (d) => d.employment_type === 'self_employed' },
-      { key: 'business_address', label: 'Business Address', type: 'text', condition: (d) => d.employment_type === 'self_employed' },
+      { key: 'business_address', label: 'Business Address', type: 'address', condition: (d) => d.employment_type === 'self_employed' },
       // Previous employment
-      { key: 'heading_prev_emp', label: 'Previous Employment', type: 'heading' },
-      { key: 'has_previous_employment', label: 'Less than 2 years in current role?', type: 'radio', options: YES_NO },
-      { key: 'prev_employer_name', label: 'Previous Employer', type: 'text', condition: (d) => d.has_previous_employment === 'yes' },
-      { key: 'prev_job_title', label: 'Previous Job Title', type: 'text', half: true, condition: (d) => d.has_previous_employment === 'yes' },
-      { key: 'prev_duration', label: 'Duration at Previous', type: 'text', half: true, placeholder: 'e.g. 3 years', condition: (d) => d.has_previous_employment === 'yes' },
+      { key: 'heading_prev_emp', label: 'Employment History (3 years minimum)', type: 'heading' },
+      { key: 'info_emp_history', label: 'Lenders require 3 years of continuous employment history. Add previous roles until 3 years is covered.', type: 'info' },
+      { key: 'current_role_years', label: 'Years in Current Role / Business', type: 'number', half: true, required: true, placeholder: '0' },
+      { key: 'current_role_months', label: 'Months in Current Role / Business', type: 'number', half: true, placeholder: '0' },
+
+      { key: 'heading_prev_emp1', label: 'Previous Employer (1)', type: 'heading', condition: (d) => needsPrevEmployment(d, 1) },
+      { key: 'prev_employer_name', label: 'Previous Employer', type: 'text', required: true, condition: (d) => needsPrevEmployment(d, 1) },
+      { key: 'prev_employer_address', label: 'Previous Employer Address', type: 'address', condition: (d) => needsPrevEmployment(d, 1) },
+      { key: 'prev_job_title', label: 'Previous Job Title', type: 'text', half: true, condition: (d) => needsPrevEmployment(d, 1) },
+      { key: 'prev_employment_type', label: 'Employment Type', type: 'select', half: true, options: EMPLOYMENT_OPTIONS, condition: (d) => needsPrevEmployment(d, 1) },
+      { key: 'prev_years', label: 'Years There', type: 'number', half: true, required: true, placeholder: '0', condition: (d) => needsPrevEmployment(d, 1) },
+      { key: 'prev_months', label: 'Months There', type: 'number', half: true, placeholder: '0', condition: (d) => needsPrevEmployment(d, 1) },
+
+      { key: 'heading_prev_emp2', label: 'Previous Employer (2)', type: 'heading', condition: (d) => needsPrevEmployment(d, 2) },
+      { key: 'prev2_employer_name', label: 'Previous Employer', type: 'text', required: true, condition: (d) => needsPrevEmployment(d, 2) },
+      { key: 'prev2_employer_address', label: 'Previous Employer Address', type: 'address', condition: (d) => needsPrevEmployment(d, 2) },
+      { key: 'prev2_job_title', label: 'Previous Job Title', type: 'text', half: true, condition: (d) => needsPrevEmployment(d, 2) },
+      { key: 'prev2_employment_type', label: 'Employment Type', type: 'select', half: true, options: EMPLOYMENT_OPTIONS, condition: (d) => needsPrevEmployment(d, 2) },
+      { key: 'prev2_years', label: 'Years There', type: 'number', half: true, required: true, placeholder: '0', condition: (d) => needsPrevEmployment(d, 2) },
+      { key: 'prev2_months', label: 'Months There', type: 'number', half: true, placeholder: '0', condition: (d) => needsPrevEmployment(d, 2) },
+
       // ── Income ──
       { key: 'heading_income', label: 'Income Details (gross / before tax)', type: 'heading' },
       { key: 'base_salary', label: 'Base Salary (gross annual)', type: 'currency', required: true },
@@ -432,23 +503,47 @@ export const MORTGAGE_STEPS: WizardStep[] = [
     subtitle: 'Co-borrower address details.',
     sectionKey: 'mff_second_address',
     condition: (all) => all.mff_welcome?.has_second_applicant === 'yes',
-    fields: [
+    fields: (() => {
+      const notSame = (d: Record<string, any>) => d.same_as_primary !== 'yes';
+      return [
       { key: 'same_as_primary', label: 'Same address as primary applicant?', type: 'radio', options: YES_NO },
-      { key: 'current_address', label: 'Current Residential Address', type: 'text', condition: (d) => d.same_as_primary !== 'yes' },
-      { key: 'current_suburb', label: 'Suburb', type: 'text', half: true, condition: (d) => d.same_as_primary !== 'yes' },
-      { key: 'current_state', label: 'State', type: 'select', half: true, options: STATES, condition: (d) => d.same_as_primary !== 'yes' },
-      { key: 'current_postcode', label: 'Postcode', type: 'text', half: true, condition: (d) => d.same_as_primary !== 'yes' },
-      { key: 'years_at_address', label: 'Years at Address', type: 'number', half: true, placeholder: '0', condition: (d) => d.same_as_primary !== 'yes' },
-      { key: 'months_at_address', label: 'Months at Address', type: 'number', half: true, placeholder: '0', condition: (d) => d.same_as_primary !== 'yes' },
-      { key: 'residential_status', label: 'Residential Status', type: 'select', condition: (d) => d.same_as_primary !== 'yes', options: RESIDENTIAL_STATUS_OPTIONS },
-      { key: 'rent_amount', label: 'Rent / Board Amount (monthly)', type: 'currency', condition: (d) => d.same_as_primary !== 'yes' && (d.residential_status === 'renting' || d.residential_status === 'boarding') },
-      { key: 'mailing_address', label: 'Mailing Address (if different)', type: 'text', placeholder: 'Leave blank if same', condition: (d) => d.same_as_primary !== 'yes' },
-      { key: 'heading_prev', label: 'Previous Address', type: 'heading', condition: (d) => d.same_as_primary !== 'yes' && Number(d.years_at_address || 0) < 3 },
-      { key: 'previous_address', label: 'Previous Address', type: 'text', condition: (d) => d.same_as_primary !== 'yes' && Number(d.years_at_address || 0) < 3 },
-      { key: 'previous_suburb', label: 'Suburb', type: 'text', half: true, condition: (d) => d.same_as_primary !== 'yes' && Number(d.years_at_address || 0) < 3 },
-      { key: 'previous_state', label: 'State', type: 'select', half: true, options: STATES, condition: (d) => d.same_as_primary !== 'yes' && Number(d.years_at_address || 0) < 3 },
-      { key: 'previous_postcode', label: 'Postcode', type: 'text', half: true, condition: (d) => d.same_as_primary !== 'yes' && Number(d.years_at_address || 0) < 3 },
-    ],
+      { key: 'info_history', label: 'We need at least 3 years of continuous address history for every applicant.', type: 'info', condition: notSame },
+      { key: 'current_address', label: 'Current Residential Address', type: 'address', condition: notSame },
+      { key: 'current_suburb', label: 'Suburb', type: 'text', half: true, condition: notSame },
+      { key: 'current_state', label: 'State', type: 'select', half: true, options: STATES, condition: notSame },
+      { key: 'current_postcode', label: 'Postcode', type: 'text', half: true, condition: notSame },
+      { key: 'years_at_address', label: 'Years at Address', type: 'number', half: true, placeholder: '0', condition: notSame },
+      { key: 'months_at_address', label: 'Months at Address', type: 'number', half: true, placeholder: '0', condition: notSame },
+      { key: 'residential_status', label: 'Residential Status', type: 'select', condition: notSame, options: RESIDENTIAL_STATUS_OPTIONS },
+      { key: 'rent_amount', label: 'Rent / Board Amount (monthly)', type: 'currency', condition: (d) => notSame(d) && (d.residential_status === 'renting' || d.residential_status === 'boarding') },
+      { key: 'mailing_address', label: 'Mailing Address (if different)', type: 'address', placeholder: 'Leave blank if same', condition: notSame },
+
+      { key: 'heading_prev', label: 'Previous Address (1)', type: 'heading', condition: (d) => notSame(d) && needsPrevAddress(d, 1) },
+      { key: 'previous_address', label: 'Previous Address', type: 'address', condition: (d) => notSame(d) && needsPrevAddress(d, 1) },
+      { key: 'previous_suburb', label: 'Suburb', type: 'text', half: true, condition: (d) => notSame(d) && needsPrevAddress(d, 1) },
+      { key: 'previous_state', label: 'State', type: 'select', half: true, options: STATES, condition: (d) => notSame(d) && needsPrevAddress(d, 1) },
+      { key: 'previous_postcode', label: 'Postcode', type: 'text', half: true, condition: (d) => notSame(d) && needsPrevAddress(d, 1) },
+      { key: 'previous_years', label: 'Years at Previous', type: 'number', half: true, placeholder: '0', condition: (d) => notSame(d) && needsPrevAddress(d, 1) },
+      { key: 'previous_months', label: 'Months at Previous', type: 'number', half: true, placeholder: '0', condition: (d) => notSame(d) && needsPrevAddress(d, 1) },
+
+      { key: 'heading_prev2', label: 'Previous Address (2)', type: 'heading', condition: (d) => notSame(d) && needsPrevAddress(d, 2) },
+      { key: 'previous2_address', label: 'Previous Address', type: 'address', condition: (d) => notSame(d) && needsPrevAddress(d, 2) },
+      { key: 'previous2_suburb', label: 'Suburb', type: 'text', half: true, condition: (d) => notSame(d) && needsPrevAddress(d, 2) },
+      { key: 'previous2_state', label: 'State', type: 'select', half: true, options: STATES, condition: (d) => notSame(d) && needsPrevAddress(d, 2) },
+      { key: 'previous2_postcode', label: 'Postcode', type: 'text', half: true, condition: (d) => notSame(d) && needsPrevAddress(d, 2) },
+      { key: 'previous2_years', label: 'Years at Previous', type: 'number', half: true, placeholder: '0', condition: (d) => notSame(d) && needsPrevAddress(d, 2) },
+      { key: 'previous2_months', label: 'Months at Previous', type: 'number', half: true, placeholder: '0', condition: (d) => notSame(d) && needsPrevAddress(d, 2) },
+
+      { key: 'heading_prev3', label: 'Previous Address (3)', type: 'heading', condition: (d) => notSame(d) && needsPrevAddress(d, 3) },
+      { key: 'previous3_address', label: 'Previous Address', type: 'address', condition: (d) => notSame(d) && needsPrevAddress(d, 3) },
+      { key: 'previous3_suburb', label: 'Suburb', type: 'text', half: true, condition: (d) => notSame(d) && needsPrevAddress(d, 3) },
+      { key: 'previous3_state', label: 'State', type: 'select', half: true, options: STATES, condition: (d) => notSame(d) && needsPrevAddress(d, 3) },
+      { key: 'previous3_postcode', label: 'Postcode', type: 'text', half: true, condition: (d) => notSame(d) && needsPrevAddress(d, 3) },
+      { key: 'previous3_years', label: 'Years at Previous', type: 'number', half: true, placeholder: '0', condition: (d) => notSame(d) && needsPrevAddress(d, 3) },
+      { key: 'previous3_months', label: 'Months at Previous', type: 'number', half: true, placeholder: '0', condition: (d) => notSame(d) && needsPrevAddress(d, 3) },
+      ] as WizardStep['fields'];
+    })(),
+
   },
 
   // ═══════════════════════════════════════════════════════
@@ -463,7 +558,7 @@ export const MORTGAGE_STEPS: WizardStep[] = [
     fields: [
       { key: 'employment_type', label: 'Employment Type', type: 'select', required: true, options: EMPLOYMENT_OPTIONS },
       { key: 'employer_name', label: 'Employer Name', type: 'text', condition: (d) => d.employment_type?.startsWith('payg') || d.employment_type === 'contractor' },
-      { key: 'employer_address', label: 'Employer Address', type: 'text', condition: (d) => d.employment_type?.startsWith('payg') },
+      { key: 'employer_address', label: 'Employer Address', type: 'address', condition: (d) => d.employment_type?.startsWith('payg') },
       { key: 'job_title', label: 'Job Title', type: 'text', half: true, condition: (d) => d.employment_type?.startsWith('payg') || d.employment_type === 'contractor' },
       { key: 'industry', label: 'Industry', type: 'text', half: true, condition: (d) => d.employment_type?.startsWith('payg') || d.employment_type === 'contractor' || d.employment_type === 'self_employed' },
       { key: 'start_date', label: 'Start Date', type: 'date', half: true, condition: (d) => d.employment_type?.startsWith('payg') || d.employment_type === 'contractor' },
@@ -483,11 +578,27 @@ export const MORTGAGE_STEPS: WizardStep[] = [
       { key: 'years_trading', label: 'Years Trading', type: 'number', half: true, condition: (d) => d.employment_type === 'self_employed' },
       { key: 'gst_registered', label: 'GST Registered?', type: 'radio', options: YES_NO, condition: (d) => d.employment_type === 'self_employed' },
       // Previous employment
-      { key: 'heading_prev_emp', label: 'Previous Employment', type: 'heading' },
-      { key: 'has_previous_employment', label: 'Less than 2 years in current role?', type: 'radio', options: YES_NO },
-      { key: 'prev_employer_name', label: 'Previous Employer', type: 'text', condition: (d) => d.has_previous_employment === 'yes' },
-      { key: 'prev_job_title', label: 'Previous Job Title', type: 'text', half: true, condition: (d) => d.has_previous_employment === 'yes' },
-      { key: 'prev_duration', label: 'Duration at Previous', type: 'text', half: true, placeholder: 'e.g. 3 years', condition: (d) => d.has_previous_employment === 'yes' },
+      { key: 'heading_prev_emp', label: 'Employment History (3 years minimum)', type: 'heading' },
+      { key: 'info_emp_history', label: 'Lenders require 3 years of continuous employment history. Add previous roles until 3 years is covered.', type: 'info' },
+      { key: 'current_role_years', label: 'Years in Current Role / Business', type: 'number', half: true, placeholder: '0' },
+      { key: 'current_role_months', label: 'Months in Current Role / Business', type: 'number', half: true, placeholder: '0' },
+
+      { key: 'heading_prev_emp1', label: 'Previous Employer (1)', type: 'heading', condition: (d) => needsPrevEmployment(d, 1) },
+      { key: 'prev_employer_name', label: 'Previous Employer', type: 'text', condition: (d) => needsPrevEmployment(d, 1) },
+      { key: 'prev_employer_address', label: 'Previous Employer Address', type: 'address', condition: (d) => needsPrevEmployment(d, 1) },
+      { key: 'prev_job_title', label: 'Previous Job Title', type: 'text', half: true, condition: (d) => needsPrevEmployment(d, 1) },
+      { key: 'prev_employment_type', label: 'Employment Type', type: 'select', half: true, options: EMPLOYMENT_OPTIONS, condition: (d) => needsPrevEmployment(d, 1) },
+      { key: 'prev_years', label: 'Years There', type: 'number', half: true, placeholder: '0', condition: (d) => needsPrevEmployment(d, 1) },
+      { key: 'prev_months', label: 'Months There', type: 'number', half: true, placeholder: '0', condition: (d) => needsPrevEmployment(d, 1) },
+
+      { key: 'heading_prev_emp2', label: 'Previous Employer (2)', type: 'heading', condition: (d) => needsPrevEmployment(d, 2) },
+      { key: 'prev2_employer_name', label: 'Previous Employer', type: 'text', condition: (d) => needsPrevEmployment(d, 2) },
+      { key: 'prev2_employer_address', label: 'Previous Employer Address', type: 'address', condition: (d) => needsPrevEmployment(d, 2) },
+      { key: 'prev2_job_title', label: 'Previous Job Title', type: 'text', half: true, condition: (d) => needsPrevEmployment(d, 2) },
+      { key: 'prev2_employment_type', label: 'Employment Type', type: 'select', half: true, options: EMPLOYMENT_OPTIONS, condition: (d) => needsPrevEmployment(d, 2) },
+      { key: 'prev2_years', label: 'Years There', type: 'number', half: true, placeholder: '0', condition: (d) => needsPrevEmployment(d, 2) },
+      { key: 'prev2_months', label: 'Months There', type: 'number', half: true, placeholder: '0', condition: (d) => needsPrevEmployment(d, 2) },
+
       // Income
       { key: 'heading_income', label: 'Income Details (gross / before tax)', type: 'heading' },
       { key: 'base_salary', label: 'Base Salary (gross annual)', type: 'currency', required: true },
