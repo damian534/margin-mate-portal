@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AppHeader } from '@/components/AppHeader';
+import { AppSideNav } from '@/components/AppSideNav';
 import { useSettlements } from '@/hooks/useSettlements';
 import { useBrokerActivity } from '@/hooks/useBrokerActivity';
 import { useAuth } from '@/hooks/useAuth';
@@ -59,7 +60,9 @@ export default function Settlements() {
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
-      <main className="container py-8 space-y-6">
+      <div className="flex w-full items-start">
+        <AppSideNav />
+      <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -170,6 +173,7 @@ export default function Settlements() {
           </div>
         )}
       </main>
+      </div>
     </div>
   );
 }

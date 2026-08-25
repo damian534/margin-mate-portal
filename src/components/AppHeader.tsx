@@ -12,10 +12,11 @@ export function AppHeader() {
   const { pathname } = useLocation();
 
   const isAdminTeam = isBrokerOrAdmin || role === 'broker_staff';
-  // The CRM dashboard has its own side navigation, and the landing page keeps a clean header.
-  const hideNavLinks = pathname === '/admin' || pathname === '/';
+  // Signed-in users navigate via the persistent left side panel, so the header stays clean.
+  const hideNavLinks = true;
 
   const navBtn = "h-9 px-3 rounded-md border border-border bg-background hover:bg-muted hover:text-foreground transition-colors";
+
 
   return (
     <>

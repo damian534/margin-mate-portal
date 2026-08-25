@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AppHeader } from '@/components/AppHeader';
+import { AppSideNav } from '@/components/AppSideNav';
 import { InviteCodeManagement } from '@/components/InviteCodeManagement';
 import { UserManagement } from '@/components/UserManagement';
 import { StatusSettings } from '@/components/StatusSettings';
@@ -61,7 +62,9 @@ export default function AdminSettings() {
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
-      <main className="container py-8 space-y-6">
+      <div className="flex w-full items-start">
+        <AppSideNav />
+      <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         <div>
           <h1 className="text-3xl font-heading font-bold flex items-center gap-2">
             <Settings2 className="w-7 h-7" /> Settings
@@ -103,6 +106,7 @@ export default function AdminSettings() {
         {activeSection === 'signature' && <EmailSignatureSettings />}
         {activeSection === 'bank-statements' && <BankStatementsSettings />}
       </main>
+      </div>
     </div>
   );
 }

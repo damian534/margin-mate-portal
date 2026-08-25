@@ -1,4 +1,5 @@
 import { AppHeader } from '@/components/AppHeader';
+import { AppSideNav } from '@/components/AppSideNav';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,7 +39,9 @@ export default function Tools() {
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
-      <main className="container py-8 space-y-6">
+      <div className="flex w-full items-start">
+        <AppSideNav />
+      <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-heading font-bold">Tools</h1>
@@ -118,6 +121,7 @@ export default function Tools() {
             })}
         </div>
       </main>
+      </div>
     </div>
   );
 }
