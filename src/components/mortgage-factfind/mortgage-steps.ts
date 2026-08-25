@@ -578,11 +578,27 @@ export const MORTGAGE_STEPS: WizardStep[] = [
       { key: 'years_trading', label: 'Years Trading', type: 'number', half: true, condition: (d) => d.employment_type === 'self_employed' },
       { key: 'gst_registered', label: 'GST Registered?', type: 'radio', options: YES_NO, condition: (d) => d.employment_type === 'self_employed' },
       // Previous employment
-      { key: 'heading_prev_emp', label: 'Previous Employment', type: 'heading' },
-      { key: 'has_previous_employment', label: 'Less than 2 years in current role?', type: 'radio', options: YES_NO },
-      { key: 'prev_employer_name', label: 'Previous Employer', type: 'text', condition: (d) => d.has_previous_employment === 'yes' },
-      { key: 'prev_job_title', label: 'Previous Job Title', type: 'text', half: true, condition: (d) => d.has_previous_employment === 'yes' },
-      { key: 'prev_duration', label: 'Duration at Previous', type: 'text', half: true, placeholder: 'e.g. 3 years', condition: (d) => d.has_previous_employment === 'yes' },
+      { key: 'heading_prev_emp', label: 'Employment History (3 years minimum)', type: 'heading' },
+      { key: 'info_emp_history', label: 'Lenders require 3 years of continuous employment history. Add previous roles until 3 years is covered.', type: 'info' },
+      { key: 'current_role_years', label: 'Years in Current Role / Business', type: 'number', half: true, placeholder: '0' },
+      { key: 'current_role_months', label: 'Months in Current Role / Business', type: 'number', half: true, placeholder: '0' },
+
+      { key: 'heading_prev_emp1', label: 'Previous Employer (1)', type: 'heading', condition: (d) => needsPrevEmployment(d, 1) },
+      { key: 'prev_employer_name', label: 'Previous Employer', type: 'text', condition: (d) => needsPrevEmployment(d, 1) },
+      { key: 'prev_employer_address', label: 'Previous Employer Address', type: 'address', condition: (d) => needsPrevEmployment(d, 1) },
+      { key: 'prev_job_title', label: 'Previous Job Title', type: 'text', half: true, condition: (d) => needsPrevEmployment(d, 1) },
+      { key: 'prev_employment_type', label: 'Employment Type', type: 'select', half: true, options: EMPLOYMENT_OPTIONS, condition: (d) => needsPrevEmployment(d, 1) },
+      { key: 'prev_years', label: 'Years There', type: 'number', half: true, placeholder: '0', condition: (d) => needsPrevEmployment(d, 1) },
+      { key: 'prev_months', label: 'Months There', type: 'number', half: true, placeholder: '0', condition: (d) => needsPrevEmployment(d, 1) },
+
+      { key: 'heading_prev_emp2', label: 'Previous Employer (2)', type: 'heading', condition: (d) => needsPrevEmployment(d, 2) },
+      { key: 'prev2_employer_name', label: 'Previous Employer', type: 'text', condition: (d) => needsPrevEmployment(d, 2) },
+      { key: 'prev2_employer_address', label: 'Previous Employer Address', type: 'address', condition: (d) => needsPrevEmployment(d, 2) },
+      { key: 'prev2_job_title', label: 'Previous Job Title', type: 'text', half: true, condition: (d) => needsPrevEmployment(d, 2) },
+      { key: 'prev2_employment_type', label: 'Employment Type', type: 'select', half: true, options: EMPLOYMENT_OPTIONS, condition: (d) => needsPrevEmployment(d, 2) },
+      { key: 'prev2_years', label: 'Years There', type: 'number', half: true, placeholder: '0', condition: (d) => needsPrevEmployment(d, 2) },
+      { key: 'prev2_months', label: 'Months There', type: 'number', half: true, placeholder: '0', condition: (d) => needsPrevEmployment(d, 2) },
+
       // Income
       { key: 'heading_income', label: 'Income Details (gross / before tax)', type: 'heading' },
       { key: 'base_salary', label: 'Base Salary (gross annual)', type: 'currency', required: true },
