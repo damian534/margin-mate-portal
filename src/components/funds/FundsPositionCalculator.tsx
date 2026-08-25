@@ -160,7 +160,12 @@ export function FundsPositionCalculator({
           <Button variant="outline" size="sm" onClick={handleSave} disabled={saving}>
             <Save className="w-4 h-4 mr-1" /> Save
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setCompareOpen(true)}>
+          {!leadId && (
+            <Button variant="outline" size="sm" onClick={() => setSaveDealOpen(true)}>
+              <Briefcase className="w-4 h-4 mr-1" /> Save to deal
+            </Button>
+          )}
+
             <Columns3 className="w-4 h-4 mr-1" /> Compare
           </Button>
           <Button variant="outline" size="sm" onClick={handleExport}>
