@@ -526,6 +526,17 @@ export function FundsPositionCalculator({
         </CardContent>
       </Card>
 
+      {r.baseLVR > 80 && (
+        <LenderLmiCompare
+          baseLoan={r.baseLoan}
+          lvr={r.baseLVR}
+          investment={i.purpose === 'investment'}
+          selectedLenderId={i.lenderId}
+          onSelect={l => setI(prev => ({ ...prev, lenderId: l.lenderId, lenderName: l.lenderName, lenderLmi: l }))}
+        />
+      )}
+
+
       <p className="text-xs text-muted-foreground">
         Estimates only. Stamp duty, government fees and LMI premiums are indicative and must be confirmed
         with the relevant revenue office and the lender's own quote.
