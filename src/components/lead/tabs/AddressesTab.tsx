@@ -120,12 +120,20 @@ export function AddressesTab({ leadId, isPreviewMode }: Props) {
     toast.success(`Imported ${toInsert.length} address${toInsert.length === 1 ? '' : 'es'}`);
   };
 
+  const yearsCovered = rows
+    .filter(r => r.address_type !== 'mailing')
+    .reduce((s, r) => s + Number({ ...r, ...draft[r.id] }.years_at_address || 0), 0);
+  const historyOk = yearsCovered >= 3;
+
   return (
     <SectionCard
       icon={Home}
       title="Addresses"
       tone="neutral"
-      subtitle={rows.length ? `${rows.length} on file` : 'No addresses recorded'}
+      subtitle={rows.length
+        ? `${rows.length} on file · ${yearsCovered.toFixed(1)} yrs history${historyOk ? ' ✓' : ' — 3 yrs required'}`
+        : 'No addresses recorded'}
+
       rightSlot={
         <div className="flex gap-1.5">
           {canImport && (
