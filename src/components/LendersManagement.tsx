@@ -46,13 +46,14 @@ interface Lender {
   lmi_waiver_max_lvr: number | null;
   lmi_waiver_notes: string | null;
   lmi_notes: string | null;
+  lmi_fee_label: string | null;
 }
 
 /** LMI settings block shown in the lender detail sheet. */
 function LmiSettings({ lender, onChange }: { lender: Lender; onChange: (patch: Partial<Lender>) => void }) {
   const profile = {
     provider: (lender.lmi_provider ?? 'generic') as LmiProviderKey,
-    multiplier: Number(lender.lmi_multiplier ?? 1) || 1,
+    multiplier: lender.lmi_multiplier == null ? 1 : Number(lender.lmi_multiplier),
     maxLvr: Number(lender.lmi_max_lvr ?? 95) || 95,
     maxCapitalisedLvr: Number(lender.lmi_max_capitalised_lvr ?? 97) || 97,
     waiverMaxLvr: lender.lmi_waiver_max_lvr == null ? null : Number(lender.lmi_waiver_max_lvr),
@@ -106,6 +107,12 @@ function LmiSettings({ lender, onChange }: { lender: Lender; onChange: (patch: P
         <Label className="text-xs text-muted-foreground">Waiver / policy notes (e.g. medico, legal, accountants)</Label>
         <Textarea rows={2} className="text-sm" value={lender.lmi_waiver_notes ?? ''}
           onChange={(e) => onChange({ lmi_waiver_notes: e.target.value || null })} />
+      </div>
+
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground">Fee / insurer label (shown in comparisons, e.g. Helia, QBE, Risk Fee)</Label>
+        <Input className="h-8 text-sm" placeholder="Helia" value={lender.lmi_fee_label ?? ''}
+          onChange={(e) => onChange({ lmi_fee_label: e.target.value || null })} />
       </div>
 
       <div className="space-y-1">
