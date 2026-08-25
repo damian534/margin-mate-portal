@@ -180,11 +180,13 @@ export function FundsPositionCalculator({
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* ---------------- Left: scenario setup ---------------- */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Scenario</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <FundsSection
+          title="Scenario setup"
+          subtitle="State, purpose, transaction type and lender"
+          icon={<Settings2 className="h-4 w-4" />}
+        >
+          <div className="space-y-3">
+
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Property State</label>
