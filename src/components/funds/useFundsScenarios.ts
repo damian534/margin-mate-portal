@@ -12,10 +12,50 @@ export interface SavedFundsScenario {
   createdAt: string;
   inputs: FundsPositionInputs;
   result: FundsPositionResult;
+  /** 1 = first save, incrementing with every re-save under the same name. */
+  version: number;
+}
+
+/** All versions saved under one scenario name (newest first). */
+export interface FundsScenarioGroup {
+  key: string;
+  name: string;
+  leadId: string | null;
+  latest: SavedFundsScenario;
+  versions: SavedFundsScenario[];
 }
 
 const money = (n: number) =>
   `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n || 0)).toLocaleString('en-AU')}`;
+
+export const scenarioGroupKey = (s: { name: string; leadId: string | null }) =>
+  `${s.leadId ?? 'none'}::${s.name.trim().toLowerCase()}`;
+
+/** Groups saved rows into version histories, newest version first. */
+export function groupFundsScenarios(rows: SavedFundsScenario[]): FundsScenarioGroup[] {
+  const map = new Map<string, SavedFundsScenario[]>();
+  rows.forEach(s => {
+    const key = scenarioGroupKey(s);
+    map.set(key, [...(map.get(key) ?? []), s]);
+  });
+
+  return Array.from(map.entries())
+    .map(([key, list]) => {
+      const versions = [...list].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+      const total = versions.length;
+      versions.forEach((v, idx) => {
+        v.version = total - idx;
+      });
+      return { key, name: versions[0].name, leadId: versions[0].leadId, latest: versions[0], versions };
+    })
+    .sort(
+      (a, b) =>
+        new Date(b.latest.createdAt).getTime() - new Date(a.latest.createdAt).getTime(),
+    );
+}
+
 
 /** Saved funding-position scenarios for the signed-in broker, optionally scoped to a deal. */
 export function useFundsScenarios(leadId?: string | null, enabled = true) {
