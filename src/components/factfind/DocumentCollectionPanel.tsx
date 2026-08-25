@@ -552,8 +552,8 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
 
   /** Every uploaded file across all document requests, foldered by checklist item. */
   const allUploadedFiles = documents.flatMap(d => {
-    const files = (d.files || []).map(f => ({ path: f.file_path, name: f.file_name, label: d.document_name }));
-    if (!files.length && d.file_path) files.push({ path: d.file_path, name: d.file_name || 'document', label: d.document_name });
+    const files = (d.files || []).map(f => ({ path: f.file_path, name: f.file_name, label: d.name }));
+    if (!files.length && d.file_path) files.push({ path: d.file_path, name: d.file_name || 'document', label: d.name });
     return files;
   });
   const uploadedFileCount = allUploadedFiles.length;
