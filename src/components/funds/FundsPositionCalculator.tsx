@@ -437,8 +437,9 @@ export function FundsPositionCalculator({
           </div>
 
           {/* Funds available */}
-          <div className="bg-card p-3 space-y-3">
-            <p className="text-sm font-medium">Funds Available</p>
+          <FundsSection title="Funds available" summary={money(r.fundsAvailable)} icon={<PiggyBank className="h-4 w-4" />}>
+            <div className="space-y-3">
+
             <div className="rounded-md border bg-muted/40 px-2 py-1.5">
               <span className="text-[11px] uppercase text-muted-foreground">Funds Available</span>
               <p className="font-semibold">{money(r.fundsAvailable)}</p>
