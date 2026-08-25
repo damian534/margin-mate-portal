@@ -160,6 +160,22 @@ export function EntityMapSection({ leadId, leadName, isPreviewMode = false, read
     refresh();
   };
 
+  const downloadChart = async () => {
+    try {
+      await downloadStructureChart(entities, yearFlows, roles, {
+        title: leadName?.trim() || 'Client structure',
+        financialYear: fy,
+      });
+      toast.success('Chart downloaded');
+    } catch {
+      toast.error('Could not download the chart');
+    }
+  };
+
+  const detailsEntity = entities.find(e => e.id === detailsId) ?? null;
+
+
+
   return (
     <SectionCard title="Business structure & income flow" icon={Network}>
       <div className="space-y-4">
