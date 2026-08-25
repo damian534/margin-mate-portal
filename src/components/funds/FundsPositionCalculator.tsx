@@ -76,6 +76,8 @@ export function FundsPositionCalculator({
   const [compareOpen, setCompareOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
   const [scenarioName, setScenarioName] = useState('');
+  const [rateDraft, setRateDraft] = useState<string | null>(null);
+
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -272,13 +274,27 @@ export function FundsPositionCalculator({
 
             <div className="grid grid-cols-4 gap-2 pt-1">
               <div className="space-y-1">
-                <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Rate</label>
+                <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Rate (% p.a.)</label>
                 <Input
-                  value={i.rate}
-                  onChange={e => set('rate', Number(e.target.value.replace(/[^0-9.]/g, '')) || 0)}
+                  inputMode="decimal"
+                  value={rateDraft ?? String(i.rate)}
+                  onChange={e => {
+                    const raw = e.target.value.replace(/[^0-9.]/g, '');
+                    const cleaned = raw.split('.').slice(0, 2).join('.').slice(0, 6);
+                    setRateDraft(cleaned);
+                    const parsed = parseFloat(cleaned);
+                    if (!Number.isNaN(parsed)) set('rate', parsed);
+                  }}
+                  onBlur={() => {
+                    const parsed = parseFloat(rateDraft ?? String(i.rate));
+                    const next = Number.isNaN(parsed) || parsed <= 0 ? 6.0 : Math.min(parsed, 25);
+                    set('rate', Number(next.toFixed(3)));
+                    setRateDraft(null);
+                  }}
                   className="h-9"
                 />
               </div>
+
               <div className="space-y-1">
                 <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Term</label>
                 <Input
