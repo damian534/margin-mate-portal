@@ -10,6 +10,8 @@ import Register from "./pages/Register";
 import ResetPassword from "./pages/ResetPassword";
 import PartnerDashboard from "./pages/PartnerDashboard";
 import AdminCRM from "./pages/AdminCRM";
+import ClientProfile from "./pages/ClientProfile";
+
 import AdminSettings from "./pages/AdminSettings";
 import SubmitReferral from "./pages/SubmitReferral";
 import NotFound from "./pages/NotFound";
