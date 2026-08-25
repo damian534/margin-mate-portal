@@ -541,7 +541,7 @@ export const MORTGAGE_STEPS: WizardStep[] = [
       { key: 'previous3_postcode', label: 'Postcode', type: 'text', half: true, condition: (d) => notSame(d) && needsPrevAddress(d, 3) },
       { key: 'previous3_years', label: 'Years at Previous', type: 'number', half: true, placeholder: '0', condition: (d) => notSame(d) && needsPrevAddress(d, 3) },
       { key: 'previous3_months', label: 'Months at Previous', type: 'number', half: true, placeholder: '0', condition: (d) => notSame(d) && needsPrevAddress(d, 3) },
-      ];
+      ] as WizardStep['fields'];
     })(),
 
   },
