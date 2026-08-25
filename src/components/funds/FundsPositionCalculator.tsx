@@ -539,15 +539,24 @@ export function FundsPositionCalculator({
         </CardContent>
       </Card>
 
-      {r.baseLVR > 80 && (
-        <LenderLmiCompare
-          baseLoan={r.baseLoan}
-          lvr={r.baseLVR}
-          investment={i.purpose === 'investment'}
-          selectedLenderId={i.lenderId}
-          onSelect={l => setI(prev => ({ ...prev, lenderId: l.lenderId, lenderName: l.lenderName, lenderLmi: l }))}
-        />
-      )}
+      <Dialog open={lenderPickerOpen} onOpenChange={setLenderPickerOpen}>
+        <DialogContent className="max-w-3xl p-0">
+          <div className="max-h-[80vh] overflow-y-auto">
+            <LenderLmiCompare
+              baseLoan={r.baseLoan}
+              lvr={r.baseLVR}
+              investment={i.purpose === 'investment'}
+              selectedLenderId={i.lenderId}
+              onSelect={l => {
+                setI(prev => ({ ...prev, lenderId: l.lenderId, lenderName: l.lenderName, lenderLmi: l }));
+                setLenderPickerOpen(false);
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+
 
 
       <p className="text-xs text-muted-foreground">
