@@ -154,10 +154,25 @@ export function StructureWizard({
       const created: Record<string, string> = {};
       let order = existingEntities.length;
 
+      const norm = (v: string) => v.trim().toLowerCase();
+      /** name -> id, so the same person is never drawn twice on the map. */
+      const byName = new Map<string, string>(existingEntities.map(e => [norm(e.name), e.id]));
+
       const insertEntity = async (row: {
         key: string; name: string; entity_type: EntityType; is_applicant?: boolean;
         trustee_entity_id?: string | null; x: number; y: number;
       }) => {
+        const existingId = byName.get(norm(row.name));
+        if (existingId) {
+          created[row.key] = existingId;
+          const patch: Record<string, unknown> = {};
+          if (row.is_applicant) patch.is_applicant = true;
+          if (row.trustee_entity_id) patch.trustee_entity_id = row.trustee_entity_id;
+          if (Object.keys(patch).length) {
+            await supabase.from('lead_entities').update(patch as any).eq('id', existingId);
+          }
+          return existingId;
+        }
         const { data, error } = await supabase.from('lead_entities').insert({
           lead_id: leadId,
           name: row.name.trim(),
@@ -170,8 +185,10 @@ export function StructureWizard({
         } as any).select('id').single();
         if (error) throw error;
         created[row.key] = (data as any).id as string;
+        byName.set(norm(row.name), created[row.key]);
         return created[row.key];
       };
+
 
       const dirRows = directors.filter(d => d.name.trim());
       const benRows = beneficiaries.filter(rowIsFilled);
