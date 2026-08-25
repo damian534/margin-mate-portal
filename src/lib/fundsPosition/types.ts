@@ -13,6 +13,7 @@ export type PropertyType = 'established' | 'new' | 'vacant_build' | 'vacant_no_b
 export type Purpose = 'owner_occupied' | 'investment';
 export type TransactionType = 'purchase' | 'refinance' | 'sale' | 'property_only';
 export type RepaymentType = 'pi' | 'io';
+export type FundingStructure = 'standard' | 'equity' | 'guarantor';
 
 export interface LineItem {
   id: string;
@@ -34,6 +35,13 @@ export interface FundsPositionInputs {
   foreignBuyer: boolean;
   differentValuation: boolean;
   valuation: number;
+
+  // Funding structure (equity / guarantor supported lends)
+  fundingStructure: FundingStructure;
+  /** loan = purchase price + costs (100%+ lend backed by equity/guarantee) */
+  fundAllCosts: boolean;
+  /** value of the additional security (equity property or guarantor property) */
+  additionalSecurityValue: number;
 
   // Core solvable figures
   propertyValue: AutoValue;
@@ -81,6 +89,8 @@ export interface FundsPositionResult {
   baseLoan: number;
   totalLoan: number;
   totalLVR: number;
+  combinedSecurityValue: number;
+  securityLVR: number;
   lmi: number;
   lmiRatePct: number;
   lmiWaived: boolean;

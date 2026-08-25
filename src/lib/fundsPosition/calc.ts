@@ -68,7 +68,12 @@ export function calculateFundsPosition(i: FundsPositionInputs): FundsPositionRes
 
   for (let pass = 0; pass < 4; pass++) {
     // --- resolve the value / LVR / loan trio -------------------------------
-    if (!i.baseLoan.auto) {
+    if (i.fundAllCosts) {
+      // Loan covers the purchase price plus all costs (equity / guarantor backed)
+      propertyValue = num(i.propertyValue.value);
+      baseLoan = (isPurchase ? propertyValue : 0) + govCharges + fees;
+      baseLVR = propertyValue > 0 ? (baseLoan / propertyValue) * 100 : 0;
+    } else if (!i.baseLoan.auto) {
       baseLoan = num(i.baseLoan.value);
       if (i.propertyValue.auto && !i.baseLVR.auto && baseLVR > 0) {
         propertyValue = baseLoan / (baseLVR / 100);
@@ -92,7 +97,14 @@ export function calculateFundsPosition(i: FundsPositionInputs): FundsPositionRes
     lmiWaived = false;
     lmiEligible = true;
     lmiNote = null;
-    if (i.fhgScheme || baseLVR <= 80) {
+    if (i.fundingStructure !== 'standard') {
+      lmi = 0;
+      lmiWaived = baseLVR > 80;
+      lmiNote =
+        i.fundingStructure === 'guarantor'
+          ? 'No LMI — guarantor security supports the lend'
+          : 'No LMI — additional equity security supports the lend';
+    } else if (i.fhgScheme || baseLVR <= 80) {
       lmi = 0;
       lmiWaived = i.fhgScheme && baseLVR > 80;
       if (lmiWaived) lmiNote = 'Covered by the Home Guarantee Scheme';
@@ -148,6 +160,8 @@ export function calculateFundsPosition(i: FundsPositionInputs): FundsPositionRes
   const lmiCapitalised = i.capitaliseLMI ? lmiTotal : 0;
   const totalLoan = baseLoan + lmiCapitalised;
   const totalLVR = propertyValue > 0 ? (totalLoan / propertyValue) * 100 : 0;
+  const combinedSecurityValue = propertyValue + num(i.additionalSecurityValue);
+  const securityLVR = combinedSecurityValue > 0 ? (totalLoan / combinedSecurityValue) * 100 : 0;
   const netSurplus = fundsAvailable + baseLoan - fundsRequired;
 
   return {
@@ -156,6 +170,8 @@ export function calculateFundsPosition(i: FundsPositionInputs): FundsPositionRes
     baseLoan,
     totalLoan,
     totalLVR,
+    combinedSecurityValue,
+    securityLVR,
     lmi,
     lmiRatePct,
     lmiWaived,
@@ -195,6 +211,9 @@ export const defaultFundsInputs = (): FundsPositionInputs => ({
   selfEmployed: false,
   foreignBuyer: false,
   differentValuation: false,
+  fundingStructure: 'standard',
+  fundAllCosts: false,
+  additionalSecurityValue: 0,
   valuation: 0,
   propertyValue: { value: 950000, auto: false },
   baseLVR: { value: 90, auto: true },
