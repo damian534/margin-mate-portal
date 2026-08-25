@@ -81,6 +81,7 @@ export function FundsPositionCalculator({
   const [compareOpen, setCompareOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
   const [lenderPickerOpen, setLenderPickerOpen] = useState(false);
+  const [saveDealOpen, setSaveDealOpen] = useState(false);
   const [scenarioName, setScenarioName] = useState('');
   const [rateDraft, setRateDraft] = useState<string | null>(null);
 
@@ -103,6 +104,25 @@ export function FundsPositionCalculator({
       setSaving(false);
     }
   };
+
+  const handleSaveToDeal = async (deal: DealOption, name: string) => {
+    if (isPreviewMode) {
+      toast.info('Sign in to save scenarios');
+      return;
+    }
+    setSaving(true);
+    try {
+      await save(name, i, r, { leadId: deal.id, addNote: true });
+      setSaveDealOpen(false);
+      setScenarioName('');
+      toast.success(`Saved to ${deal.name}`);
+    } catch {
+      toast.error('Could not save to that deal');
+    } finally {
+      setSaving(false);
+    }
+  };
+
 
   const handleExport = async () => {
     try {
