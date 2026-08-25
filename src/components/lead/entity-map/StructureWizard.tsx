@@ -28,7 +28,8 @@ interface PersonRow {
   key: string;
   name: string;
   isApplicant: boolean;
-  amount: number;
+  /** Amount received per financial year (key = FY end year). */
+  amounts: Record<number, number>;
   /** Existing entity on the map that receives this share (null = create a new one). */
   existingId: string | null;
   /** Entity type to create when existingId is null. */
@@ -37,7 +38,7 @@ interface PersonRow {
 
 const uid = () => Math.random().toString(36).slice(2);
 const blankPerson = (): PersonRow => ({
-  key: uid(), name: '', isApplicant: true, amount: 0, existingId: null, entityType: 'individual',
+  key: uid(), name: '', isApplicant: true, amounts: {}, existingId: null, entityType: 'individual',
 });
 
 
@@ -129,7 +130,8 @@ export function StructureWizard({
   };
 
   const rowIsFilled = (b: PersonRow) => !!(b.existingId || b.name.trim());
-  const distributed = beneficiaries.reduce((a, b) => a + (rowIsFilled(b) ? b.amount : 0), 0);
+  const rowTotal = (b: PersonRow) => years.reduce((a, y) => a + (b.amounts[y] || 0), 0);
+  const distributed = beneficiaries.reduce((a, b) => a + (rowIsFilled(b) ? rowTotal(b) : 0), 0);
 
   const incoming = hasTradingCo ? tradingProfit : entityProfit;
 
