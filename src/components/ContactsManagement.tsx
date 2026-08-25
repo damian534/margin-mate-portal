@@ -250,7 +250,7 @@ export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openCon
               </TableHeader>
               <TableBody>
                 {filtered.map(c => (
-                  <TableRow key={c.id} className="cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => { setSelectedContact(c); setSheetOpen(true); }}>
+                  <TableRow key={c.id} className="cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => navigate(`/admin/clients/${c.id}`)}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center shrink-0">
@@ -268,8 +268,19 @@ export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openCon
                       }`}>{typeLabel(c.type)}</span>
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">{format(new Date(c.created_at), 'dd MMM yyyy')}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={(e) => { e.stopPropagation(); setSelectedContact(c); setSheetOpen(true); }}
+                      >
+                        Quick edit
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
+
               </TableBody>
             </Table>
           </CardContent>
