@@ -3,34 +3,38 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Network, AlertTriangle, Building2, Wand2 } from 'lucide-react';
+import { Plus, Network, AlertTriangle, Building2, Wand2, Download } from 'lucide-react';
 import { SectionCard } from '@/components/lead/SectionCard';
 import { useLeadEntities } from '@/hooks/useLeadEntities';
 import { EntityMapCanvas } from './EntityMapCanvas';
 import { EntityDialog } from './EntityDialog';
+import { EntityDetailsDialog } from './EntityDetailsDialog';
 import { FlowDialog } from './FlowDialog';
-import { RolesEditor } from './RolesEditor';
 import { StructureWizard } from './StructureWizard';
 import {
   autoLayout, computeServicing, currentFinancialYear, formatMoney, fyLabel, traceUpstream,
 } from '@/lib/entityMap/servicing';
-import { ENTITY_TYPE_LABELS, type LeadEntity, type LeadEntityFlow, type LeadEntityRole } from '@/lib/entityMap/types';
+import { downloadStructureChart } from '@/lib/entityMap/exportChart';
+import { type LeadEntity, type LeadEntityFlow, type LeadEntityRole } from '@/lib/entityMap/types';
 
 interface Props {
   leadId: string;
+  leadName?: string;
   isPreviewMode?: boolean;
   readOnly?: boolean;
 }
 
-export function EntityMapSection({ leadId, isPreviewMode = false, readOnly = false }: Props) {
+export function EntityMapSection({ leadId, leadName, isPreviewMode = false, readOnly = false }: Props) {
+
   const { entities, roles, flows, loading, refresh } = useLeadEntities(leadId, isPreviewMode);
   const [fy, setFy] = useState(currentFinancialYear());
   const [entityDialog, setEntityDialog] = useState<{ open: boolean; entity: LeadEntity | null }>({ open: false, entity: null });
   const [flowDialog, setFlowDialog] = useState<{ open: boolean; flow: LeadEntityFlow | null }>({ open: false, flow: null });
   const [focusId, setFocusId] = useState<string | null>(null);
+  const [detailsId, setDetailsId] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
+
 
   const years = useMemo(() => {
     const base = currentFinancialYear();
@@ -155,6 +159,22 @@ export function EntityMapSection({ leadId, isPreviewMode = false, readOnly = fal
     refresh();
   };
 
+  const downloadChart = async () => {
+    try {
+      await downloadStructureChart(entities, yearFlows, roles, {
+        title: leadName?.trim() || 'Client structure',
+        financialYear: fy,
+      });
+      toast.success('Chart downloaded');
+    } catch {
+      toast.error('Could not download the chart');
+    }
+  };
+
+  const detailsEntity = entities.find(e => e.id === detailsId) ?? null;
+
+
+
   return (
     <SectionCard title="Business structure & income flow" icon={Network}>
       <div className="space-y-4">
@@ -163,19 +183,27 @@ export function EntityMapSection({ leadId, isPreviewMode = false, readOnly = fal
             <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
             <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{fyLabel(y)}</SelectItem>)}</SelectContent>
           </Select>
-          {!readOnly && (
-            <div className="flex gap-2">
-              <Button size="sm" onClick={() => setWizardOpen(true)}>
-                <Wand2 className="w-3.5 h-3.5 mr-1" /> Guided setup
+          <div className="flex flex-wrap gap-2">
+            {entities.length > 0 && (
+              <Button size="sm" variant="outline" onClick={downloadChart}>
+                <Download className="w-3.5 h-3.5 mr-1" /> Download chart
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setEntityDialog({ open: true, entity: null })}>
-                <Plus className="w-3.5 h-3.5 mr-1" /> Entity
-              </Button>
-              <Button size="sm" variant="outline" disabled={entities.length < 2} onClick={() => setFlowDialog({ open: true, flow: null })}>
-                <Plus className="w-3.5 h-3.5 mr-1" /> Income flow
-              </Button>
-            </div>
-          )}
+            )}
+            {!readOnly && (
+              <>
+                <Button size="sm" onClick={() => setWizardOpen(true)}>
+                  <Wand2 className="w-3.5 h-3.5 mr-1" /> Guided setup
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setEntityDialog({ open: true, entity: null })}>
+                  <Plus className="w-3.5 h-3.5 mr-1" /> Entity
+                </Button>
+                <Button size="sm" variant="outline" disabled={entities.length < 2} onClick={() => setFlowDialog({ open: true, flow: null })}>
+                  <Plus className="w-3.5 h-3.5 mr-1" /> Income flow
+                </Button>
+              </>
+            )}
+          </div>
+
         </div>
 
         {loading ? (
@@ -203,7 +231,7 @@ export function EntityMapSection({ leadId, isPreviewMode = false, readOnly = fal
               roles={roles}
               highlight={highlight}
               readOnly={readOnly}
-              onNodeClick={en => setFocusId(prev => (prev === en.id ? null : en.id))}
+              onNodeClick={en => setDetailsId(en.id)}
               onNodeMoved={moveNode}
               onFlowClick={f => !readOnly && setFlowDialog({ open: true, flow: f })}
               onAutoLayout={tidyUp}
@@ -261,40 +289,32 @@ export function EntityMapSection({ leadId, isPreviewMode = false, readOnly = fal
               </div>
             )}
 
-            <Separator />
+            <p className="text-xs text-muted-foreground">
+              Click any card on the map to see its directors, beneficiaries and income in a pop-up.
+            </p>
 
-            {/* Entity detail list */}
-            <div className="space-y-3">
-              {entities.map(en => (
-                <div key={en.id} className="rounded-md border p-3 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{en.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {ENTITY_TYPE_LABELS[en.entity_type]}
-                        {en.trustee_entity_id && ` · Trustee: ${entities.find(e => e.id === en.trustee_entity_id)?.name ?? '—'}`}
-                      </p>
-                    </div>
-                    {!readOnly && (
-                      <Button size="sm" variant="ghost" onClick={() => setEntityDialog({ open: true, entity: en })}>Edit</Button>
-                    )}
-                  </div>
-                  <RolesEditor
-                    entity={en}
-                    entities={entities}
-                    roles={roles}
-                    readOnly={readOnly}
-                    onAdd={addRole}
-                    onRemove={removeRole}
-                  />
-                </div>
-              ))}
-            </div>
           </>
         )}
       </div>
 
+      <EntityDetailsDialog
+        entity={detailsEntity}
+        open={!!detailsEntity}
+        onOpenChange={v => !v && setDetailsId(null)}
+        entities={entities}
+        roles={roles}
+        flows={yearFlows}
+        financialYear={fy}
+        readOnly={readOnly}
+        tracing={focusId === detailsId}
+        onEdit={en => { setDetailsId(null); setEntityDialog({ open: true, entity: en }); }}
+        onTrace={en => { setFocusId(prev => (prev === en.id ? null : en.id)); setDetailsId(null); }}
+        onFlowClick={f => { if (!readOnly) { setDetailsId(null); setFlowDialog({ open: true, flow: f }); } }}
+        onAddRole={addRole}
+        onRemoveRole={removeRole}
+      />
       <StructureWizard
+
         open={wizardOpen}
         onOpenChange={setWizardOpen}
         leadId={leadId}
