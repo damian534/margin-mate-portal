@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -58,6 +60,8 @@ export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openCon
   const [addOpen, setAddOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const navigate = useNavigate();
+
 
   // Open a specific contact when openContactId changes
   useEffect(() => {
@@ -246,11 +250,13 @@ export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openCon
                   <TableHead>Company</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Added</TableHead>
+                  <TableHead className="w-[100px]" />
+
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map(c => (
-                  <TableRow key={c.id} className="cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => { setSelectedContact(c); setSheetOpen(true); }}>
+                  <TableRow key={c.id} className="cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => navigate(`/admin/clients/${c.id}`)}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center shrink-0">
@@ -268,8 +274,19 @@ export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openCon
                       }`}>{typeLabel(c.type)}</span>
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">{format(new Date(c.created_at), 'dd MMM yyyy')}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={(e) => { e.stopPropagation(); setSelectedContact(c); setSheetOpen(true); }}
+                      >
+                        Quick edit
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
+
               </TableBody>
             </Table>
           </CardContent>
