@@ -292,6 +292,52 @@ export function FundsPositionCalculator({
         >
           <div className="space-y-2">
 
+            <div className="rounded-lg border p-3 space-y-2 bg-muted/30">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Funding structure</label>
+                  <Select
+                    value={i.fundingStructure}
+                    onValueChange={v => set('fundingStructure', v as FundsPositionInputs['fundingStructure'])}
+                  >
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="standard">Standard (cash deposit)</SelectItem>
+                      <SelectItem value="equity">Equity release (additional security)</SelectItem>
+                      <SelectItem value="guarantor">Guarantor (security guarantee)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {i.fundingStructure !== 'standard' && (
+                  <MoneyInput
+                    label={i.fundingStructure === 'guarantor' ? 'Guarantor security value' : 'Additional security value'}
+                    value={i.additionalSecurityValue}
+                    onChange={v => set('additionalSecurityValue', v)}
+                  />
+                )}
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={i.fundAllCosts}
+                  onCheckedChange={v => set('fundAllCosts', Boolean(v))}
+                />
+                Borrow purchase price + costs (no cash to complete)
+              </label>
+              {i.fundingStructure !== 'standard' && (
+                <p className="text-[11px] text-muted-foreground">
+                  LMI is switched off — the lend is supported by{' '}
+                  {i.fundingStructure === 'guarantor' ? 'a guarantor security' : 'additional equity security'}. Combined
+                  security {money(r.combinedSecurityValue)} · security LVR {r.securityLVR.toFixed(2)}%
+                </p>
+              )}
+              {i.fundAllCosts && (
+                <p className="text-[11px] text-muted-foreground">
+                  Loan solved as property value plus government charges and fees ({money(r.baseLoan)}).
+                </p>
+              )}
+            </div>
+
+
             <AutoField
               label="Property Value"
               field={i.propertyValue}
