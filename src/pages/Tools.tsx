@@ -37,12 +37,35 @@ export default function Tools() {
               Interactive calculators and resources for client conversations
             </p>
           </div>
-          {isSuperAdmin && (
-            <Button variant="outline" size="sm" onClick={() => setShowAdmin(!showAdmin)}>
-              <Settings className="w-4 h-4 mr-1" /> {showAdmin ? 'Done' : 'Manage'}
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Wrench className="w-4 h-4 mr-1" /> Select a tool
+                  <ChevronDown className="w-3.5 h-3.5 ml-1 opacity-60" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-72">
+                <DropdownMenuLabel>All tools</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {tools
+                  .filter(tool => (isSuperAdmin || isToolEnabled(tool.id)) && (!tool.brokerOnly || isBrokerOrAdmin))
+                  .map(tool => (
+                    <DropdownMenuItem key={tool.id} onSelect={() => navigate(tool.path)}>
+                      <tool.icon className="w-4 h-4 mr-2 shrink-0 text-primary" />
+                      <span className="truncate">{tool.name}</span>
+                    </DropdownMenuItem>
+                  ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {isSuperAdmin && (
+              <Button variant="outline" size="sm" onClick={() => setShowAdmin(!showAdmin)}>
+                <Settings className="w-4 h-4 mr-1" /> {showAdmin ? 'Done' : 'Manage'}
+              </Button>
+            )}
+          </div>
         </div>
+
 
         {showAdmin && isSuperAdmin && (
           <Card>
