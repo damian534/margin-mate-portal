@@ -194,11 +194,16 @@ export function StructureWizard({
         x: 460, y: 340,
       });
 
-      // People receiving income (bottom row)
+      // People / entities receiving income (bottom row)
       for (let i = 0; i < benRows.length; i++) {
+        const b = benRows[i];
+        if (b.existingId) {
+          created[`ben-${b.key}`] = b.existingId;
+          continue;
+        }
         await insertEntity({
-          key: `ben-${benRows[i].key}`, name: benRows[i].name, entity_type: 'individual',
-          is_applicant: benRows[i].isApplicant, x: 40 + i * 230, y: 520,
+          key: `ben-${b.key}`, name: b.name, entity_type: b.entityType || 'individual',
+          is_applicant: b.isApplicant, x: 40 + i * 230, y: 520,
         });
       }
 
@@ -218,11 +223,12 @@ export function StructureWizard({
       for (const b of benRows) {
         roleRows.push({
           lead_id: leadId, entity_id: mainId, person_entity_id: created[`ben-${b.key}`],
-          person_name: b.name.trim(),
+          person_name: (b.existingId ? existingEntities.find(e => e.id === b.existingId)?.name : b.name)?.trim() ?? null,
           role: isTrust ? (trustType === 'unit_trust' ? 'unit_holder' : 'beneficiary')
             : kind === 'partnership' ? 'partner' : 'shareholder',
         });
       }
+
       if (roleRows.length) {
         const { error } = await supabase.from('lead_entity_roles').insert(roleRows as any);
         if (error) throw error;
