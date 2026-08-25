@@ -42,6 +42,8 @@ import { MeetingNotesSection } from '@/components/MeetingNotesSection';
 import { LoanSplitsEditor } from '@/components/LoanSplitsEditor';
 import { SectionCard } from '@/components/lead/SectionCard';
 import { ClientFileTabs, type ClientFileTab } from '@/components/lead/tabs/ClientFileTabs';
+import { FactFindWizardDialog } from '@/components/lead/FactFindWizardDialog';
+
 import { ClientsTab } from '@/components/lead/tabs/ClientsTab';
 import { AddressesTab } from '@/components/lead/tabs/AddressesTab';
 import { EmploymentIdTab } from '@/components/lead/tabs/EmploymentIdTab';
