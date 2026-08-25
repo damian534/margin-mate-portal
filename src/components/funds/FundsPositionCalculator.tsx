@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
@@ -7,14 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Plus, Trash2, RotateCcw, Save, Columns3, Download, Mail, AlertTriangle, AlertCircle, Info, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, RotateCcw, Save, Columns3, Download, Mail, AlertTriangle, AlertCircle, Info, ChevronDown, Settings2, Wallet, ShieldCheck, Landmark, PiggyBank, Receipt, ListChecks, Briefcase } from 'lucide-react';
 import { toast } from 'sonner';
 import { AutoField } from './AutoField';
 import { MoneyInput } from './MoneyInput';
 import { useFundsScenarios } from './useFundsScenarios';
 import { FundsScenarioCompare } from './FundsScenarioCompare';
+import { FundsSection } from './FundsSection';
+import { SavedScenariosPanel } from './SavedScenariosPanel';
+import { SaveToDealDialog, type DealOption } from './SaveToDealDialog';
 import { EmailFundsPositionDialog } from './EmailFundsPositionDialog';
 import { LenderLmiCompare } from './LenderLmiCompare';
+
 import { calculateFundsPosition, defaultFundsInputs, sumFundsBreakdown } from '@/lib/fundsPosition/calc';
 import { validateFundsPosition, type FundsWarning } from '@/lib/fundsPosition/warnings';
 import { downloadFundsPositionPdf } from '@/lib/pdf/fundsPositionPdf';
@@ -78,6 +81,7 @@ export function FundsPositionCalculator({
   const [compareOpen, setCompareOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
   const [lenderPickerOpen, setLenderPickerOpen] = useState(false);
+  const [saveDealOpen, setSaveDealOpen] = useState(false);
   const [scenarioName, setScenarioName] = useState('');
   const [rateDraft, setRateDraft] = useState<string | null>(null);
 
@@ -100,6 +104,25 @@ export function FundsPositionCalculator({
       setSaving(false);
     }
   };
+
+  const handleSaveToDeal = async (deal: DealOption, name: string) => {
+    if (isPreviewMode) {
+      toast.info('Sign in to save scenarios');
+      return;
+    }
+    setSaving(true);
+    try {
+      await save(name, i, r, { leadId: deal.id, addNote: true });
+      setSaveDealOpen(false);
+      setScenarioName('');
+      toast.success(`Saved to ${deal.name}`);
+    } catch {
+      toast.error('Could not save to that deal');
+    } finally {
+      setSaving(false);
+    }
+  };
+
 
   const handleExport = async () => {
     try {
@@ -137,8 +160,14 @@ export function FundsPositionCalculator({
           <Button variant="outline" size="sm" onClick={handleSave} disabled={saving}>
             <Save className="w-4 h-4 mr-1" /> Save
           </Button>
+          {!leadId && (
+            <Button variant="outline" size="sm" onClick={() => setSaveDealOpen(true)}>
+              <Briefcase className="w-4 h-4 mr-1" /> Save to deal
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => setCompareOpen(true)}>
             <Columns3 className="w-4 h-4 mr-1" /> Compare
+
           </Button>
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="w-4 h-4 mr-1" /> PDF
@@ -157,11 +186,13 @@ export function FundsPositionCalculator({
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* ---------------- Left: scenario setup ---------------- */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Scenario</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <FundsSection
+          title="Scenario setup"
+          subtitle="State, purpose, transaction type and lender"
+          icon={<Settings2 className="h-4 w-4" />}
+        >
+          <div className="space-y-3">
+
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Property State</label>
@@ -249,18 +280,18 @@ export function FundsPositionCalculator({
                 <MoneyInput label="Valuation" value={i.valuation} onChange={v => set('valuation', v)} />
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </FundsSection>
+
 
         {/* ---------------- Right: solvable figures ---------------- */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Position</CardTitle>
-            <p className="text-xs text-muted-foreground">
-              Switch a field on to type your own number — anything left off is solved for you.
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-2">
+        <FundsSection
+          title="Position & loan"
+          subtitle="Switch a field on to type your own number — anything left off is solved for you."
+          icon={<Wallet className="h-4 w-4" />}
+        >
+          <div className="space-y-2">
+
             <AutoField
               label="Property Value"
               field={i.propertyValue}
@@ -339,8 +370,9 @@ export function FundsPositionCalculator({
             <p className="text-[11px] text-muted-foreground">
               {i.ioYears > 0 ? 'Interest only repayment (monthly)' : 'Principal & interest repayment (monthly)'}
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </FundsSection>
+
       </div>
 
       {/* ---------------- Summary strip ---------------- */}
@@ -365,14 +397,11 @@ export function FundsPositionCalculator({
       </div>
 
       {/* ---------------- Calculation breakdown ---------------- */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Calculation Breakdown</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-px bg-border md:grid-cols-4 rounded-lg overflow-hidden border">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 items-start">
           {/* LMI */}
-          <div className="bg-card p-3 space-y-3">
-            <p className="text-sm font-medium">LMI</p>
+          <FundsSection title="LMI" summary={money(r.lmi + r.lmiStampDuty)} icon={<ShieldCheck className="h-4 w-4" />}>
+            <div className="space-y-3">
+
             <div className="rounded-md border bg-muted/40 px-2 py-1.5">
               <span className="text-[11px] uppercase text-muted-foreground">LMI Being Applied</span>
               <p className="font-semibold">{money(r.lmi + r.lmiStampDuty)}</p>
@@ -414,11 +443,14 @@ export function FundsPositionCalculator({
               computed={r.lmi}
               onChange={f => set('lmiOverride', f)}
             />
-          </div>
+            </div>
+          </FundsSection>
+
 
           {/* Govt charges */}
-          <div className="bg-card p-3 space-y-3">
-            <p className="text-sm font-medium">Govt Charges</p>
+          <FundsSection title="Government charges" summary={money(r.govCharges)} icon={<Landmark className="h-4 w-4" />}>
+            <div className="space-y-3">
+
             <AutoField
               label="Total"
               field={i.govTotalOverride}
@@ -431,11 +463,14 @@ export function FundsPositionCalculator({
               <Row label="Mortgage Registration" value={money(r.mortgageRegistrationFee)} />
               <Row label="Transfer Fee" value={money(r.transferFee)} />
             </div>
-          </div>
+            </div>
+          </FundsSection>
+
 
           {/* Funds available */}
-          <div className="bg-card p-3 space-y-3">
-            <p className="text-sm font-medium">Funds Available</p>
+          <FundsSection title="Funds available" summary={money(r.fundsAvailable)} icon={<PiggyBank className="h-4 w-4" />}>
+            <div className="space-y-3">
+
             <div className="rounded-md border bg-muted/40 px-2 py-1.5">
               <span className="text-[11px] uppercase text-muted-foreground">Funds Available</span>
               <p className="font-semibold">{money(r.fundsAvailable)}</p>
@@ -470,11 +505,14 @@ export function FundsPositionCalculator({
                 </Button>
               </div>
             )}
-          </div>
+            </div>
+          </FundsSection>
+
 
           {/* Fees */}
-          <div className="bg-card p-3 space-y-3">
-            <p className="text-sm font-medium">Fees</p>
+          <FundsSection title="Fees" summary={money(r.fees)} icon={<Receipt className="h-4 w-4" />}>
+            <div className="space-y-3">
+
             <div className="rounded-md border bg-muted/40 px-2 py-1.5">
               <span className="text-[11px] uppercase text-muted-foreground">Total Fees</span>
               <p className="font-semibold">{money(r.fees)}</p>
@@ -500,16 +538,21 @@ export function FundsPositionCalculator({
             ) : (
               <MoneyInput label="Total Fees" value={i.feesTotal} onChange={v => set('feesTotal', v)} />
             )}
-          </div>
-        </CardContent>
-      </Card>
+            </div>
+          </FundsSection>
+
+      </div>
+
 
       {/* ---------------- Funds to complete summary ---------------- */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Funds to Complete</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-1 text-sm">
+      <FundsSection
+        title="Funds to complete"
+        subtitle="Everything needed at settlement"
+        icon={<ListChecks className="h-4 w-4" />}
+        summary={money(Math.abs(r.netSurplus))}
+      >
+        <div className="space-y-1 text-sm">
+
           <Row label="Purchase price / property value" value={money(i.transactionType === 'refinance' ? 0 : r.propertyValue)} />
           <Row label="Government charges" value={money(r.govCharges)} />
           <Row label="Fees" value={money(r.fees)} />
@@ -527,8 +570,9 @@ export function FundsPositionCalculator({
               tone={shortfall ? 'text-destructive' : 'text-success'}
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </FundsSection>
+
 
       <Dialog open={lenderPickerOpen} onOpenChange={setLenderPickerOpen}>
         <DialogContent className="max-w-3xl p-0">
@@ -546,8 +590,32 @@ export function FundsPositionCalculator({
           </div>
         </DialogContent>
       </Dialog>
+      <SavedScenariosPanel
+        scenarios={scenarios}
+        hideDeal={Boolean(leadId)}
+        onCompare={() => setCompareOpen(true)}
+        onLoad={s => {
+          setI(s.inputs);
+          setScenarioName(s.name);
+          toast.success(`Loaded "${s.name}"`);
+        }}
+        onDelete={async id => {
+          try {
+            await remove(id);
+            toast.success('Scenario deleted');
+          } catch {
+            toast.error('Could not delete the scenario');
+          }
+        }}
+      />
 
-
+      <SaveToDealDialog
+        open={saveDealOpen}
+        onOpenChange={setSaveDealOpen}
+        defaultName={scenarioName.trim() || `Funding position ${new Date().toLocaleDateString('en-AU')}`}
+        saving={saving}
+        onConfirm={handleSaveToDeal}
+      />
 
 
       <p className="text-xs text-muted-foreground">
