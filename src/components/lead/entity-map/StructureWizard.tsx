@@ -268,52 +268,122 @@ export function StructureWizard({
     </p>
   );
 
+  const NEW_RECIPIENT_TYPES: EntityType[] = ['individual', 'company', 'discretionary_trust', 'unit_trust', 'partnership', 'smsf'];
+
   const PeopleList = ({
-    rows, setter, amountLabel, showApplicant = true,
-  }: { rows: PersonRow[]; setter: React.Dispatch<React.SetStateAction<PersonRow[]>>; amountLabel?: string; showApplicant?: boolean }) => (
+    rows, setter, amountLabel, showApplicant = true, recipientPicker = false,
+  }: {
+    rows: PersonRow[];
+    setter: React.Dispatch<React.SetStateAction<PersonRow[]>>;
+    amountLabel?: string;
+    showApplicant?: boolean;
+    recipientPicker?: boolean;
+  }) => (
     <div className="space-y-2">
-      {rows.map((r, i) => (
-        <div key={r.key} className="rounded-md border p-3 space-y-2">
-          <div className="flex items-center gap-2">
-            <Input
-              autoFocus={i === rows.length - 1 && !r.name}
-              value={r.name}
-              placeholder="Full name"
-              onChange={e => updatePerson(setter, r.key, { name: e.target.value })}
-            />
-            {rows.length > 1 && (
-              <Button variant="ghost" size="icon" onClick={() => setter(list => list.filter(x => x.key !== r.key))}>
-                <Trash2 className="w-4 h-4 text-muted-foreground" />
-              </Button>
+      {rows.map((r, i) => {
+        const chosen = r.existingId ? existingEntities.find(e => e.id === r.existingId) ?? null : null;
+        const options = existingEntities.filter(
+          e => e.id === r.existingId || !rows.some(x => x.existingId === e.id),
+        );
+        return (
+          <div key={r.key} className="rounded-md border p-3 space-y-2">
+            {recipientPicker && (
+              <div className="flex items-center gap-2">
+                <Select
+                  value={r.existingId ? `existing:${r.existingId}` : `new:${r.entityType}`}
+                  onValueChange={v => {
+                    if (v.startsWith('existing:')) {
+                      const id = v.slice(9);
+                      const ent = existingEntities.find(e => e.id === id);
+                      updatePerson(setter, r.key, {
+                        existingId: id,
+                        name: ent?.name ?? '',
+                        entityType: (ent?.entity_type as EntityType) ?? 'individual',
+                        isApplicant: !!ent?.is_applicant,
+                      });
+                    } else {
+                      updatePerson(setter, r.key, { existingId: null, entityType: v.slice(4) as EntityType });
+                    }
+                  }}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent className="max-h-64">
+                    {options.length > 0 && (
+                      <>
+                        <div className="px-2 py-1 text-[11px] uppercase tracking-wide text-muted-foreground">Already on the map</div>
+                        {options.map(e => (
+                          <SelectItem key={e.id} value={`existing:${e.id}`}>
+                            {e.name} · {ENTITY_TYPE_LABELS[e.entity_type as EntityType]}
+                          </SelectItem>
+                        ))}
+                      </>
+                    )}
+                    <div className="px-2 py-1 text-[11px] uppercase tracking-wide text-muted-foreground">Add new</div>
+                    {NEW_RECIPIENT_TYPES.map(t => (
+                      <SelectItem key={t} value={`new:${t}`}>New {ENTITY_TYPE_LABELS[t].toLowerCase()}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {rows.length > 1 && (
+                  <Button variant="ghost" size="icon" onClick={() => setter(list => list.filter(x => x.key !== r.key))}>
+                    <Trash2 className="w-4 h-4 text-muted-foreground" />
+                  </Button>
+                )}
+              </div>
+            )}
+            {!chosen && (
+              <div className="flex items-center gap-2">
+                <Input
+                  autoFocus={i === rows.length - 1 && !r.name}
+                  value={r.name}
+                  placeholder={
+                    !recipientPicker || r.entityType === 'individual'
+                      ? 'Full name'
+                      : `${ENTITY_TYPE_LABELS[r.entityType]} name`
+                  }
+                  onChange={e => updatePerson(setter, r.key, { name: e.target.value })}
+                />
+                {!recipientPicker && rows.length > 1 && (
+                  <Button variant="ghost" size="icon" onClick={() => setter(list => list.filter(x => x.key !== r.key))}>
+                    <Trash2 className="w-4 h-4 text-muted-foreground" />
+                  </Button>
+                )}
+              </div>
+            )}
+            {amountLabel && (
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs whitespace-nowrap">{amountLabel}</Label>
+                  <Input
+                    className="w-36"
+                    inputMode="numeric"
+                    value={fmtInput(r.amount)}
+                    placeholder="0"
+                    onChange={e => updatePerson(setter, r.key, { amount: money(e.target.value) })}
+                  />
+                </div>
+                {showApplicant && (
+                  <label className="flex items-center gap-2 text-xs">
+                    <Checkbox checked={r.isApplicant} onCheckedChange={v => updatePerson(setter, r.key, { isApplicant: !!v })} />
+                    On the loan application
+                  </label>
+                )}
+              </div>
+            )}
+            {recipientPicker && r.entityType !== 'individual' && (
+              <p className="text-[11px] text-muted-foreground">
+                Income landing in a company or trust is only usable for servicing if that entity is on the loan, or if it distributes on to an applicant.
+              </p>
             )}
           </div>
-          {amountLabel && (
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Label className="text-xs whitespace-nowrap">{amountLabel}</Label>
-                <Input
-                  className="w-36"
-                  inputMode="numeric"
-                  value={fmtInput(r.amount)}
-                  placeholder="0"
-                  onChange={e => updatePerson(setter, r.key, { amount: money(e.target.value) })}
-                />
-              </div>
-              {showApplicant && (
-                <label className="flex items-center gap-2 text-xs">
-                  <Checkbox checked={r.isApplicant} onCheckedChange={v => updatePerson(setter, r.key, { isApplicant: !!v })} />
-                  On the loan application
-                </label>
-              )}
-            </div>
-          )}
-        </div>
-      ))}
+        );
+      })}
       <Button variant="outline" size="sm" onClick={() => setter(list => [...list, blankPerson()])}>
         <Plus className="w-3.5 h-3.5 mr-1" /> Add another
       </Button>
     </div>
   );
+
 
   const body = () => {
     switch (stepKey) {
