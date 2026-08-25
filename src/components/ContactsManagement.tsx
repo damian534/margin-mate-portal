@@ -246,6 +246,8 @@ export function ContactsManagement({ contacts, onRefresh, isPreviewMode, openCon
                   <TableHead>Company</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Added</TableHead>
+                  <TableHead className="w-[100px]" />
+
                 </TableRow>
               </TableHeader>
               <TableBody>
