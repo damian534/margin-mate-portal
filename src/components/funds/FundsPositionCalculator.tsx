@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -6,10 +6,16 @@ import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, RotateCcw } from 'lucide-react';
+import { Plus, Trash2, RotateCcw, Save, Columns3, Download, Mail, AlertTriangle, AlertCircle, Info } from 'lucide-react';
+import { toast } from 'sonner';
 import { AutoField } from './AutoField';
 import { MoneyInput } from './MoneyInput';
+import { useFundsScenarios } from './useFundsScenarios';
+import { FundsScenarioCompare } from './FundsScenarioCompare';
+import { EmailFundsPositionDialog } from './EmailFundsPositionDialog';
 import { calculateFundsPosition, defaultFundsInputs, sumFundsBreakdown } from '@/lib/fundsPosition/calc';
+import { validateFundsPosition, type FundsWarning } from '@/lib/fundsPosition/warnings';
+import { downloadFundsPositionPdf } from '@/lib/pdf/fundsPositionPdf';
 import type { FundsPositionInputs, LineItem } from '@/lib/fundsPosition/types';
 import { stateLabels, type StateKey } from '@/lib/stampDutyRates';
 
@@ -32,12 +38,72 @@ const CIRCUMSTANCES: Array<{ key: keyof FundsPositionInputs; label: string }> = 
   { key: 'foreignBuyer', label: 'Foreign Buyer' },
 ];
 
-export function FundsPositionCalculator() {
-  const [i, setI] = useState<FundsPositionInputs>(defaultFundsInputs);
+export interface FundsPositionCalculatorProps {
+  /** Pre-filled starting inputs (e.g. from a client's file). */
+  initialInputs?: FundsPositionInputs;
+  /** Scope saved scenarios to a deal. */
+  leadId?: string | null;
+  clientName?: string;
+  /** Default recipient for the "Email" action (usually the referral partner). */
+  referralEmail?: string | null;
+  referralName?: string | null;
+  /** Disable persistence in preview mode. */
+  isPreviewMode?: boolean;
+}
+
+export function FundsPositionCalculator({
+  initialInputs,
+  leadId = null,
+  clientName,
+  referralEmail,
+  referralName,
+  isPreviewMode = false,
+}: FundsPositionCalculatorProps = {}) {
+  const [i, setI] = useState<FundsPositionInputs>(() => initialInputs ?? defaultFundsInputs());
   const set = <K extends keyof FundsPositionInputs>(key: K, value: FundsPositionInputs[K]) =>
     setI(prev => ({ ...prev, [key]: value }));
 
+  // Adopt a new prefill when the deal context changes.
+  useEffect(() => {
+    if (initialInputs) setI(initialInputs);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leadId]);
+
   const r = useMemo(() => calculateFundsPosition(i), [i]);
+  const warnings = useMemo(() => validateFundsPosition(i, r), [i, r]);
+
+  const { scenarios, save, remove } = useFundsScenarios(leadId, !isPreviewMode);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [scenarioName, setScenarioName] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (isPreviewMode) {
+      toast.info('Sign in to save scenarios');
+      return;
+    }
+    const name = scenarioName.trim() || `Scenario ${scenarios.length + 1}`;
+    setSaving(true);
+    try {
+      await save(name, i, r);
+      setScenarioName('');
+      toast.success(`Saved "${name}"`);
+    } catch {
+      toast.error('Could not save the scenario');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      await downloadFundsPositionPdf(i, r, { clientName, scenarioName: scenarioName.trim() || undefined }, warnings);
+      toast.success('PDF downloaded');
+    } catch {
+      toast.error('Could not generate the PDF');
+    }
+  };
 
   const addItem = (key: 'customFunds' | 'feeItems') =>
     set(key, [...i[key], { id: crypto.randomUUID(), label: '', amount: 0 } as LineItem]);
@@ -50,16 +116,39 @@ export function FundsPositionCalculator() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline">{stateLabels[i.state]}</Badge>
           <Badge variant="outline">{i.purpose === 'investment' ? 'Investment' : 'Owner Occupied'}</Badge>
           <Badge variant="outline" className="capitalize">{i.transactionType.replace('_', ' ')}</Badge>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => setI(defaultFundsInputs())}>
-          <RotateCcw className="w-4 h-4 mr-1" /> Reset
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Input
+            value={scenarioName}
+            onChange={e => setScenarioName(e.target.value.slice(0, 80))}
+            placeholder="Scenario name"
+            className="h-9 w-40"
+          />
+          <Button variant="outline" size="sm" onClick={handleSave} disabled={saving}>
+            <Save className="w-4 h-4 mr-1" /> Save
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setCompareOpen(true)}>
+            <Columns3 className="w-4 h-4 mr-1" /> Compare
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExport}>
+            <Download className="w-4 h-4 mr-1" /> PDF
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setEmailOpen(true)}>
+            <Mail className="w-4 h-4 mr-1" /> Email
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setI(initialInputs ?? defaultFundsInputs())}>
+            <RotateCcw className="w-4 h-4 mr-1" /> Reset
+          </Button>
+        </div>
       </div>
+
+      <WarningsPanel warnings={warnings} />
+
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* ---------------- Left: scenario setup ---------------- */}
