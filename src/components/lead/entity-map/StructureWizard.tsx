@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import { ArrowLeft, ArrowRight, Building2, Info, Plus, Trash2, Users, Wand2 } from 'lucide-react';
 import { fyLabel, formatMoney } from '@/lib/entityMap/servicing';
-import type { EntityType, LeadEntity } from '@/lib/entityMap/types';
+import { ENTITY_TYPE_LABELS, type EntityType, type LeadEntity } from '@/lib/entityMap/types';
 
 interface Props {
   open: boolean;
@@ -29,10 +29,17 @@ interface PersonRow {
   name: string;
   isApplicant: boolean;
   amount: number;
+  /** Existing entity on the map that receives this share (null = create a new one). */
+  existingId: string | null;
+  /** Entity type to create when existingId is null. */
+  entityType: EntityType;
 }
 
 const uid = () => Math.random().toString(36).slice(2);
-const blankPerson = (): PersonRow => ({ key: uid(), name: '', isApplicant: true, amount: 0 });
+const blankPerson = (): PersonRow => ({
+  key: uid(), name: '', isApplicant: true, amount: 0, existingId: null, entityType: 'individual',
+});
+
 
 const STRUCTURE_OPTIONS: { value: StructureKind; label: string; blurb: string }[] = [
   { value: 'trust', label: 'Trust', blurb: 'Family/discretionary trust, unit trust or SMSF. Most common for self-employed clients.' },
@@ -107,12 +114,14 @@ export function StructureWizard({
       case 'The trust': return trustName.trim().length > 1;
       case `The ${mainLabel}`: return trustName.trim().length > 1;
       case 'Trustee': return trusteeName.trim().length > 1 && directors.some(d => d.name.trim());
-      case 'Who receives income': return beneficiaries.some(b => b.name.trim());
+      case 'Who receives income': return beneficiaries.some(b => b.existingId || b.name.trim());
       default: return true;
     }
   };
 
-  const distributed = beneficiaries.reduce((a, b) => a + (b.name.trim() ? b.amount : 0), 0);
+  const rowIsFilled = (b: PersonRow) => !!(b.existingId || b.name.trim());
+  const distributed = beneficiaries.reduce((a, b) => a + (rowIsFilled(b) ? b.amount : 0), 0);
+
   const incoming = hasTradingCo ? tradingProfit : entityProfit;
 
   const updatePerson = (
@@ -147,7 +156,7 @@ export function StructureWizard({
       };
 
       const dirRows = directors.filter(d => d.name.trim());
-      const benRows = beneficiaries.filter(b => b.name.trim());
+      const benRows = beneficiaries.filter(rowIsFilled);
 
       // Directors of the corporate trustee (top row)
       if (isTrust && trusteeKind === 'corporate') {
@@ -185,11 +194,16 @@ export function StructureWizard({
         x: 460, y: 340,
       });
 
-      // People receiving income (bottom row)
+      // People / entities receiving income (bottom row)
       for (let i = 0; i < benRows.length; i++) {
+        const b = benRows[i];
+        if (b.existingId) {
+          created[`ben-${b.key}`] = b.existingId;
+          continue;
+        }
         await insertEntity({
-          key: `ben-${benRows[i].key}`, name: benRows[i].name, entity_type: 'individual',
-          is_applicant: benRows[i].isApplicant, x: 40 + i * 230, y: 520,
+          key: `ben-${b.key}`, name: b.name, entity_type: b.entityType || 'individual',
+          is_applicant: b.isApplicant, x: 40 + i * 230, y: 520,
         });
       }
 
@@ -209,11 +223,12 @@ export function StructureWizard({
       for (const b of benRows) {
         roleRows.push({
           lead_id: leadId, entity_id: mainId, person_entity_id: created[`ben-${b.key}`],
-          person_name: b.name.trim(),
+          person_name: (b.existingId ? existingEntities.find(e => e.id === b.existingId)?.name : b.name)?.trim() ?? null,
           role: isTrust ? (trustType === 'unit_trust' ? 'unit_holder' : 'beneficiary')
             : kind === 'partnership' ? 'partner' : 'shareholder',
         });
       }
+
       if (roleRows.length) {
         const { error } = await supabase.from('lead_entity_roles').insert(roleRows as any);
         if (error) throw error;
@@ -259,52 +274,122 @@ export function StructureWizard({
     </p>
   );
 
+  const NEW_RECIPIENT_TYPES: EntityType[] = ['individual', 'company', 'discretionary_trust', 'unit_trust', 'partnership', 'smsf'];
+
   const PeopleList = ({
-    rows, setter, amountLabel, showApplicant = true,
-  }: { rows: PersonRow[]; setter: React.Dispatch<React.SetStateAction<PersonRow[]>>; amountLabel?: string; showApplicant?: boolean }) => (
+    rows, setter, amountLabel, showApplicant = true, recipientPicker = false,
+  }: {
+    rows: PersonRow[];
+    setter: React.Dispatch<React.SetStateAction<PersonRow[]>>;
+    amountLabel?: string;
+    showApplicant?: boolean;
+    recipientPicker?: boolean;
+  }) => (
     <div className="space-y-2">
-      {rows.map((r, i) => (
-        <div key={r.key} className="rounded-md border p-3 space-y-2">
-          <div className="flex items-center gap-2">
-            <Input
-              autoFocus={i === rows.length - 1 && !r.name}
-              value={r.name}
-              placeholder="Full name"
-              onChange={e => updatePerson(setter, r.key, { name: e.target.value })}
-            />
-            {rows.length > 1 && (
-              <Button variant="ghost" size="icon" onClick={() => setter(list => list.filter(x => x.key !== r.key))}>
-                <Trash2 className="w-4 h-4 text-muted-foreground" />
-              </Button>
+      {rows.map((r, i) => {
+        const chosen = r.existingId ? existingEntities.find(e => e.id === r.existingId) ?? null : null;
+        const options = existingEntities.filter(
+          e => e.id === r.existingId || !rows.some(x => x.existingId === e.id),
+        );
+        return (
+          <div key={r.key} className="rounded-md border p-3 space-y-2">
+            {recipientPicker && (
+              <div className="flex items-center gap-2">
+                <Select
+                  value={r.existingId ? `existing:${r.existingId}` : `new:${r.entityType}`}
+                  onValueChange={v => {
+                    if (v.startsWith('existing:')) {
+                      const id = v.slice(9);
+                      const ent = existingEntities.find(e => e.id === id);
+                      updatePerson(setter, r.key, {
+                        existingId: id,
+                        name: ent?.name ?? '',
+                        entityType: (ent?.entity_type as EntityType) ?? 'individual',
+                        isApplicant: !!ent?.is_applicant,
+                      });
+                    } else {
+                      updatePerson(setter, r.key, { existingId: null, entityType: v.slice(4) as EntityType });
+                    }
+                  }}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent className="max-h-64">
+                    {options.length > 0 && (
+                      <>
+                        <div className="px-2 py-1 text-[11px] uppercase tracking-wide text-muted-foreground">Already on the map</div>
+                        {options.map(e => (
+                          <SelectItem key={e.id} value={`existing:${e.id}`}>
+                            {e.name} · {ENTITY_TYPE_LABELS[e.entity_type as EntityType]}
+                          </SelectItem>
+                        ))}
+                      </>
+                    )}
+                    <div className="px-2 py-1 text-[11px] uppercase tracking-wide text-muted-foreground">Add new</div>
+                    {NEW_RECIPIENT_TYPES.map(t => (
+                      <SelectItem key={t} value={`new:${t}`}>New {ENTITY_TYPE_LABELS[t].toLowerCase()}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {rows.length > 1 && (
+                  <Button variant="ghost" size="icon" onClick={() => setter(list => list.filter(x => x.key !== r.key))}>
+                    <Trash2 className="w-4 h-4 text-muted-foreground" />
+                  </Button>
+                )}
+              </div>
+            )}
+            {!chosen && (
+              <div className="flex items-center gap-2">
+                <Input
+                  autoFocus={i === rows.length - 1 && !r.name}
+                  value={r.name}
+                  placeholder={
+                    !recipientPicker || r.entityType === 'individual'
+                      ? 'Full name'
+                      : `${ENTITY_TYPE_LABELS[r.entityType]} name`
+                  }
+                  onChange={e => updatePerson(setter, r.key, { name: e.target.value })}
+                />
+                {!recipientPicker && rows.length > 1 && (
+                  <Button variant="ghost" size="icon" onClick={() => setter(list => list.filter(x => x.key !== r.key))}>
+                    <Trash2 className="w-4 h-4 text-muted-foreground" />
+                  </Button>
+                )}
+              </div>
+            )}
+            {amountLabel && (
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs whitespace-nowrap">{amountLabel}</Label>
+                  <Input
+                    className="w-36"
+                    inputMode="numeric"
+                    value={fmtInput(r.amount)}
+                    placeholder="0"
+                    onChange={e => updatePerson(setter, r.key, { amount: money(e.target.value) })}
+                  />
+                </div>
+                {showApplicant && (
+                  <label className="flex items-center gap-2 text-xs">
+                    <Checkbox checked={r.isApplicant} onCheckedChange={v => updatePerson(setter, r.key, { isApplicant: !!v })} />
+                    On the loan application
+                  </label>
+                )}
+              </div>
+            )}
+            {recipientPicker && r.entityType !== 'individual' && (
+              <p className="text-[11px] text-muted-foreground">
+                Income landing in a company or trust is only usable for servicing if that entity is on the loan, or if it distributes on to an applicant.
+              </p>
             )}
           </div>
-          {amountLabel && (
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Label className="text-xs whitespace-nowrap">{amountLabel}</Label>
-                <Input
-                  className="w-36"
-                  inputMode="numeric"
-                  value={fmtInput(r.amount)}
-                  placeholder="0"
-                  onChange={e => updatePerson(setter, r.key, { amount: money(e.target.value) })}
-                />
-              </div>
-              {showApplicant && (
-                <label className="flex items-center gap-2 text-xs">
-                  <Checkbox checked={r.isApplicant} onCheckedChange={v => updatePerson(setter, r.key, { isApplicant: !!v })} />
-                  On the loan application
-                </label>
-              )}
-            </div>
-          )}
-        </div>
-      ))}
+        );
+      })}
       <Button variant="outline" size="sm" onClick={() => setter(list => [...list, blankPerson()])}>
         <Plus className="w-3.5 h-3.5 mr-1" /> Add another
       </Button>
     </div>
   );
+
 
   const body = () => {
     switch (stepKey) {
@@ -414,8 +499,18 @@ export function StructureWizard({
                 ? `Who did ${trustName || 'the trust'} distribute to in ${fyLabel(financialYear)}? Only people on the loan can have their share used for servicing.`
                 : `Who is paid by ${trustName || 'the business'} — wages, dividends or profit share?`}
             </Hint>
+            <Hint>
+              Pick someone already on the map, or add a new person — and if the share went to another trust or company, choose that
+              entity type here and it will be created and linked for you.
+            </Hint>
             <Label className="text-xs">{peopleLabel}</Label>
-            <PeopleList rows={beneficiaries} setter={setBeneficiaries} amountLabel={`${fyLabel(financialYear)} amount`} />
+            <PeopleList
+              rows={beneficiaries}
+              setter={setBeneficiaries}
+              amountLabel={`${fyLabel(financialYear)} amount`}
+              recipientPicker
+            />
+
           </div>
         );
 
@@ -474,12 +569,23 @@ export function StructureWizard({
             </div>
             <div className="rounded-md border p-3 space-y-1">
               <p className="flex items-center gap-2 font-medium"><Users className="w-4 h-4" /> {peopleLabel}</p>
-              {beneficiaries.filter(b => b.name.trim()).map(b => (
-                <p key={b.key} className="flex justify-between text-xs">
-                  <span>{b.name}{b.isApplicant ? ' · applicant' : ''}</span>
-                  <span className="tabular-nums">{formatMoney(b.amount)}</span>
-                </p>
-              ))}
+              {beneficiaries.filter(rowIsFilled).map(b => {
+                const ex = b.existingId ? existingEntities.find(e => e.id === b.existingId) : null;
+                const label = ex?.name ?? b.name;
+                const type = (ex?.entity_type as EntityType) ?? b.entityType;
+                return (
+                  <p key={b.key} className="flex justify-between gap-2 text-xs">
+                    <span className="truncate">
+                      {label}
+                      {type !== 'individual' ? ` · ${ENTITY_TYPE_LABELS[type]}` : ''}
+                      {ex ? ' · existing' : ''}
+                      {b.isApplicant ? ' · applicant' : ''}
+                    </span>
+                    <span className="tabular-nums">{formatMoney(b.amount)}</span>
+                  </p>
+                );
+              })}
+
             </div>
             {incoming > 0 && (
               <p className="text-xs text-muted-foreground">
