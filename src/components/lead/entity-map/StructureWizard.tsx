@@ -156,7 +156,7 @@ export function StructureWizard({
       };
 
       const dirRows = directors.filter(d => d.name.trim());
-      const benRows = beneficiaries.filter(b => b.name.trim());
+      const benRows = beneficiaries.filter(rowIsFilled);
 
       // Directors of the corporate trustee (top row)
       if (isTrust && trusteeKind === 'corporate') {
