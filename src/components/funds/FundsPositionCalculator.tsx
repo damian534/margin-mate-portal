@@ -508,11 +508,14 @@ export function FundsPositionCalculator({
       </Card>
 
       {/* ---------------- Funds to complete summary ---------------- */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Funds to Complete</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-1 text-sm">
+      <FundsSection
+        title="Funds to complete"
+        subtitle="Everything needed at settlement"
+        icon={<ListChecks className="h-4 w-4" />}
+        summary={money(Math.abs(r.netSurplus))}
+      >
+        <div className="space-y-1 text-sm">
+
           <Row label="Purchase price / property value" value={money(i.transactionType === 'refinance' ? 0 : r.propertyValue)} />
           <Row label="Government charges" value={money(r.govCharges)} />
           <Row label="Fees" value={money(r.fees)} />
