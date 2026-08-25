@@ -6,7 +6,8 @@ import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, RotateCcw, Save, Columns3, Download, Mail, AlertTriangle, AlertCircle, Info } from 'lucide-react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Plus, Trash2, RotateCcw, Save, Columns3, Download, Mail, AlertTriangle, AlertCircle, Info, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { AutoField } from './AutoField';
 import { MoneyInput } from './MoneyInput';
@@ -14,7 +15,6 @@ import { useFundsScenarios } from './useFundsScenarios';
 import { FundsScenarioCompare } from './FundsScenarioCompare';
 import { EmailFundsPositionDialog } from './EmailFundsPositionDialog';
 import { LenderLmiCompare } from './LenderLmiCompare';
-import { useLenderLmi } from '@/hooks/useLenderLmi';
 import { calculateFundsPosition, defaultFundsInputs, sumFundsBreakdown } from '@/lib/fundsPosition/calc';
 import { validateFundsPosition, type FundsWarning } from '@/lib/fundsPosition/warnings';
 import { downloadFundsPositionPdf } from '@/lib/pdf/fundsPositionPdf';
@@ -71,13 +71,13 @@ export function FundsPositionCalculator({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leadId]);
 
-  const { lenders: lmiLenders } = useLenderLmi(true);
   const r = useMemo(() => calculateFundsPosition(i), [i]);
   const warnings = useMemo(() => validateFundsPosition(i, r), [i, r]);
 
   const { scenarios, save, remove } = useFundsScenarios(leadId, !isPreviewMode);
   const [compareOpen, setCompareOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
+  const [lenderPickerOpen, setLenderPickerOpen] = useState(false);
   const [scenarioName, setScenarioName] = useState('');
   const [rateDraft, setRateDraft] = useState<string | null>(null);
 
@@ -218,29 +218,20 @@ export function FundsPositionCalculator({
 
               <div className="space-y-1 sm:col-span-2">
                 <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Lender (LMI pricing)</label>
-                <Select
-                  value={i.lenderId ?? 'generic'}
-                  onValueChange={v => {
-                    if (v === 'generic') {
-                      setI(prev => ({ ...prev, lenderId: null, lenderName: null, lenderLmi: null }));
-                      return;
-                    }
-                    const l = lmiLenders.find(x => x.lenderId === v);
-                    if (l) setI(prev => ({ ...prev, lenderId: l.lenderId, lenderName: l.lenderName, lenderLmi: l }));
-                  }}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-between font-normal"
+                  onClick={() => setLenderPickerOpen(true)}
                 >
-                  <SelectTrigger><SelectValue placeholder="Market average" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="generic">Market average (no lender selected)</SelectItem>
-                    {lmiLenders.map(l => (
-                      <SelectItem key={l.lenderId} value={l.lenderId}>{l.lenderName}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <span className="truncate">{i.lenderName ?? 'Market average (no lender selected)'}</span>
+                  <ChevronDown className="h-4 w-4 opacity-60" />
+                </Button>
                 <p className="text-[11px] text-muted-foreground">
-                  Premiums come from each lender's LMI settings (Settings → Lenders).
+                  Opens a side-by-side LMI comparison across your accredited lenders.
                 </p>
               </div>
+
             </div>
 
             <div className="rounded-lg border p-3 space-y-2">
@@ -397,6 +388,19 @@ export function FundsPositionCalculator({
               <span>Capitalise LMI</span>
               <Switch checked={i.capitaliseLMI} onCheckedChange={v => set('capitaliseLMI', v)} />
             </label>
+            <div className="space-y-1">
+              <span className="text-[11px] uppercase text-muted-foreground">Which Lender</span>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-between font-normal"
+                onClick={() => setLenderPickerOpen(true)}
+              >
+                <span className="truncate">{i.lenderName ?? 'Market average'}</span>
+                <ChevronDown className="h-4 w-4 opacity-60" />
+              </Button>
+            </div>
+
             <p className="text-[11px] text-muted-foreground">
               {i.capitaliseLMI ? 'LMI is added on top of the base loan' : 'LMI is excluded from the loan and paid upfront'}
             </p>
@@ -526,15 +530,24 @@ export function FundsPositionCalculator({
         </CardContent>
       </Card>
 
-      {r.baseLVR > 80 && (
-        <LenderLmiCompare
-          baseLoan={r.baseLoan}
-          lvr={r.baseLVR}
-          investment={i.purpose === 'investment'}
-          selectedLenderId={i.lenderId}
-          onSelect={l => setI(prev => ({ ...prev, lenderId: l.lenderId, lenderName: l.lenderName, lenderLmi: l }))}
-        />
-      )}
+      <Dialog open={lenderPickerOpen} onOpenChange={setLenderPickerOpen}>
+        <DialogContent className="max-w-3xl p-0">
+          <div className="max-h-[80vh] overflow-y-auto">
+            <LenderLmiCompare
+              baseLoan={r.baseLoan}
+              lvr={r.baseLVR}
+              investment={i.purpose === 'investment'}
+              selectedLenderId={i.lenderId}
+              onSelect={l => {
+                setI(prev => ({ ...prev, lenderId: l.lenderId, lenderName: l.lenderName, lenderLmi: l }));
+                setLenderPickerOpen(false);
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+
 
 
       <p className="text-xs text-muted-foreground">
