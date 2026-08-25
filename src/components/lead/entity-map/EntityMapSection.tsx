@@ -298,7 +298,24 @@ export function EntityMapSection({ leadId, leadName, isPreviewMode = false, read
         )}
       </div>
 
+      <EntityDetailsDialog
+        entity={detailsEntity}
+        open={!!detailsEntity}
+        onOpenChange={v => !v && setDetailsId(null)}
+        entities={entities}
+        roles={roles}
+        flows={yearFlows}
+        financialYear={fy}
+        readOnly={readOnly}
+        tracing={focusId === detailsId}
+        onEdit={en => { setDetailsId(null); setEntityDialog({ open: true, entity: en }); }}
+        onTrace={en => { setFocusId(prev => (prev === en.id ? null : en.id)); setDetailsId(null); }}
+        onFlowClick={f => { if (!readOnly) { setDetailsId(null); setFlowDialog({ open: true, flow: f }); } }}
+        onAddRole={addRole}
+        onRemoveRole={removeRole}
+      />
       <StructureWizard
+
         open={wizardOpen}
         onOpenChange={setWizardOpen}
         leadId={leadId}
