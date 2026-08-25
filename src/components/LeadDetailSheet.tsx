@@ -1264,7 +1264,7 @@ export function LeadDetailSheet({
             </SheetTitle>
           </SheetHeader>
 
-          <div className="mb-3 grid grid-cols-1 sm:grid-cols-[1fr,auto] items-end gap-3">
+          <div className="mb-3 grid grid-cols-1 sm:grid-cols-[1fr,1fr,auto] items-end gap-3">
             <div className="min-w-0">
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">Lead Source</Label>
               <Select
