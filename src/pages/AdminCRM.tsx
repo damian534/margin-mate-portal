@@ -36,7 +36,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { notifyPartnerStatusChange } from '@/lib/notifications';
-import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign, Contact as ContactIcon, CalendarClock, Share2 } from 'lucide-react';
+import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign, Contact as ContactIcon, CalendarClock, Share2, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { Briefcase } from 'lucide-react';
 import { EDMPlatform } from '@/components/EDMPlatform';
 import { Mail as MailIcon } from 'lucide-react';
