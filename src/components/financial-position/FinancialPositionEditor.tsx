@@ -34,7 +34,7 @@ const num = (v: any) => {
   return isFinite(n) ? n : 0;
 };
 
-export function FinancialPositionEditor({ leadId, contactId, token, isPreviewMode, readOnly, onChange, hideHeader }: Props) {
+export function FinancialPositionEditor({ leadId, contactId, token, isPreviewMode, readOnly, onChange, hideHeader, onAggregates }: Props) {
   const [tab, setTab] = useState<TabKey>('employment');
   const [data, setData] = useState<AllData>({});
   const [loaded, setLoaded] = useState(false);
