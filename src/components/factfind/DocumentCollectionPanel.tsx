@@ -880,6 +880,17 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
           <Button
             size="sm"
             variant="outline"
+            className="h-8 text-xs gap-1.5"
+            onClick={downloadAllAsZip}
+            disabled={isZipping || uploadedFileCount === 0}
+            title="Download every uploaded document as a ZIP"
+          >
+            <FileDown className="w-3.5 h-3.5" /> {isZipping ? 'Preparing…' : `Download all (${uploadedFileCount})`}
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
             className="h-8 text-xs gap-1.5 border-amber-300 text-amber-800 hover:bg-amber-50"
             onClick={() => setMirOpen(true)}
           >
