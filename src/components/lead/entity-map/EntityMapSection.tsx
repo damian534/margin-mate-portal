@@ -5,13 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Network, AlertTriangle, Building2 } from 'lucide-react';
+import { Plus, Network, AlertTriangle, Building2, Wand2 } from 'lucide-react';
 import { SectionCard } from '@/components/lead/SectionCard';
 import { useLeadEntities } from '@/hooks/useLeadEntities';
 import { EntityMapCanvas } from './EntityMapCanvas';
 import { EntityDialog } from './EntityDialog';
 import { FlowDialog } from './FlowDialog';
 import { RolesEditor } from './RolesEditor';
+import { StructureWizard } from './StructureWizard';
 import {
   autoLayout, computeServicing, currentFinancialYear, formatMoney, fyLabel, traceUpstream,
 } from '@/lib/entityMap/servicing';
@@ -29,6 +30,7 @@ export function EntityMapSection({ leadId, isPreviewMode = false, readOnly = fal
   const [entityDialog, setEntityDialog] = useState<{ open: boolean; entity: LeadEntity | null }>({ open: false, entity: null });
   const [flowDialog, setFlowDialog] = useState<{ open: boolean; flow: LeadEntityFlow | null }>({ open: false, flow: null });
   const [focusId, setFocusId] = useState<string | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const years = useMemo(() => {
     const base = currentFinancialYear();
@@ -152,6 +154,9 @@ export function EntityMapSection({ leadId, isPreviewMode = false, readOnly = fal
           </Select>
           {!readOnly && (
             <div className="flex gap-2">
+              <Button size="sm" onClick={() => setWizardOpen(true)}>
+                <Wand2 className="w-3.5 h-3.5 mr-1" /> Guided setup
+              </Button>
               <Button size="sm" variant="outline" onClick={() => setEntityDialog({ open: true, entity: null })}>
                 <Plus className="w-3.5 h-3.5 mr-1" /> Entity
               </Button>
@@ -168,9 +173,15 @@ export function EntityMapSection({ leadId, isPreviewMode = false, readOnly = fal
           <Card>
             <CardContent className="py-10 text-center space-y-2">
               <Building2 className="w-6 h-6 mx-auto text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                No entities mapped yet. Add the trading company, trust, SMSF or individuals to trace how income reaches the applicants.
+              <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                Nothing mapped yet. The guided setup asks a few plain-English questions — what the structure is, who the trustee and
+                directors are, and who receives the income — then draws the map for you.
               </p>
+              {!readOnly && (
+                <Button size="sm" onClick={() => setWizardOpen(true)}>
+                  <Wand2 className="w-3.5 h-3.5 mr-1" /> Start guided setup
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
@@ -265,6 +276,15 @@ export function EntityMapSection({ leadId, isPreviewMode = false, readOnly = fal
         )}
       </div>
 
+      <StructureWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        leadId={leadId}
+        financialYear={fy}
+        isPreviewMode={isPreviewMode}
+        existingEntities={entities}
+        onCompleted={refresh}
+      />
       <EntityDialog
         open={entityDialog.open}
         onOpenChange={v => setEntityDialog(s => ({ ...s, open: v }))}
