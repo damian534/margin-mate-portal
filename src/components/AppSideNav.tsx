@@ -165,25 +165,30 @@ export function AppSideNav({ activeTab, onSelectTab, pendingReferralsCount = 0 }
           const isActive = onCrm && activeTab === tab.value;
           const showBadge = tab.value === 'broker_referrals' && pendingReferralsCount > 0;
           return (
-            <button
-              key={tab.value}
-              onClick={() => {
-                if (onSelectTab) onSelectTab(tab.value);
-                else navigate(`/admin?tab=${tab.value}${isPreviewMode ? '&preview=true' : ''}`);
-              }}
-              title={tab.label}
-              className={`w-full flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
-                isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              } ${navOpen ? '' : 'justify-center'}`}
-            >
-              <tab.icon className="w-4 h-4 shrink-0" />
-              {navOpen && <span className="truncate">{tab.label}</span>}
+            <div key={tab.value} className={rowClass(isActive)}>
+              <button
+                onClick={() => {
+                  if (onSelectTab) onSelectTab(tab.value);
+                  else navigate(`/admin?tab=${tab.value}${isPreviewMode ? '&preview=true' : ''}`);
+                }}
+                title={tab.label}
+                className="flex items-center gap-3 min-w-0 flex-1"
+              >
+                <tab.icon className="w-4 h-4 shrink-0" />
+                {navOpen && <span className="truncate text-left">{tab.label}</span>}
+              </button>
               {showBadge && (
-                <span className={`min-w-[16px] h-[16px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 ${navOpen ? 'ml-auto' : 'absolute'}`}>
+                <span className="min-w-[16px] h-[16px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 shrink-0">
                   {pendingReferralsCount}
                 </span>
               )}
-            </button>
+              {navOpen && (
+                <StarToggle
+                  id={`tab:${tab.value}`}
+                  className={isFavourite(`tab:${tab.value}`) ? '' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'}
+                />
+              )}
+            </div>
           );
         })}
       </nav>
@@ -213,6 +218,7 @@ export function AppSideNav({ activeTab, onSelectTab, pendingReferralsCount = 0 }
               <DropdownMenuItem key={tool.id} onSelect={() => navigate(`${tool.path}${suffix}`)}>
                 <tool.icon className="w-4 h-4 mr-2 shrink-0 text-primary" />
                 <span className="truncate">{tool.name}</span>
+                <StarToggle id={`tool:${tool.id}`} />
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
@@ -227,20 +233,22 @@ export function AppSideNav({ activeTab, onSelectTab, pendingReferralsCount = 0 }
         {links.map(l => {
           const isActive = !!l.path && pathname === l.path;
           return (
-            <button
-              key={l.label}
-              onClick={l.onClick}
-              title={l.label}
-              className={`w-full flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
-                isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              } ${navOpen ? '' : 'justify-center'}`}
-            >
-              <l.icon className="w-4 h-4 shrink-0" />
-              {navOpen && <span className="truncate">{l.label}</span>}
-            </button>
+            <div key={l.label} className={rowClass(isActive)}>
+              <button onClick={l.onClick} title={l.label} className="flex items-center gap-3 min-w-0 flex-1">
+                <l.icon className="w-4 h-4 shrink-0" />
+                {navOpen && <span className="truncate text-left">{l.label}</span>}
+              </button>
+              {navOpen && !!l.path && (
+                <StarToggle
+                  id={`link:${l.path}`}
+                  className={isFavourite(`link:${l.path}`) ? '' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'}
+                />
+              )}
+            </div>
           );
         })}
       </nav>
+
     </aside>
   );
 }
