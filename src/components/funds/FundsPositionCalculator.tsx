@@ -549,8 +549,32 @@ export function FundsPositionCalculator({
           </div>
         </DialogContent>
       </Dialog>
+      <SavedScenariosPanel
+        scenarios={scenarios}
+        hideDeal={Boolean(leadId)}
+        onCompare={() => setCompareOpen(true)}
+        onLoad={s => {
+          setI(s.inputs);
+          setScenarioName(s.name);
+          toast.success(`Loaded "${s.name}"`);
+        }}
+        onDelete={async id => {
+          try {
+            await remove(id);
+            toast.success('Scenario deleted');
+          } catch {
+            toast.error('Could not delete the scenario');
+          }
+        }}
+      />
 
-
+      <SaveToDealDialog
+        open={saveDealOpen}
+        onOpenChange={setSaveDealOpen}
+        defaultName={scenarioName.trim() || `Funding position ${new Date().toLocaleDateString('en-AU')}`}
+        saving={saving}
+        onConfirm={handleSaveToDeal}
+      />
 
 
       <p className="text-xs text-muted-foreground">
