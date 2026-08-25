@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { WizardField } from './types';
 import { RepeatableFieldGroup } from './RepeatableFieldGroup';
 import { Play } from 'lucide-react';
+import { AddressAutocomplete } from '@/components/ui/address-autocomplete';
 
 interface Props {
   field: WizardField;
