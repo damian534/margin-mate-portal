@@ -207,7 +207,7 @@ export const defaultFundsInputs = (): FundsPositionInputs => ({
   lenderId: null,
   lenderName: null,
   lenderLmi: null,
-  capitaliseLMI: false,
+  capitaliseLMI: true,
   lmiOverride: { value: 0, auto: true },
   includeLmiStampDuty: true,
   fundsDetailed: false,
