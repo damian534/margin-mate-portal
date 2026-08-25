@@ -29,10 +29,17 @@ interface PersonRow {
   name: string;
   isApplicant: boolean;
   amount: number;
+  /** Existing entity on the map that receives this share (null = create a new one). */
+  existingId: string | null;
+  /** Entity type to create when existingId is null. */
+  entityType: EntityType;
 }
 
 const uid = () => Math.random().toString(36).slice(2);
-const blankPerson = (): PersonRow => ({ key: uid(), name: '', isApplicant: true, amount: 0 });
+const blankPerson = (): PersonRow => ({
+  key: uid(), name: '', isApplicant: true, amount: 0, existingId: null, entityType: 'individual',
+});
+
 
 const STRUCTURE_OPTIONS: { value: StructureKind; label: string; blurb: string }[] = [
   { value: 'trust', label: 'Trust', blurb: 'Family/discretionary trust, unit trust or SMSF. Most common for self-employed clients.' },
