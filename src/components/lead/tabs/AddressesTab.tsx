@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { SectionCard } from '@/components/lead/SectionCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { AddressAutocomplete } from '@/components/ui/address-autocomplete';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Home, Plus, Trash2, Download } from 'lucide-react';
