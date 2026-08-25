@@ -794,7 +794,7 @@ export default function AdminCRM() {
             return { count: arr.length, volume: arr.reduce((s, l) => s + (l.loan_amount || 0), 0) };
           };
           const items = [
-            { key: 'lodged', label: 'Lodged', icon: TrendingUp, accent: 'primary', ...calc('lodged_date') },
+            { key: 'lodged', label: 'Lodged', icon: TrendingUp, accent: 'info', ...calc('lodged_date') },
             { key: 'approved', label: 'Approved', icon: CheckCircle, accent: 'warning', ...calc('approved_date') },
             { key: 'settled', label: 'Settled', icon: DollarSign, accent: 'success', ...calc('settled_date') },
           ];
