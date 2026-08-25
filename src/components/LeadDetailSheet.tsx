@@ -96,6 +96,7 @@ interface Lead {
   first_name: string;
   last_name: string;
   opportunity_name?: string | null;
+  application_reference?: string | null;
   email: string | null;
   phone: string | null;
   loan_amount: number | null;
