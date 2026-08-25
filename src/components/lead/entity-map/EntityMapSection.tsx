@@ -166,19 +166,27 @@ export function EntityMapSection({ leadId, leadName, isPreviewMode = false, read
             <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
             <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{fyLabel(y)}</SelectItem>)}</SelectContent>
           </Select>
-          {!readOnly && (
-            <div className="flex gap-2">
-              <Button size="sm" onClick={() => setWizardOpen(true)}>
-                <Wand2 className="w-3.5 h-3.5 mr-1" /> Guided setup
+          <div className="flex flex-wrap gap-2">
+            {entities.length > 0 && (
+              <Button size="sm" variant="outline" onClick={downloadChart}>
+                <Download className="w-3.5 h-3.5 mr-1" /> Download chart
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setEntityDialog({ open: true, entity: null })}>
-                <Plus className="w-3.5 h-3.5 mr-1" /> Entity
-              </Button>
-              <Button size="sm" variant="outline" disabled={entities.length < 2} onClick={() => setFlowDialog({ open: true, flow: null })}>
-                <Plus className="w-3.5 h-3.5 mr-1" /> Income flow
-              </Button>
-            </div>
-          )}
+            )}
+            {!readOnly && (
+              <>
+                <Button size="sm" onClick={() => setWizardOpen(true)}>
+                  <Wand2 className="w-3.5 h-3.5 mr-1" /> Guided setup
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setEntityDialog({ open: true, entity: null })}>
+                  <Plus className="w-3.5 h-3.5 mr-1" /> Entity
+                </Button>
+                <Button size="sm" variant="outline" disabled={entities.length < 2} onClick={() => setFlowDialog({ open: true, flow: null })}>
+                  <Plus className="w-3.5 h-3.5 mr-1" /> Income flow
+                </Button>
+              </>
+            )}
+          </div>
+
         </div>
 
         {loading ? (
