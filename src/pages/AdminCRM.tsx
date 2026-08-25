@@ -6,6 +6,7 @@ import { useLeadStatuses } from '@/hooks/useLeadStatuses';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { SAMPLE_LEADS_WITH_REFERRERS, SAMPLE_NOTES, SAMPLE_COMPANIES, SAMPLE_REFERRERS } from '@/lib/sample-data';
 import { AppHeader } from '@/components/AppHeader';
+import { AppSideNav } from '@/components/AppSideNav';
 import { StatusBadge } from '@/components/StatusBadge';
 import { TasksPanel } from '@/components/TasksPanel';
 import { LeadsKanban } from '@/components/LeadsKanban';
