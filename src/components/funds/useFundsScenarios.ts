@@ -86,7 +86,9 @@ export function useFundsScenarios(leadId?: string | null, enabled = true) {
           createdAt: row.created_at as string,
           inputs,
           result: (row.outputs as FundsPositionResult) ?? calculateFundsPosition(inputs),
+          version: 1,
         } as SavedFundsScenario;
+
       })
       .filter(Boolean) as SavedFundsScenario[];
 
