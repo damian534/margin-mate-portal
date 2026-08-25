@@ -350,7 +350,6 @@ export function StructureWizard({
             {!chosen && (
               <div className="flex items-center gap-2">
                 <Input
-                  autoFocus={i === rows.length - 1 && !r.name}
                   value={r.name}
                   placeholder={
                     !recipientPicker || r.entityType === 'individual'
@@ -366,19 +365,21 @@ export function StructureWizard({
                 )}
               </div>
             )}
-            {amountLabel && (
+            {(amountLabel || showApplicant) && (
               <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs whitespace-nowrap">{amountLabel}</Label>
-                  <Input
-                    className="w-36"
-                    inputMode="numeric"
-                    value={fmtInput(r.amount)}
-                    placeholder="0"
-                    onChange={e => updatePerson(setter, r.key, { amount: money(e.target.value) })}
-                  />
-                </div>
-                {showApplicant && (
+                {amountLabel && (
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs whitespace-nowrap">{amountLabel}</Label>
+                    <Input
+                      className="w-36"
+                      inputMode="numeric"
+                      value={fmtInput(r.amount)}
+                      placeholder="0"
+                      onChange={e => updatePerson(setter, r.key, { amount: money(e.target.value) })}
+                    />
+                  </div>
+                )}
+                {showApplicant && (r.existingId ? true : r.entityType === 'individual') && (
                   <label className="flex items-center gap-2 text-xs">
                     <Checkbox checked={r.isApplicant} onCheckedChange={v => updatePerson(setter, r.key, { isApplicant: !!v })} />
                     On the loan application
@@ -386,11 +387,12 @@ export function StructureWizard({
                 )}
               </div>
             )}
-            {recipientPicker && r.entityType !== 'individual' && (
+            {recipientPicker && !chosen && r.entityType !== 'individual' && (
               <p className="text-[11px] text-muted-foreground">
                 Income landing in a company or trust is only usable for servicing if that entity is on the loan, or if it distributes on to an applicant.
               </p>
             )}
+
           </div>
         );
       })}
