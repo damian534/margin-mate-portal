@@ -8,13 +8,14 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { useToolVisibility } from '@/hooks/useToolVisibility';
-import { Settings, ChevronDown, Wrench } from 'lucide-react';
+import { Settings, ChevronDown, Wrench, Star } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { TOOLS as tools } from '@/lib/toolsCatalog';
 import { useState } from 'react';
+import { useFavourites } from '@/hooks/useFavourites';
 
 
 export default function Tools() {
@@ -22,6 +23,7 @@ export default function Tools() {
   const { role, isBrokerOrAdmin } = useAuth();
   const { visibility, loading, toggleTool, isToolEnabled } = useToolVisibility();
   const [showAdmin, setShowAdmin] = useState(false);
+  const { isFavourite, toggleFavourite } = useFavourites();
   const isSuperAdmin = role === 'super_admin';
 
   return (
@@ -93,6 +95,8 @@ export default function Tools() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {tools
             .filter(tool => (isSuperAdmin || isToolEnabled(tool.id)) && (!tool.brokerOnly || isBrokerOrAdmin))
+            .slice()
+            .sort((a, b) => Number(isFavourite(`tool:${b.id}`)) - Number(isFavourite(`tool:${a.id}`)))
             .map((tool, i) => {
               const enabled = isToolEnabled(tool.id);
               return (
@@ -114,6 +118,15 @@ export default function Tools() {
                         {tool.brokerOnly && (
                           <Badge variant="outline" className="text-xs">Broker Only</Badge>
                         )}
+                        <button
+                          type="button"
+                          aria-label={isFavourite(`tool:${tool.id}`) ? 'Remove from favourites' : 'Add to favourites'}
+                          title={isFavourite(`tool:${tool.id}`) ? 'Remove from favourites' : 'Add to favourites'}
+                          onClick={() => toggleFavourite(`tool:${tool.id}`)}
+                          className={`ml-2 rounded p-1 transition-colors ${isFavourite(`tool:${tool.id}`) ? 'text-amber-500' : 'text-muted-foreground/40 hover:text-amber-500'}`}
+                        >
+                          <Star className="w-4 h-4" fill={isFavourite(`tool:${tool.id}`) ? 'currentColor' : 'none'} />
+                        </button>
                       </div>
                       <CardTitle className="text-lg">{tool.name}</CardTitle>
                       <CardDescription>{tool.description}</CardDescription>
