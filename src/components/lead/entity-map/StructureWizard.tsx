@@ -499,8 +499,18 @@ export function StructureWizard({
                 ? `Who did ${trustName || 'the trust'} distribute to in ${fyLabel(financialYear)}? Only people on the loan can have their share used for servicing.`
                 : `Who is paid by ${trustName || 'the business'} — wages, dividends or profit share?`}
             </Hint>
+            <Hint>
+              Pick someone already on the map, or add a new person — and if the share went to another trust or company, choose that
+              entity type here and it will be created and linked for you.
+            </Hint>
             <Label className="text-xs">{peopleLabel}</Label>
-            <PeopleList rows={beneficiaries} setter={setBeneficiaries} amountLabel={`${fyLabel(financialYear)} amount`} />
+            <PeopleList
+              rows={beneficiaries}
+              setter={setBeneficiaries}
+              amountLabel={`${fyLabel(financialYear)} amount`}
+              recipientPicker
+            />
+
           </div>
         );
 
