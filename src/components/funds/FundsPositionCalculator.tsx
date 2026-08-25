@@ -370,8 +370,9 @@ export function FundsPositionCalculator({
             <p className="text-[11px] text-muted-foreground">
               {i.ioYears > 0 ? 'Interest only repayment (monthly)' : 'Principal & interest repayment (monthly)'}
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </FundsSection>
+
       </div>
 
       {/* ---------------- Summary strip ---------------- */}
