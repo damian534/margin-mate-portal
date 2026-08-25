@@ -503,7 +503,9 @@ export function FundsPositionCalculator({
             ) : (
               <MoneyInput label="Total Fees" value={i.feesTotal} onChange={v => set('feesTotal', v)} />
             )}
-          </div>
+            </div>
+          </FundsSection>
+
       </div>
 
 
