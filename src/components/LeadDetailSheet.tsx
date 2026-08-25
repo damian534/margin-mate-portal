@@ -1301,6 +1301,20 @@ export function LeadDetailSheet({
                 </div>
               )}
             </div>
+            <div className="min-w-0">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Application Reference No.</Label>
+              <Input
+                value={lead.application_reference ?? ''}
+                placeholder="e.g. APP-123456"
+                className="mt-1 h-9"
+                onChange={(e) => onLeadChange?.({ ...lead, application_reference: e.target.value })}
+                onBlur={async (e) => {
+                  const v = e.target.value.trim() || null;
+                  if (!isPreviewMode) {
+                    await supabase.from('leads').update({ application_reference: v } as any).eq('id', lead.id);
+                  }
+                }}
+              />
             <div className="flex items-center gap-2 shrink-0">
               {!isPreviewMode && lead.broker_id === user?.id && (
                 <ReferLeadDialog
