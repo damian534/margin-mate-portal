@@ -42,6 +42,7 @@ import { MeetingNotesSection } from '@/components/MeetingNotesSection';
 import { LoanSplitsEditor } from '@/components/LoanSplitsEditor';
 import { SectionCard } from '@/components/lead/SectionCard';
 import { ClientFileTabs, type ClientFileTab } from '@/components/lead/tabs/ClientFileTabs';
+import { FundingPositionTab } from '@/components/lead/tabs/FundingPositionTab';
 import { FactFindWizardDialog } from '@/components/lead/FactFindWizardDialog';
 
 import { ClientsTab } from '@/components/lead/tabs/ClientsTab';
@@ -2339,6 +2340,9 @@ export function LeadDetailSheet({
           )}
           {activeTab === 'consent' && (
             <ConsentTab leadId={lead.id} isPreviewMode={isPreviewMode} />
+          )}
+          {activeTab === 'funding' && (
+            <FundingPositionTab lead={lead as any} isPreviewMode={isPreviewMode} />
           )}
           {activeTab === 'communications' && (
             <CommunicationsTab
