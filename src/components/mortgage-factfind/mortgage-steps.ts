@@ -383,7 +383,7 @@ export const MORTGAGE_STEPS: WizardStep[] = [
       // PAYG
       { key: 'heading_payg', label: 'PAYG Details', type: 'heading', condition: (d) => d.employment_type?.startsWith('payg') },
       { key: 'employer_name', label: 'Employer Name', type: 'text', condition: (d) => d.employment_type?.startsWith('payg') || d.employment_type === 'contractor' },
-      { key: 'employer_address', label: 'Employer Address', type: 'text', condition: (d) => d.employment_type?.startsWith('payg') },
+      { key: 'employer_address', label: 'Employer Address', type: 'address', condition: (d) => d.employment_type?.startsWith('payg') },
       { key: 'job_title', label: 'Job Title / Position', type: 'text', half: true, condition: (d) => d.employment_type?.startsWith('payg') || d.employment_type === 'contractor' },
       { key: 'industry', label: 'Industry', type: 'text', half: true, condition: (d) => d.employment_type?.startsWith('payg') || d.employment_type === 'contractor' || d.employment_type === 'self_employed' },
       { key: 'start_date', label: 'Start Date', type: 'date', half: true, condition: (d) => d.employment_type?.startsWith('payg') || d.employment_type === 'contractor' },
@@ -403,7 +403,7 @@ export const MORTGAGE_STEPS: WizardStep[] = [
       ]},
       { key: 'years_trading', label: 'Years Trading', type: 'number', half: true, placeholder: '0', condition: (d) => d.employment_type === 'self_employed' },
       { key: 'gst_registered', label: 'GST Registered?', type: 'radio', options: YES_NO, condition: (d) => d.employment_type === 'self_employed' },
-      { key: 'business_address', label: 'Business Address', type: 'text', condition: (d) => d.employment_type === 'self_employed' },
+      { key: 'business_address', label: 'Business Address', type: 'address', condition: (d) => d.employment_type === 'self_employed' },
       // Previous employment
       { key: 'heading_prev_emp', label: 'Employment History (3 years minimum)', type: 'heading' },
       { key: 'info_emp_history', label: 'Lenders require 3 years of continuous employment history. Add previous roles until 3 years is covered.', type: 'info' },
@@ -558,7 +558,7 @@ export const MORTGAGE_STEPS: WizardStep[] = [
     fields: [
       { key: 'employment_type', label: 'Employment Type', type: 'select', required: true, options: EMPLOYMENT_OPTIONS },
       { key: 'employer_name', label: 'Employer Name', type: 'text', condition: (d) => d.employment_type?.startsWith('payg') || d.employment_type === 'contractor' },
-      { key: 'employer_address', label: 'Employer Address', type: 'text', condition: (d) => d.employment_type?.startsWith('payg') },
+      { key: 'employer_address', label: 'Employer Address', type: 'address', condition: (d) => d.employment_type?.startsWith('payg') },
       { key: 'job_title', label: 'Job Title', type: 'text', half: true, condition: (d) => d.employment_type?.startsWith('payg') || d.employment_type === 'contractor' },
       { key: 'industry', label: 'Industry', type: 'text', half: true, condition: (d) => d.employment_type?.startsWith('payg') || d.employment_type === 'contractor' || d.employment_type === 'self_employed' },
       { key: 'start_date', label: 'Start Date', type: 'date', half: true, condition: (d) => d.employment_type?.startsWith('payg') || d.employment_type === 'contractor' },
