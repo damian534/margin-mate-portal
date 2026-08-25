@@ -16,7 +16,7 @@ export type ClientFileTab =
 
 export const CLIENT_FILE_TABS: { key: ClientFileTab; label: string }[] = [
   { key: 'summary', label: 'Summary' },
-  { key: 'clients', label: 'Clients' },
+  
   { key: 'lending', label: 'Lending' },
   { key: 'funding', label: 'Funds Position' },
   { key: 'documents', label: 'Documents' },
