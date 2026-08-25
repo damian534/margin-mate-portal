@@ -478,9 +478,63 @@ export function FundsPositionCalculator({
         Estimates only. Stamp duty, government fees and LMI premiums are indicative and must be confirmed
         with the relevant revenue office and the lender's own quote.
       </p>
+
+      <FundsScenarioCompare
+        open={compareOpen}
+        onOpenChange={setCompareOpen}
+        scenarios={scenarios}
+        current={{ inputs: i, result: r }}
+        clientName={clientName}
+        onLoad={next => setI(next)}
+        onDelete={async id => {
+          try {
+            await remove(id);
+            toast.success('Scenario deleted');
+          } catch {
+            toast.error('Could not delete the scenario');
+          }
+        }}
+      />
+
+      <EmailFundsPositionDialog
+        open={emailOpen}
+        onOpenChange={setEmailOpen}
+        inputs={i}
+        result={r}
+        warnings={warnings}
+        clientName={clientName}
+        defaultTo={referralEmail}
+        defaultRecipientName={referralName}
+      />
     </div>
   );
 }
+
+function WarningsPanel({ warnings }: { warnings: FundsWarning[] }) {
+  if (!warnings.length) return null;
+  const order = { error: 0, warning: 1, info: 2 } as const;
+  const sorted = [...warnings].sort((a, b) => order[a.level] - order[b.level]);
+  const tone = {
+    error: { cls: 'border-destructive/40 bg-destructive/5 text-destructive', Icon: AlertCircle },
+    warning: { cls: 'border-warning/40 bg-warning/10 text-warning-foreground', Icon: AlertTriangle },
+    info: { cls: 'border-border bg-muted/40 text-muted-foreground', Icon: Info },
+  };
+  return (
+    <div className="space-y-1.5">
+      {sorted.map(w => {
+        const t = tone[w.level];
+        return (
+          <div key={w.id} className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-sm ${t.cls}`}>
+            <t.Icon className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{w.message}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+
 
 function Row({ label, value, bold, tone }: { label: string; value: string; bold?: boolean; tone?: string }) {
   return (
