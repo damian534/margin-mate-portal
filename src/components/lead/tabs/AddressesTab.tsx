@@ -151,9 +151,11 @@ export function AddressesTab({ leadId, isPreviewMode }: Props) {
               <div key={row.id} className="rounded-lg border bg-background p-3 space-y-2">
                 <div>
                   <Label className="text-[11px] text-muted-foreground">Address</Label>
-                  <Input className="h-9" value={d.address ?? ''} placeholder="Full address"
-                    onChange={e => patch(row.id, { address: e.target.value })} />
+                  <AddressAutocomplete value={d.address ?? ''} className="h-9"
+                    placeholder="Start typing an Australian address..."
+                    onChange={v => patch(row.id, { address: v })} />
                 </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
                   <div>
                     <Label className="text-[11px] text-muted-foreground">Type</Label>
