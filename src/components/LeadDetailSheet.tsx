@@ -284,6 +284,9 @@ export function LeadDetailSheet({
     }
   }, [showTaskForm, user?.id]);
   const [activeTab, setActiveTab] = useState<ClientFileTab>('summary');
+  const [factFindOpen, setFactFindOpen] = useState(false);
+  const [factFindVersion, setFactFindVersion] = useState(0);
+
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<{ id: string; title: string; dueDate: string } | null>(null);
   const [taskNoteText, setTaskNoteText] = useState('');
