@@ -74,10 +74,11 @@ export function BrandPreviewPanel() {
         <h2 className="text-lg font-semibold">Demo for a prospect</h2>
       </div>
       <p className="text-sm text-muted-foreground">
-        Drop in their logo and colours to walk a potential brokerage through the platform in their own
-        branding. Nothing is saved and your live brand is unaffected — exit any time from the bar at the
-        bottom of the screen, or close the tab.
+        Drop in their logo and colours, then open a demo window: the whole platform appears in their
+        branding, filled with realistic sample deals, contacts and settlements. None of your live client
+        data is loaded, nothing is saved, and your own brand is unaffected.
       </p>
+
 
       <div className="grid sm:grid-cols-2 gap-4">
         <div className="space-y-2">
