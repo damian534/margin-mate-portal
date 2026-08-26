@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Eye, Upload, RotateCcw } from 'lucide-react';
+import { Eye, Upload, RotateCcw, ExternalLink } from 'lucide-react';
 import { setBrandPreview, clearBrandPreview, getBrandPreview } from '@/lib/brandPreview';
 
 function hexToHsl(hex: string): string | null {
