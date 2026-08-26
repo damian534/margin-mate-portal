@@ -1,0 +1,76 @@
+# Project Memory
+
+## Core
+- **Tech Stack**: Supabase (RLS multi-tenancy), Vercel, Resend. Capacitor for native/PWA builds.
+- **Data Isolation**: Strict `broker_id` scoping via PERMISSIVE RLS and custom `SECURITY DEFINER` functions.
+- **Auth**: Email/password only (auto-confirmed). No third-party or passcode URLs.
+- **Routing**: Post-auth redirect to `/admin` (Brokers/Admins) or `/dashboard` (Partners).
+- **Styling**: Pure white background, Poppins font. Semantic colors (green=success/growth, amber=warnings/targets, red=loans/shortfalls).
+- **Data Formatting**: Financial data uses commas (`$1,500,000`) and `CurrencyInput` for real-time formatting.
+- **Roles**: `super_admin` (global), `broker` (isolated tenant), `broker_staff` (inherits broker), `referral_partner` (read-only tracking).
+- **Whitelabel**: multi-brokerage SaaS. `tenants` table + `profiles.tenant_id`; branding always read from the tenant, never hardcoded. $299/broker seat, $99/support-staff seat.
+- **Automation**: Auto-create contact from new leads. Auto-create settlement from 'Settled' leads.
+- **Placeholders**: Support NULL `user_id` in `profiles` for manual pre-registration. Dual-match `referral_partner_id` to link later.
+- **Tools**: Calculators centralized in Hub. Exclude tools from the public landing page.
+
+## Memories
+- [Whitelabel](mem://features/whitelabel) — Tenant model, per-brokerage branding, custom domains, seat pricing, provisioning
+- [Project Purpose](mem://project/purpose) — Central CRM for Margin Finance leads, contacts, and partners
+- [Branding](mem://style/branding) — Visual identity, colors, typography, and styling guidelines
+- [Data Formatting](mem://style/data-formatting) — Currency formatting and real-time numeric inputs
+- [Data Visualization Colors](mem://style/data-visualization-colors) — Semantic color-coding for financial metrics
+- [CRM Functionality](mem://features/crm-functionality) — Auto-create settlements, custom fields, drag-and-drop
+- [CRM Navigation](mem://features/crm-navigation) — Dashboard utilizes an icon card grid instead of tabs
+- [Preview Mode](mem://dev/preview-mode) — Unauthenticated `?preview=true` mode for role-switching
+- [Kanban Views](mem://features/kanban-views) — Default lead view with valuation summaries and urgency expansion
+- [Custom Statuses](mem://features/custom-statuses) — Automated synchronization when lead statuses are renamed
+- [Companies Management](mem://features/companies) — Hierarchical grouping for referral partners with aggregate dashboards
+- [Company Director View](mem://features/company-director-view) — Elevated dashboard for partner team management and leaderboards
+- [Referrer Profiles](mem://features/referrer-profiles) — Filtered referral partner list excluding internal staff
+- [Commission Tracking](mem://features/commission-tracking) — Flexible referral payment allocation and status tracking
+- [Contact Management](mem://features/contact-management) — Unified Client and Referrer address book with '0000 000 000' phone format
+- [Lead Source Tracking](mem://features/lead-source-tracking) — Configurable origination tracking with visual Kanban badges
+- [Lead Attribution](mem://features/lead-attribution) — Tracking 'Ref from Existing Client' with historical counts
+- [Lead Management Interface](mem://features/lead-management-interface) — Deal card with timelines, dynamic sync, and search
+- [Loan Splits](mem://features/loan-splits) — Multi-split loans with per-split lender, security, app ID; lenders managed in Settings
+- [Lead Contact Automation](mem://features/lead-contact-automation) — Auto-creation of contact records from new leads
+- [Inbound Lead Automation](mem://features/inbound-lead-automation) — AI parsing of forwarded emails into leads and contacts
+- [Lead Allocation](mem://features/lead-allocation) — Super admin reassignment logging and audit trails
+- [Roles](mem://features/roles) — Core user permission levels and access logic
+- [Broker Staff Role](mem://features/broker-staff-role) — Inherited administrative access restricted from settings
+- [User Management](mem://features/user-management) — Pre-registration workflows and invite code generation
+- [Registration Flow](mem://features/registration-flow) — Self-serve vs invite-based onboarding logic
+- [Manual Partner Creation](mem://features/manual-partner-creation) — Placeholder profiles for future authentication links
+- [Broker Invites](mem://features/broker-invites) — Branded email generation for manual partner profiles
+- [Partner Dashboard Restrictions](mem://features/partner-dashboard-restrictions) — Read-only constraint for partner access
+- [Multi-Tenancy](mem://tech/multi-tenancy) — RLS policies scoping data to broker_id
+- [Auth Configuration](mem://tech/auth-configuration) — Email/password constraints and recovery logic
+- [Auth Routing Logic](mem://tech/auth-routing-logic) — Post-login redirects based on assigned roles
+- [Password Reset Flow](mem://tech/password-reset-flow) — Handlers for PASSWORD_RECOVERY events
+- [Database Schema](mem://tech/database-schema) — Foreign key considerations for NULL auth linkage
+- [RLS Configuration](mem://tech/rls-configuration) — Security Definer functions bypassing recursion limits
+- [Referral Attribution Logic](mem://tech/referral-attribution-logic) — Dual-matching for resolving partner relationships
+- [Leaderboard Security](mem://tech/leaderboard-security) — Edge Function computation for aggregated partner metrics
+- [Email Delivery](mem://features/email-delivery) — Transactional notifications via Resend
+- [Notifications](mem://features/notifications) — Real-time tracking alerts and webhooks
+- [Deployment Domain](mem://deployment/domain) — connect.margin.com.au hosting configuration
+- [Mobile Strategy](mem://tech/mobile-strategy) — Capacitor bindings and PWA recommendations
+- [Google Contacts Integration](mem://features/google-contacts-integration) — Import planning via CSV or People API
+- [Admin Settings](mem://features/admin-settings) — Centralized configuration separated from CRM tasks
+- [Activity Tracking](mem://features/activity-tracking) — Daily leading indicators, leaderboards, and targets
+- [Settlements Management](mem://features/settlements-management) — Transaction workflows, KPIs, and CRUD
+- [Gamification](mem://features/gamification) — Streaks and milestones for agent engagement
+- [Agent Achievements](mem://features/agent-achievements) — Partner-facing badges and progress bars
+- [Reporting and Analytics](mem://features/reporting-and-analytics) — Settlement targets, volume trends, and commissions
+- [Task Management](mem://features/task-management) — Urgency-filtered follow-ups and client quick-select
+- [Mortgage Fact-Find Wizard](mem://features/mortgage-fact-find-wizard) — 38-step client onboarding UI flow
+- [Fact-Find Invitations](mem://features/fact-find-invitations) — Automated email generation for client portal links
+- [EDM Platform](mem://features/edm-platform) — Internal email broadcast system with audience tags and Resend
+- [Financial Tools Hub](mem://tools/hub) — Core financial calculators and removed legacy tools
+- [Sell & Upgrade Simulator](mem://tools/sell-upgrade-simulator) — Property upgrade scenario modeling
+- [Investment Property Calculator](mem://tools/investment-property-calculator) — Negative gearing, AI suburb finder, and tax data
+- [Portfolio Advisor Calculator](mem://tools/portfolio-advisor-calculator) — Hold vs Sell analysis with CGT math engine
+- [Feasibility Calculator](mem://tools/feasibility-calculator) — Complex property development cash flow models
+- [Retirement Calculator](mem://tools/retirement-calculator) — Reverse-engineering passive income strategies
+- [Loan Repayment Calculator](mem://tools/loan-repayment-calculator) — Interactive amortization and extra payment tools
+- [Stamp Duty Calculator](mem://tools/stamp-duty-calculator) — State-by-state upfront cost estimations
