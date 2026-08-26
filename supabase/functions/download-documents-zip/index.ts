@@ -1,47 +1,95 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-import JSZip from 'https://esm.sh/jszip@3.10.1';
+import { createClient } from 'npm:@supabase/supabase-js@2';
+import JSZip from 'npm:jszip@3.10.1';
 import { corsHeaders } from '../_shared/cors.ts';
 
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
-const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
+const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const jsonResponse = (body: Record<string, unknown>, status: number) => new Response(
+  JSON.stringify(body),
+  { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+);
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
+    if (!SUPABASE_URL || !ANON_KEY || !SERVICE_KEY) {
+      console.error('Missing required backend environment variables');
+      return jsonResponse({ error: 'Document download is temporarily unavailable' }, 500);
+    }
+
     const authHeader = req.headers.get('Authorization') ?? '';
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Not authenticated' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const token = authHeader.replace(/^Bearer\s+/i, '');
+    if (!token || token === authHeader) {
+      return jsonResponse({ error: 'Not authenticated' }, 401);
     }
 
-    const { leadId } = await req.json();
-    if (!leadId) {
-      return new Response(JSON.stringify({ error: 'leadId is required' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const body = await req.json().catch(() => null) as { leadId?: unknown } | null;
+    const leadId = typeof body?.leadId === 'string' ? body.leadId : '';
+    if (!UUID_PATTERN.test(leadId)) {
+      return jsonResponse({ error: 'A valid deal is required' }, 400);
     }
 
-    // 1. Authorise: the caller must be able to see this lead under RLS.
-    const userClient = createClient(SUPABASE_URL, ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: lead, error: leadErr } = await userClient
+    // Authenticate the JWT first, then explicitly resolve every supported access path.
+    // This avoids staff downloads depending on browser-facing RLS evaluation.
+    const authClient = createClient(SUPABASE_URL, ANON_KEY);
+    const { data: authData, error: authError } = await authClient.auth.getUser(token);
+    const user = authData.user;
+    if (authError || !user) return jsonResponse({ error: 'Your session has expired. Please sign in again.' }, 401);
+
+    const admin = createClient(SUPABASE_URL, SERVICE_KEY);
+    const { data: lead, error: leadErr } = await admin
       .from('leads')
-      .select('id, first_name, last_name, opportunity_name')
+      .select('id, first_name, last_name, opportunity_name, broker_id, original_broker_id, referral_partner_id')
       .eq('id', leadId)
       .maybeSingle();
 
-    if (leadErr || !lead) {
-      return new Response(JSON.stringify({ error: 'You do not have access to this deal' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (leadErr || !lead) return jsonResponse({ error: 'Deal not found' }, 404);
+
+    const [{ data: roleRows }, { data: profile }, { data: referral }] = await Promise.all([
+      admin.from('user_roles').select('role').eq('user_id', user.id),
+      admin.from('profiles').select('broker_id, company_id, is_director').eq('user_id', user.id).maybeSingle(),
+      admin.from('lead_referrals').select('id').eq('lead_id', leadId).eq('to_broker_id', user.id).in('status', ['pending', 'accepted']).limit(1).maybeSingle(),
+    ]);
+
+    const roles = new Set((roleRows ?? []).map((row: { role: string }) => row.role));
+    let canAccess = roles.has('super_admin')
+      || (roles.has('broker') && lead.broker_id === user.id)
+      || (roles.has('broker_staff') && Boolean(profile?.broker_id) && lead.broker_id === profile?.broker_id)
+      || lead.referral_partner_id === user.id
+      || lead.original_broker_id === user.id
+      || Boolean(referral);
+
+    if (!canAccess && lead.referral_partner_id && (roles.has('broker') || roles.has('broker_staff'))) {
+      const tenantBrokerId = roles.has('broker_staff') ? profile?.broker_id : user.id;
+      const { data: partner } = await admin
+        .from('profiles')
+        .select('id')
+        .eq('user_id', lead.referral_partner_id)
+        .eq('broker_id', tenantBrokerId ?? '')
+        .maybeSingle();
+      canAccess = Boolean(partner) && (!lead.broker_id || lead.broker_id === tenantBrokerId);
+    }
+
+    if (!canAccess && profile?.is_director && profile.company_id && lead.referral_partner_id) {
+      const { data: companyPartner } = await admin
+        .from('profiles')
+        .select('id')
+        .eq('user_id', lead.referral_partner_id)
+        .eq('company_id', profile.company_id)
+        .maybeSingle();
+      canAccess = Boolean(companyPartner);
+    }
+
+    if (!canAccess) {
+      console.warn('ZIP access denied', { userId: user.id, leadId, roles: [...roles] });
+      return jsonResponse({ error: 'You do not have access to this deal' }, 403);
     }
 
     // 2. Collect every uploaded file with elevated privileges (storage RLS bypassed).
-    const admin = createClient(SUPABASE_URL, SERVICE_KEY);
     const { data: reqs } = await admin
       .from('document_requests')
       .select('id, name, file_path, file_name')
@@ -70,9 +118,7 @@ Deno.serve(async (req) => {
     }
 
     if (!entries.length) {
-      return new Response(JSON.stringify({ error: 'No uploaded documents to download' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return jsonResponse({ error: 'No uploaded documents to download' }, 404);
     }
 
     const zip = new JSZip();
@@ -94,9 +140,7 @@ Deno.serve(async (req) => {
     }
 
     if (!used.size) {
-      return new Response(JSON.stringify({ error: 'Could not read any stored files' }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return jsonResponse({ error: 'Could not read any stored files' }, 500);
     }
 
     const bytes: Uint8Array = await zip.generateAsync({ type: 'uint8array' });
@@ -114,8 +158,6 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error('download-documents-zip error', e);
-    return new Response(JSON.stringify({ error: (e as Error).message }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ error: e instanceof Error ? e.message : 'Unexpected download error' }, 500);
   }
 });
