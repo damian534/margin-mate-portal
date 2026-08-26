@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Eye, X } from 'lucide-react';
+import { Eye, X, ExternalLink } from 'lucide-react';
 import { getBrandPreview, clearBrandPreview, onBrandPreviewChange, BrandPreview } from '@/lib/brandPreview';
 
 /** Floating reminder that the app is showing a demo brand, with a one-click exit. */
