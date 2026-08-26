@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { TenantProvider } from "@/hooks/useTenant";
 import { TenantStatusGate } from "@/components/tenant/TenantStatusGate";
+import { BrandPreviewBar } from "@/components/tenant/BrandPreviewBar";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -69,6 +70,7 @@ const App = () => (
         <AuthProvider>
           <TenantProvider>
           <TenantStatusGate>
+          <BrandPreviewBar />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />

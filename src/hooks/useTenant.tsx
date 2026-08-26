@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { getBrandPreview, onBrandPreviewChange } from '@/lib/brandPreview';
 
 export interface TenantBranding {
   id: string;
@@ -69,6 +70,24 @@ export function TenantProvider({ children }: { children: ReactNode }) {
   const [tenantFull, setTenantFull] = useState<TenantFull | null>(null);
   const [loading, setLoading] = useState(true);
 
+  /** Overlay the demo brand (if a preview is running) on top of the real tenant. */
+  const withPreview = useCallback((base: TenantBranding | null): TenantBranding | null => {
+    const p = getBrandPreview();
+    if (!p) return base;
+    return {
+      ...(base ?? {
+        id: 'preview', slug: 'preview', name: p.name, logo_url: null, icon_url: null,
+        primary_color: p.primary_color, accent_color: p.accent_color,
+        support_email: null, status: 'active',
+      }),
+      name: p.name || base?.name || 'Preview brand',
+      logo_url: p.logoUrl ?? base?.logo_url ?? null,
+      icon_url: p.logoUrl ?? base?.icon_url ?? null,
+      primary_color: p.primary_color || base?.primary_color || '',
+      accent_color: p.accent_color || base?.accent_color || '',
+    };
+  }, []);
+
   const load = useCallback(async () => {
     // Signed in: read the full row (row-level security scopes it to their own brokerage).
     if (user) {
@@ -80,8 +99,9 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       if (data) {
         const full = data as unknown as TenantFull;
         setTenantFull(full);
-        setTenant(full);
-        applyBranding(full);
+        const shown = withPreview(full)!;
+        setTenant(shown);
+        applyBranding(shown);
         setLoading(false);
         return;
       }
@@ -94,16 +114,21 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       _slug: slug,
     });
     const row = Array.isArray(data) ? data[0] : data;
-    if (row) {
-      setTenant(row as TenantBranding);
-      applyBranding(row as TenantBranding);
+    const shown = withPreview((row as TenantBranding) ?? null);
+    if (shown) {
+      setTenant(shown);
+      applyBranding(shown);
     }
     setLoading(false);
-  }, [user]);
+  }, [user, withPreview]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // Re-apply instantly when a demo brand is started or exited.
+  useEffect(() => onBrandPreviewChange(() => { load(); }), [load]);
+
 
   const isTenantOwner =
     !!user && (role === 'super_admin' || tenantFull?.owner_user_id === user.id);
