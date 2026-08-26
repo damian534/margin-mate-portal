@@ -23,7 +23,6 @@ import { IncomingReferralsPanel } from '@/components/IncomingReferralsPanel';
 import { WIPDashboard } from '@/components/WIPDashboard';
 import { PipelineReport } from '@/components/PipelineReport';
 import { AssigneeFilter } from '@/components/AssigneePicker';
-import JSZip from 'jszip';
 
 
 import { Button } from '@/components/ui/button';
@@ -470,37 +469,47 @@ export default function AdminCRM() {
     if (!entry || entry.files.length === 0) { toast.error('No uploaded documents'); return; }
     toast.info('Preparing ZIP...');
     try {
-      const zip = new JSZip();
-      const usedNames = new Set<string>();
-      for (const f of entry.files) {
-        const { data, error } = await supabase.storage.from('client-documents').download(f.path);
-        if (error || !data) continue;
-        // Group each document request into its own folder so multiple files
-        // for the same item (front/back, 3 months of statements) stay together.
-        const folder = (f as any).label ? `${(f as any).label}/` : '';
-        const dot = f.name.lastIndexOf('.');
-        const base = dot > 0 ? f.name.slice(0, dot) : f.name;
-        const ext = dot > 0 ? f.name.slice(dot) : '';
-        let candidate = `${folder}${f.name}`;
-        let i = 2;
-        while (usedNames.has(candidate)) {
-          candidate = `${folder}${base} (${i})${ext}`;
-          i++;
-        }
-        usedNames.add(candidate);
-        zip.file(candidate, data);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) { toast.error('Please sign in again'); return; }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-documents-zip`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ leadId }),
+        },
+      );
+
+      if (!response.ok) {
+        let message = 'Failed to build ZIP';
+        try { message = (await response.json()).error || message; } catch { /* non-JSON response */ }
+        toast.error(message);
+        return;
       }
-      const blob = await zip.generateAsync({ type: 'blob' });
+
+      const blob = await response.blob();
+      if (!blob.size) { toast.error('The ZIP came back empty — please try again'); return; }
+      const included = Number(response.headers.get('X-Zip-File-Count') || 0);
+      const failed = Number(response.headers.get('X-Zip-Failed-Count') || 0);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `${lead?.first_name || 'lead'}_${lead?.last_name || ''}_documents.zip`.trim();
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
-      toast.success('Downloaded');
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      if (failed > 0) toast.warning(`Downloaded ${included} file${included === 1 ? '' : 's'} · ${failed} could not be read`);
+      else toast.success(`Downloaded all ${included} files`);
     } catch (e) {
       console.error(e);
-      toast.error('Failed to build ZIP');
+      toast.error('Failed to download ZIP');
     }
   };
 

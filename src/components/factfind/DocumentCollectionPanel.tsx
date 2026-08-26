@@ -550,7 +550,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
     if (data?.signedUrl) window.open(data.signedUrl, '_blank');
   };
 
-  /** Every uploaded file across all document requests, foldered by checklist item. */
+  /** Every uploaded file across all document requests. */
   const allUploadedFiles = documents.flatMap(d => {
     const files = (d.files || []).map(f => ({ path: f.file_path, name: f.file_name, label: d.name }));
     if (!files.length && d.file_path) files.push({ path: d.file_path, name: d.file_name || 'document', label: d.name });
