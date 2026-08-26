@@ -46,15 +46,26 @@ export function BrandPreviewPanel() {
     reader.readAsDataURL(file);
   };
 
-  const start = () => {
+  const apply = () => {
     setBrandPreview({
       name: name.trim() || 'Preview brand',
       logoUrl,
       primary_color: hexToHsl(primaryHex) ?? '',
       accent_color: hexToHsl(accentHex) ?? '',
     });
+  };
+
+  const start = () => {
+    apply();
     toast.success('Demo branding on — the whole app now shows their brand');
   };
+
+  /** Opens a clean, sample-data copy of the app in their branding. */
+  const launchDemo = () => {
+    apply();
+    window.open('/admin?preview=true', '_blank', 'noopener');
+  };
+
 
   return (
     <div className="rounded-xl border border-border bg-card p-6 space-y-5 max-w-3xl">
