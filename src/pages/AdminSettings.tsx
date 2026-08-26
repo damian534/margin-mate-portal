@@ -13,10 +13,12 @@ import { FactFindToggle } from '@/components/FactFindToggle';
 import { MilestoneEmailsManagement } from '@/components/MilestoneEmailsManagement';
 import { EmailSignatureSettings } from '@/components/EmailSignatureSettings';
 import { BankStatementsSettings } from '@/components/BankStatementsSettings';
+import { BrandingSettings } from '@/components/tenant/BrandingSettings';
+import { TenantAdminConsole } from '@/components/tenant/TenantAdminConsole';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
-import { KeyRound, UserCog, Settings2, FileText, ListChecks, Tag, Building2, ClipboardList, Mail, PenLine, Banknote } from 'lucide-react';
+import { KeyRound, UserCog, Settings2, FileText, ListChecks, Tag, Building2, ClipboardList, Mail, PenLine, Banknote, Palette, Layers } from 'lucide-react';
 
 export default function AdminSettings() {
   const { isPreviewMode, role } = useAuth();
@@ -51,6 +53,12 @@ export default function AdminSettings() {
       : []),
     { value: 'signature', label: 'Email Signature', icon: PenLine },
     { value: 'bank-statements', label: 'Bank Statements Link', icon: Banknote },
+    ...(role !== 'broker_staff'
+      ? [{ value: 'branding', label: 'Branding', icon: Palette }]
+      : []),
+    ...(role === 'super_admin'
+      ? [{ value: 'tenants', label: 'Brokerages', icon: Layers }]
+      : []),
   ];
 
   return (
@@ -97,6 +105,8 @@ export default function AdminSettings() {
         {activeSection === 'milestone-emails' && role !== 'broker_staff' && <MilestoneEmailsManagement />}
         {activeSection === 'signature' && <EmailSignatureSettings />}
         {activeSection === 'bank-statements' && <BankStatementsSettings />}
+        {activeSection === 'branding' && role !== 'broker_staff' && <BrandingSettings />}
+        {activeSection === 'tenants' && role === 'super_admin' && <TenantAdminConsole />}
       </main>
       </div>
     </div>

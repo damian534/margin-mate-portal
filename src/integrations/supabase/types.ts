@@ -2085,6 +2085,7 @@ export type Database = {
           license_number: string | null
           phone: string | null
           spouse_name: string | null
+          tenant_id: string | null
           updated_at: string
           user_id: string | null
         }
@@ -2110,6 +2111,7 @@ export type Database = {
           license_number?: string | null
           phone?: string | null
           spouse_name?: string | null
+          tenant_id?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -2135,6 +2137,7 @@ export type Database = {
           license_number?: string | null
           phone?: string | null
           spouse_name?: string | null
+          tenant_id?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -2144,6 +2147,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -2362,6 +2372,81 @@ export type Database = {
           },
         ]
       }
+      tenants: {
+        Row: {
+          accent_color: string
+          broker_seats: number
+          created_at: string
+          custom_domain: string | null
+          icon_url: string | null
+          id: string
+          legal_name: string | null
+          logo_url: string | null
+          name: string
+          owner_user_id: string | null
+          primary_color: string
+          sender_domain_verified: boolean
+          sender_email: string | null
+          sender_name: string | null
+          slug: string
+          staff_seats: number
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          support_email: string | null
+          trial_ends_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          accent_color?: string
+          broker_seats?: number
+          created_at?: string
+          custom_domain?: string | null
+          icon_url?: string | null
+          id?: string
+          legal_name?: string | null
+          logo_url?: string | null
+          name: string
+          owner_user_id?: string | null
+          primary_color?: string
+          sender_domain_verified?: boolean
+          sender_email?: string | null
+          sender_name?: string | null
+          slug: string
+          staff_seats?: number
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          support_email?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accent_color?: string
+          broker_seats?: number
+          created_at?: string
+          custom_domain?: string | null
+          icon_url?: string | null
+          id?: string
+          legal_name?: string | null
+          logo_url?: string | null
+          name?: string
+          owner_user_id?: string | null
+          primary_color?: string
+          sender_domain_verified?: boolean
+          sender_email?: string | null
+          sender_name?: string | null
+          slug?: string
+          staff_seats?: number
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          support_email?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tool_scenarios: {
         Row: {
           created_at: string
@@ -2493,12 +2578,27 @@ export type Database = {
         }[]
       }
       get_my_broker_id: { Args: { _user_id: string }; Returns: string }
+      get_my_tenant_id: { Args: { _user_id: string }; Returns: string }
       get_or_create_company_invite_code: {
         Args: { _company_id: string }
         Returns: {
           code: string
           id: string
           used_count: number
+        }[]
+      }
+      get_tenant_branding: {
+        Args: { _host?: string; _slug?: string }
+        Returns: {
+          accent_color: string
+          icon_url: string
+          id: string
+          logo_url: string
+          name: string
+          primary_color: string
+          slug: string
+          status: string
+          support_email: string
         }[]
       }
       get_user_tenant_broker_id: { Args: { _user_id: string }; Returns: string }
@@ -2512,6 +2612,15 @@ export type Database = {
       }
       is_broker_or_staff: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_tenant_owner: { Args: { _user_id: string }; Returns: boolean }
+      tenant_seat_usage: {
+        Args: { _tenant_id: string }
+        Returns: {
+          broker_seats: number
+          monthly_total: number
+          staff_seats: number
+        }[]
+      }
       user_has_referral_access: {
         Args: { _lead_id: string; _user_id: string }
         Returns: boolean
@@ -2525,7 +2634,12 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "broker" | "referral_partner" | "super_admin" | "broker_staff"
+      app_role:
+        | "broker"
+        | "referral_partner"
+        | "super_admin"
+        | "broker_staff"
+        | "tenant_owner"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2653,7 +2767,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["broker", "referral_partner", "super_admin", "broker_staff"],
+      app_role: [
+        "broker",
+        "referral_partner",
+        "super_admin",
+        "broker_staff",
+        "tenant_owner",
+      ],
     },
   },
 } as const
