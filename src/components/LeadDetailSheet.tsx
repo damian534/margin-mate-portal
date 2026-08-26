@@ -2030,7 +2030,7 @@ export function LeadDetailSheet({
           </div>
           )}
 
-          {activeTab === 'financials' && (
+          {activeTab === 'structure' && (
             <EntityMapSection leadId={lead.id} leadName={[lead.first_name, lead.last_name].filter(Boolean).join(' ')} isPreviewMode={isPreviewMode} />
           )}
 
