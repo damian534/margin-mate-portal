@@ -558,35 +558,56 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
   });
   const uploadedFileCount = allUploadedFiles.length;
 
+  /**
+   * Build the ZIP server-side (edge function, service-role storage access) so the
+   * download can never silently produce an empty archive because of storage RLS.
+   */
   const downloadAllAsZip = async () => {
     if (isPreviewMode) { toast.info('Not available in preview'); return; }
     if (!uploadedFileCount) { toast.error('No uploaded documents'); return; }
     setIsZipping(true);
     try {
-      const JSZip = (await import('jszip')).default;
-      const zip = new JSZip();
-      const used = new Set<string>();
-      for (const f of allUploadedFiles) {
-        const { data, error } = await supabase.storage.from('client-documents').download(f.path);
-        if (error || !data) continue;
-        const folder = f.label ? `${f.label.replace(/[\\/]/g, '-')}/` : '';
-        const dot = f.name.lastIndexOf('.');
-        const base = dot > 0 ? f.name.slice(0, dot) : f.name;
-        const ext = dot > 0 ? f.name.slice(dot) : '';
-        let candidate = `${folder}${f.name}`;
-        let i = 2;
-        while (used.has(candidate)) { candidate = `${folder}${base} (${i})${ext}`; i++; }
-        used.add(candidate);
-        zip.file(candidate, data);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) { toast.error('Please sign in again'); return; }
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-documents-zip`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ leadId }),
+        },
+      );
+
+      if (!res.ok) {
+        let message = 'Failed to build ZIP';
+        try { message = (await res.json()).error || message; } catch { /* non-JSON */ }
+        toast.error(message);
+        return;
       }
-      const blob = await zip.generateAsync({ type: 'blob' });
+
+      const blob = await res.blob();
+      if (!blob.size) { toast.error('The ZIP came back empty — please try again'); return; }
+
+      const failed = Number(res.headers.get('X-Zip-Failed-Count') || 0);
+      const included = Number(res.headers.get('X-Zip-File-Count') || 0);
+
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `${(primaryApplicantName || 'client').replace(/[^a-z0-9]+/gi, '_')}_documents.zip`;
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
-      toast.success('Downloaded');
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+      if (failed > 0) toast.warning(`Downloaded ${included} file${included === 1 ? '' : 's'} · ${failed} could not be read`);
+      else toast.success(`Downloaded ${included} file${included === 1 ? '' : 's'}`);
     } catch (e) {
       console.error(e);
       toast.error('Failed to build ZIP');
@@ -594,6 +615,7 @@ export function DocumentCollectionPanel({ leadId, isPreviewMode, primaryApplican
       setIsZipping(false);
     }
   };
+
 
 
 
