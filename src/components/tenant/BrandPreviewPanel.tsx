@@ -126,14 +126,22 @@ export function BrandPreviewPanel() {
         </div>
       </div>
 
-      <div className="flex gap-2">
-        <Button onClick={start}>
-          <Eye className="w-4 h-4 mr-2" />Start demo branding
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={launchDemo}>
+          <ExternalLink className="w-4 h-4 mr-2" />Open demo app (sample data)
+        </Button>
+        <Button variant="outline" onClick={start}>
+          <Eye className="w-4 h-4 mr-2" />Preview branding here
         </Button>
         <Button variant="outline" onClick={() => { clearBrandPreview(); toast.success('Back to your brand'); }}>
           <RotateCcw className="w-4 h-4 mr-2" />Reset to my brand
         </Button>
       </div>
+      <p className="text-xs text-muted-foreground">
+        "Open demo app" is the safe one to screen-share: it runs on sample data only. "Preview branding
+        here" re-skins your live workspace, so your real client data stays on screen.
+      </p>
+
     </div>
   );
 }
