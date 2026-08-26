@@ -2465,6 +2465,7 @@ export type Database = {
         Args: { _referral_id: string }
         Returns: undefined
       }
+      can_access_contact: { Args: { _contact_id: string }; Returns: boolean }
       can_manage_lead: { Args: { _lead_id: string }; Returns: boolean }
       can_view_lead_partner: { Args: { _lead_id: string }; Returns: boolean }
       can_view_referrer_profile_for_referred_lead: {
