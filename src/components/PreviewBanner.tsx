@@ -1,16 +1,27 @@
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getBrandPreview, onBrandPreviewChange } from '@/lib/brandPreview';
 
+/**
+ * Shown only in demo mode (?preview=true). Everything on screen is sample data —
+ * no live client records are ever loaded.
+ */
 export function PreviewBanner() {
   const { isPreviewMode, role, setPreviewRole } = useAuth();
+  const [brand, setBrand] = useState(getBrandPreview());
+
+  useEffect(() => onBrandPreviewChange(() => setBrand(getBrandPreview())), []);
 
   if (!isPreviewMode) return null;
 
   return (
     <div className="bg-primary text-primary-foreground px-4 py-2 text-center text-sm flex items-center justify-center gap-3 flex-wrap">
       <Eye className="w-4 h-4" />
-      <span className="font-medium">Creator Preview Mode</span>
+      <span className="font-medium">
+        {brand?.name ? `${brand.name} — demo` : 'Demo mode'}
+      </span>
       <span className="text-primary-foreground/70">— Viewing as:</span>
       <div className="flex gap-1">
         <Button
@@ -30,7 +41,7 @@ export function PreviewBanner() {
           Partner
         </Button>
       </div>
-      <span className="text-primary-foreground/50 text-xs">Data is sample only</span>
+      <span className="text-primary-foreground/50 text-xs">Sample data only</span>
     </div>
   );
 }

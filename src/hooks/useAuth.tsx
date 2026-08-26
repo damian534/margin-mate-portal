@@ -37,9 +37,9 @@ function getIsPreviewMode() {
 
 const FAKE_USER = {
   id: 'preview-user-id',
-  email: 'creator@marginfinance.com',
+  email: 'demo@brokerage.com',
   app_metadata: {},
-  user_metadata: { full_name: 'Creator Preview' },
+  user_metadata: { full_name: 'Demo User' },
   aud: 'authenticated',
   created_at: new Date().toISOString(),
 } as unknown as User;

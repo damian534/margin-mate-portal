@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Eye, Upload, RotateCcw } from 'lucide-react';
+import { Eye, Upload, RotateCcw, ExternalLink } from 'lucide-react';
 import { setBrandPreview, clearBrandPreview, getBrandPreview } from '@/lib/brandPreview';
 
 function hexToHsl(hex: string): string | null {
@@ -46,15 +46,26 @@ export function BrandPreviewPanel() {
     reader.readAsDataURL(file);
   };
 
-  const start = () => {
+  const apply = () => {
     setBrandPreview({
       name: name.trim() || 'Preview brand',
       logoUrl,
       primary_color: hexToHsl(primaryHex) ?? '',
       accent_color: hexToHsl(accentHex) ?? '',
     });
+  };
+
+  const start = () => {
+    apply();
     toast.success('Demo branding on — the whole app now shows their brand');
   };
+
+  /** Opens a clean, sample-data copy of the app in their branding. */
+  const launchDemo = () => {
+    apply();
+    window.open('/admin?preview=true', '_blank', 'noopener');
+  };
+
 
   return (
     <div className="rounded-xl border border-border bg-card p-6 space-y-5 max-w-3xl">
@@ -63,10 +74,11 @@ export function BrandPreviewPanel() {
         <h2 className="text-lg font-semibold">Demo for a prospect</h2>
       </div>
       <p className="text-sm text-muted-foreground">
-        Drop in their logo and colours to walk a potential brokerage through the platform in their own
-        branding. Nothing is saved and your live brand is unaffected — exit any time from the bar at the
-        bottom of the screen, or close the tab.
+        Drop in their logo and colours, then open a demo window: the whole platform appears in their
+        branding, filled with realistic sample deals, contacts and settlements. None of your live client
+        data is loaded, nothing is saved, and your own brand is unaffected.
       </p>
+
 
       <div className="grid sm:grid-cols-2 gap-4">
         <div className="space-y-2">
@@ -114,14 +126,22 @@ export function BrandPreviewPanel() {
         </div>
       </div>
 
-      <div className="flex gap-2">
-        <Button onClick={start}>
-          <Eye className="w-4 h-4 mr-2" />Start demo branding
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={launchDemo}>
+          <ExternalLink className="w-4 h-4 mr-2" />Open demo app (sample data)
+        </Button>
+        <Button variant="outline" onClick={start}>
+          <Eye className="w-4 h-4 mr-2" />Preview branding here
         </Button>
         <Button variant="outline" onClick={() => { clearBrandPreview(); toast.success('Back to your brand'); }}>
           <RotateCcw className="w-4 h-4 mr-2" />Reset to my brand
         </Button>
       </div>
+      <p className="text-xs text-muted-foreground">
+        "Open demo app" is the safe one to screen-share: it runs on sample data only. "Preview branding
+        here" re-skins your live workspace, so your real client data stays on screen.
+      </p>
+
     </div>
   );
 }

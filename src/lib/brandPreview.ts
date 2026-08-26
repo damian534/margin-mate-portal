@@ -1,9 +1,10 @@
 /**
- * Session-only brand preview.
+ * Demo branding.
  *
- * Lets a super admin demo the platform to a prospective brokerage using THEIR logo,
- * name and colours without creating any records or touching live branding.
- * Everything lives in sessionStorage, so it disappears when the tab closes.
+ * Lets you walk a prospective brokerage through the platform using THEIR logo,
+ * name and colours without creating records or touching live branding.
+ * Stored locally in the browser only (never uploaded), and shared across tabs so
+ * the demo app can be opened in its own window.
  */
 
 export interface BrandPreview {
@@ -17,7 +18,7 @@ const KEY = 'brand_preview_v1';
 
 export function getBrandPreview(): BrandPreview | null {
   try {
-    const raw = sessionStorage.getItem(KEY);
+    const raw = localStorage.getItem(KEY) ?? sessionStorage.getItem(KEY);
     return raw ? (JSON.parse(raw) as BrandPreview) : null;
   } catch {
     return null;
@@ -26,7 +27,7 @@ export function getBrandPreview(): BrandPreview | null {
 
 export function setBrandPreview(p: BrandPreview) {
   try {
-    sessionStorage.setItem(KEY, JSON.stringify(p));
+    localStorage.setItem(KEY, JSON.stringify(p));
   } catch {
     /* quota — logo too large */
   }
@@ -34,11 +35,17 @@ export function setBrandPreview(p: BrandPreview) {
 }
 
 export function clearBrandPreview() {
+  localStorage.removeItem(KEY);
   sessionStorage.removeItem(KEY);
   window.dispatchEvent(new Event('brand-preview-change'));
 }
 
 export function onBrandPreviewChange(cb: () => void) {
+  const onStorage = (e: StorageEvent) => { if (e.key === KEY) cb(); };
   window.addEventListener('brand-preview-change', cb);
-  return () => window.removeEventListener('brand-preview-change', cb);
+  window.addEventListener('storage', onStorage);
+  return () => {
+    window.removeEventListener('brand-preview-change', cb);
+    window.removeEventListener('storage', onStorage);
+  };
 }
