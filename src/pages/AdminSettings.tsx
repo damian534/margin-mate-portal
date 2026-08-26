@@ -14,6 +14,7 @@ import { MilestoneEmailsManagement } from '@/components/MilestoneEmailsManagemen
 import { EmailSignatureSettings } from '@/components/EmailSignatureSettings';
 import { BankStatementsSettings } from '@/components/BankStatementsSettings';
 import { BrandingSettings } from '@/components/tenant/BrandingSettings';
+import { BrandPreviewPanel } from '@/components/tenant/BrandPreviewPanel';
 import { TenantAdminConsole } from '@/components/tenant/TenantAdminConsole';
 import { BillingSettings } from '@/components/tenant/BillingSettings';
 import { useAuth } from '@/hooks/useAuth';
