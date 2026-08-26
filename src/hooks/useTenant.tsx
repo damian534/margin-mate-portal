@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { getBrandPreview, onBrandPreviewChange } from '@/lib/brandPreview';
 
 export interface TenantBranding {
   id: string;
