@@ -106,14 +106,14 @@ Deno.serve(async (req) => {
       extra = data ?? [];
     }
 
-    type Entry = { path: string; name: string; label: string };
+    type Entry = { path: string; name: string };
     const entries: Entry[] = [];
     for (const r of requests as any[]) {
       const own = extra.filter((f) => f.document_request_id === r.id);
       if (own.length) {
-        own.forEach((f) => entries.push({ path: f.file_path, name: f.file_name || 'document', label: r.name }));
+        own.forEach((f) => entries.push({ path: f.file_path, name: f.file_name || 'document' }));
       } else if (r.file_path) {
-        entries.push({ path: r.file_path, name: r.file_name || 'document', label: r.name });
+        entries.push({ path: r.file_path, name: r.file_name || 'document' });
       }
     }
 
@@ -128,13 +128,13 @@ Deno.serve(async (req) => {
     for (const e of entries) {
       const { data, error } = await admin.storage.from('client-documents').download(e.path);
       if (error || !data) { failed.push(e.name); continue; }
-      const folder = e.label ? `${e.label.replace(/[\\/:*?"<>|]/g, '-')}/` : '';
-      const dot = e.name.lastIndexOf('.');
-      const base = dot > 0 ? e.name.slice(0, dot) : e.name;
-      const ext = dot > 0 ? e.name.slice(dot) : '';
-      let candidate = `${folder}${e.name}`;
+      const safeName = e.name.replace(/[\\/:*?"<>|]/g, '-').trim() || 'document';
+      const dot = safeName.lastIndexOf('.');
+      const base = dot > 0 ? safeName.slice(0, dot) : safeName;
+      const ext = dot > 0 ? safeName.slice(dot) : '';
+      let candidate = safeName;
       let i = 2;
-      while (used.has(candidate)) { candidate = `${folder}${base} (${i})${ext}`; i++; }
+      while (used.has(candidate)) { candidate = `${base} (${i})${ext}`; i++; }
       used.add(candidate);
       zip.file(candidate, new Uint8Array(await data.arrayBuffer()));
     }
