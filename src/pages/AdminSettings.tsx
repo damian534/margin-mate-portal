@@ -107,7 +107,12 @@ export default function AdminSettings() {
         {activeSection === 'milestone-emails' && role !== 'broker_staff' && <MilestoneEmailsManagement />}
         {activeSection === 'signature' && <EmailSignatureSettings />}
         {activeSection === 'bank-statements' && <BankStatementsSettings />}
-        {activeSection === 'branding' && role !== 'broker_staff' && <BrandingSettings />}
+        {activeSection === 'branding' && role !== 'broker_staff' && (
+          <div className="space-y-6">
+            <BrandingSettings />
+            {role === 'super_admin' && <BrandPreviewPanel />}
+          </div>
+        )}
         {activeSection === 'billing' && role !== 'broker_staff' && <BillingSettings />}
         {activeSection === 'tenants' && role === 'super_admin' && <TenantAdminConsole />}
       </main>
