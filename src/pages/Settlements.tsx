@@ -24,17 +24,21 @@ import { supabase } from '@/integrations/supabase/client';
 type ViewMode = 'deals' | 'performance' | 'activity';
 
 export default function Settlements() {
-  const { role, isPreviewMode } = useAuth();
+  const { role, isPreviewMode, isStaff } = useAuth();
   const { settlements, allSettlements, loading, kpis, filters, filterOptions, updateFilter, resetFilters, addSettlement, updateSettlement, deleteSettlement, isSuperAdmin, refetch } = useSettlements();
   const [viewMode, setViewMode] = useState<ViewMode>('deals');
   const [brokers, setBrokers] = useState<{ id: string; name: string }[]>([]);
 
+  // Admin staff get the same settlement view as the broker they support
+  const hasFullView = isSuperAdmin || isStaff;
+
   const { todayActivity, weeklyTotals, targets, last30Days, leaderboard, saveActivity, saveTargets } = useBrokerActivity(
-    isSuperAdmin && filters.brokerId !== 'all' ? filters.brokerId : undefined
+    hasFullView && filters.brokerId !== 'all' ? filters.brokerId : undefined
   );
 
+
   useEffect(() => {
-    if (!isSuperAdmin || isPreviewMode) return;
+    if (!hasFullView || isPreviewMode) return;
     const fetchBrokers = async () => {
       const { data: roles } = await supabase.from('user_roles').select('user_id').in('role', ['broker', 'super_admin']);
       if (!roles?.length) return;
@@ -42,7 +46,7 @@ export default function Settlements() {
       setBrokers((profiles || []).map(p => ({ id: p.user_id || '', name: p.full_name || 'Unknown' })));
     };
     fetchBrokers();
-  }, [isSuperAdmin, isPreviewMode]);
+  }, [hasFullView, isPreviewMode]);
 
   const exportCSV = () => {
     const headers = ['Settlement Date', 'Client Name', 'Loan Amount', 'Lender', 'Application Type', 'Lead Source', 'Status', 'Security Address'];
@@ -99,7 +103,7 @@ export default function Settlements() {
                 <SettlementFiltersBar
                   filters={filters}
                   filterOptions={filterOptions}
-                  isSuperAdmin={isSuperAdmin}
+                  isSuperAdmin={hasFullView}
                   brokers={brokers}
                   updateFilter={updateFilter}
                   resetFilters={resetFilters}
@@ -161,7 +165,7 @@ export default function Settlements() {
             <LogActivityPanel todayActivity={todayActivity} onSave={saveActivity} />
 
             {/* Set Targets (Super Admin only) */}
-            {isSuperAdmin && (
+            {hasFullView && (
               <SetTargetsPanel targets={targets} brokers={brokers} onSave={saveTargets} />
             )}
 
@@ -169,7 +173,7 @@ export default function Settlements() {
             <ActivityTrendChart activities={last30Days} />
 
             {/* Leaderboard (Admin only) */}
-            {isSuperAdmin && <ActivityLeaderboard data={leaderboard} />}
+            {hasFullView && <ActivityLeaderboard data={leaderboard} />}
           </div>
         )}
       </main>

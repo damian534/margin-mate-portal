@@ -49,12 +49,13 @@ const defaultFilters: SettlementFilters = {
 };
 
 export function useSettlements() {
-  const { user, role, isPreviewMode } = useAuth();
+  const { user, role, isPreviewMode, isStaff } = useAuth();
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<SettlementFilters>(defaultFilters);
 
-  const isSuperAdmin = role === 'super_admin';
+  // Admin staff see the same settlement scope as the broker they support
+  const isSuperAdmin = role === 'super_admin' || isStaff;
 
   const fetchSettlements = useCallback(async () => {
     if (isPreviewMode) {
