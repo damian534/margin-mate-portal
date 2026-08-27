@@ -25,13 +25,15 @@ export interface ActivityTargets {
 }
 
 export function useBrokerActivity(selectedBrokerId?: string) {
-  const { user, role, isPreviewMode, effectiveBrokerId: authBrokerId } = useAuth();
+  const { user, role, isPreviewMode, isStaff, effectiveBrokerId: authBrokerId } = useAuth();
   const [activities, setActivities] = useState<BrokerActivity[]>([]);
   const [targets, setTargets] = useState<ActivityTargets | null>(null);
   const [loading, setLoading] = useState(true);
 
   const isSuperAdmin = role === 'super_admin';
-  const effectiveBrokerId = selectedBrokerId && isSuperAdmin ? selectedBrokerId : authBrokerId;
+  // Admin staff mirror the broker they support, including the wider views
+  const hasFullView = isSuperAdmin || isStaff;
+  const effectiveBrokerId = selectedBrokerId && hasFullView ? selectedBrokerId : authBrokerId;
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
@@ -53,7 +55,7 @@ export function useBrokerActivity(selectedBrokerId?: string) {
       .gte('activity_date', thirtyDaysAgo)
       .order('activity_date', { ascending: false });
 
-    if (!isSuperAdmin || selectedBrokerId) {
+    if (!hasFullView || selectedBrokerId) {
       query = query.eq('broker_id', effectiveBrokerId);
     }
 
@@ -61,7 +63,7 @@ export function useBrokerActivity(selectedBrokerId?: string) {
     if (error) { console.error('Error fetching activity:', error); toast.error('Failed to load activity'); }
     setActivities((data as BrokerActivity[]) || []);
     setLoading(false);
-  }, [isPreviewMode, effectiveBrokerId, isSuperAdmin, selectedBrokerId, thirtyDaysAgo]);
+  }, [isPreviewMode, effectiveBrokerId, hasFullView, selectedBrokerId, thirtyDaysAgo]);
 
   const fetchTargets = useCallback(async () => {
     if (isPreviewMode || !effectiveBrokerId) return;
@@ -138,7 +140,7 @@ export function useBrokerActivity(selectedBrokerId?: string) {
   const [leaderboard, setLeaderboard] = useState<{ broker_id: string; broker_name: string; meetings_held: number; outbound_calls: number; referral_meetings_booked: number }[]>([]);
 
   const fetchLeaderboard = useCallback(async () => {
-    if (!isSuperAdmin || isPreviewMode) return;
+    if (!hasFullView || isPreviewMode) return;
     const { data: allActs } = await supabase
       .from('broker_activity')
       .select('*')
@@ -166,11 +168,11 @@ export function useBrokerActivity(selectedBrokerId?: string) {
     })).sort((a, b) => b.meetings_held - a.meetings_held);
 
     setLeaderboard(board);
-  }, [isSuperAdmin, isPreviewMode, weekStart, weekEnd]);
+  }, [hasFullView, isPreviewMode, weekStart, weekEnd]);
 
   useEffect(() => { fetchLeaderboard(); }, [fetchLeaderboard]);
 
-  return { activities, todayActivity, weeklyTotals, targets, last30Days, leaderboard, loading, isSuperAdmin, saveActivity, saveTargets, refetch: fetchActivities };
+  return { activities, todayActivity, weeklyTotals, targets, last30Days, leaderboard, loading, isSuperAdmin, hasFullView, saveActivity, saveTargets, refetch: fetchActivities };
 }
 
 function generateSampleActivities(): BrokerActivity[] {
