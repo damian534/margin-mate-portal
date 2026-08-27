@@ -146,6 +146,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       handleSession(newSession);
     });
 
+    // Also read the stored session directly, so returning from demo mode restores
+    // the real login even if no auth event fires.
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) handleSession(data.session);
+    });
+
+
     return () => {
       isMountedRef.current = false;
       clearTimeout(timeout);
