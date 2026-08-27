@@ -2611,6 +2611,7 @@ export type Database = {
         Returns: boolean
       }
       is_broker_or_staff: { Args: { _user_id: string }; Returns: boolean }
+      is_platform_owner: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_tenant_owner: { Args: { _user_id: string }; Returns: boolean }
       tenant_seat_usage: {
