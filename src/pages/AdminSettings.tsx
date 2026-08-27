@@ -23,7 +23,7 @@ import { useEffect } from 'react';
 import { KeyRound, UserCog, Settings2, FileText, ListChecks, Tag, Building2, ClipboardList, Mail, PenLine, Banknote, Palette, Layers, CreditCard } from 'lucide-react';
 
 export default function AdminSettings() {
-  const { isPreviewMode, role } = useAuth();
+  const { isPreviewMode, role, isPlatformOwner } = useAuth();
   const [activeSection, setActiveSection] = useState('invites');
   const [companies, setCompanies] = useState<Company[]>([]);
 
@@ -59,7 +59,7 @@ export default function AdminSettings() {
       ? [{ value: 'branding', label: 'Branding', icon: Palette },
          { value: 'billing', label: 'Billing & Seats', icon: CreditCard }]
       : []),
-    ...(role === 'super_admin'
+    ...(isPlatformOwner
       ? [{ value: 'tenants', label: 'Brokerages', icon: Layers }]
       : []),
   ];
@@ -111,11 +111,11 @@ export default function AdminSettings() {
         {activeSection === 'branding' && role !== 'broker_staff' && (
           <div className="space-y-6">
             <BrandingSettings />
-            {role === 'super_admin' && <BrandPreviewPanel />}
+            {isPlatformOwner && <BrandPreviewPanel />}
           </div>
         )}
         {activeSection === 'billing' && role !== 'broker_staff' && <BillingSettings />}
-        {activeSection === 'tenants' && role === 'super_admin' && <TenantAdminConsole />}
+        {activeSection === 'tenants' && isPlatformOwner && <TenantAdminConsole />}
       </main>
       </div>
     </div>
