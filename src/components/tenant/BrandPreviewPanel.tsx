@@ -73,8 +73,8 @@ export function BrandPreviewPanel() {
       </div>
       <p className="text-sm text-muted-foreground">
         Drop in their logo and colours, then open a demo window: the whole platform appears in their
-        branding, filled with realistic sample deals, contacts and settlements. None of your live client
-        data is loaded, nothing is saved, and your own brand is unaffected.
+        branding with no client data at all. Demo branding applies only to the demo window (and this tab
+        if you preview here) — your team and your live workspace always see your own brand.
       </p>
 
 
