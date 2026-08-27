@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Eye, X, ExternalLink } from 'lucide-react';
-import { getBrandPreview, clearBrandPreview, onBrandPreviewChange, BrandPreview } from '@/lib/brandPreview';
+import { getBrandPreview, stopBrandPreviewInTab, onBrandPreviewChange, BrandPreview } from '@/lib/brandPreview';
 
 /** Floating reminder that the app is showing a demo brand, with a one-click exit. */
 export function BrandPreviewBar() {
@@ -21,7 +21,7 @@ export function BrandPreviewBar() {
         onClick={() => window.open('/admin?preview=true', '_blank', 'noopener')}>
         <ExternalLink className="w-4 h-4 mr-1" /> Demo app
       </Button>
-      <Button size="sm" variant="ghost" className="h-7 px-2" onClick={clearBrandPreview}>
+      <Button size="sm" variant="ghost" className="h-7 px-2" onClick={stopBrandPreviewInTab}>
         <X className="w-4 h-4 mr-1" /> Exit
       </Button>
 

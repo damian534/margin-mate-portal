@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Eye, Upload, RotateCcw, ExternalLink } from 'lucide-react';
-import { setBrandPreview, clearBrandPreview, getBrandPreview } from '@/lib/brandPreview';
+import { setBrandPreview, saveBrandPreviewConfig, clearBrandPreview, getBrandPreviewConfig } from '@/lib/brandPreview';
 
 function hexToHsl(hex: string): string | null {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex.trim());
@@ -29,7 +29,7 @@ function hexToHsl(hex: string): string | null {
  * without saving anything. Session-only, so your own brand is untouched.
  */
 export function BrandPreviewPanel() {
-  const existing = getBrandPreview();
+  const existing = getBrandPreviewConfig();
   const fileRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(existing?.name ?? '');
   const [logoUrl, setLogoUrl] = useState<string | null>(existing?.logoUrl ?? null);
@@ -46,23 +46,21 @@ export function BrandPreviewPanel() {
     reader.readAsDataURL(file);
   };
 
-  const apply = () => {
-    setBrandPreview({
-      name: name.trim() || 'Preview brand',
-      logoUrl,
-      primary_color: hexToHsl(primaryHex) ?? '',
-      accent_color: hexToHsl(accentHex) ?? '',
-    });
-  };
+  const buildBrand = () => ({
+    name: name.trim() || 'Preview brand',
+    logoUrl,
+    primary_color: hexToHsl(primaryHex) ?? '',
+    accent_color: hexToHsl(accentHex) ?? '',
+  });
 
   const start = () => {
-    apply();
-    toast.success('Demo branding on — the whole app now shows their brand');
+    setBrandPreview(buildBrand());
+    toast.success('Demo branding on in this tab only — your team still sees your brand');
   };
 
   /** Opens a clean, sample-data copy of the app in their branding. */
   const launchDemo = () => {
-    apply();
+    saveBrandPreviewConfig(buildBrand());
     window.open('/admin?preview=true', '_blank', 'noopener');
   };
 
@@ -75,8 +73,8 @@ export function BrandPreviewPanel() {
       </div>
       <p className="text-sm text-muted-foreground">
         Drop in their logo and colours, then open a demo window: the whole platform appears in their
-        branding, filled with realistic sample deals, contacts and settlements. None of your live client
-        data is loaded, nothing is saved, and your own brand is unaffected.
+        branding with no client data at all. Demo branding applies only to the demo window (and this tab
+        if you preview here) — your team and your live workspace always see your own brand.
       </p>
 
 
@@ -138,8 +136,7 @@ export function BrandPreviewPanel() {
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">
-        "Open demo app" is the safe one to screen-share: it runs on sample data only. "Preview branding
-        here" re-skins your live workspace, so your real client data stays on screen.
+        "Open demo app" is the safe one to screen-share: it runs on sample data only. x
       </p>
 
     </div>
