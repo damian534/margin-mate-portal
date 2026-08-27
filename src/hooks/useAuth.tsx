@@ -71,11 +71,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isPreviewMode] = useState(getIsPreviewMode);
+  const [isPreviewMode, setIsPreviewMode] = useState(getIsPreviewMode);
   const [previewRole, setPreviewRole] = useState<AppRole>('broker');
   const [staffBrokerId, setStaffBrokerId] = useState<string | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const isMountedRef = useRef(true);
+
+  // Demo mode lives in the URL (?preview=true). Client-side navigation can drop it,
+  // so keep watching the address bar and fall back to the real session when it goes.
+  useEffect(() => {
+    const sync = () => setIsPreviewMode(getIsPreviewMode());
+    sync();
+    window.addEventListener('popstate', sync);
+    const interval = setInterval(sync, 500);
+    return () => {
+      window.removeEventListener('popstate', sync);
+      clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     if (isPreviewMode) {
@@ -86,10 +99,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     isMountedRef.current = true;
+    // Leaving demo mode: drop the fake identity while the real session loads.
+    setUser(null);
+    setRole(null);
+    setLoading(true);
 
     const timeout = setTimeout(() => {
       if (isMountedRef.current) setLoading(false);
     }, 5000);
+
 
     const handleSession = async (newSession: Session | null) => {
       if (!isMountedRef.current) return;
