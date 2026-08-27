@@ -60,7 +60,7 @@ interface TemplateRow {
 }
 
 export function MilestoneEmailsManagement() {
-  const { user, role } = useAuth();
+  const { user, role, isPreviewMode } = useAuth();
   const [bcc, setBcc] = useState('');
   const [templates, setTemplates] = useState<Record<string, TemplateRow>>({});
   const [order, setOrder] = useState<string[]>([]);
@@ -77,10 +77,13 @@ export function MilestoneEmailsManagement() {
     if (!brokerId) return;
     (async () => {
       setLoading(true);
-      const [{ data: tpls }, { data: settings }] = await Promise.all([
-        supabase.from('milestone_email_templates').select('*').eq('broker_id', brokerId),
-        supabase.from('broker_email_settings').select('*').eq('broker_id', brokerId).maybeSingle(),
-      ]);
+      const [{ data: tpls }, { data: settings }] = isPreviewMode
+        ? [{ data: [] as any[] }, { data: null as any }]
+        : await Promise.all([
+            supabase.from('milestone_email_templates').select('*').eq('broker_id', brokerId),
+            supabase.from('broker_email_settings').select('*').eq('broker_id', brokerId).maybeSingle(),
+          ]);
+
       const map: Record<string, TemplateRow> = {};
       const ord: string[] = [];
       for (const m of DEFAULT_MILESTONES) {
