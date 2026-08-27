@@ -24,14 +24,18 @@ import { supabase } from '@/integrations/supabase/client';
 type ViewMode = 'deals' | 'performance' | 'activity';
 
 export default function Settlements() {
-  const { role, isPreviewMode } = useAuth();
+  const { role, isPreviewMode, isStaff } = useAuth();
   const { settlements, allSettlements, loading, kpis, filters, filterOptions, updateFilter, resetFilters, addSettlement, updateSettlement, deleteSettlement, isSuperAdmin, refetch } = useSettlements();
   const [viewMode, setViewMode] = useState<ViewMode>('deals');
   const [brokers, setBrokers] = useState<{ id: string; name: string }[]>([]);
 
+  // Admin staff get the same settlement view as the broker they support
+  const hasFullView = isSuperAdmin || isStaff;
+
   const { todayActivity, weeklyTotals, targets, last30Days, leaderboard, saveActivity, saveTargets } = useBrokerActivity(
-    isSuperAdmin && filters.brokerId !== 'all' ? filters.brokerId : undefined
+    hasFullView && filters.brokerId !== 'all' ? filters.brokerId : undefined
   );
+
 
   useEffect(() => {
     if (!isSuperAdmin || isPreviewMode) return;
