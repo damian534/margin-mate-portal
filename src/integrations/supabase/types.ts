@@ -2611,6 +2611,7 @@ export type Database = {
         Returns: boolean
       }
       is_broker_or_staff: { Args: { _user_id: string }; Returns: boolean }
+      is_platform_owner: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_tenant_owner: { Args: { _user_id: string }; Returns: boolean }
       tenant_seat_usage: {
@@ -2640,6 +2641,7 @@ export type Database = {
         | "super_admin"
         | "broker_staff"
         | "tenant_owner"
+        | "platform_owner"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2773,6 +2775,7 @@ export const Constants = {
         "super_admin",
         "broker_staff",
         "tenant_owner",
+        "platform_owner",
       ],
     },
   },

@@ -2,7 +2,10 @@ import { useState, useEffect, createContext, useContext, ReactNode, useRef } fro
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 
-type AppRole = 'broker' | 'referral_partner' | 'super_admin' | 'broker_staff';
+type AppRole = 'broker' | 'referral_partner' | 'super_admin' | 'broker_staff' | 'platform_owner';
+
+// Highest privilege first — a user may hold several roles (e.g. super_admin + platform_owner).
+const ROLE_PRIORITY: AppRole[] = ['super_admin', 'broker', 'broker_staff', 'referral_partner', 'platform_owner'];
 
 interface AuthContextType {
   user: User | null;
@@ -12,6 +15,7 @@ interface AuthContextType {
   isPreviewMode: boolean;
   isBrokerOrAdmin: boolean;
   isStaff: boolean;
+  isPlatformOwner: boolean;
   effectiveBrokerId: string | null;
   signOut: () => Promise<void>;
   setPreviewRole: (role: AppRole) => void;
@@ -25,6 +29,7 @@ const AuthContext = createContext<AuthContextType>({
   isPreviewMode: false,
   isBrokerOrAdmin: false,
   isStaff: false,
+  isPlatformOwner: false,
   effectiveBrokerId: null,
   signOut: async () => {},
   setPreviewRole: () => {},
@@ -44,17 +49,21 @@ const FAKE_USER = {
   created_at: new Date().toISOString(),
 } as unknown as User;
 
-async function fetchRole(userId: string): Promise<AppRole | null> {
+async function fetchRoles(userId: string): Promise<AppRole[]> {
   const { data, error } = await supabase
     .from('user_roles')
     .select('role')
-    .eq('user_id', userId)
-    .maybeSingle();
+    .eq('user_id', userId);
   if (error) {
-    console.error('fetchRole error:', error.message);
-    return null;
+    console.error('fetchRoles error:', error.message);
+    return [];
   }
-  return (data?.role as AppRole) ?? null;
+  return ((data as { role: AppRole }[] | null) ?? []).map((r) => r.role);
+}
+
+function primaryRole(roles: AppRole[]): AppRole | null {
+  for (const r of ROLE_PRIORITY) if (roles.includes(r)) return r;
+  return roles[0] ?? null;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -65,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isPreviewMode] = useState(getIsPreviewMode);
   const [previewRole, setPreviewRole] = useState<AppRole>('broker');
   const [staffBrokerId, setStaffBrokerId] = useState<string | null>(null);
+  const [roles, setRoles] = useState<AppRole[]>([]);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -86,8 +96,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(newSession);
       setUser(newSession?.user ?? null);
       if (newSession?.user) {
-        const userRole = await fetchRole(newSession.user.id);
+        const userRoles = await fetchRoles(newSession.user.id);
+        const userRole = primaryRole(userRoles);
         if (isMountedRef.current) {
+          setRoles(userRoles);
           setRole(userRole);
           // If broker_staff, fetch their broker_id from profiles
           if (userRole === 'broker_staff') {
@@ -106,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } else {
         setRole(null);
+        setRoles([]);
         setStaffBrokerId(null);
         setLoading(false);
       }
@@ -134,16 +147,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setSession(null);
     setRole(null);
+    setRoles([]);
     setStaffBrokerId(null);
   };
 
   const isBrokerOrAdmin = role === 'broker' || role === 'super_admin' || role === 'broker_staff';
   const isStaff = role === 'broker_staff';
+  const isPlatformOwner = roles.includes('platform_owner');
   // For broker_staff, use their linked broker's ID. For brokers/admins, use their own ID.
   const effectiveBrokerId = isStaff ? staffBrokerId : (user?.id ?? null);
 
   return (
-    <AuthContext.Provider value={{ user, session, role, loading, isPreviewMode, isBrokerOrAdmin, isStaff, effectiveBrokerId, signOut, setPreviewRole }}>
+    <AuthContext.Provider value={{ user, session, role, loading, isPreviewMode, isBrokerOrAdmin, isStaff, isPlatformOwner, effectiveBrokerId, signOut, setPreviewRole }}>
       {children}
     </AuthContext.Provider>
   );
