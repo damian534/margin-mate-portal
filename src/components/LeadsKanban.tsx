@@ -404,8 +404,8 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                               </div>
 
                               {docs && docs.requested > 0 && (
-                                <div className="pt-1 border-t border-border/40 space-y-1">
-                                  <div className="flex items-center justify-between text-[10px]">
+                                <div className="pt-0.5 border-t border-border/40 space-y-0.5">
+                                  <div className="flex items-center justify-between text-[9px]">
                                     <span className="text-muted-foreground flex items-center gap-1"><FileText className="w-3 h-3" /> Docs {docsPct}%</span>
                                     {docs.files.length > 0 && onDownloadDocs && (
                                       <button
