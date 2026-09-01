@@ -616,7 +616,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); onAddInStage(stage.name); }}
-                        className="mx-2 mt-2 inline-flex items-center justify-center gap-1 py-1.5 rounded-md border border-dashed border-border text-[11px] font-medium text-muted-foreground hover:text-foreground hover:border-foreground/40 hover:bg-background/60 transition"
+                        className="mx-2 mt-2 inline-flex items-center justify-center gap-1 py-1 rounded-md border border-dashed border-border text-[11px] font-medium text-muted-foreground hover:text-foreground hover:border-foreground/40 hover:bg-background/60 transition"
                       >
                         <Plus className="w-3 h-3" /> Add card
                       </button>
@@ -657,22 +657,22 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                 dragOverCard?.leadId === lead.id && dragOverCard.position === 'after' ? 'border-b-2 border-b-primary' : ''
                               }`}
                             >
-                              <CardContent className={compact ? "p-2 space-y-1" : "p-3 space-y-2"}>
-                                <div className="flex items-start gap-2">
-                                  <div className="w-7 h-7 rounded-full bg-primary/10 text-primary text-[11px] font-semibold flex items-center justify-center shrink-0">
+                              <CardContent className={compact ? "p-2 space-y-1" : "p-2.5 space-y-1.5"}>
+                                <div className="flex items-start gap-1.5">
+                                  <div className="w-6 h-6 rounded-full bg-primary/10 text-primary text-[10px] font-semibold flex items-center justify-center shrink-0">
                                     {lead.first_name?.[0] || ''}{lead.last_name?.[0] || ''}
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     {hasOpportunity ? (
                                       <>
-                                        <p className="font-semibold text-sm leading-tight break-words text-foreground" title={displayTitle}>{displayTitle}</p>
-                                        <p className="text-xs text-muted-foreground leading-tight truncate">{fullName}</p>
+                                        <p className="font-semibold text-xs leading-tight break-words text-foreground" title={displayTitle}>{displayTitle}</p>
+                                        <p className="text-[11px] text-muted-foreground leading-tight truncate">{fullName}</p>
                                       </>
                                     ) : (
-                                      <p className="font-semibold text-sm leading-tight break-words" title={fullName}>{fullName}</p>
+                                      <p className="font-semibold text-xs leading-tight break-words" title={fullName}>{fullName}</p>
                                     )}
                                     {lead.loan_purpose && (
-                                      <p className="text-[11px] text-muted-foreground truncate">{lead.loan_purpose}</p>
+                                      <p className="text-[10px] text-muted-foreground truncate">{lead.loan_purpose}</p>
                                     )}
                                   </div>
                                    <StageAgingDot
@@ -683,14 +683,14 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                    />
                                    {hasTask && (
                                      <span title={`${activeTasks.length} active task${activeTasks.length > 1 ? 's' : ''}`}>
-                                       <ClipboardList className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                                       <ClipboardList className="w-3 h-3 text-primary shrink-0 mt-0.5" />
                                      </span>
                                    )}
                                    <AssigneeBadge userId={lead.assigned_to ?? null} />
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                      <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 -mr-1" title="Move to stage">
-                                        <MoreVertical className="w-3.5 h-3.5" />
+                                      <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0 -mr-1" title="Move to stage">
+                                        <MoreVertical className="w-3 h-3" />
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="max-h-[60vh] overflow-y-auto bg-popover z-50">
