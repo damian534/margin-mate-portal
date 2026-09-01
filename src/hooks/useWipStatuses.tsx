@@ -8,6 +8,8 @@ export interface WipStatus {
   label: string;
   color: string;
   display_order: number;
+  amber_after_days?: number | null;
+  red_after_days?: number | null;
 }
 
 const DEFAULT_WIP_STATUSES: WipStatus[] = [
@@ -61,7 +63,7 @@ export function useWipStatuses() {
 
   const addStatus = async (name: string, label: string, color: string) => {
     if (isPreviewMode) {
-      setStatuses(prev => [...prev, { id: `preview-${Date.now()}`, name, label, color, display_order: prev.length }]);
+      setStatuses(prev => [...prev, { id: `preview-${Date.now()}`, name, label, color, display_order: prev.length, amber_after_days: 4, red_after_days: 7 }]);
       return true;
     }
     const { error } = await supabase.from('wip_statuses').insert({
@@ -72,7 +74,7 @@ export function useWipStatuses() {
     return true;
   };
 
-  const updateStatus = async (id: string, updates: Partial<Pick<WipStatus, 'label' | 'color' | 'name'>>) => {
+  const updateStatus = async (id: string, updates: Partial<Pick<WipStatus, 'label' | 'color' | 'name' | 'amber_after_days' | 'red_after_days'>>) => {
     if (isPreviewMode) {
       setStatuses(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
       return true;

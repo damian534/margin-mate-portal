@@ -17,6 +17,8 @@ import { Users } from 'lucide-react';
 import { HorizontalScrollWithTopBar } from '@/components/HorizontalScrollWithTopBar';
 import { useWipStatuses } from '@/hooks/useWipStatuses';
 import { StatusSettings } from '@/components/StatusSettings';
+import { StageAgingDot } from '@/components/StageAgingDot';
+import { getAgingLevel, AGING_EXEMPT_STATUSES } from '@/lib/stageAging';
 
 export const WIP_STATUSES = [
   { name: 'pending_fact_find', label: 'Pending Fact Find', color: '#cbd5e1' },
@@ -88,6 +90,7 @@ interface WIPLead {
   email?: string | null;
   phone?: string | null;
   wip_sort_order?: number | null;
+  stage_entered_at?: string | null;
 }
 
 interface LeadSource {
@@ -115,7 +118,7 @@ interface WIPDashboardProps {
 
 export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead, docsByLead, onDownloadDocs, leadSources = [], getReferrerName, getReferrerCompany, getContactName, externalSearch, tasksByLead, onAddInStage }: WIPDashboardProps) {
   const { statuses: wipStatusesDynamic, addStatus, updateStatus: updateWipStatusConfig, deleteStatus, reorderStatuses } = useWipStatuses();
-  const wipStatuses = wipStatusesDynamic.length > 0 ? wipStatusesDynamic : (WIP_STATUSES as unknown as { name: string; label: string; color: string }[]);
+  const wipStatuses = wipStatusesDynamic.length > 0 ? wipStatusesDynamic : (WIP_STATUSES as unknown as { name: string; label: string; color: string; amber_after_days?: number | null; red_after_days?: number | null }[]);
   const [assigneeFilter, setAssigneeFilter] = usePersistedState<string[]>('crm.wip.assigneeFilterMulti', []);
   const [collapsedColumns, setCollapsedColumns] = usePersistedStringSet('crm.wip.collapsedColumns', []);
   const [search, setSearch] = usePersistedState<string>('crm.wip.search', '');
@@ -419,8 +422,19 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                         ${stageTotal.toLocaleString()}
                       </span>
                     )}
-                    <span className="text-xs text-muted-foreground">({stageLeads.length})</span>
-                  </div>
+                     <span className="text-xs text-muted-foreground">({stageLeads.length})</span>
+                     {!AGING_EXEMPT_STATUSES.has(stage.name) && (() => {
+                       const stale = stageLeads.filter(l => getAgingLevel(l.stage_entered_at, stage)?.level === 'red').length;
+                       return stale > 0 ? (
+                         <span
+                           className="text-[10px] px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold inline-flex items-center gap-1"
+                           title={`${stale} deal${stale === 1 ? '' : 's'} sitting too long in this stage`}
+                         >
+                           <span className="w-1.5 h-1.5 rounded-full bg-destructive" /> {stale} stale
+                         </span>
+                       ) : null;
+                     })()}
+                   </div>
                   {stageLeads.length === 0 ? (
                     <div className="border border-dashed rounded-lg p-4 text-center text-xs text-muted-foreground">
                       Drop deals here
@@ -467,9 +481,10 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                 onClick={() => onOpenLead(lead)}
                               >
                                 <TableCell className="font-medium">
-                                  <div className="flex items-center gap-1.5">
-                                    {lead.first_name} {lead.last_name}
-                                    {hasTask && (
+                                   <div className="flex items-center gap-1.5">
+                                     {lead.first_name} {lead.last_name}
+                                     <StageAgingDot stageEnteredAt={lead.stage_entered_at} statusName={stage.name} thresholds={stage} />
+                                     {hasTask && (
                                       <span title={`${activeTasks.length} active task${activeTasks.length > 1 ? 's' : ''}`}>
                                         <ClipboardList className="w-3.5 h-3.5 text-primary shrink-0" />
                                       </span>
@@ -540,6 +555,9 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
             const stageLeads = grouped.get(stage.name) || [];
             const t = totals.get(stage.name)!;
             const isCollapsed = collapsedColumns.has(stage.name);
+            const staleCount = AGING_EXEMPT_STATUSES.has(stage.name)
+              ? 0
+              : stageLeads.filter(l => getAgingLevel(l.stage_entered_at, stage)?.level === 'red').length;
             return (
               <div
                 key={stage.name}
@@ -578,8 +596,16 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                           <ChevronDown className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
                           <h3 className="text-sm font-semibold leading-tight truncate">{stage.label}</h3>
                         </div>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-background border shrink-0">{t.count}</span>
-                      </div>
+                         <span className="text-xs px-2 py-0.5 rounded-full bg-background border shrink-0">{t.count}</span>
+                         {staleCount > 0 && (
+                           <span
+                             className="text-[10px] px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold shrink-0 inline-flex items-center gap-1"
+                             title={`${staleCount} deal${staleCount === 1 ? '' : 's'} sitting too long in this stage`}
+                           >
+                             <span className="w-1.5 h-1.5 rounded-full bg-destructive" /> {staleCount}
+                           </span>
+                         )}
+                       </div>
                       {t.volume > 0 && (
                         <p className="text-xs text-muted-foreground mt-1">${t.volume.toLocaleString()}</p>
                       )}
@@ -646,12 +672,18 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                       <p className="text-[11px] text-muted-foreground truncate">{lead.loan_purpose}</p>
                                     )}
                                   </div>
-                                  {hasTask && (
-                                    <span title={`${activeTasks.length} active task${activeTasks.length > 1 ? 's' : ''}`}>
-                                      <ClipboardList className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-                                    </span>
-                                  )}
-                                  <AssigneeBadge userId={lead.assigned_to ?? null} />
+                                   <StageAgingDot
+                                     stageEnteredAt={lead.stage_entered_at}
+                                     statusName={stage.name}
+                                     thresholds={stage}
+                                     className="mt-0.5"
+                                   />
+                                   {hasTask && (
+                                     <span title={`${activeTasks.length} active task${activeTasks.length > 1 ? 's' : ''}`}>
+                                       <ClipboardList className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                                     </span>
+                                   )}
+                                   <AssigneeBadge userId={lead.assigned_to ?? null} />
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                                       <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 -mr-1" title="Move to stage">

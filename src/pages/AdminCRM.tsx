@@ -97,6 +97,7 @@ interface Lead {
   estimated_settlement_date?: string | null;
   assigned_to?: string | null;
   opportunity_name?: string | null;
+  stage_entered_at?: string | null;
 }
 
 
@@ -522,8 +523,8 @@ export default function AdminCRM() {
   const updateStatus = async (leadId: string, status: string) => {
     if (isPreviewMode) {
       toast.success('Status updated (preview)');
-      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status } : l));
-      if (selectedLead?.id === leadId) setSelectedLead(prev => prev ? { ...prev, status } : null);
+      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status, stage_entered_at: new Date().toISOString() } : l));
+      if (selectedLead?.id === leadId) setSelectedLead(prev => prev ? { ...prev, status, stage_entered_at: new Date().toISOString() } : null);
       return;
     }
     const lead = leads.find(l => l.id === leadId);
@@ -531,8 +532,9 @@ export default function AdminCRM() {
     const { error } = await supabase.from('leads').update({ status: status as any }).eq('id', leadId);
     if (error) { toast.error('Failed to update status'); return; }
     toast.success('Status updated');
-    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status } : l));
-    if (selectedLead?.id === leadId) setSelectedLead(prev => prev ? { ...prev, status } : null);
+    const stageNow = new Date().toISOString();
+    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status, stage_entered_at: stageNow } : l));
+    if (selectedLead?.id === leadId) setSelectedLead(prev => prev ? { ...prev, status, stage_entered_at: stageNow } : null);
 
     // Auto-create settlement when lead moves to "settled"
     if (status === 'settled' && oldStatus !== 'settled' && lead && user) {
@@ -570,8 +572,9 @@ export default function AdminCRM() {
     const shouldClearStaleStatus =
       wip_status && wip_status !== 'settled' && lead && ['parked', 'lost'].includes(lead.status);
     const nextStatus = shouldClearStaleStatus ? 'in_progress' : lead?.status;
+    const stageNow = new Date().toISOString();
     setLeads(prev => prev.map(l => l.id === leadId
-      ? { ...l, wip_status, status: shouldClearStaleStatus ? 'in_progress' : l.status }
+      ? { ...l, wip_status, status: shouldClearStaleStatus ? 'in_progress' : l.status, stage_entered_at: stageNow }
       : l));
     if (isPreviewMode) { toast.success('WIP status updated (preview)'); return; }
     const updatePayload: any = { wip_status };

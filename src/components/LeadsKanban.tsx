@@ -7,6 +7,8 @@ import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChevronDown, ChevronRight, DollarSign, Users, ChevronsDownUp, ChevronsUpDown, ClipboardList, FileDown, FileText, MoreVertical, Maximize2, Minimize2, Plus } from 'lucide-react';
 import { AssigneeBadge } from '@/components/AssigneePicker';
+import { StageAgingDot } from '@/components/StageAgingDot';
+import { getAgingLevel, AGING_EXEMPT_STATUSES } from '@/lib/stageAging';
 import { usePersistedState, usePersistedStringSet } from '@/hooks/usePersistedState';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { HorizontalScrollWithTopBar } from '@/components/HorizontalScrollWithTopBar';
@@ -29,6 +31,7 @@ interface Lead {
   created_at: string;
   assigned_to?: string | null;
   lead_sort_order?: number | null;
+  stage_entered_at?: string | null;
 }
 
 interface LeadSource {
@@ -213,6 +216,9 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
           const columnLeads = sortLeads(leads.filter(l => getStatus(l) === status.name));
           const totalAmount = columnLeads.reduce((sum, l) => sum + (l.loan_amount || 0), 0);
           const isCollapsed = collapsedColumns.has(status.name);
+          const staleCount = AGING_EXEMPT_STATUSES.has(status.name)
+            ? 0
+            : columnLeads.filter(l => getAgingLevel(l.stage_entered_at, status)?.level === 'red').length;
 
           return (
             <div
@@ -250,6 +256,14 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                         <h3 className="text-sm font-semibold leading-tight truncate">{status.label}</h3>
                       </div>
                       <span className="text-xs px-2 py-0.5 rounded-full bg-background border shrink-0">{columnLeads.length}</span>
+                      {staleCount > 0 && (
+                        <span
+                          className="text-[10px] px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold shrink-0 inline-flex items-center gap-1"
+                          title={`${staleCount} deal${staleCount === 1 ? '' : 's'} sitting too long in this stage`}
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-destructive" /> {staleCount}
+                        </span>
+                      )}
                     </div>
                     {totalAmount > 0 && (
                       <p className="text-xs text-muted-foreground mt-1">${totalAmount.toLocaleString()}</p>
@@ -312,6 +326,12 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                                     <p className="text-[11px] text-muted-foreground truncate">{lead.loan_purpose}</p>
                                   )}
                                 </div>
+                                <StageAgingDot
+                                  stageEnteredAt={lead.stage_entered_at}
+                                  statusName={status.name}
+                                  thresholds={status}
+                                  className="mt-0.5"
+                                />
                                 {hasTask && (
                                   <ClipboardList className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
                                 )}

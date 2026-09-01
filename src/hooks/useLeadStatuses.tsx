@@ -8,16 +8,18 @@ export interface LeadStatus {
   label: string;
   color: string;
   display_order: number;
+  amber_after_days?: number | null;
+  red_after_days?: number | null;
 }
 
 const DEFAULT_STATUSES: LeadStatus[] = [
-  { id: 'def-1', name: 'new', label: 'New', color: '#6b7280', display_order: 0 },
-  { id: 'def-2', name: 'contacted', label: 'Contacted', color: '#3b82f6', display_order: 1 },
-  { id: 'def-3', name: 'in_progress', label: 'In Progress', color: '#f59e0b', display_order: 2 },
-  { id: 'def-4', name: 'qualified', label: 'Qualified', color: '#8b5cf6', display_order: 3 },
-  { id: 'def-5', name: 'approved', label: 'Approved', color: '#10b981', display_order: 4 },
-  { id: 'def-6', name: 'settled', label: 'Settled', color: '#22c55e', display_order: 5 },
-  { id: 'def-7', name: 'lost', label: 'Lost', color: '#ef4444', display_order: 6 },
+  { id: 'def-1', name: 'new', label: 'New', color: '#6b7280', display_order: 0, amber_after_days: 4, red_after_days: 7 },
+  { id: 'def-2', name: 'contacted', label: 'Contacted', color: '#3b82f6', display_order: 1, amber_after_days: 4, red_after_days: 7 },
+  { id: 'def-3', name: 'in_progress', label: 'In Progress', color: '#f59e0b', display_order: 2, amber_after_days: 4, red_after_days: 7 },
+  { id: 'def-4', name: 'qualified', label: 'Qualified', color: '#8b5cf6', display_order: 3, amber_after_days: 4, red_after_days: 7 },
+  { id: 'def-5', name: 'approved', label: 'Approved', color: '#10b981', display_order: 4, amber_after_days: 4, red_after_days: 7 },
+  { id: 'def-6', name: 'settled', label: 'Settled', color: '#22c55e', display_order: 5, amber_after_days: 4, red_after_days: 7 },
+  { id: 'def-7', name: 'lost', label: 'Lost', color: '#ef4444', display_order: 6, amber_after_days: 4, red_after_days: 7 },
 ];
 
 export function useLeadStatuses() {
@@ -57,6 +59,8 @@ export function useLeadStatuses() {
         label,
         color,
         display_order: statuses.length,
+        amber_after_days: 4,
+        red_after_days: 7,
       };
       setStatuses(prev => [...prev, newStatus]);
       return true;
@@ -72,7 +76,7 @@ export function useLeadStatuses() {
     return true;
   };
 
-  const updateStatus = async (id: string, updates: Partial<Pick<LeadStatus, 'label' | 'color' | 'name'>>) => {
+  const updateStatus = async (id: string, updates: Partial<Pick<LeadStatus, 'label' | 'color' | 'name' | 'amber_after_days' | 'red_after_days'>>) => {
     if (isPreviewMode) {
       setStatuses(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
       return true;
