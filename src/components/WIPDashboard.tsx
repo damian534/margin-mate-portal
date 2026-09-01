@@ -412,6 +412,43 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
         })}
       </div>
 
+      {/* Stage aging colour filter */}
+      <div className="flex items-center gap-1 flex-wrap">
+        <span className="text-xs text-muted-foreground mr-1">Stage age:</span>
+        {([
+          { value: 'all' as const, label: 'All Colours', dot: null as string | null },
+          { value: 'green' as const, label: 'Green', dot: 'bg-success' },
+          { value: 'amber' as const, label: 'Amber', dot: 'bg-warning' },
+          { value: 'red' as const, label: 'Red', dot: 'bg-destructive' },
+        ]).map(opt => {
+          const count = opt.value === 'all'
+            ? null
+            : visibleLeads.filter(l => {
+                const stageName = getStage(l);
+                const stageCfg = wipStatuses.find(s => s.name === stageName);
+                return getCardAging(l.stage_entered_at, stageName, stageCfg)?.level === opt.value;
+              }).length;
+          return (
+            <Button
+              key={opt.value}
+              variant={agingFilter === opt.value ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-7 text-xs gap-1.5"
+              onClick={() => setAgingFilter(opt.value)}
+              title={opt.value === 'all' ? 'Show all deals' : `Show only ${opt.label.toLowerCase()} deals (sorted red first within each column)`}
+            >
+              {opt.dot && <span className={`w-2.5 h-2.5 rounded-full ${opt.dot}`} />}
+              {opt.label}
+              {count != null && count > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${agingFilter === opt.value ? 'bg-background text-foreground' : 'bg-muted text-muted-foreground'}`}>
+                  {count}
+                </span>
+              )}
+            </Button>
+          );
+        })}
+      </div>
+
       {view === 'list' ? (
         visibleLeads.filter(l => l.wip_status).length === 0 ? (
           <Card><CardContent className="p-0"><p className="text-muted-foreground text-center py-12">No deals in WIP</p></CardContent></Card>
