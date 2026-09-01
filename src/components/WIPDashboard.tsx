@@ -454,10 +454,11 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {stageLeads.map(lead => {
-                              const activeTasks = tasksByLead?.get(lead.id)?.filter(t => !t.completed) || [];
-                              const hasTask = activeTasks.length > 0;
-                              return (
+                             {stageLeads.map(lead => {
+                               const activeTasks = tasksByLead?.get(lead.id)?.filter(t => !t.completed) || [];
+                               const hasTask = activeTasks.length > 0;
+                               const aging = getCardAging(lead.stage_entered_at, stage.name, stage);
+                               return (
                               <TableRow
                                 key={lead.id}
                                 draggable
@@ -474,11 +475,11 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                 }}
                                 onDragLeave={(e) => { e.stopPropagation(); setDragOverCard(prev => prev?.leadId === lead.id ? null : prev); }}
                                 onDrop={(e) => reorderBeforeCard(e, lead, stage.name)}
-                                className={`cursor-grab active:cursor-grabbing hover:bg-muted/50 ${
-                                  dragOverCard?.leadId === lead.id && dragOverCard.position === 'before' ? 'border-t-2 border-t-primary' : ''
-                                } ${
-                                  dragOverCard?.leadId === lead.id && dragOverCard.position === 'after' ? 'border-b-2 border-b-primary' : ''
-                                }`}
+                                 className={`cursor-grab active:cursor-grabbing hover:bg-muted/50 ${aging ? AGING_ROW_CLASS[aging.level] : ''} ${
+                                   dragOverCard?.leadId === lead.id && dragOverCard.position === 'before' ? 'border-t-2 border-t-primary' : ''
+                                 } ${
+                                   dragOverCard?.leadId === lead.id && dragOverCard.position === 'after' ? 'border-b-2 border-b-primary' : ''
+                                 }`}
                                 onClick={() => onOpenLead(lead)}
                               >
                                 <TableCell className="font-medium">
@@ -629,9 +630,10 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                           const displayTitle = lead.opportunity_name?.trim() || `${lead.first_name} ${lead.last_name}`;
                           const fullName = `${lead.first_name} ${lead.last_name}`;
                           const hasOpportunity = !!lead.opportunity_name?.trim();
-                          const activeTasks = tasksByLead?.get(lead.id)?.filter(t => !t.completed) || [];
-                          const hasTask = activeTasks.length > 0;
-                          return (
+                           const activeTasks = tasksByLead?.get(lead.id)?.filter(t => !t.completed) || [];
+                           const hasTask = activeTasks.length > 0;
+                           const aging = getCardAging(lead.stage_entered_at, stage.name, stage);
+                           return (
                             <Card
                               key={lead.id}
                               draggable
@@ -649,7 +651,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                               onDragLeave={(e) => { e.stopPropagation(); setDragOverCard(prev => prev?.leadId === lead.id ? null : prev); }}
                               onDrop={(e) => reorderBeforeCard(e, lead, stage.name)}
                               onClick={() => onOpenLead(lead)}
-                              className={`cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors border bg-card ${
+                              className={`cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors border ${aging ? AGING_CARD_CLASS[aging.level] : 'bg-card'} ${
                                 dragOverCard?.leadId === lead.id && dragOverCard.position === 'before' ? 'border-t-2 border-t-primary' : ''
                               } ${
                                 dragOverCard?.leadId === lead.id && dragOverCard.position === 'after' ? 'border-b-2 border-b-primary' : ''
