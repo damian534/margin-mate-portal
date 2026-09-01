@@ -10,7 +10,7 @@ import { LeadStatus } from '@/hooks/useLeadStatuses';
 interface StatusSettingsProps {
   statuses: LeadStatus[];
   onAdd: (name: string, label: string, color: string) => Promise<boolean>;
-  onUpdate: (id: string, updates: Partial<Pick<LeadStatus, 'label' | 'color' | 'name'>>) => Promise<boolean>;
+  onUpdate: (id: string, updates: Partial<Pick<LeadStatus, 'label' | 'color' | 'name' | 'amber_after_days' | 'red_after_days'>>) => Promise<boolean>;
   onDelete: (id: string) => Promise<boolean>;
   onReorder: (reordered: LeadStatus[]) => Promise<boolean>;
   title?: string;
@@ -25,6 +25,8 @@ export function StatusSettings({ statuses, onAdd, onUpdate, onDelete, onReorder,
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState('');
   const [editColor, setEditColor] = useState('');
+  const [editAmber, setEditAmber] = useState('4');
+  const [editRed, setEditRed] = useState('7');
 
   const handleAdd = async () => {
     if (!newLabel.trim()) return;
@@ -42,7 +44,9 @@ export function StatusSettings({ statuses, onAdd, onUpdate, onDelete, onReorder,
 
   const handleUpdate = async (id: string) => {
     const name = editLabel.trim().toLowerCase().replace(/\s+/g, '_');
-    const ok = await onUpdate(id, { label: editLabel.trim(), color: editColor, name });
+    const amber = Math.max(1, parseInt(editAmber) || 4);
+    const red = Math.max(amber + 1, parseInt(editRed) || 7);
+    const ok = await onUpdate(id, { label: editLabel.trim(), color: editColor, name, amber_after_days: amber, red_after_days: red });
     if (ok) {
       toast.success('Status updated');
       setEditingId(null);
@@ -104,20 +108,41 @@ export function StatusSettings({ statuses, onAdd, onUpdate, onDelete, onReorder,
               <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: editingId === status.id ? editColor : status.color }} />
 
               {editingId === status.id ? (
-                <div className="flex-1 flex items-center gap-2">
-                  <Input
-                    value={editLabel}
-                    onChange={e => setEditLabel(e.target.value)}
-                    className="h-8 text-sm"
-                  />
-                  <input
-                    type="color"
-                    value={editColor}
-                    onChange={e => setEditColor(e.target.value)}
-                    className="w-8 h-8 rounded cursor-pointer border-0 p-0"
-                  />
-                  <Button size="sm" variant="ghost" onClick={() => handleUpdate(status.id)} className="h-8 px-2">Save</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setEditingId(null)} className="h-8 px-2">✕</Button>
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={editLabel}
+                      onChange={e => setEditLabel(e.target.value)}
+                      className="h-8 text-sm"
+                    />
+                    <input
+                      type="color"
+                      value={editColor}
+                      onChange={e => setEditColor(e.target.value)}
+                      className="w-8 h-8 rounded cursor-pointer border-0 p-0"
+                    />
+                    <Button size="sm" variant="ghost" onClick={() => handleUpdate(status.id)} className="h-8 px-2">Save</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingId(null)} className="h-8 px-2">✕</Button>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="shrink-0">Aging (business days):</span>
+                    <label className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-warning inline-block" />
+                      <Input
+                        type="number" min={1} value={editAmber}
+                        onChange={e => setEditAmber(e.target.value)}
+                        className="h-7 w-14 text-xs px-1.5"
+                      />
+                    </label>
+                    <label className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-destructive inline-block" />
+                      <Input
+                        type="number" min={2} value={editRed}
+                        onChange={e => setEditRed(e.target.value)}
+                        className="h-7 w-14 text-xs px-1.5"
+                      />
+                    </label>
+                  </div>
                 </div>
               ) : (
                 <>
