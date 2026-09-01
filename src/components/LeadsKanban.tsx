@@ -319,13 +319,13 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   {lead.opportunity_name && (
-                                    <p className="font-semibold text-xs leading-tight truncate text-foreground">{lead.opportunity_name}</p>
+                                    <p className="font-semibold text-[11px] leading-tight truncate text-foreground">{lead.opportunity_name}</p>
                                   )}
-                                  <p className={`${lead.opportunity_name ? 'text-[11px] text-muted-foreground' : 'font-semibold text-xs'} leading-tight truncate`}>
+                                  <p className={`${lead.opportunity_name ? 'text-[10px] text-muted-foreground' : 'font-semibold text-[11px]'} leading-tight truncate`}>
                                     {lead.first_name} {lead.last_name}
                                   </p>
                                   {lead.loan_purpose && (
-                                    <p className="text-[10px] text-muted-foreground truncate">{lead.loan_purpose}</p>
+                                    <p className="text-[9px] text-muted-foreground truncate">{lead.loan_purpose}</p>
                                   )}
                                 </div>
                                 <StageAgingDot
@@ -366,12 +366,12 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                               {(lead.loan_amount || lead.source) && (
                                 <div className="flex items-center justify-between gap-2">
                                   {lead.loan_amount ? (
-                                    <span className="text-xs font-semibold tabular-nums text-foreground">
+                                    <span className="text-[11px] font-semibold tabular-nums text-foreground">
                                       ${lead.loan_amount.toLocaleString()}
                                     </span>
                                   ) : <span />}
                                   {lead.source && (
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground truncate max-w-[60%]">
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground truncate max-w-[60%]">
                                       {leadSources.find(s => s.name === lead.source)?.label || lead.source}
                                     </span>
                                   )}
@@ -379,7 +379,7 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                               )}
 
                               {/* Footer meta — attribution + date on one divided row */}
-                              <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40 text-[10px] text-muted-foreground">
+                              <div className="flex items-center justify-between gap-2 pt-0.5 border-t border-border/40 text-[9px] text-muted-foreground">
                                 <div className="flex items-center gap-1 min-w-0 flex-1">
                                   {lead.referral_partner_id && getReferrerName?.(lead.referral_partner_id) ? (
                                     <>
