@@ -224,7 +224,7 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
           return (
             <div
               key={status.name}
-              className={`flex-shrink-0 flex flex-col transition-all ${isCollapsed ? 'w-10' : compact ? 'w-44' : 'w-64'}`}
+              className={`flex-shrink-0 flex flex-col transition-all ${isCollapsed ? 'w-10' : compact ? 'w-40' : 'w-56'}`}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, status.name)}
             >
@@ -282,7 +282,7 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
 
                   {/* Cards */}
                   <ScrollArea className="flex-1 max-h-[calc(100vh-340px)]">
-                    <div className="p-2 space-y-2">
+                    <div className="p-1.5 space-y-1.5">
                       {columnLeads.map(lead => {
                         const hasTask = getLeadHasActiveTasks(lead.id);
                         const docs = docsByLead?.get(lead.id);
@@ -312,20 +312,20 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                               dragOverCard?.leadId === lead.id && dragOverCard.position === 'after' ? 'border-b-2 border-b-primary' : ''
                             }`}
                           >
-                            <CardContent className={compact ? "p-2 space-y-1" : "p-2.5 space-y-1.5"}>
+                            <CardContent className={compact ? "p-1.5 space-y-0.5" : "p-2 space-y-1"}>
                               <div className="flex items-start gap-1.5">
-                                <div className="w-6 h-6 rounded-full bg-primary/10 text-primary text-[10px] font-semibold flex items-center justify-center shrink-0">
+                                <div className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[9px] font-semibold flex items-center justify-center shrink-0">
                                   {lead.first_name[0]}{lead.last_name?.[0] || ''}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   {lead.opportunity_name && (
-                                    <p className="font-semibold text-xs leading-tight truncate text-foreground">{lead.opportunity_name}</p>
+                                    <p className="font-semibold text-[11px] leading-tight truncate text-foreground">{lead.opportunity_name}</p>
                                   )}
-                                  <p className={`${lead.opportunity_name ? 'text-[11px] text-muted-foreground' : 'font-semibold text-xs'} leading-tight truncate`}>
+                                  <p className={`${lead.opportunity_name ? 'text-[10px] text-muted-foreground' : 'font-semibold text-[11px]'} leading-tight truncate`}>
                                     {lead.first_name} {lead.last_name}
                                   </p>
                                   {lead.loan_purpose && (
-                                    <p className="text-[10px] text-muted-foreground truncate">{lead.loan_purpose}</p>
+                                    <p className="text-[9px] text-muted-foreground truncate">{lead.loan_purpose}</p>
                                   )}
                                 </div>
                                 <StageAgingDot
@@ -366,12 +366,12 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                               {(lead.loan_amount || lead.source) && (
                                 <div className="flex items-center justify-between gap-2">
                                   {lead.loan_amount ? (
-                                    <span className="text-xs font-semibold tabular-nums text-foreground">
+                                    <span className="text-[11px] font-semibold tabular-nums text-foreground">
                                       ${lead.loan_amount.toLocaleString()}
                                     </span>
                                   ) : <span />}
                                   {lead.source && (
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground truncate max-w-[60%]">
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground truncate max-w-[60%]">
                                       {leadSources.find(s => s.name === lead.source)?.label || lead.source}
                                     </span>
                                   )}
@@ -379,7 +379,7 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                               )}
 
                               {/* Footer meta — attribution + date on one divided row */}
-                              <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40 text-[10px] text-muted-foreground">
+                              <div className="flex items-center justify-between gap-2 pt-0.5 border-t border-border/40 text-[9px] text-muted-foreground">
                                 <div className="flex items-center gap-1 min-w-0 flex-1">
                                   {lead.referral_partner_id && getReferrerName?.(lead.referral_partner_id) ? (
                                     <>
@@ -404,8 +404,8 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                               </div>
 
                               {docs && docs.requested > 0 && (
-                                <div className="pt-1 border-t border-border/40 space-y-1">
-                                  <div className="flex items-center justify-between text-[10px]">
+                                <div className="pt-0.5 border-t border-border/40 space-y-0.5">
+                                  <div className="flex items-center justify-between text-[9px]">
                                     <span className="text-muted-foreground flex items-center gap-1"><FileText className="w-3 h-3" /> Docs {docsPct}%</span>
                                     {docs.files.length > 0 && onDownloadDocs && (
                                       <button

@@ -563,7 +563,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
             return (
               <div
                 key={stage.name}
-                className={`flex-shrink-0 flex flex-col transition-all ${isCollapsed ? 'w-10' : compact ? 'w-44' : 'w-64'}`}
+                className={`flex-shrink-0 flex flex-col transition-all ${isCollapsed ? 'w-10' : compact ? 'w-40' : 'w-56'}`}
                 onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
                 onDrop={(e) => {
                   e.preventDefault();
@@ -657,22 +657,22 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                 dragOverCard?.leadId === lead.id && dragOverCard.position === 'after' ? 'border-b-2 border-b-primary' : ''
                               }`}
                             >
-                              <CardContent className={compact ? "p-2 space-y-1" : "p-2.5 space-y-1.5"}>
+                              <CardContent className={compact ? "p-1.5 space-y-0.5" : "p-2 space-y-1"}>
                                 <div className="flex items-start gap-1.5">
-                                  <div className="w-6 h-6 rounded-full bg-primary/10 text-primary text-[10px] font-semibold flex items-center justify-center shrink-0">
+                                  <div className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[9px] font-semibold flex items-center justify-center shrink-0">
                                     {lead.first_name?.[0] || ''}{lead.last_name?.[0] || ''}
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     {hasOpportunity ? (
                                       <>
-                                        <p className="font-semibold text-xs leading-tight break-words text-foreground" title={displayTitle}>{displayTitle}</p>
-                                        <p className="text-[11px] text-muted-foreground leading-tight truncate">{fullName}</p>
+                                        <p className="font-semibold text-[11px] leading-tight break-words text-foreground" title={displayTitle}>{displayTitle}</p>
+                                        <p className="text-[10px] text-muted-foreground leading-tight truncate">{fullName}</p>
                                       </>
                                     ) : (
-                                      <p className="font-semibold text-xs leading-tight break-words" title={fullName}>{fullName}</p>
+                                      <p className="font-semibold text-[11px] leading-tight break-words" title={fullName}>{fullName}</p>
                                     )}
                                     {lead.loan_purpose && (
-                                      <p className="text-[10px] text-muted-foreground truncate">{lead.loan_purpose}</p>
+                                      <p className="text-[9px] text-muted-foreground truncate">{lead.loan_purpose}</p>
                                     )}
                                   </div>
                                    <StageAgingDot
@@ -728,17 +728,17 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                   </DropdownMenu>
                                 </div>
                                 {lead.loan_amount ? (
-                                  <p className="text-xs font-semibold tabular-nums leading-none text-muted-foreground">
+                                  <p className="text-[11px] font-semibold tabular-nums leading-none text-muted-foreground">
                                     ${lead.loan_amount.toLocaleString()}
                                   </p>
                                 ) : null}
                                 {lead.source && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground inline-block">
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground inline-block">
                                     {leadSources.find(s => s.name === lead.source)?.label || lead.source}
                                   </span>
                                 )}
                                 {lead.referral_partner_id && getReferrerName?.(lead.referral_partner_id) && (
-                                  <div className="text-[10px] text-muted-foreground flex items-center gap-1 pt-1 border-t border-border/40">
+                                  <div className="text-[9px] text-muted-foreground flex items-center gap-1 pt-0.5 border-t border-border/40">
                                     <Users className="w-3 h-3 shrink-0" />
                                     <span className="truncate">
                                       {getReferrerName(lead.referral_partner_id)}
@@ -749,17 +749,17 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                   </div>
                                 )}
                                 {lead.referred_by_contact_id && getContactName?.(lead.referred_by_contact_id) && !lead.referral_partner_id && (
-                                  <div className="text-[10px] text-muted-foreground flex items-center gap-1 pt-1 border-t border-border/40">
+                                  <div className="text-[9px] text-muted-foreground flex items-center gap-1 pt-0.5 border-t border-border/40">
                                     <Users className="w-3 h-3 shrink-0" />
                                     <span className="truncate">Referred by {getContactName(lead.referred_by_contact_id)}</span>
                                   </div>
                                 )}
-                                <p className="text-[10px] text-muted-foreground/70 pt-1 border-t border-border/40">
+                                <p className="text-[9px] text-muted-foreground/70 pt-0.5 border-t border-border/40">
                                   {lead.created_at ? format(new Date(lead.created_at), 'dd MMM') : ''}
                                 </p>
                                 {docs && docs.requested > 0 && (
-                                  <div className="pt-1 border-t border-border/40 space-y-1">
-                                    <div className="flex items-center justify-between text-[10px]">
+                                  <div className="pt-0.5 border-t border-border/40 space-y-0.5">
+                                    <div className="flex items-center justify-between text-[9px]">
                                       <span className="text-muted-foreground flex items-center gap-1"><FileText className="w-3 h-3" /> Docs {docsPct}%</span>
                                       {docs.files.length > 0 && onDownloadDocs && (
                                         <button
