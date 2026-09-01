@@ -728,17 +728,17 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                   </DropdownMenu>
                                 </div>
                                 {lead.loan_amount ? (
-                                  <p className="text-xs font-semibold tabular-nums leading-none text-muted-foreground">
+                                  <p className="text-[11px] font-semibold tabular-nums leading-none text-muted-foreground">
                                     ${lead.loan_amount.toLocaleString()}
                                   </p>
                                 ) : null}
                                 {lead.source && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground inline-block">
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground inline-block">
                                     {leadSources.find(s => s.name === lead.source)?.label || lead.source}
                                   </span>
                                 )}
                                 {lead.referral_partner_id && getReferrerName?.(lead.referral_partner_id) && (
-                                  <div className="text-[10px] text-muted-foreground flex items-center gap-1 pt-1 border-t border-border/40">
+                                  <div className="text-[9px] text-muted-foreground flex items-center gap-1 pt-0.5 border-t border-border/40">
                                     <Users className="w-3 h-3 shrink-0" />
                                     <span className="truncate">
                                       {getReferrerName(lead.referral_partner_id)}
@@ -749,17 +749,17 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                   </div>
                                 )}
                                 {lead.referred_by_contact_id && getContactName?.(lead.referred_by_contact_id) && !lead.referral_partner_id && (
-                                  <div className="text-[10px] text-muted-foreground flex items-center gap-1 pt-1 border-t border-border/40">
+                                  <div className="text-[9px] text-muted-foreground flex items-center gap-1 pt-0.5 border-t border-border/40">
                                     <Users className="w-3 h-3 shrink-0" />
                                     <span className="truncate">Referred by {getContactName(lead.referred_by_contact_id)}</span>
                                   </div>
                                 )}
-                                <p className="text-[10px] text-muted-foreground/70 pt-1 border-t border-border/40">
+                                <p className="text-[9px] text-muted-foreground/70 pt-0.5 border-t border-border/40">
                                   {lead.created_at ? format(new Date(lead.created_at), 'dd MMM') : ''}
                                 </p>
                                 {docs && docs.requested > 0 && (
-                                  <div className="pt-1 border-t border-border/40 space-y-1">
-                                    <div className="flex items-center justify-between text-[10px]">
+                                  <div className="pt-0.5 border-t border-border/40 space-y-0.5">
+                                    <div className="flex items-center justify-between text-[9px]">
                                       <span className="text-muted-foreground flex items-center gap-1"><FileText className="w-3 h-3" /> Docs {docsPct}%</span>
                                       {docs.files.length > 0 && onDownloadDocs && (
                                         <button
