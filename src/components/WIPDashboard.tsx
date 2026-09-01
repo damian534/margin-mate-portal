@@ -17,6 +17,8 @@ import { Users } from 'lucide-react';
 import { HorizontalScrollWithTopBar } from '@/components/HorizontalScrollWithTopBar';
 import { useWipStatuses } from '@/hooks/useWipStatuses';
 import { StatusSettings } from '@/components/StatusSettings';
+import { StageAgingDot } from '@/components/StageAgingDot';
+import { getAgingLevel, AGING_EXEMPT_STATUSES } from '@/lib/stageAging';
 
 export const WIP_STATUSES = [
   { name: 'pending_fact_find', label: 'Pending Fact Find', color: '#cbd5e1' },
@@ -88,6 +90,7 @@ interface WIPLead {
   email?: string | null;
   phone?: string | null;
   wip_sort_order?: number | null;
+  stage_entered_at?: string | null;
 }
 
 interface LeadSource {
@@ -419,8 +422,19 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                         ${stageTotal.toLocaleString()}
                       </span>
                     )}
-                    <span className="text-xs text-muted-foreground">({stageLeads.length})</span>
-                  </div>
+                     <span className="text-xs text-muted-foreground">({stageLeads.length})</span>
+                     {!AGING_EXEMPT_STATUSES.has(stage.name) && (() => {
+                       const stale = stageLeads.filter(l => getAgingLevel(l.stage_entered_at, stage)?.level === 'red').length;
+                       return stale > 0 ? (
+                         <span
+                           className="text-[10px] px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold inline-flex items-center gap-1"
+                           title={`${stale} deal${stale === 1 ? '' : 's'} sitting too long in this stage`}
+                         >
+                           <span className="w-1.5 h-1.5 rounded-full bg-destructive" /> {stale} stale
+                         </span>
+                       ) : null;
+                     })()}
+                   </div>
                   {stageLeads.length === 0 ? (
                     <div className="border border-dashed rounded-lg p-4 text-center text-xs text-muted-foreground">
                       Drop deals here
@@ -467,9 +481,10 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                 onClick={() => onOpenLead(lead)}
                               >
                                 <TableCell className="font-medium">
-                                  <div className="flex items-center gap-1.5">
-                                    {lead.first_name} {lead.last_name}
-                                    {hasTask && (
+                                   <div className="flex items-center gap-1.5">
+                                     {lead.first_name} {lead.last_name}
+                                     <StageAgingDot stageEnteredAt={lead.stage_entered_at} statusName={stage.name} thresholds={stage} />
+                                     {hasTask && (
                                       <span title={`${activeTasks.length} active task${activeTasks.length > 1 ? 's' : ''}`}>
                                         <ClipboardList className="w-3.5 h-3.5 text-primary shrink-0" />
                                       </span>
