@@ -434,9 +434,9 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
         <span className="text-xs text-muted-foreground mr-1">Stage age:</span>
         {([
           { value: 'all' as const, label: 'All Colours', dot: null as string | null },
-          { value: 'green' as const, label: 'Green', dot: 'bg-success' },
-          { value: 'amber' as const, label: 'Amber', dot: 'bg-warning' },
-          { value: 'red' as const, label: 'Red', dot: 'bg-destructive' },
+          { value: 'green' as const, label: '0-3 Days', dot: 'bg-success' },
+          { value: 'amber' as const, label: '4-7 Days', dot: 'bg-warning' },
+          { value: 'red' as const, label: '7+ Days', dot: 'bg-destructive' },
         ]).map(opt => {
           const count = opt.value === 'all'
             ? null
