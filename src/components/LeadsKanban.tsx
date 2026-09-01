@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChevronDown, ChevronRight, DollarSign, Users, ChevronsDownUp, ChevronsUpDown, ClipboardList, FileDown, FileText, MoreVertical, Maximize2, Minimize2, Plus } from 'lucide-react';
 import { AssigneeBadge } from '@/components/AssigneePicker';
 import { StageAgingDot } from '@/components/StageAgingDot';
+import { AGING_CARD_CLASS, getCardAging } from '@/lib/stageAging';
 import { getAgingLevel, AGING_EXEMPT_STATUSES } from '@/lib/stageAging';
 import { usePersistedState, usePersistedStringSet } from '@/hooks/usePersistedState';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';

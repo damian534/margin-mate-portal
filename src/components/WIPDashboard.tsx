@@ -18,6 +18,7 @@ import { HorizontalScrollWithTopBar } from '@/components/HorizontalScrollWithTop
 import { useWipStatuses } from '@/hooks/useWipStatuses';
 import { StatusSettings } from '@/components/StatusSettings';
 import { StageAgingDot } from '@/components/StageAgingDot';
+import { AGING_CARD_CLASS, AGING_ROW_CLASS, getCardAging } from '@/lib/stageAging';
 import { getAgingLevel, AGING_EXEMPT_STATUSES } from '@/lib/stageAging';
 
 export const WIP_STATUSES = [
