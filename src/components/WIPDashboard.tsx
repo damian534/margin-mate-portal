@@ -472,7 +472,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
           title="Sort every column with red (stale) deals first"
         >
           <ArrowUpDown className="w-3.5 h-3.5" />
-          Colour order
+          CLR Filter
         </Button>
       </div>
 
