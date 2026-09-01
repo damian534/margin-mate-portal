@@ -563,7 +563,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
             return (
               <div
                 key={stage.name}
-                className={`flex-shrink-0 flex flex-col transition-all ${isCollapsed ? 'w-10' : compact ? 'w-44' : 'w-64'}`}
+                className={`flex-shrink-0 flex flex-col transition-all ${isCollapsed ? 'w-10' : compact ? 'w-40' : 'w-56'}`}
                 onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
                 onDrop={(e) => {
                   e.preventDefault();
@@ -657,22 +657,22 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                 dragOverCard?.leadId === lead.id && dragOverCard.position === 'after' ? 'border-b-2 border-b-primary' : ''
                               }`}
                             >
-                              <CardContent className={compact ? "p-2 space-y-1" : "p-2.5 space-y-1.5"}>
+                              <CardContent className={compact ? "p-1.5 space-y-0.5" : "p-2 space-y-1"}>
                                 <div className="flex items-start gap-1.5">
-                                  <div className="w-6 h-6 rounded-full bg-primary/10 text-primary text-[10px] font-semibold flex items-center justify-center shrink-0">
+                                  <div className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[9px] font-semibold flex items-center justify-center shrink-0">
                                     {lead.first_name?.[0] || ''}{lead.last_name?.[0] || ''}
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     {hasOpportunity ? (
                                       <>
-                                        <p className="font-semibold text-xs leading-tight break-words text-foreground" title={displayTitle}>{displayTitle}</p>
-                                        <p className="text-[11px] text-muted-foreground leading-tight truncate">{fullName}</p>
+                                        <p className="font-semibold text-[11px] leading-tight break-words text-foreground" title={displayTitle}>{displayTitle}</p>
+                                        <p className="text-[10px] text-muted-foreground leading-tight truncate">{fullName}</p>
                                       </>
                                     ) : (
-                                      <p className="font-semibold text-xs leading-tight break-words" title={fullName}>{fullName}</p>
+                                      <p className="font-semibold text-[11px] leading-tight break-words" title={fullName}>{fullName}</p>
                                     )}
                                     {lead.loan_purpose && (
-                                      <p className="text-[10px] text-muted-foreground truncate">{lead.loan_purpose}</p>
+                                      <p className="text-[9px] text-muted-foreground truncate">{lead.loan_purpose}</p>
                                     )}
                                   </div>
                                    <StageAgingDot
