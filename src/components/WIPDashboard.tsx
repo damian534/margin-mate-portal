@@ -143,13 +143,20 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
     const level = getCardAging(l.stage_entered_at, stageName, stageCfg)?.level;
     return level ? agingRank[level] : 3;
   };
+  const compareManualOrder = (a: WIPLead, b: WIPLead) => {
+    const av = getSort(a); const bv = getSort(b);
+    if (av == null && bv == null) return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+    if (av == null) return 1;
+    if (bv == null) return -1;
+    return av - bv;
+  };
   const sortDisplay = (arr: WIPLead[], stageName: string) => [...arr].sort((a, b) => {
     if (agingSort || agingFilter !== 'all') {
       const ar = getAgingRank(a, stageName);
       const br = getAgingRank(b, stageName);
       if (ar !== br) return ar - br;
     }
-    return sortLeadsArr([a, b])[0] === a ? -1 : 1;
+    return compareManualOrder(a, b);
   });
 
   const [compact, setCompact] = usePersistedState<boolean>('crm.wip.compact', false);
