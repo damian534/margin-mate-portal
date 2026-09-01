@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChevronDown, ChevronRight, DollarSign, Users, ChevronsDownUp, ChevronsUpDown, ClipboardList, FileDown, FileText, MoreVertical, Maximize2, Minimize2, Plus } from 'lucide-react';
 import { AssigneeBadge } from '@/components/AssigneePicker';
 import { StageAgingDot } from '@/components/StageAgingDot';
+import { AGING_CARD_CLASS, getCardAging } from '@/lib/stageAging';
 import { getAgingLevel, AGING_EXEMPT_STATUSES } from '@/lib/stageAging';
 import { usePersistedState, usePersistedStringSet } from '@/hooks/usePersistedState';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -286,6 +287,7 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                         const hasTask = getLeadHasActiveTasks(lead.id);
                         const docs = docsByLead?.get(lead.id);
                         const docsPct = docs && docs.requested > 0 ? Math.round((docs.completed / docs.requested) * 100) : null;
+                        const aging = getCardAging(lead.stage_entered_at, status.name, status);
                         return (
                           <Card
                             key={lead.id}
@@ -304,7 +306,7 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                             }}
                             onDrop={(e) => handleCardDrop(e, lead, status.name)}
                             onClick={() => onOpenLead(lead)}
-                            className={`cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors border bg-card ${
+                            className={`cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors border ${aging ? AGING_CARD_CLASS[aging.level] : 'bg-card'} ${
                               dragOverCard?.leadId === lead.id && dragOverCard.position === 'before' ? 'border-t-2 border-t-primary' : ''
                             } ${
                               dragOverCard?.leadId === lead.id && dragOverCard.position === 'after' ? 'border-b-2 border-b-primary' : ''

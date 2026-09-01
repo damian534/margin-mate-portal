@@ -47,3 +47,27 @@ export const AGING_DOT_CLASS: Record<AgingLevel, string> = {
   amber: 'bg-warning',
   red: 'bg-destructive',
 };
+
+/** Whole-card tint for kanban deal cards (replaces the default card surface). */
+export const AGING_CARD_CLASS: Record<AgingLevel, string> = {
+  green: 'bg-success/10 border-success/40',
+  amber: 'bg-warning/15 border-warning/50',
+  red: 'bg-destructive/10 border-destructive/50',
+};
+
+/** Row tint for table/list views. */
+export const AGING_ROW_CLASS: Record<AgingLevel, string> = {
+  green: 'bg-success/5',
+  amber: 'bg-warning/10',
+  red: 'bg-destructive/10',
+};
+
+/** Aging info for a card/row, respecting terminal-stage exemptions. */
+export function getCardAging(
+  stageEnteredAt: string | null | undefined,
+  statusName: string,
+  thresholds?: AgingThresholds,
+): { level: AgingLevel; businessDays: number } | null {
+  if (AGING_EXEMPT_STATUSES.has(statusName)) return null;
+  return getAgingLevel(stageEnteredAt, thresholds);
+}
