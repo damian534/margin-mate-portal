@@ -326,6 +326,12 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                                     <p className="text-[11px] text-muted-foreground truncate">{lead.loan_purpose}</p>
                                   )}
                                 </div>
+                                <StageAgingDot
+                                  stageEnteredAt={lead.stage_entered_at}
+                                  statusName={status.name}
+                                  thresholds={status}
+                                  className="mt-0.5"
+                                />
                                 {hasTask && (
                                   <ClipboardList className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
                                 )}
