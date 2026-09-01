@@ -482,7 +482,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
         ) : (
           <div className="space-y-6">
             {wipStatuses.map(stage => {
-              const stageLeads = sortLeadsArr(visibleLeads.filter(l => getStage(l) === stage.name))
+              const stageLeads = sortDisplay(visibleLeads.filter(l => getStage(l) === stage.name), stage.name)
                 .filter(l => agingFilter === 'all' || getCardAging(l.stage_entered_at, stage.name, stage)?.level === agingFilter);
               const stageTotal = stageLeads.reduce((s, l) => s + (l.loan_amount || 0), 0);
               return (
