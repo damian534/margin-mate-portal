@@ -140,6 +140,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
   const [view, setView] = usePersistedState<'kanban' | 'list'>('crm.wip.view', 'kanban');
   const [taskDueFilter, setTaskDueFilter] = usePersistedState<WipTaskDueFilter>('crm.wip.taskDueFilter', 'all_leads');
   const [agingFilter, setAgingFilter] = usePersistedState<'all' | 'green' | 'amber' | 'red'>('crm.wip.agingFilter', 'all');
+  const [agingSort, setAgingSort] = usePersistedState<boolean>('crm.wip.agingSort', false);
 
   const toggleCollapse = (name: string) => {
     setCollapsedColumns(prev => {
