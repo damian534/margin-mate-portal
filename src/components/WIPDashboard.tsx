@@ -136,6 +136,22 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
     if (bv == null) return -1;
     return av - bv;
   });
+
+  const agingRank = { red: 0, amber: 1, green: 2 } as const;
+  const getAgingRank = (l: WIPLead, stageName: string) => {
+    const stageCfg = wipStatuses.find(s => s.name === stageName);
+    const level = getCardAging(l.stage_entered_at, stageName, stageCfg)?.level;
+    return level ? agingRank[level] : 3;
+  };
+  const sortDisplay = (arr: WIPLead[], stageName: string) => [...arr].sort((a, b) => {
+    if (agingSort || agingFilter !== 'all') {
+      const ar = getAgingRank(a, stageName);
+      const br = getAgingRank(b, stageName);
+      if (ar !== br) return ar - br;
+    }
+    return sortLeadsArr([a, b])[0] === a ? -1 : 1;
+  });
+
   const [compact, setCompact] = usePersistedState<boolean>('crm.wip.compact', false);
   const [view, setView] = usePersistedState<'kanban' | 'list'>('crm.wip.view', 'kanban');
   const [taskDueFilter, setTaskDueFilter] = usePersistedState<WipTaskDueFilter>('crm.wip.taskDueFilter', 'all_leads');
