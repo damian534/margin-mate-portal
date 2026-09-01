@@ -97,6 +97,7 @@ interface Lead {
   estimated_settlement_date?: string | null;
   assigned_to?: string | null;
   opportunity_name?: string | null;
+  stage_entered_at?: string | null;
 }
 
 
