@@ -716,14 +716,14 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                     {lead.first_name?.[0] || ''}{lead.last_name?.[0] || ''}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    {hasOpportunity ? (
-                                      <>
-                                        <p className="font-semibold text-[11px] leading-tight break-words text-foreground" title={displayTitle}>{displayTitle}</p>
-                                        <p className="text-[10px] text-muted-foreground leading-tight truncate">{fullName}</p>
-                                      </>
-                                    ) : (
-                                      <p className="font-semibold text-[11px] leading-tight break-words" title={fullName}>{fullName}</p>
-                                    )}
+                                     {hasOpportunity ? (
+                                       <>
+                                         <p className="font-semibold text-[11px] leading-tight [overflow-wrap:anywhere] text-foreground" title={displayTitle}>{displayTitle}</p>
+                                         <p className="text-[10px] text-muted-foreground leading-tight truncate">{fullName}</p>
+                                       </>
+                                     ) : (
+                                       <p className="font-semibold text-[11px] leading-tight [overflow-wrap:anywhere]" title={fullName}>{fullName}</p>
+                                     )}
                                     {lead.loan_purpose && (
                                       <p className="text-[9px] text-muted-foreground truncate">{lead.loan_purpose}</p>
                                     )}
@@ -791,10 +791,10 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                   </span>
                                 )}
                                 {lead.referral_partner_id && getReferrerName?.(lead.referral_partner_id) && (
-                                  <div className="text-[9px] text-muted-foreground flex items-center gap-1 pt-0.5 border-t border-border/40">
-                                    <Users className="w-3 h-3 shrink-0" />
-                                    <span className="truncate">
-                                      {getReferrerName(lead.referral_partner_id)}
+                                   <div className="text-[9px] text-muted-foreground flex items-center gap-1 pt-0.5 border-t border-border/40 min-w-0">
+                                     <Users className="w-3 h-3 shrink-0" />
+                                     <span className="truncate min-w-0">
+                                       {getReferrerName(lead.referral_partner_id)}
                                       {getReferrerCompany?.(lead.referral_partner_id) && (
                                         <span className="opacity-70"> · {getReferrerCompany(lead.referral_partner_id)}</span>
                                       )}
