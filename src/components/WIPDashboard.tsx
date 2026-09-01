@@ -464,6 +464,16 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
             </Button>
           );
         })}
+        <Button
+          variant={agingSort ? 'secondary' : 'ghost'}
+          size="sm"
+          className="h-7 text-xs gap-1.5"
+          onClick={() => setAgingSort(v => !v)}
+          title="Sort every column with red (stale) deals first"
+        >
+          <ArrowUpDown className="w-3.5 h-3.5" />
+          Colour order
+        </Button>
       </div>
 
       {view === 'list' ? (
