@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.track_stage_entered_at() FROM PUBLIC, anon, authenticated;
