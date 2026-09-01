@@ -224,7 +224,7 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
           return (
             <div
               key={status.name}
-              className={`flex-shrink-0 flex flex-col transition-all ${isCollapsed ? 'w-10' : compact ? 'w-44' : 'w-64'}`}
+              className={`flex-shrink-0 flex flex-col transition-all ${isCollapsed ? 'w-10' : compact ? 'w-40' : 'w-56'}`}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, status.name)}
             >
@@ -282,7 +282,7 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
 
                   {/* Cards */}
                   <ScrollArea className="flex-1 max-h-[calc(100vh-340px)]">
-                    <div className="p-2 space-y-2">
+                    <div className="p-1.5 space-y-1.5">
                       {columnLeads.map(lead => {
                         const hasTask = getLeadHasActiveTasks(lead.id);
                         const docs = docsByLead?.get(lead.id);
@@ -312,9 +312,9 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                               dragOverCard?.leadId === lead.id && dragOverCard.position === 'after' ? 'border-b-2 border-b-primary' : ''
                             }`}
                           >
-                            <CardContent className={compact ? "p-2 space-y-1" : "p-2.5 space-y-1.5"}>
+                            <CardContent className={compact ? "p-1.5 space-y-0.5" : "p-2 space-y-1"}>
                               <div className="flex items-start gap-1.5">
-                                <div className="w-6 h-6 rounded-full bg-primary/10 text-primary text-[10px] font-semibold flex items-center justify-center shrink-0">
+                                <div className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[9px] font-semibold flex items-center justify-center shrink-0">
                                   {lead.first_name[0]}{lead.last_name?.[0] || ''}
                                 </div>
                                 <div className="flex-1 min-w-0">
