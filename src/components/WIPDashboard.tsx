@@ -455,7 +455,8 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
         ) : (
           <div className="space-y-6">
             {wipStatuses.map(stage => {
-              const stageLeads = sortLeadsArr(visibleLeads.filter(l => getStage(l) === stage.name));
+              const stageLeads = sortLeadsArr(visibleLeads.filter(l => getStage(l) === stage.name))
+                .filter(l => agingFilter === 'all' || getCardAging(l.stage_entered_at, stage.name, stage)?.level === agingFilter);
               const stageTotal = stageLeads.reduce((s, l) => s + (l.loan_amount || 0), 0);
               return (
                 <div
@@ -703,7 +704,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                               onDragLeave={(e) => { e.stopPropagation(); setDragOverCard(prev => prev?.leadId === lead.id ? null : prev); }}
                               onDrop={(e) => reorderBeforeCard(e, lead, stage.name)}
                               onClick={() => onOpenLead(lead)}
-                              className={`cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors border ${aging ? AGING_CARD_CLASS[aging.level] : 'bg-card'} ${
+                              className={`w-full overflow-hidden cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors border ${aging ? AGING_CARD_CLASS[aging.level] : 'bg-card'} ${
                                 dragOverCard?.leadId === lead.id && dragOverCard.position === 'before' ? 'border-t-2 border-t-primary' : ''
                               } ${
                                 dragOverCard?.leadId === lead.id && dragOverCard.position === 'after' ? 'border-b-2 border-b-primary' : ''
