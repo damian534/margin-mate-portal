@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { FileDown, FileText, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search, X, MoreVertical, Maximize2, Minimize2, List, Columns, CalendarClock, ClipboardList, Plus } from 'lucide-react';
+import { FileDown, FileText, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Search, X, MoreVertical, Maximize2, Minimize2, List, Columns, CalendarClock, ClipboardList, Plus, ArrowUpDown } from 'lucide-react';
 import { AssigneeBadge, AssigneeFilter } from '@/components/AssigneePicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -136,10 +136,34 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
     if (bv == null) return -1;
     return av - bv;
   });
+
+  const agingRank = { red: 0, amber: 1, green: 2 } as const;
+  const getAgingRank = (l: WIPLead, stageName: string) => {
+    const stageCfg = wipStatuses.find(s => s.name === stageName);
+    const level = getCardAging(l.stage_entered_at, stageName, stageCfg)?.level;
+    return level ? agingRank[level] : 3;
+  };
+  const compareManualOrder = (a: WIPLead, b: WIPLead) => {
+    const av = getSort(a); const bv = getSort(b);
+    if (av == null && bv == null) return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+    if (av == null) return 1;
+    if (bv == null) return -1;
+    return av - bv;
+  };
+  const sortDisplay = (arr: WIPLead[], stageName: string) => [...arr].sort((a, b) => {
+    if (agingSort || agingFilter !== 'all') {
+      const ar = getAgingRank(a, stageName);
+      const br = getAgingRank(b, stageName);
+      if (ar !== br) return ar - br;
+    }
+    return compareManualOrder(a, b);
+  });
+
   const [compact, setCompact] = usePersistedState<boolean>('crm.wip.compact', false);
   const [view, setView] = usePersistedState<'kanban' | 'list'>('crm.wip.view', 'kanban');
   const [taskDueFilter, setTaskDueFilter] = usePersistedState<WipTaskDueFilter>('crm.wip.taskDueFilter', 'all_leads');
   const [agingFilter, setAgingFilter] = usePersistedState<'all' | 'green' | 'amber' | 'red'>('crm.wip.agingFilter', 'all');
+  const [agingSort, setAgingSort] = usePersistedState<boolean>('crm.wip.agingSort', false);
 
   const toggleCollapse = (name: string) => {
     setCollapsedColumns(prev => {
@@ -186,24 +210,17 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
       const key = getStage(l);
       if (map.has(key)) map.get(key)!.push(l);
     }
-    // Sort each column by manual order, then apply the aging colour filter
-    const agingRank = { red: 0, amber: 1, green: 2 } as const;
+    // Sort each column by colour order (when enabled) or manual order, then apply the aging colour filter
     for (const [k, arr] of map.entries()) {
-      let out = sortLeadsArr(arr);
       const stageCfg = wipStatuses.find(s => s.name === k);
+      let out = sortDisplay(arr, k);
       if (agingFilter !== 'all') {
         out = out.filter(l => getCardAging(l.stage_entered_at, k, stageCfg)?.level === agingFilter);
-        // Show most urgent first within the filtered column
-        out.sort((a, b) => {
-          const al = getCardAging(a.stage_entered_at, k, stageCfg)?.level;
-          const bl = getCardAging(b.stage_entered_at, k, stageCfg)?.level;
-          return (al ? agingRank[al] : 3) - (bl ? agingRank[bl] : 3);
-        });
       }
       map.set(k, out);
     }
     return map;
-  }, [visibleLeads, wipStatuses, sortOverrides, stageOverrides, agingFilter]);
+  }, [visibleLeads, wipStatuses, sortOverrides, stageOverrides, agingFilter, agingSort]);
 
   const totals = useMemo(() => {
     const t = new Map<string, { count: number; volume: number }>();
@@ -447,6 +464,16 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
             </Button>
           );
         })}
+        <Button
+          variant={agingSort ? 'secondary' : 'ghost'}
+          size="sm"
+          className="h-7 text-xs gap-1.5"
+          onClick={() => setAgingSort(v => !v)}
+          title="Sort every column with red (stale) deals first"
+        >
+          <ArrowUpDown className="w-3.5 h-3.5" />
+          Colour order
+        </Button>
       </div>
 
       {view === 'list' ? (
@@ -455,7 +482,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
         ) : (
           <div className="space-y-6">
             {wipStatuses.map(stage => {
-              const stageLeads = sortLeadsArr(visibleLeads.filter(l => getStage(l) === stage.name))
+              const stageLeads = sortDisplay(visibleLeads.filter(l => getStage(l) === stage.name), stage.name)
                 .filter(l => agingFilter === 'all' || getCardAging(l.stage_entered_at, stage.name, stage)?.level === agingFilter);
               const stageTotal = stageLeads.reduce((s, l) => s + (l.loan_amount || 0), 0);
               return (
