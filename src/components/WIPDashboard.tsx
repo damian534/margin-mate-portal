@@ -139,6 +139,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
   const [compact, setCompact] = usePersistedState<boolean>('crm.wip.compact', false);
   const [view, setView] = usePersistedState<'kanban' | 'list'>('crm.wip.view', 'kanban');
   const [taskDueFilter, setTaskDueFilter] = usePersistedState<WipTaskDueFilter>('crm.wip.taskDueFilter', 'all_leads');
+  const [agingFilter, setAgingFilter] = usePersistedState<'all' | 'green' | 'amber' | 'red'>('crm.wip.agingFilter', 'all');
 
   const toggleCollapse = (name: string) => {
     setCollapsedColumns(prev => {
@@ -185,10 +186,24 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
       const key = getStage(l);
       if (map.has(key)) map.get(key)!.push(l);
     }
-    // Sort each column by manual order
-    for (const [k, arr] of map.entries()) map.set(k, sortLeadsArr(arr));
+    // Sort each column by manual order, then apply the aging colour filter
+    const agingRank = { red: 0, amber: 1, green: 2 } as const;
+    for (const [k, arr] of map.entries()) {
+      let out = sortLeadsArr(arr);
+      const stageCfg = wipStatuses.find(s => s.name === k);
+      if (agingFilter !== 'all') {
+        out = out.filter(l => getCardAging(l.stage_entered_at, k, stageCfg)?.level === agingFilter);
+        // Show most urgent first within the filtered column
+        out.sort((a, b) => {
+          const al = getCardAging(a.stage_entered_at, k, stageCfg)?.level;
+          const bl = getCardAging(b.stage_entered_at, k, stageCfg)?.level;
+          return (al ? agingRank[al] : 3) - (bl ? agingRank[bl] : 3);
+        });
+      }
+      map.set(k, out);
+    }
     return map;
-  }, [visibleLeads, wipStatuses, sortOverrides, stageOverrides]);
+  }, [visibleLeads, wipStatuses, sortOverrides, stageOverrides, agingFilter]);
 
   const totals = useMemo(() => {
     const t = new Map<string, { count: number; volume: number }>();
