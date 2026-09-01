@@ -1504,28 +1504,34 @@ export type Database = {
       }
       lead_statuses: {
         Row: {
+          amber_after_days: number
           color: string
           created_at: string
           display_order: number
           id: string
           label: string
           name: string
+          red_after_days: number
         }
         Insert: {
+          amber_after_days?: number
           color?: string
           created_at?: string
           display_order?: number
           id?: string
           label: string
           name: string
+          red_after_days?: number
         }
         Update: {
+          amber_after_days?: number
           color?: string
           created_at?: string
           display_order?: number
           id?: string
           label?: string
           name?: string
+          red_after_days?: number
         }
         Relationships: []
       }
@@ -1571,6 +1577,7 @@ export type Database = {
           settled_date: string | null
           source: string | null
           source_contact_id: string | null
+          stage_entered_at: string
           status: string
           subject_to_finance: boolean
           updated_at: string
@@ -1618,6 +1625,7 @@ export type Database = {
           settled_date?: string | null
           source?: string | null
           source_contact_id?: string | null
+          stage_entered_at?: string
           status?: string
           subject_to_finance?: boolean
           updated_at?: string
@@ -1665,6 +1673,7 @@ export type Database = {
           settled_date?: string | null
           source?: string | null
           source_contact_id?: string | null
+          stage_entered_at?: string
           status?: string
           subject_to_finance?: boolean
           updated_at?: string
@@ -2515,28 +2524,34 @@ export type Database = {
       }
       wip_statuses: {
         Row: {
+          amber_after_days: number
           color: string
           created_at: string
           display_order: number
           id: string
           label: string
           name: string
+          red_after_days: number
         }
         Insert: {
+          amber_after_days?: number
           color?: string
           created_at?: string
           display_order?: number
           id?: string
           label: string
           name: string
+          red_after_days?: number
         }
         Update: {
+          amber_after_days?: number
           color?: string
           created_at?: string
           display_order?: number
           id?: string
           label?: string
           name?: string
+          red_after_days?: number
         }
         Relationships: []
       }
