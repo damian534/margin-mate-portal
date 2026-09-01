@@ -555,6 +555,9 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
             const stageLeads = grouped.get(stage.name) || [];
             const t = totals.get(stage.name)!;
             const isCollapsed = collapsedColumns.has(stage.name);
+            const staleCount = AGING_EXEMPT_STATUSES.has(stage.name)
+              ? 0
+              : stageLeads.filter(l => getAgingLevel(l.stage_entered_at, stage)?.level === 'red').length;
             return (
               <div
                 key={stage.name}
@@ -593,8 +596,16 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                           <ChevronDown className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
                           <h3 className="text-sm font-semibold leading-tight truncate">{stage.label}</h3>
                         </div>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-background border shrink-0">{t.count}</span>
-                      </div>
+                         <span className="text-xs px-2 py-0.5 rounded-full bg-background border shrink-0">{t.count}</span>
+                         {staleCount > 0 && (
+                           <span
+                             className="text-[10px] px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold shrink-0 inline-flex items-center gap-1"
+                             title={`${staleCount} deal${staleCount === 1 ? '' : 's'} sitting too long in this stage`}
+                           >
+                             <span className="w-1.5 h-1.5 rounded-full bg-destructive" /> {staleCount}
+                           </span>
+                         )}
+                       </div>
                       {t.volume > 0 && (
                         <p className="text-xs text-muted-foreground mt-1">${t.volume.toLocaleString()}</p>
                       )}
@@ -661,12 +672,18 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                       <p className="text-[11px] text-muted-foreground truncate">{lead.loan_purpose}</p>
                                     )}
                                   </div>
-                                  {hasTask && (
-                                    <span title={`${activeTasks.length} active task${activeTasks.length > 1 ? 's' : ''}`}>
-                                      <ClipboardList className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-                                    </span>
-                                  )}
-                                  <AssigneeBadge userId={lead.assigned_to ?? null} />
+                                   <StageAgingDot
+                                     stageEnteredAt={lead.stage_entered_at}
+                                     statusName={stage.name}
+                                     thresholds={stage}
+                                     className="mt-0.5"
+                                   />
+                                   {hasTask && (
+                                     <span title={`${activeTasks.length} active task${activeTasks.length > 1 ? 's' : ''}`}>
+                                       <ClipboardList className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                                     </span>
+                                   )}
+                                   <AssigneeBadge userId={lead.assigned_to ?? null} />
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                                       <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 -mr-1" title="Move to stage">
