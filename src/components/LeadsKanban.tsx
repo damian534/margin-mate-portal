@@ -333,12 +333,11 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                                   statusName={status.name}
                                   thresholds={status}
                                   className="mt-0.5"
-                                  size="sm"
                                 />
                                 {hasTask && (
                                   <ClipboardList className="w-3 h-3 text-primary shrink-0 mt-0.5" />
                                 )}
-                                <AssigneeBadge userId={lead.assigned_to ?? null} size="sm" />
+                                <AssigneeBadge userId={lead.assigned_to ?? null} />
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                                     <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0 -mr-1" title="Move to status">
