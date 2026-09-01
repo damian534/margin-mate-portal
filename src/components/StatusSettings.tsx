@@ -151,7 +151,13 @@ export function StatusSettings({ statuses, onAdd, onUpdate, onDelete, onReorder,
                     size="sm"
                     variant="ghost"
                     className="h-7 w-7 p-0"
-                    onClick={() => { setEditingId(status.id); setEditLabel(status.label); setEditColor(status.color); }}
+                    onClick={() => {
+                      setEditingId(status.id);
+                      setEditLabel(status.label);
+                      setEditColor(status.color);
+                      setEditAmber(String(status.amber_after_days ?? 4));
+                      setEditRed(String(status.red_after_days ?? 7));
+                    }}
                   >
                     <Pencil className="w-3 h-3" />
                   </Button>
