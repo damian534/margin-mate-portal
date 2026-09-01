@@ -274,7 +274,7 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); onAddInStage(status.name); }}
-                      className="mx-2 mt-2 inline-flex items-center justify-center gap-1 py-1.5 rounded-md border border-dashed border-border text-[11px] font-medium text-muted-foreground hover:text-foreground hover:border-foreground/40 hover:bg-background/60 transition"
+                      className="mx-2 mt-2 inline-flex items-center justify-center gap-1 py-1 rounded-md border border-dashed border-border text-[11px] font-medium text-muted-foreground hover:text-foreground hover:border-foreground/40 hover:bg-background/60 transition"
                     >
                       <Plus className="w-3 h-3" /> Add card
                     </button>
@@ -312,20 +312,20 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                               dragOverCard?.leadId === lead.id && dragOverCard.position === 'after' ? 'border-b-2 border-b-primary' : ''
                             }`}
                           >
-                            <CardContent className={compact ? "p-2 space-y-1.5" : "p-3 space-y-2"}>
-                              <div className="flex items-start gap-2">
-                                <div className="w-7 h-7 rounded-full bg-primary/10 text-primary text-[11px] font-semibold flex items-center justify-center shrink-0">
+                            <CardContent className={compact ? "p-2 space-y-1" : "p-2.5 space-y-1.5"}>
+                              <div className="flex items-start gap-1.5">
+                                <div className="w-6 h-6 rounded-full bg-primary/10 text-primary text-[10px] font-semibold flex items-center justify-center shrink-0">
                                   {lead.first_name[0]}{lead.last_name?.[0] || ''}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   {lead.opportunity_name && (
-                                    <p className="font-semibold text-sm leading-tight truncate text-foreground">{lead.opportunity_name}</p>
+                                    <p className="font-semibold text-xs leading-tight truncate text-foreground">{lead.opportunity_name}</p>
                                   )}
-                                  <p className={`${lead.opportunity_name ? 'text-xs text-muted-foreground' : 'font-semibold text-sm'} leading-tight truncate`}>
+                                  <p className={`${lead.opportunity_name ? 'text-[11px] text-muted-foreground' : 'font-semibold text-xs'} leading-tight truncate`}>
                                     {lead.first_name} {lead.last_name}
                                   </p>
                                   {lead.loan_purpose && (
-                                    <p className="text-[11px] text-muted-foreground truncate">{lead.loan_purpose}</p>
+                                    <p className="text-[10px] text-muted-foreground truncate">{lead.loan_purpose}</p>
                                   )}
                                 </div>
                                 <StageAgingDot
@@ -333,15 +333,16 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                                   statusName={status.name}
                                   thresholds={status}
                                   className="mt-0.5"
+                                  size="sm"
                                 />
                                 {hasTask && (
-                                  <ClipboardList className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                                  <ClipboardList className="w-3 h-3 text-primary shrink-0 mt-0.5" />
                                 )}
-                                <AssigneeBadge userId={lead.assigned_to ?? null} />
+                                <AssigneeBadge userId={lead.assigned_to ?? null} size="sm" />
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 -mr-1" title="Move to status">
-                                      <MoreVertical className="w-3.5 h-3.5" />
+                                    <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0 -mr-1" title="Move to status">
+                                      <MoreVertical className="w-3 h-3" />
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end" className="max-h-[60vh] overflow-y-auto bg-popover z-50">
@@ -379,7 +380,7 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                               )}
 
                               {/* Footer meta — attribution + date on one divided row */}
-                              <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-border/40 text-[10px] text-muted-foreground">
+                              <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40 text-[10px] text-muted-foreground">
                                 <div className="flex items-center gap-1 min-w-0 flex-1">
                                   {lead.referral_partner_id && getReferrerName?.(lead.referral_partner_id) ? (
                                     <>
@@ -404,7 +405,7 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                               </div>
 
                               {docs && docs.requested > 0 && (
-                                <div className="pt-1.5 border-t border-border/40 space-y-1">
+                                <div className="pt-1 border-t border-border/40 space-y-1">
                                   <div className="flex items-center justify-between text-[10px]">
                                     <span className="text-muted-foreground flex items-center gap-1"><FileText className="w-3 h-3" /> Docs {docsPct}%</span>
                                     {docs.files.length > 0 && onDownloadDocs && (
