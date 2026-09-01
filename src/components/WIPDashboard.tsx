@@ -616,7 +616,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); onAddInStage(stage.name); }}
-                        className="mx-2 mt-2 inline-flex items-center justify-center gap-1 py-1.5 rounded-md border border-dashed border-border text-[11px] font-medium text-muted-foreground hover:text-foreground hover:border-foreground/40 hover:bg-background/60 transition"
+                        className="mx-2 mt-2 inline-flex items-center justify-center gap-1 py-1 rounded-md border border-dashed border-border text-[11px] font-medium text-muted-foreground hover:text-foreground hover:border-foreground/40 hover:bg-background/60 transition"
                       >
                         <Plus className="w-3 h-3" /> Add card
                       </button>
