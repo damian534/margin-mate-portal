@@ -82,7 +82,17 @@ export function useWipStatuses() {
     if (updates.name) {
       const oldStatus = statuses.find(s => s.id === id);
       if (oldStatus && oldStatus.name !== updates.name) {
+        // Preserve each deal's stage timer: renaming a stage is not a stage change.
+        const { data: affected } = await supabase
+          .from('leads')
+          .select('id, stage_entered_at')
+          .eq('wip_status', oldStatus.name);
         await supabase.from('leads').update({ wip_status: updates.name }).eq('wip_status', oldStatus.name);
+        await Promise.all(
+          ((affected as any[]) || [])
+            .filter(l => l.stage_entered_at)
+            .map(l => supabase.from('leads').update({ stage_entered_at: l.stage_entered_at }).eq('id', l.id))
+        );
       }
     }
     const { error } = await supabase.from('wip_statuses').update(updates).eq('id', id);
