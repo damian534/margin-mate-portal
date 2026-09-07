@@ -8,12 +8,26 @@ import { toast } from 'sonner';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { CheckCircle2, ExternalLink, FileText, Loader2, Shield } from 'lucide-react';
 import { SignaturePad } from '@/components/esign/SignaturePad';
+import { PdfCanvas } from '@/components/esign/PdfCanvas';
+
+interface SignField {
+  id: string;
+  field_type: 'signature' | 'initials' | 'date' | 'text';
+  page_number: number;
+  x_pct: number;
+  y_pct: number;
+  width_pct: number;
+  height_pct: number;
+  required: boolean;
+  value: string | null;
+}
 
 interface PortalData {
   document: { id: string; title: string; message: string | null; status: string; file_name: string; file_url: string | null };
   signer: { name: string; email: string; status: string; signed_at: string | null };
   waiting_on: string[];
   sender: string;
+  fields?: SignField[];
 }
 
 export default function SignDocument() {
@@ -27,6 +41,7 @@ export default function SignDocument() {
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const load = async () => {
@@ -44,6 +59,12 @@ export default function SignDocument() {
       setData(json);
       setFullName(json.signer.name || '');
       setDone(json.signer.status === 'signed');
+      const seed: Record<string, string> = {};
+      (json.fields || []).forEach(f => {
+        if (f.field_type === 'date') seed[f.id] = f.value || new Date().toLocaleDateString('en-AU');
+        else if (f.field_type === 'text') seed[f.id] = f.value || '';
+      });
+      setFieldValues(seed);
       setLoading(false);
     };
     load();
@@ -57,7 +78,16 @@ export default function SignDocument() {
     const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/esign-sign`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, signature, typed_name: fullName.trim(), signature_type: sigType }),
+      body: JSON.stringify({
+        token,
+        signature,
+        typed_name: fullName.trim(),
+        signature_type: sigType,
+        fields: (data?.fields || []).map(f => ({
+          id: f.id,
+          value: f.field_type === 'signature' || f.field_type === 'initials' ? 'signed' : (fieldValues[f.id] || ''),
+        })),
+      }),
     });
     setSubmitting(false);
     if (!res.ok) {
@@ -92,6 +122,7 @@ export default function SignDocument() {
   }
 
   const waiting = data.waiting_on.length > 0 && !done;
+  const fields = data.fields || [];
 
   return (
     <div className="min-h-screen bg-background font-[Poppins,sans-serif]">
@@ -126,11 +157,53 @@ export default function SignDocument() {
               )}
             </div>
             {data.document.file_url && data.document.file_name.toLowerCase().endsWith('.pdf') && (
-              <iframe
-                title="Document preview"
-                src={data.document.file_url}
-                className="w-full h-[520px] rounded-lg border bg-muted"
-              />
+              fields.length > 0 ? (
+                <div className="max-h-[70vh] overflow-y-auto rounded-lg border bg-muted/40 p-2">
+                  <PdfCanvas
+                    src={data.document.file_url}
+                    width={640}
+                    overlay={pageNumber => (
+                      <>
+                        {fields.filter(f => f.page_number === pageNumber).map(f => {
+                          const style = {
+                            left: `${f.x_pct * 100}%`,
+                            top: `${f.y_pct * 100}%`,
+                            width: `${f.width_pct * 100}%`,
+                            height: `${f.height_pct * 100}%`,
+                          } as const;
+                          if (f.field_type === 'signature' || f.field_type === 'initials') {
+                            return (
+                              <div key={f.id} className="absolute rounded border-2 border-dashed border-primary/70 bg-primary/10 flex items-center justify-center overflow-hidden" style={style}>
+                                {signature
+                                  ? <img src={signature} alt="Your signature" className="max-w-full max-h-full object-contain" />
+                                  : <span className="text-[9px] font-medium text-primary px-1 truncate">
+                                      {f.field_type === 'initials' ? 'Initials here' : 'Sign here'}
+                                    </span>}
+                              </div>
+                            );
+                          }
+                          return (
+                            <input
+                              key={f.id}
+                              value={fieldValues[f.id] || ''}
+                              onChange={e => setFieldValues(p => ({ ...p, [f.id]: e.target.value }))}
+                              placeholder={f.field_type === 'date' ? 'Date' : 'Type here'}
+                              className="absolute rounded border-2 border-dashed border-primary/70 bg-white/90 text-[10px] px-1"
+                              style={style}
+                            />
+                          );
+                        })}
+                      </>
+                    )}
+                  />
+                </div>
+              ) : (
+                <iframe
+                  title="Document preview"
+                  src={data.document.file_url}
+                  className="w-full h-[520px] rounded-lg border bg-muted"
+                />
+              )
             )}
           </CardContent>
         </Card>
@@ -157,7 +230,11 @@ export default function SignDocument() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Your signature</CardTitle>
-              <CardDescription>Draw or type your signature, then confirm to sign.</CardDescription>
+              <CardDescription>
+                {fields.length > 0
+                  ? 'Draw or type your signature — it will appear in the highlighted spots above.'
+                  : 'Draw or type your signature, then confirm to sign.'}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <SignaturePad
