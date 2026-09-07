@@ -2372,6 +2372,18 @@ export function LeadDetailSheet({
           {activeTab === 'funding' && (
             <FundingPositionTab lead={lead as any} isPreviewMode={isPreviewMode} />
           )}
+          {activeTab === 'esign' && (
+            <SectionCard icon={FileSignature} title="E-Signature" tone="neutral">
+              <EsignSection
+                leadId={lead.id}
+                defaultSigner={{
+                  name: [lead.first_name, lead.last_name].filter(Boolean).join(' '),
+                  email: lead.email ?? null,
+                }}
+                isPreviewMode={isPreviewMode}
+              />
+            </SectionCard>
+          )}
           {activeTab === 'communications' && (
             <CommunicationsTab
               leadId={lead.id}
@@ -2380,6 +2392,7 @@ export function LeadDetailSheet({
               clientPhone={lead.phone ?? null}
             />
           )}
+
 
         </div>
 
