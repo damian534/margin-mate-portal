@@ -179,6 +179,16 @@ Deno.serve(async (req) => {
               width: png.width * scale,
               height: png.height * scale,
             });
+          } else if (f.field_type === "checkbox") {
+            if (String(f.value || "") !== "checked") continue;
+            const size = Math.max(10, Math.min(20, h * 0.9));
+            page.drawText("X", {
+              x: x + w / 2 - size * 0.3,
+              y: y + h / 2 - size * 0.35,
+              size,
+              font: bold,
+              color: rgb(0.05, 0.05, 0.05),
+            });
           } else {
             const text =
               f.value && String(f.value).trim()
