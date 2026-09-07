@@ -117,6 +117,19 @@ export default function ClientProfile() {
 
         {tab === 'documents' && <ClientDocumentsTab deals={deals} documents={documents} onOpenDeal={openDeal} />}
 
+        {tab === 'esign' && (
+          <EsignSection
+            contactId={contact.id}
+            defaultSigner={{
+              name: `${contact.first_name} ${contact.last_name}`.trim(),
+              email: contact.email ?? null,
+            }}
+            isPreviewMode={isPreviewMode}
+          />
+        )}
+
+
+
         {tab === 'activity' && (
           primaryLeadId ? (
             <CommunicationsTab leadId={primaryLeadId} isPreviewMode={isPreviewMode} />
