@@ -12,7 +12,7 @@ import { PdfCanvas } from '@/components/esign/PdfCanvas';
 
 interface SignField {
   id: string;
-  field_type: 'signature' | 'initials' | 'date' | 'text';
+  field_type: 'signature' | 'initials' | 'date' | 'text' | 'checkbox';
   page_number: number;
   x_pct: number;
   y_pct: number;
@@ -63,6 +63,7 @@ export default function SignDocument() {
       (json.fields || []).forEach(f => {
         if (f.field_type === 'date') seed[f.id] = f.value || new Date().toLocaleDateString('en-AU');
         else if (f.field_type === 'text') seed[f.id] = f.value || '';
+        else if (f.field_type === 'checkbox') seed[f.id] = f.value || '';
       });
       setFieldValues(seed);
       setLoading(false);
@@ -85,7 +86,11 @@ export default function SignDocument() {
         signature_type: sigType,
         fields: (data?.fields || []).map(f => ({
           id: f.id,
-          value: f.field_type === 'signature' || f.field_type === 'initials' ? 'signed' : (fieldValues[f.id] || ''),
+          value: f.field_type === 'signature' || f.field_type === 'initials'
+            ? 'signed'
+            : f.field_type === 'checkbox'
+              ? (fieldValues[f.id] === 'checked' ? 'checked' : '')
+              : (fieldValues[f.id] || ''),
         })),
       }),
     });
@@ -180,6 +185,21 @@ export default function SignDocument() {
                                       {f.field_type === 'initials' ? 'Initials here' : 'Sign here'}
                                     </span>}
                               </div>
+                            );
+                          }
+                          if (f.field_type === 'checkbox') {
+                            const checked = fieldValues[f.id] === 'checked';
+                            return (
+                              <button
+                                key={f.id}
+                                type="button"
+                                onClick={() => setFieldValues(p => ({ ...p, [f.id]: checked ? '' : 'checked' }))}
+                                className="absolute rounded border-2 border-primary/70 bg-white/90 flex items-center justify-center"
+                                style={style}
+                                aria-label="Tick box"
+                              >
+                                {checked && <CheckCircle2 className="w-full h-full text-primary p-[1px]" />}
+                              </button>
                             );
                           }
                           return (
