@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type FieldType = 'signature' | 'initials' | 'date' | 'text';
+export type FieldType = 'signature' | 'initials' | 'date' | 'text' | 'checkbox';
 
 export interface PlacedField {
   id: string;
@@ -30,6 +30,7 @@ const DEFAULT_SIZE: Record<FieldType, { w: number; h: number }> = {
   initials: { w: 0.09, h: 0.045 },
   date: { w: 0.16, h: 0.035 },
   text: { w: 0.22, h: 0.035 },
+  checkbox: { w: 0.035, h: 0.028 },
 };
 
 const TYPE_LABELS: Record<FieldType, string> = {
@@ -37,6 +38,7 @@ const TYPE_LABELS: Record<FieldType, string> = {
   initials: 'Initials',
   date: 'Date',
   text: 'Text',
+  checkbox: 'Tick box',
 };
 
 interface Props {
