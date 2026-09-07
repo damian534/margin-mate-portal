@@ -109,6 +109,7 @@ export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }
   const resetForm = () => {
     setTitle(''); setMessage(''); setFile(null);
     setRows([{ name: defaultSigner?.name || '', email: defaultSigner?.email || '' }]);
+    setPlacedFields([]); setStep('details');
   };
 
   const createAndSend = async () => {
