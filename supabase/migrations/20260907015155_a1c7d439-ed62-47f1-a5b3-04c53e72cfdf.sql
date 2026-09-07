@@ -1,0 +1,1 @@
+ALTER TABLE public.esign_documents ADD COLUMN IF NOT EXISTS signed_file_path text;
