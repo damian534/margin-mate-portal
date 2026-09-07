@@ -13,3 +13,5 @@ Built-in simple e-sign (no third-party provider).
 - When all signers complete, a certificate page (signature images, emails, timestamps, IPs) is appended to the original PDF and stored as the signed copy; broker is emailed and a deal timeline note is written.
 - Tables: `esign_documents`, `esign_signers`, `esign_events`. Storage bucket `esign-documents` (private, path prefixed by broker_id).
 - Edge functions: `esign-send`, `esign-portal`, `esign-sign`.
+
+- Field placement: brokers can open an uploaded PDF and click to drop signature/initials/date/text fields per signer (esign_fields table); signers fill them on the signing page and they are stamped into the completed PDF.
