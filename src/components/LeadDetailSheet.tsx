@@ -28,6 +28,7 @@ import {
   MessageSquare, Activity, ChevronDown, ChevronRight, Pencil, X, Save, FileDown,
   Search, ExternalLink, FileText, Copy, Flag, Settings as SettingsIcon,
   Bold, Italic, List, ListOrdered, ListChecks, Pin, PinOff, ClipboardList
+  FileSignature,
 } from 'lucide-react';
 import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectionPanel';
 import { ReferLeadDialog } from '@/components/ReferLeadDialog';
@@ -40,6 +41,7 @@ import { EntityMapSection } from '@/components/lead/entity-map/EntityMapSection'
 import { PreApprovalSection } from '@/components/PreApprovalSection';
 import { MeetingNotesSection } from '@/components/MeetingNotesSection';
 import { LoanSplitsEditor } from '@/components/LoanSplitsEditor';
+import { EsignSection } from '@/components/esign/EsignSection';
 import { SectionCard } from '@/components/lead/SectionCard';
 import { ClientFileTabs, type ClientFileTab } from '@/components/lead/tabs/ClientFileTabs';
 import { FundingPositionTab } from '@/components/lead/tabs/FundingPositionTab';
