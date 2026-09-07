@@ -12,6 +12,7 @@ export type ClientFileTab =
   | 'structure'
   | 'funding'
   | 'documents'
+  | 'esign'
   | 'notes'
   | 'communications';
 
@@ -22,9 +23,11 @@ export const CLIENT_FILE_TABS: { key: ClientFileTab; label: string }[] = [
   { key: 'structure', label: 'Structure' },
 
   { key: 'documents', label: 'Documents' },
+  { key: 'esign', label: 'E-Sign' },
   { key: 'notes', label: 'Notes' },
   { key: 'communications', label: 'Communications' },
 ];
+
 
 
 interface Props {
