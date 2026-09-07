@@ -26,6 +26,7 @@ import StampDutyCalculator from "./pages/StampDutyCalculator";
 import NegativeGearingCalculator from "./pages/NegativeGearingCalculator";
 import Settlements from "./pages/Settlements";
 import ClientPortal from "./pages/ClientPortal";
+import SignDocument from "./pages/SignDocument";
 import PortfolioAdvisor from "./pages/PortfolioAdvisor";
 import FeasibilityCalculator from "./pages/FeasibilityCalculator";
 import RetirementCalculator from "./pages/RetirementCalculator";
@@ -154,6 +155,7 @@ const App = () => (
             } />
             <Route path="/preview" element={<Preview />} />
             <Route path="/client-portal/:token" element={<ClientPortal />} />
+            <Route path="/sign/:token" element={<SignDocument />} />
             <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

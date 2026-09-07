@@ -821,6 +821,209 @@ export type Database = {
         }
         Relationships: []
       }
+      esign_documents: {
+        Row: {
+          broker_id: string
+          completed_at: string | null
+          contact_id: string | null
+          content_type: string | null
+          created_at: string
+          created_by: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          lead_id: string | null
+          message: string | null
+          sent_at: string | null
+          signed_file_path: string | null
+          status: string
+          title: string
+          updated_at: string
+          voided_at: string | null
+        }
+        Insert: {
+          broker_id: string
+          completed_at?: string | null
+          contact_id?: string | null
+          content_type?: string | null
+          created_at?: string
+          created_by: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          lead_id?: string | null
+          message?: string | null
+          sent_at?: string | null
+          signed_file_path?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          voided_at?: string | null
+        }
+        Update: {
+          broker_id?: string
+          completed_at?: string | null
+          contact_id?: string | null
+          content_type?: string | null
+          created_at?: string
+          created_by?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          lead_id?: string | null
+          message?: string | null
+          sent_at?: string | null
+          signed_file_path?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          voided_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "esign_documents_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "esign_documents_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      esign_events: {
+        Row: {
+          created_at: string
+          detail: string | null
+          document_id: string
+          event_type: string
+          id: string
+          ip_address: string | null
+          signer_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          detail?: string | null
+          document_id: string
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          signer_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          detail?: string | null
+          document_id?: string
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          signer_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "esign_events_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "esign_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "esign_events_signer_id_fkey"
+            columns: ["signer_id"]
+            isOneToOne: false
+            referencedRelation: "esign_signers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      esign_signers: {
+        Row: {
+          created_at: string
+          decline_reason: string | null
+          declined_at: string | null
+          document_id: string
+          email: string
+          id: string
+          ip_address: string | null
+          name: string
+          role_label: string | null
+          sent_at: string | null
+          signature_path: string | null
+          signature_type: string | null
+          signed_at: string | null
+          signing_order: number
+          status: string
+          token: string
+          typed_name: string | null
+          updated_at: string
+          user_agent: string | null
+          viewed_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          decline_reason?: string | null
+          declined_at?: string | null
+          document_id: string
+          email: string
+          id?: string
+          ip_address?: string | null
+          name: string
+          role_label?: string | null
+          sent_at?: string | null
+          signature_path?: string | null
+          signature_type?: string | null
+          signed_at?: string | null
+          signing_order?: number
+          status?: string
+          token: string
+          typed_name?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          viewed_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          decline_reason?: string | null
+          declined_at?: string | null
+          document_id?: string
+          email?: string
+          id?: string
+          ip_address?: string | null
+          name?: string
+          role_label?: string | null
+          sent_at?: string | null
+          signature_path?: string | null
+          signature_type?: string | null
+          signed_at?: string | null
+          signing_order?: number
+          status?: string
+          token?: string
+          typed_name?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "esign_signers_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "esign_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fact_find_responses: {
         Row: {
           completed: boolean
@@ -2566,6 +2769,10 @@ export type Database = {
         Returns: undefined
       }
       can_access_contact: { Args: { _contact_id: string }; Returns: boolean }
+      can_access_esign_document: {
+        Args: { _document_id: string }
+        Returns: boolean
+      }
       can_manage_lead: { Args: { _lead_id: string }; Returns: boolean }
       can_view_lead_partner: { Args: { _lead_id: string }; Returns: boolean }
       can_view_referrer_profile_for_referred_lead: {

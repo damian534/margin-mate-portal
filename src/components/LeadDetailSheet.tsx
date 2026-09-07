@@ -27,7 +27,8 @@ import {
   Calendar, Plus, CheckCircle, Check, Clock, AlertTriangle,
   MessageSquare, Activity, ChevronDown, ChevronRight, Pencil, X, Save, FileDown,
   Search, ExternalLink, FileText, Copy, Flag, Settings as SettingsIcon,
-  Bold, Italic, List, ListOrdered, ListChecks, Pin, PinOff, ClipboardList
+  Bold, Italic, List, ListOrdered, ListChecks, Pin, PinOff, ClipboardList,
+  FileSignature,
 } from 'lucide-react';
 import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectionPanel';
 import { ReferLeadDialog } from '@/components/ReferLeadDialog';
@@ -40,6 +41,7 @@ import { EntityMapSection } from '@/components/lead/entity-map/EntityMapSection'
 import { PreApprovalSection } from '@/components/PreApprovalSection';
 import { MeetingNotesSection } from '@/components/MeetingNotesSection';
 import { LoanSplitsEditor } from '@/components/LoanSplitsEditor';
+import { EsignSection } from '@/components/esign/EsignSection';
 import { SectionCard } from '@/components/lead/SectionCard';
 import { ClientFileTabs, type ClientFileTab } from '@/components/lead/tabs/ClientFileTabs';
 import { FundingPositionTab } from '@/components/lead/tabs/FundingPositionTab';
@@ -2372,6 +2374,18 @@ export function LeadDetailSheet({
           {activeTab === 'funding' && (
             <FundingPositionTab lead={lead as any} isPreviewMode={isPreviewMode} />
           )}
+          {activeTab === 'esign' && (
+            <SectionCard icon={FileSignature} title="E-Signature" tone="neutral">
+              <EsignSection
+                leadId={lead.id}
+                defaultSigner={{
+                  name: [lead.first_name, lead.last_name].filter(Boolean).join(' '),
+                  email: lead.email ?? null,
+                }}
+                isPreviewMode={isPreviewMode}
+              />
+            </SectionCard>
+          )}
           {activeTab === 'communications' && (
             <CommunicationsTab
               leadId={lead.id}
@@ -2380,6 +2394,7 @@ export function LeadDetailSheet({
               clientPhone={lead.phone ?? null}
             />
           )}
+
 
         </div>
 
