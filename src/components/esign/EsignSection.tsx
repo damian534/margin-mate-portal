@@ -13,9 +13,10 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import {
-  CheckCircle2, Clock, Download, FileSignature, Loader2, Plus, Send, Trash2, X, History,
+  CheckCircle2, Clock, Download, FileSignature, Loader2, Plus, Send, Trash2, X, History, MousePointerClick,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { FieldPlacer, type PlacedField } from './FieldPlacer';
 
 interface Signer {
   id: string;
@@ -110,6 +111,15 @@ export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }
     setTitle(''); setMessage(''); setFile(null);
     setRows([{ name: defaultSigner?.name || '', email: defaultSigner?.email || '' }]);
     setPlacedFields([]); setStep('details');
+  };
+
+  const isPdf = !!file && file.name.toLowerCase().endsWith('.pdf');
+
+  const goToFields = () => {
+    if (!file) { toast.error('Upload the document first'); return; }
+    const named = rows.filter(r => r.name.trim() || r.email.trim());
+    if (!named.length) { toast.error('Add at least one signer first'); return; }
+    setStep('fields');
   };
 
   const createAndSend = async () => {
