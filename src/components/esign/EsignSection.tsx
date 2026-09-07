@@ -151,7 +151,7 @@ export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }
       });
       if (docErr) throw docErr;
 
-      const { error: signerErr } = await supabase.from('esign_signers').insert(
+      const { data: insertedSigners, error: signerErr } = await supabase.from('esign_signers').insert(
         cleaned.map((r, i) => ({
           document_id: docId,
           name: r.name,
@@ -159,8 +159,25 @@ export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }
           signing_order: i + 1,
           token: newToken(),
         }))
-      );
+      ).select('id, signing_order');
       if (signerErr) throw signerErr;
+
+      if (placedFields.length) {
+        const byOrder = new Map((insertedSigners || []).map(s => [s.signing_order, s.id]));
+        const { error: fieldErr } = await supabase.from('esign_fields').insert(
+          placedFields.map(f => ({
+            document_id: docId,
+            signer_id: byOrder.get(f.signerIndex + 1) || null,
+            field_type: f.type,
+            page_number: f.page,
+            x_pct: f.x,
+            y_pct: f.y,
+            width_pct: f.w,
+            height_pct: f.h,
+          }))
+        );
+        if (fieldErr) throw fieldErr;
+      }
 
       const { error: sendErr } = await supabase.functions.invoke('esign-send', {
         body: { document_id: docId, app_url: window.location.origin },
