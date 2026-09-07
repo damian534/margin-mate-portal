@@ -254,12 +254,17 @@ export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }
               <Plus className="w-3.5 h-3.5" /> Send for signing
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogContent className={cn('max-h-[88vh] overflow-y-auto', step === 'fields' ? 'max-w-4xl' : 'max-w-lg')}>
             <DialogHeader>
-              <DialogTitle>Send a document for signing</DialogTitle>
-              <DialogDescription>Upload the document, add who needs to sign, and we'll email each of them a private signing link.</DialogDescription>
+              <DialogTitle>{step === 'details' ? 'Send a document for signing' : 'Place the signature fields'}</DialogTitle>
+              <DialogDescription>
+                {step === 'details'
+                  ? "Upload the document, add who needs to sign, and we'll email each of them a private signing link."
+                  : 'Choose a signer, pick a field type, then click on the document where they need to sign.'}
+              </DialogDescription>
             </DialogHeader>
 
+            {step === 'details' ? (
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="esign-title">Document title</Label>
@@ -272,7 +277,7 @@ export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }
                   id="esign-file"
                   type="file"
                   accept=".pdf,.doc,.docx"
-                  onChange={e => setFile(e.target.files?.[0] ?? null)}
+                  onChange={e => { setFile(e.target.files?.[0] ?? null); setPlacedFields([]); }}
                 />
               </div>
 
@@ -304,14 +309,35 @@ export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }
                 </Button>
               </div>
             </div>
+            ) : (
+              file && <FieldPlacer file={file} signers={rows} fields={placedFields} onChange={setPlacedFields} />
+            )}
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={createAndSend} disabled={saving} className="gap-1.5">
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                {saving ? 'Sending…' : 'Send for signing'}
-              </Button>
+              {step === 'details' ? (
+                <>
+                  <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                  {isPdf && (
+                    <Button variant="outline" className="gap-1.5" onClick={goToFields}>
+                      <MousePointerClick className="w-4 h-4" /> Place fields
+                    </Button>
+                  )}
+                  <Button onClick={createAndSend} disabled={saving} className="gap-1.5">
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    {saving ? 'Sending…' : 'Send for signing'}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={() => setStep('details')}>Back</Button>
+                  <Button onClick={createAndSend} disabled={saving} className="gap-1.5">
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    {saving ? 'Sending…' : 'Send for signing'}
+                  </Button>
+                </>
+              )}
             </DialogFooter>
+
           </DialogContent>
         </Dialog>
       </div>
