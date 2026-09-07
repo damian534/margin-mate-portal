@@ -50,7 +50,7 @@ export function PdfCanvas({ src, overlay, onPageClick, width = 760 }: Props) {
           canvas.width = Math.floor(viewport.width);
           canvas.height = Math.floor(viewport.height);
           const ctx = canvas.getContext('2d')!;
-          await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+          await page.render({ canvasContext: ctx, viewport }).promise;
           out.push({
             pageNumber: n,
             dataUrl: canvas.toDataURL('image/jpeg', 0.85),
