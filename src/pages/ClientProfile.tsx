@@ -13,8 +13,9 @@ import { AddressesTab } from '@/components/lead/tabs/AddressesTab';
 import { EmploymentIdTab } from '@/components/lead/tabs/EmploymentIdTab';
 import { ClientFinancialsTab } from '@/components/client/ClientFinancialsTab';
 import { CommunicationsTab } from '@/components/lead/tabs/CommunicationsTab';
+import { EsignSection } from '@/components/esign/EsignSection';
 
-type TabKey = 'overview' | 'deals' | 'profile' | 'financials' | 'documents' | 'activity';
+type TabKey = 'overview' | 'deals' | 'profile' | 'financials' | 'documents' | 'esign' | 'activity';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'overview', label: 'Overview' },
@@ -22,8 +23,10 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'profile', label: 'Profile' },
   { key: 'financials', label: 'Financials' },
   { key: 'documents', label: 'Documents' },
+  { key: 'esign', label: 'E-Sign' },
   { key: 'activity', label: 'Activity' },
 ];
+
 
 export default function ClientProfile() {
   const { contactId } = useParams<{ contactId: string }>();
