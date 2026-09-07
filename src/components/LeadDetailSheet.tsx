@@ -27,7 +27,7 @@ import {
   Calendar, Plus, CheckCircle, Check, Clock, AlertTriangle,
   MessageSquare, Activity, ChevronDown, ChevronRight, Pencil, X, Save, FileDown,
   Search, ExternalLink, FileText, Copy, Flag, Settings as SettingsIcon,
-  Bold, Italic, List, ListOrdered, ListChecks, Pin, PinOff, ClipboardList
+  Bold, Italic, List, ListOrdered, ListChecks, Pin, PinOff, ClipboardList,
   FileSignature,
 } from 'lucide-react';
 import { DocumentCollectionPanel } from '@/components/factfind/DocumentCollectionPanel';
