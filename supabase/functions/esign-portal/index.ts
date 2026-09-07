@@ -66,7 +66,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    const { data: fields } = await admin
+      .from("esign_fields")
+      .select("id, field_type, page_number, x_pct, y_pct, width_pct, height_pct, required, value, signer_id")
+      .eq("document_id", doc.id)
+      .order("page_number", { ascending: true });
+
     return json({
+      fields: (fields || []).filter((f) => f.signer_id === signer.id),
       document: {
         id: doc.id,
         title: doc.title,

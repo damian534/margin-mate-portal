@@ -947,6 +947,75 @@ export type Database = {
           },
         ]
       }
+      esign_fields: {
+        Row: {
+          created_at: string
+          document_id: string
+          field_type: string
+          filled_at: string | null
+          height_pct: number
+          id: string
+          label: string | null
+          page_number: number
+          required: boolean
+          signer_id: string | null
+          updated_at: string
+          value: string | null
+          width_pct: number
+          x_pct: number
+          y_pct: number
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          field_type?: string
+          filled_at?: string | null
+          height_pct?: number
+          id?: string
+          label?: string | null
+          page_number?: number
+          required?: boolean
+          signer_id?: string | null
+          updated_at?: string
+          value?: string | null
+          width_pct?: number
+          x_pct: number
+          y_pct: number
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          field_type?: string
+          filled_at?: string | null
+          height_pct?: number
+          id?: string
+          label?: string | null
+          page_number?: number
+          required?: boolean
+          signer_id?: string | null
+          updated_at?: string
+          value?: string | null
+          width_pct?: number
+          x_pct?: number
+          y_pct?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "esign_fields_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "esign_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "esign_fields_signer_id_fkey"
+            columns: ["signer_id"]
+            isOneToOne: false
+            referencedRelation: "esign_signers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       esign_signers: {
         Row: {
           created_at: string

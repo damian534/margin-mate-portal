@@ -32,6 +32,11 @@ Deno.serve(async (req) => {
     const signatureDataUrl = String(body.signature || "");
     const typedName = String(body.typed_name || "").trim().slice(0, 120);
     const signatureType = body.signature_type === "typed" ? "typed" : "drawn";
+    const fieldValues: { id: string; value: string }[] = Array.isArray(body.fields)
+      ? body.fields
+          .filter((f: unknown) => f && typeof (f as { id?: unknown }).id === "string")
+          .map((f: { id: string; value?: unknown }) => ({ id: f.id, value: String(f.value ?? "").slice(0, 500) }))
+      : [];
 
     if (!token || token.length < 20 || token.length > 128) return json({ error: "Invalid link" }, 400);
     if (!typedName) return json({ error: "Please enter your full name" }, 400);
@@ -88,6 +93,23 @@ Deno.serve(async (req) => {
       })
       .eq("id", signer.id);
 
+    // Record the values typed into any placed fields for this signer
+    if (fieldValues.length) {
+      const { data: myFields } = await admin
+        .from("esign_fields")
+        .select("id")
+        .eq("document_id", doc.id)
+        .eq("signer_id", signer.id);
+      const allowed = new Set((myFields || []).map((f) => f.id));
+      for (const fv of fieldValues) {
+        if (!allowed.has(fv.id)) continue;
+        await admin
+          .from("esign_fields")
+          .update({ value: fv.value, filled_at: signedAt })
+          .eq("id", fv.id);
+      }
+    }
+
     await admin.from("esign_events").insert({
       document_id: doc.id,
       signer_id: signer.id,
@@ -120,6 +142,60 @@ Deno.serve(async (req) => {
 
         const font = await pdf.embedFont(StandardFonts.Helvetica);
         const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+
+        // Stamp each placed field onto the page where the broker positioned it
+        const { data: placed } = await admin
+          .from("esign_fields")
+          .select("id, signer_id, field_type, page_number, x_pct, y_pct, width_pct, height_pct, value")
+          .eq("document_id", doc.id);
+
+        const sigCache = new Map<string, Uint8Array>();
+        const pdfPages = pdf.getPages();
+        for (const f of placed || []) {
+          const page = pdfPages[(f.page_number || 1) - 1];
+          if (!page) continue;
+          const { width: pw, height: ph } = page.getSize();
+          const x = Number(f.x_pct) * pw;
+          const w = Number(f.width_pct) * pw;
+          const h = Number(f.height_pct) * ph;
+          const y = ph - Number(f.y_pct) * ph - h;
+          const owner = refreshed.find((s) => s.id === f.signer_id);
+          if (!owner || owner.status !== "signed") continue;
+
+          if (f.field_type === "signature" || f.field_type === "initials") {
+            if (!owner.signature_path) continue;
+            let bytesSig = sigCache.get(owner.signature_path);
+            if (!bytesSig) {
+              const { data: sigFile } = await admin.storage.from("esign-documents").download(owner.signature_path);
+              if (!sigFile) continue;
+              bytesSig = new Uint8Array(await sigFile.arrayBuffer());
+              sigCache.set(owner.signature_path, bytesSig);
+            }
+            const png = await pdf.embedPng(bytesSig);
+            const scale = Math.min(w / png.width, h / png.height);
+            page.drawImage(png, {
+              x,
+              y: y + (h - png.height * scale) / 2,
+              width: png.width * scale,
+              height: png.height * scale,
+            });
+          } else {
+            const text =
+              f.value && String(f.value).trim()
+                ? String(f.value)
+                : f.field_type === "date"
+                ? new Date(owner.signed_at as string).toLocaleDateString("en-AU")
+                : "";
+            if (!text) continue;
+            page.drawText(text.slice(0, 120), {
+              x: x + 2,
+              y: y + h / 2 - 4,
+              size: Math.max(8, Math.min(12, h * 0.6)),
+              font,
+              color: rgb(0.05, 0.05, 0.05),
+            });
+          }
+        }
         const page = pdf.addPage([595, 842]);
         let y = 780;
         page.drawText("Certificate of Electronic Signature", { x: 48, y, size: 18, font: bold, color: rgb(0.1, 0.1, 0.1) });

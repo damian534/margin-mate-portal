@@ -13,9 +13,10 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import {
-  CheckCircle2, Clock, Download, FileSignature, Loader2, Plus, Send, Trash2, X, History,
+  CheckCircle2, Clock, Download, FileSignature, Loader2, Plus, Send, Trash2, X, History, MousePointerClick,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { FieldPlacer, type PlacedField } from './FieldPlacer';
 
 interface Signer {
   id: string;
@@ -83,6 +84,8 @@ export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }
     { name: defaultSigner?.name || '', email: defaultSigner?.email || '' },
   ]);
   const [saving, setSaving] = useState(false);
+  const [step, setStep] = useState<'details' | 'fields'>('details');
+  const [placedFields, setPlacedFields] = useState<PlacedField[]>([]);
 
   const load = useCallback(async () => {
     if (isPreviewMode) { setDocs([]); setLoading(false); return; }
@@ -107,6 +110,16 @@ export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }
   const resetForm = () => {
     setTitle(''); setMessage(''); setFile(null);
     setRows([{ name: defaultSigner?.name || '', email: defaultSigner?.email || '' }]);
+    setPlacedFields([]); setStep('details');
+  };
+
+  const isPdf = !!file && file.name.toLowerCase().endsWith('.pdf');
+
+  const goToFields = () => {
+    if (!file) { toast.error('Upload the document first'); return; }
+    const named = rows.filter(r => r.name.trim() || r.email.trim());
+    if (!named.length) { toast.error('Add at least one signer first'); return; }
+    setStep('fields');
   };
 
   const createAndSend = async () => {
@@ -148,7 +161,7 @@ export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }
       });
       if (docErr) throw docErr;
 
-      const { error: signerErr } = await supabase.from('esign_signers').insert(
+      const { data: insertedSigners, error: signerErr } = await supabase.from('esign_signers').insert(
         cleaned.map((r, i) => ({
           document_id: docId,
           name: r.name,
@@ -156,8 +169,25 @@ export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }
           signing_order: i + 1,
           token: newToken(),
         }))
-      );
+      ).select('id, signing_order');
       if (signerErr) throw signerErr;
+
+      if (placedFields.length) {
+        const byOrder = new Map((insertedSigners || []).map(s => [s.signing_order, s.id]));
+        const { error: fieldErr } = await supabase.from('esign_fields').insert(
+          placedFields.map(f => ({
+            document_id: docId,
+            signer_id: byOrder.get(f.signerIndex + 1) || null,
+            field_type: f.type,
+            page_number: f.page,
+            x_pct: f.x,
+            y_pct: f.y,
+            width_pct: f.w,
+            height_pct: f.h,
+          }))
+        );
+        if (fieldErr) throw fieldErr;
+      }
 
       const { error: sendErr } = await supabase.functions.invoke('esign-send', {
         body: { document_id: docId, app_url: window.location.origin },
@@ -234,12 +264,17 @@ export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }
               <Plus className="w-3.5 h-3.5" /> Send for signing
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogContent className={cn('max-h-[88vh] overflow-y-auto', step === 'fields' ? 'max-w-4xl' : 'max-w-lg')}>
             <DialogHeader>
-              <DialogTitle>Send a document for signing</DialogTitle>
-              <DialogDescription>Upload the document, add who needs to sign, and we'll email each of them a private signing link.</DialogDescription>
+              <DialogTitle>{step === 'details' ? 'Send a document for signing' : 'Place the signature fields'}</DialogTitle>
+              <DialogDescription>
+                {step === 'details'
+                  ? "Upload the document, add who needs to sign, and we'll email each of them a private signing link."
+                  : 'Choose a signer, pick a field type, then click on the document where they need to sign.'}
+              </DialogDescription>
             </DialogHeader>
 
+            {step === 'details' ? (
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="esign-title">Document title</Label>
@@ -252,7 +287,7 @@ export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }
                   id="esign-file"
                   type="file"
                   accept=".pdf,.doc,.docx"
-                  onChange={e => setFile(e.target.files?.[0] ?? null)}
+                  onChange={e => { setFile(e.target.files?.[0] ?? null); setPlacedFields([]); }}
                 />
               </div>
 
@@ -284,14 +319,35 @@ export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }
                 </Button>
               </div>
             </div>
+            ) : (
+              file && <FieldPlacer file={file} signers={rows} fields={placedFields} onChange={setPlacedFields} />
+            )}
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={createAndSend} disabled={saving} className="gap-1.5">
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                {saving ? 'Sending…' : 'Send for signing'}
-              </Button>
+              {step === 'details' ? (
+                <>
+                  <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                  {isPdf && (
+                    <Button variant="outline" className="gap-1.5" onClick={goToFields}>
+                      <MousePointerClick className="w-4 h-4" /> Place fields
+                    </Button>
+                  )}
+                  <Button onClick={createAndSend} disabled={saving} className="gap-1.5">
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    {saving ? 'Sending…' : 'Send for signing'}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={() => setStep('details')}>Back</Button>
+                  <Button onClick={createAndSend} disabled={saving} className="gap-1.5">
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    {saving ? 'Sending…' : 'Send for signing'}
+                  </Button>
+                </>
+              )}
             </DialogFooter>
+
           </DialogContent>
         </Dialog>
       </div>
