@@ -83,6 +83,8 @@ export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }
     { name: defaultSigner?.name || '', email: defaultSigner?.email || '' },
   ]);
   const [saving, setSaving] = useState(false);
+  const [step, setStep] = useState<'details' | 'fields'>('details');
+  const [placedFields, setPlacedFields] = useState<PlacedField[]>([]);
 
   const load = useCallback(async () => {
     if (isPreviewMode) { setDocs([]); setLoading(false); return; }
