@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { Loader2, MessagesSquare } from 'lucide-react';
 import { ChatConversationView } from '@/components/chat/ChatConversationView';
 import { useDealConversation } from '@/hooks/useDealChat';
@@ -15,6 +16,7 @@ export function DealChatPanel({ leadId, subtitle }: Props) {
   const { user, isPreviewMode } = useAuth();
   const { people } = useOrgPeople();
   const { conversation, loading, error } = useDealConversation(leadId, !isPreviewMode);
+  const noop = useCallback(() => {}, []);
 
   if (isPreviewMode) {
     return (
@@ -40,7 +42,7 @@ export function DealChatPanel({ leadId, subtitle }: Props) {
         conversation={conversation}
         people={people}
         myId={user?.id || ''}
-        onChanged={() => { /* read state is tracked by the chat itself */ }}
+        onChanged={noop}
         subtitle={subtitle}
       />
     </div>
