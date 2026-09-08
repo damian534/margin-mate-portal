@@ -89,7 +89,7 @@ export function useOrgPeople() {
         supabase
           .from('user_roles')
           .select('user_id, role')
-          .in('role', CHAT_ROLES as unknown as string[]),
+          .in('role', [...CHAT_ROLES]),
       ]);
       if (!active) return;
       const allowed = new Set(((roleRows as { user_id: string }[]) || []).map(r => r.user_id));
