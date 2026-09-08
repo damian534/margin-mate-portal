@@ -52,7 +52,19 @@ export interface ChatMessage {
   attachments?: ChatAttachment[];
 }
 
-/** Everyone in the signed-in user's brokerage who has a login. */
+/** Roles allowed to use internal chat — clients/referral partners are excluded. */
+const CHAT_ROLES = ['broker', 'broker_staff', 'super_admin', 'platform_owner'] as const;
+
+/** Reads the signed-in user's brokerage id the same way the database security rules do. */
+export async function resolveMyTenantId(): Promise<string | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data } = await supabase
+    .from('profiles').select('tenant_id').eq('user_id', user.id).limit(1).maybeSingle();
+  return (data as { tenant_id: string | null } | null)?.tenant_id ?? null;
+}
+
+/** Brokers, support staff and admins in the signed-in user's brokerage. */
 export function useOrgPeople() {
   const { user } = useAuth();
   const [people, setPeople] = useState<ChatPerson[]>([]);
@@ -63,20 +75,25 @@ export function useOrgPeople() {
     let active = true;
     (async () => {
       if (!user) { setLoading(false); return; }
-      const { data: me } = await supabase
-        .from('profiles').select('tenant_id').eq('user_id', user.id).maybeSingle();
-      const tid = (me as { tenant_id: string | null } | null)?.tenant_id ?? null;
+      const tid = await resolveMyTenantId();
       if (!active) return;
       setTenantId(tid);
       if (!tid) { setPeople([]); setLoading(false); return; }
-      const { data } = await supabase
-        .from('profiles')
-        .select('user_id, full_name, email')
-        .eq('tenant_id', tid)
-        .not('user_id', 'is', null)
-        .order('full_name');
+      const [{ data: profs }, { data: roleRows }] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('user_id, full_name, email')
+          .eq('tenant_id', tid)
+          .not('user_id', 'is', null)
+          .order('full_name'),
+        supabase
+          .from('user_roles')
+          .select('user_id, role')
+          .in('role', CHAT_ROLES as unknown as string[]),
+      ]);
       if (!active) return;
-      setPeople(((data as ChatPerson[]) || []).filter(p => !!p.user_id));
+      const allowed = new Set(((roleRows as { user_id: string }[]) || []).map(r => r.user_id));
+      setPeople(((profs as ChatPerson[]) || []).filter(p => !!p.user_id && allowed.has(p.user_id)));
       setLoading(false);
     })();
     return () => { active = false; };
@@ -84,6 +101,7 @@ export function useOrgPeople() {
 
   return { people, tenantId, loading };
 }
+
 
 export function personLabel(people: ChatPerson[], userId: string | null | undefined) {
   if (!userId) return 'Unknown';
