@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { TenantProvider } from "@/hooks/useTenant";
+import { AlertsProvider } from "@/hooks/useAlerts";
+
 import { TenantStatusGate } from "@/components/tenant/TenantStatusGate";
 import { BrandPreviewBar } from "@/components/tenant/BrandPreviewBar";
 import Index from "./pages/Index";
