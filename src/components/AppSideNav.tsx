@@ -9,6 +9,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { useFavourites } from '@/hooks/useFavourites';
 import { useUnreadChatCount } from '@/hooks/useChat';
+import { AlertsBell } from '@/components/AlertsBell';
+
 import { TOOLS } from '@/lib/toolsCatalog';
 import { useToolVisibility } from '@/hooks/useToolVisibility';
 import {
