@@ -3215,6 +3215,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      chat_directory: {
+        Args: never
+        Returns: {
+          email: string
+          full_name: string
+          user_id: string
+        }[]
+      }
       decline_lead_referral: {
         Args: { _referral_id: string }
         Returns: undefined
