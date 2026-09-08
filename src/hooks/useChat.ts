@@ -285,10 +285,13 @@ export async function createGroupOrChannel(opts: {
   isPrivate: boolean;
   memberIds: string[];
 }): Promise<string> {
+  const orgId = (await resolveMyTenantId()) || opts.tenantId;
+  if (!orgId) throw new Error('Your account is not linked to a brokerage yet');
   const { data: conv, error } = await supabase
     .from('conversations')
     .insert({
-      organisation_id: opts.tenantId,
+      organisation_id: orgId,
+
       type: opts.type,
       name: opts.name,
       description: opts.description || null,
