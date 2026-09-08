@@ -9,6 +9,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { useFavourites } from '@/hooks/useFavourites';
 import { useUnreadChatCount } from '@/hooks/useChat';
+import { AlertsBell } from '@/components/AlertsBell';
+
 import { TOOLS } from '@/lib/toolsCatalog';
 import { useToolVisibility } from '@/hooks/useToolVisibility';
 import {
@@ -130,16 +132,20 @@ export function AppSideNav({ activeTab, onSelectTab, pendingReferralsCount = 0 }
     >
       <div className="flex items-center justify-between px-3 py-3">
         {navOpen && <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Menu</span>}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0 ml-auto"
-          onClick={() => setNavOpen(!navOpen)}
-          aria-label={navOpen ? 'Collapse menu' : 'Expand menu'}
-        >
-          {navOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
-        </Button>
+        <div className="ml-auto flex items-center gap-1">
+          {!isPreviewMode && <AlertsBell />}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0"
+            onClick={() => setNavOpen(!navOpen)}
+            aria-label={navOpen ? 'Collapse menu' : 'Expand menu'}
+          >
+            {navOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
+          </Button>
+        </div>
       </div>
+
 
       {favouriteEntries.length > 0 && (
         <nav className="px-2 pb-3 mb-1 space-y-1 border-b">

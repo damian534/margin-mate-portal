@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { TenantProvider } from "@/hooks/useTenant";
+import { AlertsProvider } from "@/hooks/useAlerts";
+
 import { TenantStatusGate } from "@/components/tenant/TenantStatusGate";
 import { BrandPreviewBar } from "@/components/tenant/BrandPreviewBar";
 import Index from "./pages/Index";
@@ -71,8 +73,10 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <TenantProvider>
+          <AlertsProvider>
           <TenantStatusGate>
           <BrandPreviewBar />
+
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
@@ -166,7 +170,9 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
           </TenantStatusGate>
+          </AlertsProvider>
           </TenantProvider>
+
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
