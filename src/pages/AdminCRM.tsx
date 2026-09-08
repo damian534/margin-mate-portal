@@ -415,31 +415,49 @@ export default function AdminCRM() {
   };
 
   const fetchLeadDocs = async () => {
-    const { data } = await supabase
-      .from('document_requests')
-      .select('id, lead_id, name, status, requested_at, file_path, file_name')
-      .not('requested_at', 'is', null);
-    const requests = (data as any[]) || [];
+    // Read every checklist item in pages — the backend caps a single read at
+    // 1000 rows, which used to leave later clients with no progress bar.
+    const PAGE = 1000;
+    const requests: any[] = [];
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await supabase
+        .from('document_requests')
+        .select('id, lead_id, name, status, requested_at, file_path, file_name')
+        .not('requested_at', 'is', null)
+        .order('id')
+        .range(from, from + PAGE - 1);
+      if (error) break;
+      const rows = (data as any[]) || [];
+      requests.push(...rows);
+      if (rows.length < PAGE) break;
+    }
 
     // Pull EVERY file uploaded against each request (clients can upload several
     // per item, e.g. licence front + back). The legacy file_path column only
     // ever holds the most recent one.
     const requestIds = requests.map(r => r.id);
     const filesByRequest = new Map<string, { path: string; name: string }[]>();
-    for (let i = 0; i < requestIds.length; i += 500) {
-      const chunk = requestIds.slice(i, i + 500);
+    for (let i = 0; i < requestIds.length; i += 200) {
+      const chunk = requestIds.slice(i, i + 200);
       if (chunk.length === 0) break;
-      const { data: files } = await supabase
-        .from('document_request_files')
-        .select('document_request_id, file_path, file_name, uploaded_at')
-        .in('document_request_id', chunk)
-        .order('uploaded_at', { ascending: true });
-      for (const f of (files as any[]) || []) {
-        const list = filesByRequest.get(f.document_request_id) || [];
-        list.push({ path: f.file_path, name: f.file_name || f.file_path.split('/').pop() || 'file' });
-        filesByRequest.set(f.document_request_id, list);
+      for (let from = 0; ; from += PAGE) {
+        const { data: files, error } = await supabase
+          .from('document_request_files')
+          .select('document_request_id, file_path, file_name, uploaded_at')
+          .in('document_request_id', chunk)
+          .order('uploaded_at', { ascending: true })
+          .range(from, from + PAGE - 1);
+        if (error) break;
+        const rows = (files as any[]) || [];
+        for (const f of rows) {
+          const list = filesByRequest.get(f.document_request_id) || [];
+          list.push({ path: f.file_path, name: f.file_name || f.file_path.split('/').pop() || 'file' });
+          filesByRequest.set(f.document_request_id, list);
+        }
+        if (rows.length < PAGE) break;
       }
     }
+
 
     const map = new Map<string, { requested: number; completed: number; files: { path: string; name: string; label: string }[] }>();
     for (const d of requests) {
