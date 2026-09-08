@@ -3223,6 +3223,17 @@ export type Database = {
           user_id: string
         }[]
       }
+      create_chat_conversation: {
+        Args: {
+          _deal_id?: string
+          _description?: string
+          _is_private?: boolean
+          _member_ids?: string[]
+          _name?: string
+          _type: Database["public"]["Enums"]["conversation_type"]
+        }
+        Returns: string
+      }
       decline_lead_referral: {
         Args: { _referral_id: string }
         Returns: undefined

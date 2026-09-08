@@ -246,20 +246,17 @@ export async function getOrCreateDirect(
 
   const orgId = (await resolveMyTenantId()) || tenantId;
   if (!orgId) throw new Error('Your account is not linked to a brokerage yet');
-  const { data: conv, error } = await supabase
-    .from('conversations')
-    .insert({ organisation_id: orgId, type: 'direct', is_private: true, created_by: myId })
-    .select('id')
-    .single();
-
+  const { data, error } = await supabase.rpc('create_chat_conversation', {
+    _type: 'direct',
+    _name: null,
+    _description: null,
+    _is_private: true,
+    _member_ids: [otherId],
+    _deal_id: null,
+  });
   if (error) throw error;
-  const id = (conv as { id: string }).id;
-  const { error: memErr } = await supabase.from('conversation_members').insert([
-    { conversation_id: id, user_id: myId, role: 'owner' as const },
-    { conversation_id: id, user_id: otherId, role: 'member' as const },
-  ]);
-  if (memErr) throw memErr;
-  return id;
+  if (!data) throw new Error('Could not start the conversation');
+  return data;
 }
 
 export async function createGroupOrChannel(opts: {
@@ -273,28 +270,17 @@ export async function createGroupOrChannel(opts: {
 }): Promise<string> {
   const orgId = (await resolveMyTenantId()) || opts.tenantId;
   if (!orgId) throw new Error('Your account is not linked to a brokerage yet');
-  const { data: conv, error } = await supabase
-    .from('conversations')
-    .insert({
-      organisation_id: orgId,
-
-      type: opts.type,
-      name: opts.name,
-      description: opts.description || null,
-      is_private: opts.isPrivate,
-      created_by: opts.myId,
-    })
-    .select('id')
-    .single();
+  const { data, error } = await supabase.rpc('create_chat_conversation', {
+    _type: opts.type,
+    _name: opts.name,
+    _description: opts.description || null,
+    _is_private: opts.isPrivate,
+    _member_ids: opts.memberIds.filter(userId => userId !== opts.myId),
+    _deal_id: null,
+  });
   if (error) throw error;
-  const id = (conv as { id: string }).id;
-  const others = opts.memberIds.filter(u => u !== opts.myId);
-  const { error: memErr } = await supabase.from('conversation_members').insert([
-    { conversation_id: id, user_id: opts.myId, role: 'owner' as const },
-    ...others.map(u => ({ conversation_id: id, user_id: u, role: 'member' as const })),
-  ]);
-  if (memErr) throw memErr;
-  return id;
+  if (!data) throw new Error('Could not create the conversation');
+  return data;
 }
 
 export function conversationTitle(c: ChatConversation, people: ChatPerson[], myId: string | null) {
