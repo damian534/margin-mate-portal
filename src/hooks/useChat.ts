@@ -83,9 +83,7 @@ export function useOrgPeople() {
     return () => { active = false; };
   }, [user]);
 
-    })();
-    return () => { active = false; };
-  }, [user]);
+
 
   return { people, tenantId, loading };
 }
