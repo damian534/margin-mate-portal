@@ -48,8 +48,8 @@ export function NewConversationDialog({ mode, onClose, people, myId, tenantId, o
     setSelected(p => (p.includes(id) ? p.filter(x => x !== id) : [...p, id]));
 
   const submit = async () => {
-    if (!tenantId) { toast.error('Your account is not linked to a brokerage yet'); return; }
     setSaving(true);
+
     try {
       let id: string;
       if (mode === 'channel') {
