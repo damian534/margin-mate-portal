@@ -2,12 +2,13 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   TrendingUp, Briefcase, ListTodo, Contact as ContactIcon, Building2, Share2,
   Mail as MailIcon, BarChart3, Wrench, Landmark, Settings2, LogOut,
-  PanelLeftClose, PanelLeftOpen, ChevronDown, Star, type LucideIcon,
+  PanelLeftClose, PanelLeftOpen, ChevronDown, Star, MessagesSquare, type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { useFavourites } from '@/hooks/useFavourites';
+import { useUnreadChatCount } from '@/hooks/useChat';
 import { TOOLS } from '@/lib/toolsCatalog';
 import { useToolVisibility } from '@/hooks/useToolVisibility';
 import {
