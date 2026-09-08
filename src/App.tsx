@@ -71,8 +71,10 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <TenantProvider>
+          <AlertsProvider>
           <TenantStatusGate>
           <BrandPreviewBar />
+
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
