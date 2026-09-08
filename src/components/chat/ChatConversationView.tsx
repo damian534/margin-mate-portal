@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Hash, Loader2, Paperclip, Send, Trash2, Users } from 'lucide-react';
+import { Briefcase, Hash, Loader2, Paperclip, Send, Trash2, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   conversationTitle, initials, personLabel,
@@ -18,6 +18,10 @@ interface Props {
   people: ChatPerson[];
   myId: string;
   onChanged: () => void;
+  /** Optional secondary line under the title. */
+  subtitle?: string;
+  /** Optional control on the right of the header (e.g. Open deal). */
+  headerAction?: React.ReactNode;
 }
 
 function dayLabel(d: Date) {
@@ -26,7 +30,7 @@ function dayLabel(d: Date) {
   return format(d, 'EEEE d MMMM');
 }
 
-export function ChatConversationView({ conversation, people, myId, onChanged }: Props) {
+export function ChatConversationView({ conversation, people, myId, onChanged, subtitle, headerAction }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -199,16 +203,22 @@ export function ChatConversationView({ conversation, people, myId, onChanged }: 
     <div className="flex-1 min-w-0 flex flex-col h-full">
       <div className="border-b px-4 py-2.5 flex items-center gap-2 bg-card">
         {conversation.type === 'channel' ? <Hash className="w-4 h-4 text-muted-foreground" />
+          : conversation.type === 'deal' ? <Briefcase className="w-4 h-4 text-muted-foreground" />
           : conversation.type === 'direct'
             ? <span className="w-6 h-6 rounded-full bg-muted text-[10px] font-semibold flex items-center justify-center">{initials(title)}</span>
             : <Users className="w-4 h-4 text-muted-foreground" />}
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold truncate">{title}</p>
           <p className="text-[11px] text-muted-foreground truncate">
-            {conversation.members.length} {conversation.members.length === 1 ? 'member' : 'members'}
-            {conversation.description ? ` · ${conversation.description}` : ''}
+            {subtitle || (
+              <>
+                {conversation.members.length} {conversation.members.length === 1 ? 'member' : 'members'}
+                {conversation.description ? ` · ${conversation.description}` : ''}
+              </>
+            )}
           </p>
         </div>
+        {headerAction && <div className="shrink-0">{headerAction}</div>}
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
@@ -238,6 +248,17 @@ export function ChatConversationView({ conversation, people, myId, onChanged }: 
                 {g.items.map(m => {
                   const mine = m.sender_id === myId;
                   const who = personLabel(people, m.sender_id);
+                  if (m.message_type === 'system') {
+                    return (
+                      <div key={m.id} className="flex items-center gap-3 py-1">
+                        <div className="h-px bg-border flex-1" />
+                        <span className="text-[11px] text-muted-foreground text-center px-2">
+                          {m.body} · {format(new Date(m.created_at), 'h:mma')}
+                        </span>
+                        <div className="h-px bg-border flex-1" />
+                      </div>
+                    );
+                  }
                   return (
                     <div key={m.id} className={cn('flex gap-2.5 group', mine && 'flex-row-reverse')}>
                       <span className="w-7 h-7 rounded-full bg-muted text-[10px] font-semibold flex items-center justify-center shrink-0">
