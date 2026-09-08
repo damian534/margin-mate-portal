@@ -2,12 +2,13 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   TrendingUp, Briefcase, ListTodo, Contact as ContactIcon, Building2, Share2,
   Mail as MailIcon, BarChart3, Wrench, Landmark, Settings2, LogOut,
-  PanelLeftClose, PanelLeftOpen, ChevronDown, Star, type LucideIcon,
+  PanelLeftClose, PanelLeftOpen, ChevronDown, Star, MessagesSquare, type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { useFavourites } from '@/hooks/useFavourites';
+import { useUnreadChatCount } from '@/hooks/useChat';
 import { TOOLS } from '@/lib/toolsCatalog';
 import { useToolVisibility } from '@/hooks/useToolVisibility';
 import {
@@ -42,6 +43,7 @@ export function AppSideNav({ activeTab, onSelectTab, pendingReferralsCount = 0 }
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { isToolEnabled } = useToolVisibility();
+  const unreadChat = useUnreadChatCount();
 
   const suffix = isPreviewMode ? '?preview=true' : '';
   const onCrm = pathname === '/admin';
@@ -229,6 +231,24 @@ export function AppSideNav({ activeTab, onSelectTab, pendingReferralsCount = 0 }
           </DropdownMenuContent>
         </DropdownMenu>
 
+
+        <div className={rowClass(pathname === '/chat')}>
+          <button onClick={() => navigate(`/chat${suffix}`)} title="Chat" className="flex items-center gap-3 min-w-0 flex-1">
+            <MessagesSquare className="w-4 h-4 shrink-0" />
+            {navOpen && <span className="truncate text-left">Chat</span>}
+          </button>
+          {unreadChat > 0 && (
+            <span className="min-w-[16px] h-[16px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1 shrink-0">
+              {unreadChat}
+            </span>
+          )}
+          {navOpen && (
+            <StarToggle
+              id="link:/chat"
+              className={isFavourite('link:/chat') ? '' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'}
+            />
+          )}
+        </div>
 
         {links.map(l => {
           const isActive = !!l.path && pathname === l.path;

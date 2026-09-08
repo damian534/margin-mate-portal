@@ -32,6 +32,7 @@ import FeasibilityCalculator from "./pages/FeasibilityCalculator";
 import RetirementCalculator from "./pages/RetirementCalculator";
 import OAuthConsent from "./pages/OAuthConsent";
 import FundsPosition from "./pages/FundsPosition";
+import Chat from "./pages/Chat";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'broker' | 'referral_partner' | 'super_admin' | 'broker_or_admin' | 'broker_staff' }) {
@@ -101,6 +102,11 @@ const App = () => (
             <Route path="/admin/settlements" element={
               <ProtectedRoute requiredRole="broker_or_admin">
                 <Settlements />
+              </ProtectedRoute>
+            } />
+            <Route path="/chat" element={
+              <ProtectedRoute>
+                <Chat />
               </ProtectedRoute>
             } />
             <Route path="/submit-referral" element={

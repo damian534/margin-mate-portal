@@ -66,6 +66,7 @@
 - [Mortgage Fact-Find Wizard](mem://features/mortgage-fact-find-wizard) — 38-step client onboarding UI flow
 - [Fact-Find Invitations](mem://features/fact-find-invitations) — Automated email generation for client portal links
 - [EDM Platform](mem://features/edm-platform) — Internal email broadcast system with audience tags and Resend
+- [Connect Chat](mem://features/chat) — Real-time internal team chat at /chat: DMs, groups, channels, attachments, unread badges
 - [E-Signature](mem://features/esign) — Built-in document e-signing with private signer links, audit trail, and certificate PDF
 - [Financial Tools Hub](mem://tools/hub) — Core financial calculators and removed legacy tools
 - [Sell & Upgrade Simulator](mem://tools/sell-upgrade-simulator) — Property upgrade scenario modeling
