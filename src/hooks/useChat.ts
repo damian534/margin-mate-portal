@@ -258,11 +258,14 @@ export async function getOrCreateDirect(
     if (match) return match.conversation_id;
   }
 
+  const orgId = (await resolveMyTenantId()) || tenantId;
+  if (!orgId) throw new Error('Your account is not linked to a brokerage yet');
   const { data: conv, error } = await supabase
     .from('conversations')
-    .insert({ organisation_id: tenantId, type: 'direct', is_private: true, created_by: myId })
+    .insert({ organisation_id: orgId, type: 'direct', is_private: true, created_by: myId })
     .select('id')
     .single();
+
   if (error) throw error;
   const id = (conv as { id: string }).id;
   const { error: memErr } = await supabase.from('conversation_members').insert([
