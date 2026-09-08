@@ -52,7 +52,16 @@ export interface ChatMessage {
   attachments?: ChatAttachment[];
 }
 
-/** Everyone in the signed-in user's brokerage who has a login. */
+/** Reads the signed-in user's brokerage id the same way the database security rules do. */
+export async function resolveMyTenantId(): Promise<string | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data } = await supabase
+    .from('profiles').select('tenant_id').eq('user_id', user.id).limit(1).maybeSingle();
+  return (data as { tenant_id: string | null } | null)?.tenant_id ?? null;
+}
+
+/** Brokers, support staff and admins in the signed-in user's brokerage. */
 export function useOrgPeople() {
   const { user } = useAuth();
   const [people, setPeople] = useState<ChatPerson[]>([]);
@@ -63,18 +72,10 @@ export function useOrgPeople() {
     let active = true;
     (async () => {
       if (!user) { setLoading(false); return; }
-      const { data: me } = await supabase
-        .from('profiles').select('tenant_id').eq('user_id', user.id).maybeSingle();
-      const tid = (me as { tenant_id: string | null } | null)?.tenant_id ?? null;
+      const tid = await resolveMyTenantId();
       if (!active) return;
       setTenantId(tid);
-      if (!tid) { setPeople([]); setLoading(false); return; }
-      const { data } = await supabase
-        .from('profiles')
-        .select('user_id, full_name, email')
-        .eq('tenant_id', tid)
-        .not('user_id', 'is', null)
-        .order('full_name');
+      const { data } = await supabase.rpc('chat_directory');
       if (!active) return;
       setPeople(((data as ChatPerson[]) || []).filter(p => !!p.user_id));
       setLoading(false);
@@ -82,8 +83,11 @@ export function useOrgPeople() {
     return () => { active = false; };
   }, [user]);
 
+
+
   return { people, tenantId, loading };
 }
+
 
 export function personLabel(people: ChatPerson[], userId: string | null | undefined) {
   if (!userId) return 'Unknown';
@@ -240,11 +244,14 @@ export async function getOrCreateDirect(
     if (match) return match.conversation_id;
   }
 
+  const orgId = (await resolveMyTenantId()) || tenantId;
+  if (!orgId) throw new Error('Your account is not linked to a brokerage yet');
   const { data: conv, error } = await supabase
     .from('conversations')
-    .insert({ organisation_id: tenantId, type: 'direct', is_private: true, created_by: myId })
+    .insert({ organisation_id: orgId, type: 'direct', is_private: true, created_by: myId })
     .select('id')
     .single();
+
   if (error) throw error;
   const id = (conv as { id: string }).id;
   const { error: memErr } = await supabase.from('conversation_members').insert([
@@ -264,10 +271,13 @@ export async function createGroupOrChannel(opts: {
   isPrivate: boolean;
   memberIds: string[];
 }): Promise<string> {
+  const orgId = (await resolveMyTenantId()) || opts.tenantId;
+  if (!orgId) throw new Error('Your account is not linked to a brokerage yet');
   const { data: conv, error } = await supabase
     .from('conversations')
     .insert({
-      organisation_id: opts.tenantId,
+      organisation_id: orgId,
+
       type: opts.type,
       name: opts.name,
       description: opts.description || null,

@@ -48,14 +48,14 @@ export function NewConversationDialog({ mode, onClose, people, myId, tenantId, o
     setSelected(p => (p.includes(id) ? p.filter(x => x !== id) : [...p, id]));
 
   const submit = async () => {
-    if (!tenantId) { toast.error('Your account is not linked to a brokerage yet'); return; }
     setSaving(true);
+
     try {
       let id: string;
       if (mode === 'channel') {
         if (!name.trim()) { toast.error('Give the channel a name'); setSaving(false); return; }
         id = await createGroupOrChannel({
-          myId, tenantId, type: 'channel',
+          myId, tenantId: tenantId ?? "", type: 'channel',
           name: name.trim().replace(/^#/, ''),
           description: description.trim(),
           isPrivate,
@@ -64,9 +64,9 @@ export function NewConversationDialog({ mode, onClose, people, myId, tenantId, o
       } else {
         if (!selected.length) { toast.error('Pick at least one person'); setSaving(false); return; }
         id = selected.length === 1
-          ? await getOrCreateDirect(myId, selected[0], tenantId)
+          ? await getOrCreateDirect(myId, selected[0], tenantId ?? "")
           : await createGroupOrChannel({
-              myId, tenantId, type: 'group',
+              myId, tenantId: tenantId ?? "", type: 'group',
               name: name.trim() || selected.map(u => people.find(p => p.user_id === u)?.full_name || 'Team member').join(', '),
               isPrivate: true,
               memberIds: selected,
