@@ -14,7 +14,7 @@ interface Props {
 export function DealChatPanel({ leadId, subtitle }: Props) {
   const { user, isPreviewMode } = useAuth();
   const { people } = useOrgPeople();
-  const { conversation, loading, error, reload } = useDealConversation(leadId, !isPreviewMode);
+  const { conversation, loading, error } = useDealConversation(leadId, !isPreviewMode);
 
   if (isPreviewMode) {
     return (
@@ -40,7 +40,7 @@ export function DealChatPanel({ leadId, subtitle }: Props) {
         conversation={conversation}
         people={people}
         myId={user?.id || ''}
-        onChanged={reload}
+        onChanged={() => { /* read state is tracked by the chat itself */ }}
         subtitle={subtitle}
       />
     </div>
