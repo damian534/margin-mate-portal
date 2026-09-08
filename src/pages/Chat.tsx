@@ -6,7 +6,9 @@ import { useConversations, useOrgPeople } from '@/hooks/useChat';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatConversationView } from '@/components/chat/ChatConversationView';
 import { NewConversationDialog } from '@/components/chat/NewConversationDialog';
-import { Loader2, MessagesSquare } from 'lucide-react';
+import { ExternalLink, Loader2, MessagesSquare } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export default function Chat() {
@@ -49,6 +51,13 @@ export default function Chat() {
               people={people}
               myId={user?.id || ''}
               onChanged={reload}
+              headerAction={active.type === 'deal' && active.deal_id ? (
+                <Button asChild size="sm" variant="outline" className="h-7 gap-1 text-xs">
+                  <Link to={`/admin?lead=${active.deal_id}`}>
+                    <ExternalLink className="w-3 h-3" /> Open deal
+                  </Link>
+                </Button>
+              ) : undefined}
             />
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center px-6 gap-2">

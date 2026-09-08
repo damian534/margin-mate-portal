@@ -3260,6 +3260,10 @@ export type Database = {
           used_count: number
         }[]
       }
+      get_or_create_deal_conversation: {
+        Args: { _lead_id: string }
+        Returns: string
+      }
       get_tenant_branding: {
         Args: { _host?: string; _slug?: string }
         Returns: {
@@ -3295,6 +3299,10 @@ export type Database = {
       is_platform_owner: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_tenant_owner: { Args: { _user_id: string }; Returns: boolean }
+      post_deal_system_message: {
+        Args: { _body: string; _lead_id: string; _metadata: Json }
+        Returns: undefined
+      }
       tenant_seat_usage: {
         Args: { _tenant_id: string }
         Returns: {

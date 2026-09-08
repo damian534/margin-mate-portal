@@ -13,6 +13,7 @@ export type ClientFileTab =
   | 'funding'
   | 'documents'
   | 'esign'
+  | 'chat'
   | 'notes'
   | 'communications';
 
@@ -24,6 +25,7 @@ export const CLIENT_FILE_TABS: { key: ClientFileTab; label: string }[] = [
 
   { key: 'documents', label: 'Documents' },
   { key: 'esign', label: 'E-Sign' },
+  { key: 'chat', label: 'Chat' },
   { key: 'notes', label: 'Notes' },
   { key: 'communications', label: 'Communications' },
 ];
