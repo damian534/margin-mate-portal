@@ -8,7 +8,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Layers, Plus, Copy, Pause, Play } from 'lucide-react';
+import { Layers, Plus, Copy, Pause, Play, Palette } from 'lucide-react';
+import { BrandingSettings } from './BrandingSettings';
 
 export const BROKER_SEAT_PRICE = 299;
 export const STAFF_SEAT_PRICE = 99;
