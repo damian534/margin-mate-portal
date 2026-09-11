@@ -256,8 +256,8 @@ export function BrandingSettings({ managedTenantId, onSaved }: BrandingSettingsP
         <div className="space-y-2">
           <Label>Sender email</Label>
           <Input value={form.sender_email} onChange={e => set('sender_email', e.target.value)} placeholder="noreply@yourbrokerage.com.au" disabled={readOnly} />
-          <div className={`inline-flex items-center gap-1.5 text-xs ${tenantFull.sender_domain_verified ? 'text-emerald-600' : 'text-amber-600'}`}>
-            {tenantFull.sender_domain_verified
+          <div className={`inline-flex items-center gap-1.5 text-xs ${activeTenant.sender_domain_verified ? 'text-emerald-600' : 'text-amber-600'}`}>
+            {activeTenant.sender_domain_verified
               ? <><ShieldCheck className="w-3.5 h-3.5" /> Sending domain verified</>
               : <><MailCheck className="w-3.5 h-3.5" /> Sending domain not yet verified — client emails will fall back to the platform sender</>}
           </div>
