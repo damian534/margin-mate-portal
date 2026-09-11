@@ -208,7 +208,7 @@ export function BrandingSettings() {
           <div className="rounded-lg border bg-muted/30 p-3 text-xs space-y-1 text-muted-foreground">
             <p className="font-medium text-foreground">DNS records to add at your registrar</p>
             <p><code>A</code> &nbsp; <code>@</code> or your subdomain &nbsp;→&nbsp; <code>185.158.133.1</code></p>
-            <p><code>TXT</code> &nbsp; <code>_lovable</code> &nbsp;→&nbsp; verification value shown when the domain is connected</p>
+            <p><code>TXT</code> &nbsp; verification record &nbsp;→&nbsp; name and value are supplied by our team when the domain is connected</p>
             <p>Once DNS resolves, the login screen on that domain loads this brand automatically.</p>
           </div>
         </div>
