@@ -13,7 +13,44 @@ const CLONE_TABLES = [
 ] as const;
 
 // Columns that must never be copied across from the template brokerage.
-const STRIP = new Set(['id', 'broker_id', 'created_at', 'updated_at']);
+const STRIP = new Set([
+  'id',
+  'broker_id',
+  'created_at',
+  'updated_at',
+  // Files live in the source brokerage's storage folder — never share them.
+  'attachment_path',
+  'attachment_name',
+  'attachment_size',
+]);
+
+const GENERIC_BANK_LINK =
+  'Use your bankstatements.com.au link (set it in Settings → Bank Statements)';
+
+// Scrub any brokerage-specific personal links/details out of cloned config.
+function scrub(value: unknown, extraLinks: string[]): unknown {
+  if (typeof value === 'string') {
+    let out = value
+      // personal bank statement share links (bankstatements.com.au / ils.com.au)
+      .replace(
+        /(?:Use\s+)?https?:\/\/(?:[\w.-]+\.)?(?:bankstatements|ils)\.com\.au\/[^\s"']+/gi,
+        GENERIC_BANK_LINK,
+      );
+    for (const link of extraLinks) {
+      if (link) out = out.split(link).join(GENERIC_BANK_LINK);
+    }
+    return out;
+  }
+  if (Array.isArray(value)) return value.map((v) => scrub(v, extraLinks));
+  if (value && typeof value === 'object') {
+    const obj: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      obj[k] = scrub(v, extraLinks);
+    }
+    return obj;
+  }
+  return value;
+}
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -111,13 +148,21 @@ Deno.serve(async (req) => {
   await admin.from('tenants').update({ owner_user_id: ownerUserId }).eq('id', tenant.id);
 
   // --- Clone the master configuration ---------------------------------------
+  // Personal links belonging to the source brokerage must not carry over.
+  const { data: sourceProfile } = await admin
+    .from('profiles')
+    .select('ils_url')
+    .eq('user_id', cloneFromBrokerId)
+    .maybeSingle();
+  const extraLinks = [String((sourceProfile as any)?.ils_url ?? '').trim()].filter(Boolean);
+
   const cloned: Record<string, number> = {};
   for (const table of CLONE_TABLES) {
     const { data: rows } = await admin.from(table).select('*').eq('broker_id', cloneFromBrokerId);
     if (!rows?.length) { cloned[table] = 0; continue; }
     const payload = rows.map((row: Record<string, unknown>) => {
       const copy: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(row)) if (!STRIP.has(k)) copy[k] = v;
+      for (const [k, v] of Object.entries(row)) if (!STRIP.has(k)) copy[k] = scrub(v, extraLinks);
       copy.broker_id = ownerUserId;
       return copy;
     });
