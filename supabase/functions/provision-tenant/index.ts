@@ -148,13 +148,21 @@ Deno.serve(async (req) => {
   await admin.from('tenants').update({ owner_user_id: ownerUserId }).eq('id', tenant.id);
 
   // --- Clone the master configuration ---------------------------------------
+  // Personal links belonging to the source brokerage must not carry over.
+  const { data: sourceProfile } = await admin
+    .from('profiles')
+    .select('ils_url')
+    .eq('user_id', cloneFromBrokerId)
+    .maybeSingle();
+  const extraLinks = [String((sourceProfile as any)?.ils_url ?? '').trim()].filter(Boolean);
+
   const cloned: Record<string, number> = {};
   for (const table of CLONE_TABLES) {
     const { data: rows } = await admin.from(table).select('*').eq('broker_id', cloneFromBrokerId);
     if (!rows?.length) { cloned[table] = 0; continue; }
     const payload = rows.map((row: Record<string, unknown>) => {
       const copy: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(row)) if (!STRIP.has(k)) copy[k] = v;
+      for (const [k, v] of Object.entries(row)) if (!STRIP.has(k)) copy[k] = scrub(v, extraLinks);
       copy.broker_id = ownerUserId;
       return copy;
     });
