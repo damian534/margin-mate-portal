@@ -204,11 +204,16 @@ export function TenantAdminConsole() {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <Button variant="ghost" size="sm" onClick={() => toggleStatus(r)}>
-                    {r.status === 'suspended'
-                      ? <><Play className="w-4 h-4 mr-1" />Reactivate</>
-                      : <><Pause className="w-4 h-4 mr-1" />Suspend</>}
-                  </Button>
+                  <div className="flex items-center justify-end gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => setEditingTenantId(r.id)}>
+                      <Palette className="w-4 h-4 mr-1" />Branding
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => toggleStatus(r)}>
+                      {r.status === 'suspended'
+                        ? <><Play className="w-4 h-4 mr-1" />Reactivate</>
+                        : <><Pause className="w-4 h-4 mr-1" />Suspend</>}
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}
