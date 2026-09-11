@@ -224,6 +224,20 @@ export function TenantAdminConsole() {
       <p className="text-xs text-muted-foreground">
         Seats are counted from active users in each brokerage — ${BROKER_SEAT_PRICE}/broker and ${STAFF_SEAT_PRICE}/support staff per month.
       </p>
+
+      <Dialog open={!!editingTenantId} onOpenChange={v => { if (!v) setEditingTenantId(null); }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit brokerage branding</DialogTitle>
+          </DialogHeader>
+          {editingTenantId && (
+            <BrandingSettings
+              managedTenantId={editingTenantId}
+              onSaved={() => { toast.success('Branding saved'); load(); setEditingTenantId(null); }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
