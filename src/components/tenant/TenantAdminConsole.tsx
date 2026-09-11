@@ -8,7 +8,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Layers, Plus, Copy, Pause, Play } from 'lucide-react';
+import { Layers, Plus, Copy, Pause, Play, Palette } from 'lucide-react';
+import { BrandingSettings } from './BrandingSettings';
 
 export const BROKER_SEAT_PRICE = 299;
 export const STAFF_SEAT_PRICE = 99;
@@ -38,6 +39,7 @@ export function TenantAdminConsole() {
   const [creating, setCreating] = useState(false);
   const [result, setResult] = useState<{ invite_code: string; setup_link: string | null } | null>(null);
   const [form, setForm] = useState({ name: '', owner_name: '', owner_email: '', custom_domain: '' });
+  const [editingTenantId, setEditingTenantId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -202,11 +204,16 @@ export function TenantAdminConsole() {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <Button variant="ghost" size="sm" onClick={() => toggleStatus(r)}>
-                    {r.status === 'suspended'
-                      ? <><Play className="w-4 h-4 mr-1" />Reactivate</>
-                      : <><Pause className="w-4 h-4 mr-1" />Suspend</>}
-                  </Button>
+                  <div className="flex items-center justify-end gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => setEditingTenantId(r.id)}>
+                      <Palette className="w-4 h-4 mr-1" />Branding
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => toggleStatus(r)}>
+                      {r.status === 'suspended'
+                        ? <><Play className="w-4 h-4 mr-1" />Reactivate</>
+                        : <><Pause className="w-4 h-4 mr-1" />Suspend</>}
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -217,6 +224,20 @@ export function TenantAdminConsole() {
       <p className="text-xs text-muted-foreground">
         Seats are counted from active users in each brokerage — ${BROKER_SEAT_PRICE}/broker and ${STAFF_SEAT_PRICE}/support staff per month.
       </p>
+
+      <Dialog open={!!editingTenantId} onOpenChange={v => { if (!v) setEditingTenantId(null); }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit brokerage branding</DialogTitle>
+          </DialogHeader>
+          {editingTenantId && (
+            <BrandingSettings
+              managedTenantId={editingTenantId}
+              onSaved={() => { toast.success('Branding saved'); load(); setEditingTenantId(null); }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

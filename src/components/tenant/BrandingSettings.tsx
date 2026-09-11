@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useTenant } from '@/hooks/useTenant';
+import { useTenant, TenantFull } from '@/hooks/useTenant';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -42,39 +42,65 @@ function hslToHex(hsl: string): string {
 
 const TEN_YEARS = 60 * 60 * 24 * 365 * 10;
 
-export function BrandingSettings() {
-  const { isPreviewMode } = useAuth();
-  const { tenantFull, refresh, isTenantOwner } = useTenant();
+interface BrandingSettingsProps {
+  /** When set, the platform owner is editing another brokerage's branding. */
+  managedTenantId?: string;
+  onSaved?: () => void;
+}
+
+export function BrandingSettings({ managedTenantId, onSaved }: BrandingSettingsProps) {
+  const { isPreviewMode, role, isPlatformOwner } = useAuth();
+  const { tenantFull: contextTenantFull, refresh: refreshContext, isTenantOwner } = useTenant();
   const fileRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [loadingManaged, setLoadingManaged] = useState(!!managedTenantId);
+  const [managedTenant, setManagedTenant] = useState<TenantFull | null>(null);
   const [form, setForm] = useState({
     name: '', legal_name: '', custom_domain: '', support_email: '',
     sender_name: '', sender_email: '', primary_color: '', accent_color: '', logo_url: '',
   });
 
+  const activeTenant = managedTenant ?? contextTenantFull;
+  const isManaged = !!managedTenantId;
+
   useEffect(() => {
-    if (!tenantFull) return;
+    if (!managedTenantId) {
+      setManagedTenant(null);
+      setLoadingManaged(false);
+      return;
+    }
+    setLoadingManaged(true);
+    supabase.from('tenants').select('*').eq('id', managedTenantId).single()
+      .then(({ data, error }) => {
+        if (error) toast.error('Could not load brokerage branding: ' + error.message);
+        else setManagedTenant(data as unknown as TenantFull);
+        setLoadingManaged(false);
+      });
+  }, [managedTenantId]);
+
+  useEffect(() => {
+    if (!activeTenant) return;
     setForm({
-      name: tenantFull.name ?? '',
-      legal_name: tenantFull.legal_name ?? '',
-      custom_domain: tenantFull.custom_domain ?? '',
-      support_email: tenantFull.support_email ?? '',
-      sender_name: tenantFull.sender_name ?? '',
-      sender_email: tenantFull.sender_email ?? '',
-      primary_color: tenantFull.primary_color ?? '',
-      accent_color: tenantFull.accent_color ?? '',
-      logo_url: tenantFull.logo_url ?? '',
+      name: activeTenant.name ?? '',
+      legal_name: activeTenant.legal_name ?? '',
+      custom_domain: activeTenant.custom_domain ?? '',
+      support_email: activeTenant.support_email ?? '',
+      sender_name: activeTenant.sender_name ?? '',
+      sender_email: activeTenant.sender_email ?? '',
+      primary_color: activeTenant.primary_color ?? '',
+      accent_color: activeTenant.accent_color ?? '',
+      logo_url: activeTenant.logo_url ?? '',
     });
-  }, [tenantFull]);
+  }, [activeTenant]);
 
   const set = (k: keyof typeof form, v: string) => setForm(f => ({ ...f, [k]: v }));
 
   const uploadLogo = async (file: File) => {
-    if (!tenantFull) return;
+    if (!activeTenant) return;
     setUploading(true);
     const ext = file.name.split('.').pop() || 'png';
-    const path = `${tenantFull.id}/logo-${Date.now()}.${ext}`;
+    const path = `${activeTenant.id}/logo-${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from('tenant-branding').upload(path, file, { upsert: true });
     if (error) { setUploading(false); toast.error('Upload failed: ' + error.message); return; }
     const { data } = await supabase.storage.from('tenant-branding').createSignedUrl(path, TEN_YEARS);
@@ -85,7 +111,7 @@ export function BrandingSettings() {
   };
 
   const save = async () => {
-    if (!tenantFull) return;
+    if (!activeTenant) return;
     setSaving(true);
     const { error } = await supabase
       .from('tenants')
@@ -100,18 +126,21 @@ export function BrandingSettings() {
         accent_color: form.accent_color,
         logo_url: form.logo_url || null,
       } as any)
-      .eq('id', tenantFull.id);
+      .eq('id', activeTenant.id);
     setSaving(false);
     if (error) { toast.error('Failed to save: ' + error.message); return; }
     toast.success('Branding saved');
-    refresh();
+    refreshContext();
+    onSaved?.();
   };
 
-  if (!tenantFull) {
+  if (loadingManaged || !activeTenant) {
     return <div className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">Loading brand settings…</div>;
   }
 
-  const readOnly = isPreviewMode || !isTenantOwner;
+  const readOnly = isManaged
+    ? !(isPlatformOwner || role === 'super_admin')
+    : isPreviewMode || !isTenantOwner;
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -227,8 +256,8 @@ export function BrandingSettings() {
         <div className="space-y-2">
           <Label>Sender email</Label>
           <Input value={form.sender_email} onChange={e => set('sender_email', e.target.value)} placeholder="noreply@yourbrokerage.com.au" disabled={readOnly} />
-          <div className={`inline-flex items-center gap-1.5 text-xs ${tenantFull.sender_domain_verified ? 'text-emerald-600' : 'text-amber-600'}`}>
-            {tenantFull.sender_domain_verified
+          <div className={`inline-flex items-center gap-1.5 text-xs ${activeTenant.sender_domain_verified ? 'text-emerald-600' : 'text-amber-600'}`}>
+            {activeTenant.sender_domain_verified
               ? <><ShieldCheck className="w-3.5 h-3.5" /> Sending domain verified</>
               : <><MailCheck className="w-3.5 h-3.5" /> Sending domain not yet verified — client emails will fall back to the platform sender</>}
           </div>
