@@ -39,6 +39,7 @@ export function TenantAdminConsole() {
   const [creating, setCreating] = useState(false);
   const [result, setResult] = useState<{ invite_code: string; setup_link: string | null } | null>(null);
   const [form, setForm] = useState({ name: '', owner_name: '', owner_email: '', custom_domain: '' });
+  const [editingTenantId, setEditingTenantId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
