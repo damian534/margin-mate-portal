@@ -117,6 +117,27 @@ export function FundingPositionTab({
         }
       }
 
+      // Reopen the most recently saved funding position for this deal, exactly as entered.
+      if (!isPreviewMode) {
+        try {
+          const { data: saved } = await supabase
+            .from('tool_scenarios')
+            .select('inputs, created_at')
+            .eq('tool_name', 'funds_position')
+            .eq('inputs->>leadId', lead.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          const savedInputs = (saved as any)?.inputs?.inputs as FundsPositionInputs | undefined;
+          if (savedInputs) {
+            if (!cancelled) setInputs({ ...base, ...savedInputs });
+            return;
+          }
+        } catch {
+          /* fall back to prefill */
+        }
+      }
+
       if (!cancelled) setInputs(base);
     })();
 
