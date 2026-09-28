@@ -35,6 +35,7 @@ const ROLES = [
   { value: 'accountant', label: 'Accountant' },
   { value: 'financial_planner', label: 'Financial Planner' },
   { value: 'buyers_agent', label: "Buyer's Agent" },
+  { value: 'real_estate_agent', label: 'Real Estate Agent' },
   { value: 'other', label: 'Other' },
 ];
 

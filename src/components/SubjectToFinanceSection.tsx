@@ -49,7 +49,7 @@ interface Props {
 
 const ROLE_LABEL: Record<string, string> = {
   solicitor: 'Solicitor', conveyancer: 'Conveyancer', accountant: 'Accountant',
-  financial_planner: 'Financial Planner', buyers_agent: "Buyer's Agent", other: 'Other',
+  financial_planner: 'Financial Planner', buyers_agent: "Buyer's Agent", real_estate_agent: 'Real Estate Agent', other: 'Other',
 };
 
 export function SubjectToFinanceSection({
