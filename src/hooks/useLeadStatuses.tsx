@@ -90,7 +90,7 @@ export function useLeadStatuses() {
           .from('leads')
           .select('id, stage_entered_at')
           .eq('status', oldStatus.name);
-        await supabase.from('leads').update({ status: updates.name }).eq('status', oldStatus.name);
+        await (supabase.rpc as any)('rename_lead_status', { _kind: 'status', _old: oldStatus.name, _new: updates.name });
         await Promise.all(
           ((affected as any[]) || [])
             .filter(l => l.stage_entered_at)

@@ -158,9 +158,12 @@ export function PartnerMilestoneEmailDialog({
 
   const chosen = useMemo(() => recipients.filter((r) => selected.includes(r.linkId)), [recipients, selected]);
 
-  // Regenerate draft when milestone / recipients / sender change
+  // Regenerate draft when milestone / recipients / sender change — only until the user edits it
+  const [edited, setEdited] = useState(false);
+  useEffect(() => { setEdited(false); }, [open, milestone]);
+  const chosenKey = chosen.map((c) => c.linkId).join(',');
   useEffect(() => {
-    if (!open) return;
+    if (!open || edited) return;
     const vars = {
       recipient_names: joinNames(chosen.map((c) => c.firstName)),
       client_name: clientName || 'our client',
@@ -171,7 +174,8 @@ export function PartnerMilestoneEmailDialog({
     };
     setSubject(applyVars(def.subject, vars));
     setBody(applyVars(def.body, vars));
-  }, [open, milestone, chosen, clientName, dealName, financeDueDate, brokerName, sender.name, def]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, milestone, chosenKey, clientName, dealName, financeDueDate, brokerName, sender.name, edited]);
 
   const toggle = (id: string) => setSelected((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
 

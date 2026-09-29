@@ -106,7 +106,8 @@ export function FundingPositionTab({
           const { data: partner } = await supabase
             .from('profiles')
             .select('full_name, email')
-            .eq('id', lead.referral_partner_id)
+            .or(`user_id.eq.${lead.referral_partner_id},id.eq.${lead.referral_partner_id}`)
+            .limit(1)
             .maybeSingle();
           if (partner && !cancelled) {
             setReferral({

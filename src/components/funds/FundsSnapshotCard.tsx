@@ -67,7 +67,8 @@ export function FundsSnapshotCard({
       const { data } = await supabase
         .from('profiles')
         .select('full_name, email')
-        .eq('id', referralPartnerId)
+        .or(`user_id.eq.${referralPartnerId},id.eq.${referralPartnerId}`)
+        .limit(1)
         .maybeSingle();
       if (data && !cancelled) {
         setPartner({ email: (data as any).email ?? null, name: (data as any).full_name ?? null });
