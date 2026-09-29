@@ -80,6 +80,8 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
   const [portalMode] = useState<'both' | 'fact_find' | 'documents'>('documents');
   const [referrerOpen, setReferrerOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
+  const [quickAddPartnerOpen, setQuickAddPartnerOpen] = useState(false);
+  const [pendingNewReferrer, setPendingNewReferrer] = useState<ReferrerOption | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Status placement: "lead:<name>" routes to Leads dashboard, "wip:<name>" routes to WIP dashboard
@@ -359,6 +361,16 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
                           </CommandItem>
                           );
                         })}
+                      </CommandGroup>
+                      <CommandGroup>
+                        <CommandItem
+                          value="__add_new_referrer__"
+                          onSelect={() => { setReferrerOpen(false); setQuickAddPartnerOpen(true); }}
+                          className="text-primary font-medium"
+                        >
+                          <UserPlus className="mr-2 h-4 w-4" />
+                          Add new referrer...
+                        </CommandItem>
                       </CommandGroup>
                     </CommandList>
                   </Command>
