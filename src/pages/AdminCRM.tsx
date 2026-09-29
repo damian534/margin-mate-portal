@@ -22,6 +22,7 @@ import { ContactsManagement, Contact } from '@/components/ContactsManagement';
 import { IncomingReferralsPanel } from '@/components/IncomingReferralsPanel';
 import { WIPDashboard } from '@/components/WIPDashboard';
 import { PipelineReport } from '@/components/PipelineReport';
+import { LeadsReport } from '@/components/LeadsReport';
 import { AssigneeFilter } from '@/components/AssigneePicker';
 
 

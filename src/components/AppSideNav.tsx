@@ -29,6 +29,7 @@ export const CRM_NAV_TABS = [
   { value: 'broker_referrals', label: 'Broker Referrals', icon: Share2 },
   { value: 'edm', label: 'Email Campaigns', icon: MailIcon },
   { value: 'pipeline_report', label: 'Pipeline Report', icon: BarChart3 },
+  { value: 'lead_flow', label: 'Lead Flow', icon: TrendingUp },
   { value: 'reports', label: 'Reports', icon: BarChart3 },
 ];
 
