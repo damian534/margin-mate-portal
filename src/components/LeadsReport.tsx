@@ -10,7 +10,7 @@ import { FileDown, Users, TrendingUp, DollarSign } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth, subMonths, addMonths } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-type Period = 'last_6' | 'last_12' | 'this_fy' | 'last_fy' | 'custom';
+type Period = 'this_month' | 'last_month' | 'last_6' | 'last_12' | 'this_fy' | 'last_fy' | 'custom';
 
 interface ReportLead {
   id: string;
@@ -33,6 +33,13 @@ function getPeriodRange(period: Period, customFrom: string, customTo: string): {
   const now = new Date();
   const y = now.getFullYear();
   const m = now.getMonth();
+  if (period === 'this_month') {
+    return { from: startOfMonth(now), to: endOfMonth(now), label: format(now, 'MMMM yyyy') };
+  }
+  if (period === 'last_month') {
+    const prev = subMonths(now, 1);
+    return { from: startOfMonth(prev), to: endOfMonth(prev), label: format(prev, 'MMMM yyyy') };
+  }
   if (period === 'last_6') {
     return { from: startOfMonth(subMonths(now, 5)), to: endOfMonth(now), label: `Last 6 months (${format(subMonths(now, 5), 'MMM yyyy')} – ${format(now, 'MMM yyyy')})` };
   }
@@ -160,6 +167,8 @@ export function LeadsReport({
             <Select value={period} onValueChange={v => setPeriod(v as Period)}>
               <SelectTrigger className="w-[200px] h-9 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="this_month">This Month</SelectItem>
+                <SelectItem value="last_month">Last Month</SelectItem>
                 <SelectItem value="last_6">Last 6 Months</SelectItem>
                 <SelectItem value="last_12">Last 12 Months</SelectItem>
                 <SelectItem value="this_fy">This Financial Year</SelectItem>
