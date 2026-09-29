@@ -1156,6 +1156,10 @@ export default function AdminCRM() {
             <PipelineReport leads={leads} getReferrerName={getReferrerName} />
           </TabsContent>
 
+          <TabsContent value="lead_flow" className="mt-4">
+            <LeadsReport leads={leads} leadSources={leadSources} getReferrerName={getReferrerName} />
+          </TabsContent>
+
           <TabsContent value="broker_referrals" className="mt-4">
             <IncomingReferralsPanel />
           </TabsContent>
