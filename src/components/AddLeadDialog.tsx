@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { isEmptyOrValidEmail } from '@/lib/email';
 import { Plus, Search, UserPlus, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { QuickAddPartnerDialog } from '@/components/partners/QuickAddPartnerDialog';
 
 interface LeadSource {
   id: string;

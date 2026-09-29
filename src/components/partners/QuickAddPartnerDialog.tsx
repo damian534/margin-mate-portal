@@ -88,6 +88,7 @@ export function QuickAddPartnerDialog({ open, onOpenChange, onCreated, onCreated
       reset();
       onOpenChange(false);
       onCreated?.();
+      onCreatedProfile?.({ id: profile.id, full_name: name, email: mail });
     } catch (e) {
       console.error(e);
       toast.error('Could not create partner');
