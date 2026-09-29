@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Trophy, Building2, User, Settings2 } from 'lucide-react';
+import { Search, Trophy, Building2, User, Settings2, UserPlus } from 'lucide-react';
+import { QuickAddPartnerDialog } from './QuickAddPartnerDialog';
 import { startOfYear } from 'date-fns';
 
 interface Lead extends PartnerCardLead {
@@ -32,15 +33,17 @@ interface Props {
   leads: Lead[];
   onOpenCompany: (company: Company) => void;
   onManageList?: () => void; // opens legacy CompanyManagement (for editing/adding companies)
+  onPartnerCreated?: () => void;
 }
 
 type HealthFilter = 'all' | 'hot' | 'warm' | 'cold' | 'dormant';
 
 const fmt = (n: number) => `$${Math.round(n).toLocaleString()}`;
 
-export function PartnersHub({ companies, referrers, contacts, leads, onOpenCompany, onManageList }: Props) {
+export function PartnersHub({ companies, referrers, contacts, leads, onOpenCompany, onManageList, onPartnerCreated }: Props) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<HealthFilter>('all');
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   // Group agents per company (by id OR name match) — mirrors CompanyCRM logic
   const companyMap = useMemo(() => {
@@ -250,6 +253,10 @@ export function PartnersHub({ companies, referrers, contacts, leads, onOpenCompa
               <TabsTrigger value="dormant" className="data-[state=active]:bg-red-500/10 data-[state=active]:text-red-700">Dormant</TabsTrigger>
             </TabsList>
           </Tabs>
+          <Button size="sm" onClick={() => setQuickAddOpen(true)}>
+            <UserPlus className="w-4 h-4 mr-1.5" /> Add partner
+          </Button>
+          <QuickAddPartnerDialog open={quickAddOpen} onOpenChange={setQuickAddOpen} onCreated={onPartnerCreated} />
           {onManageList && (
             <Button variant="outline" size="sm" onClick={onManageList}>
               <Settings2 className="w-4 h-4 mr-1.5" /> Manage

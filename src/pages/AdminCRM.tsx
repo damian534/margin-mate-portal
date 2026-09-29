@@ -1129,6 +1129,7 @@ export default function AdminCRM() {
                   contacts={contacts}
                   leads={leads as any}
                   onOpenCompany={(c) => setSelectedCompanyCRM(c)}
+                  onPartnerCreated={() => { if (!isPreviewMode) fetchReferrers(); }}
                   onManageList={() => {
                     document.getElementById('partners-manage-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }}
