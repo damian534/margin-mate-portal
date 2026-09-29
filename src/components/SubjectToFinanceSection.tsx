@@ -15,6 +15,8 @@ import { ShieldAlert, CalendarIcon, MailPlus, Clock, History } from 'lucide-reac
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { logAudit } from '@/lib/leadAudit';
+import { PartnerMilestoneEmailDialog, type PartnerMilestoneKey, type PartnerRecipient } from './PartnerMilestoneEmailDialog';
+import { Send } from 'lucide-react';
 
 interface ProContact {
   id: string;
@@ -44,6 +46,10 @@ interface Props {
   financeDueDate: string | null;
   contacts: ProContact[];
   isPreviewMode?: boolean;
+  brokerId?: string | null;
+  clientName?: string;
+  clientEmail?: string | null;
+  dealName?: string | null;
   onChange: (updates: { subject_to_finance?: boolean; finance_due_date?: string | null }) => void;
 }
 
@@ -54,7 +60,11 @@ const ROLE_LABEL: Record<string, string> = {
 
 export function SubjectToFinanceSection({
   leadId, subjectToFinance, financeDueDate, contacts, isPreviewMode = false, onChange,
+  brokerId = null, clientName = '', clientEmail = null, dealName = null,
 }: Props) {
+  const [partnerOpen, setPartnerOpen] = useState(false);
+  const [partnerMilestone, setPartnerMilestone] = useState<PartnerMilestoneKey>('introduction');
+  const openPartner = (m: PartnerMilestoneKey) => { setPartnerMilestone(m); setPartnerOpen(true); };
   const { user } = useAuth();
   const [proRows, setProRows] = useState<LinkedRow[]>([]);
   const [extensions, setExtensions] = useState<ExtensionRow[]>([]);
@@ -98,6 +108,15 @@ export function SubjectToFinanceSection({
       setRecipientId(sortedLegal[0].row.id);
     }
   }, [dialogOpen, sortedLegal, recipientId]);
+
+  const partnerRecipients: PartnerRecipient[] = legalLinks.map(({ row, contact }) => ({
+    linkId: row.id,
+    name: `${contact!.first_name} ${contact!.last_name}`.trim(),
+    firstName: contact!.first_name || '',
+    email: contact!.email!,
+    role: row.role,
+    roleLabel: ROLE_LABEL[row.role] || row.role,
+  }));
 
   const dueDateObj = financeDueDate ? parseISO(financeDueDate) : null;
   const daysUntilDue = dueDateObj ? differenceInCalendarDays(dueDateObj, new Date()) : null;
@@ -197,7 +216,11 @@ export function SubjectToFinanceSection({
       toast.error(`Failed to send: ${error?.message || (data as any)?.error}`);
       return;
     }
-    toast.success(`Extension request emailed to ${name || email}`);
+    const hasAgent = partnerRecipients.some(r => r.role === 'real_estate_agent' || r.role === 'buyers_agent');
+    toast.success(`Extension request emailed to ${name || email}`, hasAgent ? {
+      action: { label: 'Let the agent know', onClick: () => openPartner('extension') },
+      duration: 10000,
+    } : undefined);
     // Audit log is written server-side by the send-finance-extension edge function.
     setDialogOpen(false);
     setMessage('');
@@ -256,6 +279,28 @@ export function SubjectToFinanceSection({
             </Button>
           </div>
 
+          <div className="rounded-md border border-border bg-background/60 p-2.5">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
+                Update conveyancer / agent
+              </div>
+              <Button size="sm" variant="ghost" className="h-7 gap-1.5 text-xs" onClick={() => openPartner('introduction')}>
+                <Send className="w-3 h-3" /> Compose
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {([
+                ['introduction', 'Introduction'],
+                ['extension', 'Extension requested'],
+                ['formal_approval', 'Formal approval'],
+                ['unconditional', 'Unconditional'],
+                ['settled', 'Settled'],
+              ] as [PartnerMilestoneKey, string][]).map(([k, l]) => (
+                <Button key={k} size="sm" variant="outline" className="h-7 text-xs" onClick={() => openPartner(k)}>{l}</Button>
+              ))}
+            </div>
+          </div>
+
           {extensions.length > 0 && (
             <div className="rounded-md border border-border bg-background/60 p-2.5 space-y-1.5">
               <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
@@ -276,6 +321,20 @@ export function SubjectToFinanceSection({
           )}
         </div>
       )}
+
+      <PartnerMilestoneEmailDialog
+        open={partnerOpen}
+        onOpenChange={setPartnerOpen}
+        leadId={leadId}
+        brokerId={brokerId}
+        clientName={clientName}
+        clientEmail={clientEmail}
+        dealName={dealName}
+        financeDueDate={financeDueDate}
+        recipients={partnerRecipients}
+        initialMilestone={partnerMilestone}
+        isPreview={isPreviewLead}
+      />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
