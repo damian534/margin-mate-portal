@@ -814,6 +814,7 @@ export default function AdminCRM() {
                 isPreviewMode={isPreviewMode}
                 onLeadAdded={() => { if (isPreviewMode) return; fetchLeads(); }}
                 onContactCreated={() => { if (!isPreviewMode) fetchContacts(); }}
+                onReferrerCreated={() => { if (!isPreviewMode) fetchReferrers(); }}
               />
             </div>
 
@@ -1067,6 +1068,7 @@ export default function AdminCRM() {
                 isPreviewMode={isPreviewMode}
                 onLeadAdded={() => { if (!isPreviewMode) fetchLeads(); }}
                 onContactCreated={() => { if (!isPreviewMode) fetchContacts(); }}
+                onReferrerCreated={() => { if (!isPreviewMode) fetchReferrers(); }}
                 defaultWipStatus="onboarding"
               />
             </div>
@@ -1206,6 +1208,7 @@ export default function AdminCRM() {
         isPreviewMode={isPreviewMode}
         onLeadAdded={() => { if (!isPreviewMode) fetchLeads(); }}
         onContactCreated={() => { if (!isPreviewMode) fetchContacts(); }}
+                onReferrerCreated={() => { if (!isPreviewMode) fetchReferrers(); }}
         hideTrigger
         open={!!stageAddDialog}
         onOpenChange={(v) => { if (!v) setStageAddDialog(null); }}
