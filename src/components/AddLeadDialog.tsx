@@ -64,7 +64,7 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
     if (openProp === undefined) setInternalOpen(v);
     onOpenChange?.(v);
   };
-  const [source, setSource] = useState('direct_call');
+  const [source, setSource] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -100,7 +100,7 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
   const needsContactReferrer = source === 'client_referral' || source === 'existing_client';
 
   const resetForm = () => {
-    setSource('direct_call');
+    setSource('');
     setFirstName('');
     setLastName('');
     setEmail('');
@@ -144,6 +144,10 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
   const handleSubmit = async () => {
     if (!firstName.trim() || !lastName.trim()) {
       toast.error('First and last name are required');
+      return;
+    }
+    if (!source) {
+      toast.error('Please select a lead source before saving.');
       return;
     }
     if (!isEmptyOrValidEmail(email)) {
@@ -306,9 +310,9 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
 
           {/* Lead Source */}
           <div className="space-y-1.5">
-            <Label>Lead Source</Label>
+            <Label>Lead Source <span className="text-destructive">*</span></Label>
             <Select value={source} onValueChange={setSource}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger className={!source ? 'text-muted-foreground' : ''}><SelectValue placeholder="Select a source..." /></SelectTrigger>
               <SelectContent>
                 {leadSources.map(s => (
                   <SelectItem key={s.name} value={s.name}>{s.label}</SelectItem>
