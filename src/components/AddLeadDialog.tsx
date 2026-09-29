@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { isEmptyOrValidEmail } from '@/lib/email';
 import { Plus, Search, UserPlus, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { QuickAddPartnerDialog } from '@/components/partners/QuickAddPartnerDialog';
 
 interface LeadSource {
   id: string;
@@ -46,6 +47,7 @@ interface AddLeadDialogProps {
   isPreviewMode: boolean;
   onLeadAdded: () => void;
   onContactCreated?: () => void;
+  onReferrerCreated?: () => void;
   defaultWipStatus?: string | null;
   defaultLeadStatus?: string | null;
   /** Controlled open state (optional). When provided, the internal trigger is hidden. */
@@ -54,7 +56,7 @@ interface AddLeadDialogProps {
   hideTrigger?: boolean;
 }
 
-export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode, onLeadAdded, onContactCreated, defaultWipStatus, defaultLeadStatus, open: openProp, onOpenChange, hideTrigger }: AddLeadDialogProps) {
+export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode, onLeadAdded, onContactCreated, onReferrerCreated, defaultWipStatus, defaultLeadStatus, open: openProp, onOpenChange, hideTrigger }: AddLeadDialogProps) {
   const { effectiveBrokerId } = useAuth();
   const { statuses: leadStatuses } = useLeadStatuses();
   const { statuses: wipStatuses } = useWipStatuses();
@@ -78,6 +80,8 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
   const [portalMode] = useState<'both' | 'fact_find' | 'documents'>('documents');
   const [referrerOpen, setReferrerOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
+  const [quickAddPartnerOpen, setQuickAddPartnerOpen] = useState(false);
+  const [pendingNewReferrer, setPendingNewReferrer] = useState<ReferrerOption | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Status placement: "lead:<name>" routes to Leads dashboard, "wip:<name>" routes to WIP dashboard
@@ -236,6 +240,7 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
       {!hideTrigger && (
         <DialogTrigger asChild>
@@ -329,7 +334,9 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
                 <PopoverTrigger asChild>
                   <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
                     {selectedReferrerId
-                      ? referrers.find(r => (r.user_id || r.id) === selectedReferrerId)?.full_name || 'Selected'
+                      ? referrers.find(r => (r.user_id || r.id) === selectedReferrerId)?.full_name
+                        || (pendingNewReferrer && pendingNewReferrer.id === selectedReferrerId ? pendingNewReferrer.full_name : null)
+                        || 'Selected'
                       : 'Search referrer...'}
                     <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
@@ -357,6 +364,16 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
                           </CommandItem>
                           );
                         })}
+                      </CommandGroup>
+                      <CommandGroup>
+                        <CommandItem
+                          value="__add_new_referrer__"
+                          onSelect={() => { setReferrerOpen(false); setQuickAddPartnerOpen(true); }}
+                          className="text-primary font-medium"
+                        >
+                          <UserPlus className="mr-2 h-4 w-4" />
+                          Add new referrer...
+                        </CommandItem>
                       </CommandGroup>
                     </CommandList>
                   </Command>
@@ -494,5 +511,16 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
         </div>
       </DialogContent>
     </Dialog>
+    <QuickAddPartnerDialog
+      open={quickAddPartnerOpen}
+      onOpenChange={setQuickAddPartnerOpen}
+      onCreated={() => onReferrerCreated?.()}
+      onCreatedProfile={(p) => {
+        const opt: ReferrerOption = { id: p.id, user_id: null, full_name: p.full_name, email: p.email };
+        setPendingNewReferrer(opt);
+        setSelectedReferrerId(p.id);
+      }}
+    />
+    </>
   );
 }
