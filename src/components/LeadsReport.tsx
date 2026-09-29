@@ -329,30 +329,45 @@ export function LeadsReport({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">By lead source</CardTitle>
+            <CardTitle className="text-sm font-semibold">Lead source split · {range.label}</CardTitle>
           </CardHeader>
           <CardContent>
             {sourceBreakdown.length === 0 ? (
               <p className="text-center text-sm text-muted-foreground py-8">No leads in this period.</p>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Source</TableHead>
-                    <TableHead className="text-right">Leads</TableHead>
-                    <TableHead className="text-right">Loan Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sourceBreakdown.map(s => (
-                    <TableRow key={s.raw} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedSource({ raw: s.raw, label: s.label })}>
-                      <TableCell className="font-medium text-primary underline-offset-2 hover:underline">{s.label}</TableCell>
-                      <TableCell className="text-right tabular-nums">{s.count}</TableCell>
-                      <TableCell className="text-right tabular-nums">{s.volume ? `$${s.volume.toLocaleString()}` : '—'}</TableCell>
-                    </TableRow>
+              <>
+                <div className="h-52">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={sourceBreakdown}
+                        dataKey="count"
+                        nameKey="label"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        cursor="pointer"
+                        onClick={(data: any) => data?.raw && setSelectedSource({ raw: data.raw, label: data.label })}
+                      >
+                        {sourceBreakdown.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip formatter={(value: any, name: any) => [`${value} leads`, name]} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2">
+                  {sourceBreakdown.map((s, i) => (
+                    <button
+                      key={s.raw}
+                      onClick={() => setSelectedSource({ raw: s.raw, label: s.label })}
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                    >
+                      <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                      {s.label} ({s.count})
+                    </button>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
