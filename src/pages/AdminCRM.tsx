@@ -14,7 +14,6 @@ import { StatusSettings } from '@/components/StatusSettings';
 import { CompanyManagement, Company } from '@/components/CompanyManagement';
 import { CompanyCRM } from '@/components/company/CompanyCRM';
 import { ReferrerProfileData } from '@/components/ReferrerProfile';
-import { ReferrerReports } from '@/components/ReferrerReports';
 import { PartnersHub } from '@/components/partners/PartnersHub';
 import { PipelineKpiCard } from '@/components/PipelineKpiCard';
 import { AddLeadDialog } from '@/components/AddLeadDialog';
@@ -1142,23 +1141,13 @@ export default function AdminCRM() {
           </TabsContent>
 
           <TabsContent value="reports" className="mt-4">
-            <ReferrerReports
-              leads={leads}
-              referrers={referrers}
-              companies={companies}
-              statuses={statuses}
-              selectedReferrerId={reportReferrerId}
-              leadSources={leadSources}
-            />
+            <LeadsReport leads={leads} leadSources={leadSources} getReferrerName={getReferrerName} />
           </TabsContent>
 
           <TabsContent value="pipeline_report" className="mt-4">
             <PipelineReport leads={leads} getReferrerName={getReferrerName} />
           </TabsContent>
 
-          <TabsContent value="lead_flow" className="mt-4">
-            <LeadsReport leads={leads} leadSources={leadSources} getReferrerName={getReferrerName} />
-          </TabsContent>
 
           <TabsContent value="broker_referrals" className="mt-4">
             <IncomingReferralsPanel />
