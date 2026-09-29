@@ -240,6 +240,7 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
       {!hideTrigger && (
         <DialogTrigger asChild>
