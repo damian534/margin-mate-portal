@@ -47,6 +47,7 @@ interface AddLeadDialogProps {
   isPreviewMode: boolean;
   onLeadAdded: () => void;
   onContactCreated?: () => void;
+  onReferrerCreated?: () => void;
   defaultWipStatus?: string | null;
   defaultLeadStatus?: string | null;
   /** Controlled open state (optional). When provided, the internal trigger is hidden. */
@@ -55,7 +56,7 @@ interface AddLeadDialogProps {
   hideTrigger?: boolean;
 }
 
-export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode, onLeadAdded, onContactCreated, defaultWipStatus, defaultLeadStatus, open: openProp, onOpenChange, hideTrigger }: AddLeadDialogProps) {
+export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode, onLeadAdded, onContactCreated, onReferrerCreated, defaultWipStatus, defaultLeadStatus, open: openProp, onOpenChange, hideTrigger }: AddLeadDialogProps) {
   const { effectiveBrokerId } = useAuth();
   const { statuses: leadStatuses } = useLeadStatuses();
   const { statuses: wipStatuses } = useWipStatuses();
