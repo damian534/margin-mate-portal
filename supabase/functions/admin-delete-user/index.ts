@@ -35,9 +35,9 @@ serve(async (req) => {
     }
 
     const callerUserId = claims.claims.sub;
-    const { data: roleData } = await anonClient
-      .from("user_roles").select("role").eq("user_id", callerUserId).maybeSingle();
-    if (roleData?.role !== "super_admin") {
+    const { data: roleRows } = await anonClient
+      .from("user_roles").select("role").eq("user_id", callerUserId).eq("role", "super_admin").limit(1);
+    if (!roleRows || roleRows.length === 0) {
       return new Response(JSON.stringify({ error: "Forbidden: super_admin only" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
