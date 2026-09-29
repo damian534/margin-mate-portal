@@ -10,7 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { FileDown, Users, TrendingUp, DollarSign } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth, subMonths, addMonths } from 'date-fns';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+const PIE_COLORS = ['hsl(2, 76%, 48%)', 'hsl(152, 60%, 42%)', 'hsl(38, 92%, 50%)', 'hsl(210, 60%, 50%)', 'hsl(280, 50%, 55%)', 'hsl(170, 50%, 45%)', 'hsl(30, 70%, 50%)', 'hsl(0, 0%, 45%)', 'hsl(340, 60%, 55%)', 'hsl(200, 50%, 45%)'];
 
 type Period = 'this_month' | 'last_month' | 'last_6' | 'last_12' | 'this_fy' | 'last_fy' | 'custom';
 
