@@ -130,6 +130,27 @@ export function LeadsReport({
     return Array.from(map.values());
   }, [leads, range]);
 
+  const selectedSourceLeads = useMemo(() => {
+    if (!selectedSource) return [];
+    return buckets
+      .flatMap(b => b.leads)
+      .filter(l => (l.source || 'unknown') === selectedSource.raw)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  }, [buckets, selectedSource]);
+
+  const changeLeadSource = async (lead: ReportLead, newSource: string) => {
+    if (newSource === (lead.source || '')) return;
+    setUpdatingLeadId(lead.id);
+    const { error } = await supabase.from('leads').update({ source: newSource } as any).eq('id', lead.id);
+    setUpdatingLeadId(null);
+    if (error) {
+      toast.error('Could not update the lead source');
+      return;
+    }
+    toast.success(`Source updated for ${lead.first_name} ${lead.last_name}`);
+    onLeadUpdated?.();
+  };
+
   const totals = useMemo(() => ({
     count: buckets.reduce((s, b) => s + b.count, 0),
     volume: buckets.reduce((s, b) => s + b.volume, 0),
