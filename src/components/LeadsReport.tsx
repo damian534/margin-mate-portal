@@ -373,6 +373,40 @@ export function LeadsReport({
         </Card>
         <Card>
           <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold">By lead source · {range.label}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {sourceBreakdown.length === 0 ? (
+              <p className="text-center text-sm text-muted-foreground py-8">No leads in this period.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Source</TableHead>
+                    <TableHead className="text-right">Leads</TableHead>
+                    <TableHead className="text-right">Loan Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sourceBreakdown.map((s, i) => (
+                    <TableRow key={s.raw} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedSource({ raw: s.raw, label: s.label })}>
+                      <TableCell className="font-medium">
+                        <span className="inline-flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                          <span className="text-primary underline-offset-2 hover:underline">{s.label}</span>
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{s.count}</TableCell>
+                      <TableCell className="text-right tabular-nums">{s.volume ? `$${s.volume.toLocaleString()}` : '—'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold">By referrer</CardTitle>
           </CardHeader>
           <CardContent>
