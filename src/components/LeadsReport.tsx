@@ -104,27 +104,6 @@ export function LeadsReport({
   const [selectedSource, setSelectedSource] = useState<{ raw: string; label: string } | null>(null);
   const [updatingLeadId, setUpdatingLeadId] = useState<string | null>(null);
 
-  const selectedSourceLeads = useMemo(() => {
-    if (!selectedSource) return [];
-    return buckets
-      .flatMap(b => b.leads)
-      .filter(l => (l.source || 'unknown') === selectedSource.raw)
-      .sort((a, b) => b.created_at.localeCompare(a.created_at));
-  }, [buckets, selectedSource]);
-
-  const changeLeadSource = async (lead: ReportLead, newSource: string) => {
-    if (newSource === (lead.source || '')) return;
-    setUpdatingLeadId(lead.id);
-    const { error } = await supabase.from('leads').update({ source: newSource } as any).eq('id', lead.id);
-    setUpdatingLeadId(null);
-    if (error) {
-      toast.error('Could not update the lead source');
-      return;
-    }
-    toast.success(`Source updated for ${lead.first_name} ${lead.last_name}`);
-    onLeadUpdated?.();
-  };
-
   const range = useMemo(() => getPeriodRange(period, customFrom, customTo), [period, customFrom, customTo]);
 
   const buckets = useMemo(() => {
