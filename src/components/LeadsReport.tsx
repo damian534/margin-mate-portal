@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -88,15 +90,19 @@ export function LeadsReport({
   leads,
   leadSources,
   getReferrerName,
+  onLeadUpdated,
 }: {
   leads: ReportLead[];
   leadSources?: LeadSource[];
   getReferrerName?: (id: string | null) => string | null;
+  onLeadUpdated?: () => void;
 }) {
   const [period, setPeriod] = useState<Period>('last_12');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [selectedMonth, setSelectedMonth] = useState<MonthBucket | null>(null);
+  const [selectedSource, setSelectedSource] = useState<{ raw: string; label: string } | null>(null);
+  const [updatingLeadId, setUpdatingLeadId] = useState<string | null>(null);
 
   const range = useMemo(() => getPeriodRange(period, customFrom, customTo), [period, customFrom, customTo]);
 
@@ -124,6 +130,27 @@ export function LeadsReport({
     return Array.from(map.values());
   }, [leads, range]);
 
+  const selectedSourceLeads = useMemo(() => {
+    if (!selectedSource) return [];
+    return buckets
+      .flatMap(b => b.leads)
+      .filter(l => (l.source || 'unknown') === selectedSource.raw)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  }, [buckets, selectedSource]);
+
+  const changeLeadSource = async (lead: ReportLead, newSource: string) => {
+    if (newSource === (lead.source || '')) return;
+    setUpdatingLeadId(lead.id);
+    const { error } = await supabase.from('leads').update({ source: newSource } as any).eq('id', lead.id);
+    setUpdatingLeadId(null);
+    if (error) {
+      toast.error('Could not update the lead source');
+      return;
+    }
+    toast.success(`Source updated for ${lead.first_name} ${lead.last_name}`);
+    onLeadUpdated?.();
+  };
+
   const totals = useMemo(() => ({
     count: buckets.reduce((s, b) => s + b.count, 0),
     volume: buckets.reduce((s, b) => s + b.volume, 0),
@@ -133,11 +160,11 @@ export function LeadsReport({
   const monthlyAvg = buckets.length ? totals.count / buckets.length : 0;
 
   const sourceBreakdown = useMemo(() => {
-    const map = new Map<string, { label: string; count: number; volume: number }>();
+    const map = new Map<string, { raw: string; label: string; count: number; volume: number }>();
     buckets.forEach(b => b.leads.forEach(l => {
       const raw = l.source || 'unknown';
       const label = leadSources?.find(s => s.name === raw)?.label || (raw === 'unknown' ? 'No source' : raw);
-      const cur = map.get(raw) || { label, count: 0, volume: 0 };
+      const cur = map.get(raw) || { raw, label, count: 0, volume: 0 };
       cur.count += 1;
       cur.volume += l.loan_amount || 0;
       map.set(raw, cur);
@@ -316,8 +343,8 @@ export function LeadsReport({
                 </TableHeader>
                 <TableBody>
                   {sourceBreakdown.map(s => (
-                    <TableRow key={s.label}>
-                      <TableCell className="font-medium">{s.label}</TableCell>
+                    <TableRow key={s.raw} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedSource({ raw: s.raw, label: s.label })}>
+                      <TableCell className="font-medium text-primary underline-offset-2 hover:underline">{s.label}</TableCell>
                       <TableCell className="text-right tabular-nums">{s.count}</TableCell>
                       <TableCell className="text-right tabular-nums">{s.volume ? `$${s.volume.toLocaleString()}` : '—'}</TableCell>
                     </TableRow>
@@ -391,6 +418,53 @@ export function LeadsReport({
               </TableBody>
             </Table>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Source drill-down dialog — review & fix lead sources */}
+      <Dialog open={selectedSource !== null} onOpenChange={(open) => !open && setSelectedSource(null)}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedSource?.label} · {selectedSourceLeads.length} leads</DialogTitle>
+            <DialogDescription>Review these leads and change the source on any that are miscategorised.</DialogDescription>
+          </DialogHeader>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead className="text-right">Loan Amount</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-[200px]">Source</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {selectedSourceLeads.map(l => (
+                <TableRow key={l.id}>
+                  <TableCell className="text-sm">{format(parseISO(l.created_at), 'd MMM yyyy')}</TableCell>
+                  <TableCell className="font-medium">{l.first_name} {l.last_name}</TableCell>
+                  <TableCell className="text-right tabular-nums">{l.loan_amount ? `$${l.loan_amount.toLocaleString()}` : '—'}</TableCell>
+                  <TableCell className="text-sm capitalize">{l.status.replace(/_/g, ' ')}</TableCell>
+                  <TableCell>
+                    <Select
+                      value={l.source || ''}
+                      disabled={updatingLeadId === l.id}
+                      onValueChange={(v) => changeLeadSource(l, v)}
+                    >
+                      <SelectTrigger className="h-8 text-sm">
+                        <SelectValue placeholder="Select source..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(leadSources || []).map(s => (
+                          <SelectItem key={s.name} value={s.name}>{s.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </DialogContent>
       </Dialog>
     </div>

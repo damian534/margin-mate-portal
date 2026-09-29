@@ -1141,7 +1141,7 @@ export default function AdminCRM() {
           </TabsContent>
 
           <TabsContent value="reports" className="mt-4">
-            <LeadsReport leads={leads} leadSources={leadSources} getReferrerName={getReferrerName} />
+            <LeadsReport leads={leads} leadSources={leadSources} getReferrerName={getReferrerName} onLeadUpdated={() => { if (!isPreviewMode) fetchLeads(); }} />
           </TabsContent>
 
           <TabsContent value="pipeline_report" className="mt-4">
