@@ -8,9 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { SectionCard } from '@/components/lead/SectionCard';
-import { Brain, Plus, Sparkles, Trash2, Pencil, Save, X, Copy, Loader2, Maximize2 } from 'lucide-react';
+import { Brain, Plus, Sparkles, Trash2, Pencil, Save, X, Copy, Loader2, Maximize2, Mail } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { logAudit } from '@/lib/leadAudit';
+import { isValidEmail } from '@/lib/email';
 
 interface MeetingNote {
   id: string;
@@ -19,6 +21,8 @@ interface MeetingNote {
   transcript: string | null;
   summary_markdown: string | null;
   summary_status: string;
+  client_email_sent_at: string | null;
+  client_email_markdown: string | null;
   created_at: string;
 }
 
@@ -26,6 +30,76 @@ interface Props {
   leadId: string;
   brokerId: string | null;
   isPreviewMode?: boolean;
+}
+
+/** Minimal markdown → HTML for the client email (headings, bold/italic, lists, tables, paragraphs). */
+function mdToHtml(md: string): string {
+  const esc = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const inline = (s: string) =>
+    esc(s)
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  const lines = md.split('\n');
+  const out: string[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Table block
+    if (trimmed.startsWith('|') && i + 1 < lines.length && /^\|[\s:|-]+\|$/.test(lines[i + 1].trim())) {
+      const headerCells = trimmed.split('|').slice(1, -1).map(c => inline(c.trim()));
+      i += 2;
+      const rows: string[][] = [];
+      while (i < lines.length && lines[i].trim().startsWith('|')) {
+        rows.push(lines[i].trim().split('|').slice(1, -1).map(c => inline(c.trim())));
+        i++;
+      }
+      out.push(
+        '<table style="border-collapse:collapse;width:100%;margin:12px 0;">' +
+          '<thead><tr>' +
+          headerCells.map(c => `<th style="border:1px solid #d4d4d8;padding:6px 10px;text-align:left;background:#f4f4f5;">${c}</th>`).join('') +
+          '</tr></thead><tbody>' +
+          rows.map(r => '<tr>' + r.map(c => `<td style="border:1px solid #d4d4d8;padding:6px 10px;">${c}</td>`).join('') + '</tr>').join('') +
+          '</tbody></table>'
+      );
+      continue;
+    }
+
+    if (/^###\s/.test(trimmed)) { out.push(`<h3 style="margin:16px 0 6px;">${inline(trimmed.replace(/^###\s*/, ''))}</h3>`); i++; continue; }
+    if (/^##\s/.test(trimmed)) { out.push(`<h2 style="margin:18px 0 8px;">${inline(trimmed.replace(/^##\s*/, ''))}</h2>`); i++; continue; }
+    if (/^#\s/.test(trimmed)) { out.push(`<h1 style="margin:20px 0 10px;">${inline(trimmed.replace(/^#\s*/, ''))}</h1>`); i++; continue; }
+    if (/^(-{3,}|\*{3,})$/.test(trimmed)) { out.push('<hr style="border:none;border-top:1px solid #e4e4e7;margin:16px 0;"/>'); i++; continue; }
+
+    // Bullet list
+    if (/^[-*]\s+/.test(trimmed)) {
+      const items: string[] = [];
+      while (i < lines.length && /^[-*]\s+/.test(lines[i].trim())) {
+        items.push(`<li style="margin:3px 0;">${inline(lines[i].trim().replace(/^[-*]\s+/, ''))}</li>`);
+        i++;
+      }
+      out.push(`<ul style="margin:8px 0;padding-left:22px;">${items.join('')}</ul>`);
+      continue;
+    }
+    // Numbered list
+    if (/^\d+[.)]\s+/.test(trimmed)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\d+[.)]\s+/.test(lines[i].trim())) {
+        items.push(`<li style="margin:3px 0;">${inline(lines[i].trim().replace(/^\d+[.)]\s+/, ''))}</li>`);
+        i++;
+      }
+      out.push(`<ol style="margin:8px 0;padding-left:22px;">${items.join('')}</ol>`);
+      continue;
+    }
+
+    if (!trimmed) { i++; continue; }
+    out.push(`<p style="margin:8px 0;">${inline(trimmed)}</p>`);
+    i++;
+  }
+  return out.join('\n');
 }
 
 export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) {
@@ -36,6 +110,17 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
   const [editingSummary, setEditingSummary] = useState<Record<string, string>>({});
   const [dragOver, setDragOver] = useState(false);
 
+  // client info for the post-meeting email
+  const [clientEmail, setClientEmail] = useState('');
+  const [clientFirstName, setClientFirstName] = useState('');
+
+  // email-client dialog state
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [emailTo, setEmailTo] = useState('');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [emailSending, setEmailSending] = useState(false);
+
   // new-form state
   const [newTitle, setNewTitle] = useState('');
   const [newDate, setNewDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
@@ -43,7 +128,7 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
   const [generatingNew, setGeneratingNew] = useState(false);
   const [savingNew, setSavingNew] = useState(false);
 
-  useEffect(() => { fetchMeetings(); }, [leadId]);
+  useEffect(() => { fetchMeetings(); fetchClientInfo(); }, [leadId]);
 
   async function fetchMeetings() {
     setLoading(true);
@@ -56,6 +141,19 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
     setLoading(false);
     if (error) { console.error(error); return; }
     setMeetings((data || []) as MeetingNote[]);
+  }
+
+  async function fetchClientInfo() {
+    if (!leadId || leadId.startsWith('preview-')) return;
+    const { data } = await (supabase as any)
+      .from('leads')
+      .select('email, first_name, last_name')
+      .eq('id', leadId)
+      .maybeSingle();
+    if (data) {
+      setClientEmail((data.email as string) || '');
+      setClientFirstName((data.first_name as string) || '');
+    }
   }
 
   async function generateAndSave() {
@@ -165,6 +263,52 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
     toast.success('Summary copied');
   }
 
+  function openEmailDialog(m: MeetingNote) {
+    const body = m.client_email_markdown || m.summary_markdown || '';
+    setEmailTo(clientEmail);
+    setEmailSubject(`Meeting summary — ${m.title} (${format(new Date(m.meeting_date + 'T00:00:00'), 'd MMM yyyy')})`);
+    const greeting = clientFirstName ? `Hi ${clientFirstName},\n\nThank you for your time today. Here is a summary of what we discussed:\n\n` : '';
+    setEmailBody(greeting + body);
+    setEmailOpen(true);
+  }
+
+  async function sendClientEmail(m: MeetingNote) {
+    if (isPreviewMode) { toast.info('Preview mode — email disabled'); return; }
+    if (!isValidEmail(emailTo)) { toast.error('Enter a valid client email address'); return; }
+    if (!emailSubject.trim()) { toast.error('Enter a subject'); return; }
+    if (!emailBody.trim()) { toast.error('The email body is empty'); return; }
+    setEmailSending(true);
+    try {
+      const { data: userRes } = await supabase.auth.getUser();
+      const replyTo = userRes.user?.email || undefined;
+      const html =
+        `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#18181b;line-height:1.55;">` +
+        mdToHtml(emailBody) +
+        `</div>`;
+      const { data, error } = await supabase.functions.invoke('send-email', {
+        body: { to: emailTo.trim(), subject: emailSubject.trim(), html, reply_to: replyTo },
+      });
+      if (error) throw error;
+      const errMsg = (data as any)?.error;
+      if (errMsg) { toast.error(typeof errMsg === 'string' ? errMsg : 'Email failed to send'); return; }
+
+      const sentAt = new Date().toISOString();
+      const { error: updErr } = await (supabase as any)
+        .from('meeting_notes')
+        .update({ client_email_sent_at: sentAt, client_email_markdown: emailBody })
+        .eq('id', m.id);
+      if (updErr) console.warn('Failed to record email send', updErr);
+      setMeetings(prev => prev.map(x => x.id === m.id ? { ...x, client_email_sent_at: sentAt, client_email_markdown: emailBody } : x));
+      logAudit(leadId, `📧 Post-meeting summary emailed to ${emailTo.trim()} — "${m.title}"`, { isPreview: isPreviewMode });
+      setEmailOpen(false);
+      toast.success(`Summary emailed to ${emailTo.trim()}`);
+    } catch (e: any) {
+      toast.error(e?.message || 'Email failed to send');
+    } finally {
+      setEmailSending(false);
+    }
+  }
+
   async function handleDroppedFile(file: File) {
     const name = file.name.toLowerCase();
     const isTextLike =
@@ -190,6 +334,8 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
     setNewTranscript(prev => (prev ? prev + '\n\n' : '') + text);
     toast.success(`Imported "${file.name}" — review and generate a summary`);
   }
+
+  const openMeeting = meetings.find(x => x.id === openId) || null;
 
   return (
     <SectionCard
@@ -300,6 +446,7 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
                       <div className="text-xs text-muted-foreground">
                         {format(new Date(m.meeting_date + 'T00:00:00'), 'd MMM yyyy')}
                         {m.summary_markdown ? ' · Summary ready' : ' · No summary'}
+                        {m.client_email_sent_at && ` · Emailed to client ${format(new Date(m.client_email_sent_at), 'd MMM')}`}
                       </div>
                     </div>
                   </button>
@@ -318,9 +465,8 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
       {/* Meeting detail dialog */}
       <Dialog open={!!openId} onOpenChange={(o) => { if (!o) setOpenId(null); }}>
         <DialogContent className="max-w-3xl w-[95vw] h-[85vh] p-0 overflow-hidden flex flex-col">
-          {(() => {
-            const m = meetings.find(x => x.id === openId);
-            if (!m) return null;
+          {openMeeting && (() => {
+            const m = openMeeting;
             const sEditing = editingSummary[m.id] !== undefined;
             return (
               <>
@@ -329,6 +475,7 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
                   <p className="text-xs text-muted-foreground">
                     {format(new Date(m.meeting_date + 'T00:00:00'), 'd MMM yyyy')}
                     {m.summary_markdown ? ' · Summary ready' : ' · No summary'}
+                    {m.client_email_sent_at && ` · Emailed to client ${format(new Date(m.client_email_sent_at), 'd MMM yyyy')}`}
                   </p>
                 </DialogHeader>
                 <div className="flex items-center justify-between px-5 py-2 border-b bg-muted/30 shrink-0">
@@ -341,6 +488,9 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
                         </Button>
                         <Button size="sm" variant="ghost" className="h-7 gap-1" onClick={() => setEditingSummary(prev => ({ ...prev, [m.id]: m.summary_markdown || '' }))}>
                           <Pencil className="w-3.5 h-3.5" /> Edit
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 gap-1" onClick={() => openEmailDialog(m)}>
+                          <Mail className="w-3.5 h-3.5" /> Email client
                         </Button>
                       </>
                     )}
@@ -374,6 +524,63 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
               </>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Email client dialog */}
+      <Dialog open={emailOpen} onOpenChange={setEmailOpen}>
+        <DialogContent className="max-w-2xl w-[95vw] max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-base">Email post-meeting summary</DialogTitle>
+          </DialogHeader>
+          {openMeeting && (
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">To</Label>
+                <Input
+                  value={emailTo}
+                  onChange={(e) => setEmailTo(e.target.value)}
+                  placeholder="client@example.com"
+                  className="h-9"
+                  disabled={emailSending}
+                />
+                {!clientEmail && (
+                  <p className="text-[11px] text-muted-foreground mt-1">No email saved on this deal — type the client's address above.</p>
+                )}
+              </div>
+              <div>
+                <Label className="text-xs">Subject</Label>
+                <Input
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  className="h-9"
+                  disabled={emailSending}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Message</Label>
+                <Textarea
+                  value={emailBody}
+                  onChange={(e) => setEmailBody(e.target.value)}
+                  rows={14}
+                  className="text-sm font-mono"
+                  disabled={emailSending}
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Replies go to your own email address. The send is recorded on the deal's history.
+                </p>
+              </div>
+              <div className="flex items-center justify-end gap-2">
+                <Button variant="ghost" size="sm" disabled={emailSending} onClick={() => setEmailOpen(false)}>
+                  Cancel
+                </Button>
+                <Button size="sm" className="gap-1.5" onClick={() => sendClientEmail(openMeeting)} disabled={emailSending}>
+                  {emailSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
+                  {emailSending ? 'Sending…' : 'Send to client'}
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </SectionCard>
