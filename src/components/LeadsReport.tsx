@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -88,15 +90,40 @@ export function LeadsReport({
   leads,
   leadSources,
   getReferrerName,
+  onLeadUpdated,
 }: {
   leads: ReportLead[];
   leadSources?: LeadSource[];
   getReferrerName?: (id: string | null) => string | null;
+  onLeadUpdated?: () => void;
 }) {
   const [period, setPeriod] = useState<Period>('last_12');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [selectedMonth, setSelectedMonth] = useState<MonthBucket | null>(null);
+  const [selectedSource, setSelectedSource] = useState<{ raw: string; label: string } | null>(null);
+  const [updatingLeadId, setUpdatingLeadId] = useState<string | null>(null);
+
+  const selectedSourceLeads = useMemo(() => {
+    if (!selectedSource) return [];
+    return buckets
+      .flatMap(b => b.leads)
+      .filter(l => (l.source || 'unknown') === selectedSource.raw)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  }, [buckets, selectedSource]);
+
+  const changeLeadSource = async (lead: ReportLead, newSource: string) => {
+    if (newSource === (lead.source || '')) return;
+    setUpdatingLeadId(lead.id);
+    const { error } = await supabase.from('leads').update({ source: newSource } as any).eq('id', lead.id);
+    setUpdatingLeadId(null);
+    if (error) {
+      toast.error('Could not update the lead source');
+      return;
+    }
+    toast.success(`Source updated for ${lead.first_name} ${lead.last_name}`);
+    onLeadUpdated?.();
+  };
 
   const range = useMemo(() => getPeriodRange(period, customFrom, customTo), [period, customFrom, customTo]);
 
