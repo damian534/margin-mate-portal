@@ -333,7 +333,9 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
                 <PopoverTrigger asChild>
                   <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
                     {selectedReferrerId
-                      ? referrers.find(r => (r.user_id || r.id) === selectedReferrerId)?.full_name || 'Selected'
+                      ? referrers.find(r => (r.user_id || r.id) === selectedReferrerId)?.full_name
+                        || (pendingNewReferrer && pendingNewReferrer.id === selectedReferrerId ? pendingNewReferrer.full_name : null)
+                        || 'Selected'
                       : 'Search referrer...'}
                     <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
