@@ -2228,6 +2228,8 @@ export type Database = {
       meeting_notes: {
         Row: {
           broker_id: string
+          client_email_markdown: string | null
+          client_email_sent_at: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -2241,6 +2243,8 @@ export type Database = {
         }
         Insert: {
           broker_id: string
+          client_email_markdown?: string | null
+          client_email_sent_at?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -2254,6 +2258,8 @@ export type Database = {
         }
         Update: {
           broker_id?: string
+          client_email_markdown?: string | null
+          client_email_sent_at?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
