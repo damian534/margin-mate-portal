@@ -158,9 +158,12 @@ export function PartnerMilestoneEmailDialog({
 
   const chosen = useMemo(() => recipients.filter((r) => selected.includes(r.linkId)), [recipients, selected]);
 
-  // Regenerate draft when milestone / recipients / sender change
+  // Regenerate draft when milestone / recipients / sender change — only until the user edits it
+  const [edited, setEdited] = useState(false);
+  useEffect(() => { setEdited(false); }, [open, milestone]);
+  const chosenKey = chosen.map((c) => c.linkId).join(',');
   useEffect(() => {
-    if (!open) return;
+    if (!open || edited) return;
     const vars = {
       recipient_names: joinNames(chosen.map((c) => c.firstName)),
       client_name: clientName || 'our client',
@@ -171,7 +174,8 @@ export function PartnerMilestoneEmailDialog({
     };
     setSubject(applyVars(def.subject, vars));
     setBody(applyVars(def.body, vars));
-  }, [open, milestone, chosen, clientName, dealName, financeDueDate, brokerName, sender.name, def]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, milestone, chosenKey, clientName, dealName, financeDueDate, brokerName, sender.name, edited]);
 
   const toggle = (id: string) => setSelected((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
 
@@ -263,11 +267,11 @@ export function PartnerMilestoneEmailDialog({
 
           <div>
             <Label className="text-xs">Subject</Label>
-            <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
+            <Input value={subject} onChange={(e) => { setEdited(true); setSubject(e.target.value); }} />
           </div>
           <div>
             <Label className="text-xs">Message</Label>
-            <Textarea rows={11} value={body} onChange={(e) => setBody(e.target.value)} />
+            <Textarea rows={11} value={body} onChange={(e) => { setEdited(true); setBody(e.target.value); }} />
             <p className="text-[11px] text-muted-foreground mt-1">Your email signature is added automatically. Replies come back to {sender.email || 'you'}.</p>
           </div>
         </div>

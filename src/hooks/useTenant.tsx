@@ -91,11 +91,10 @@ export function TenantProvider({ children }: { children: ReactNode }) {
   const load = useCallback(async () => {
     // Signed in: read the full row (row-level security scopes it to their own brokerage).
     if (user) {
-      const { data } = await supabase
-        .from('tenants')
-        .select('*')
-        .limit(1)
-        .maybeSingle();
+      const { data: myTenantId } = await supabase.rpc('get_my_tenant_id', { _user_id: user.id });
+      const { data } = myTenantId
+        ? await supabase.from('tenants').select('*').eq('id', myTenantId as string).maybeSingle()
+        : { data: null };
       if (data) {
         const full = data as unknown as TenantFull;
         setTenantFull(full);

@@ -3303,6 +3303,10 @@ export type Database = {
         Args: { _body: string; _lead_id: string; _metadata: Json }
         Returns: undefined
       }
+      rename_lead_status: {
+        Args: { _kind: string; _new: string; _old: string }
+        Returns: undefined
+      }
       scenario_lead_id: { Args: { _inputs: Json }; Returns: string }
       tenant_seat_usage: {
         Args: { _tenant_id: string }

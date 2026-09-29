@@ -87,7 +87,7 @@ export function useWipStatuses() {
           .from('leads')
           .select('id, stage_entered_at')
           .eq('wip_status', oldStatus.name);
-        await supabase.from('leads').update({ wip_status: updates.name }).eq('wip_status', oldStatus.name);
+        await (supabase.rpc as any)('rename_lead_status', { _kind: 'wip', _old: oldStatus.name, _new: updates.name });
         await Promise.all(
           ((affected as any[]) || [])
             .filter(l => l.stage_entered_at)
