@@ -267,11 +267,11 @@ export function PartnerMilestoneEmailDialog({
 
           <div>
             <Label className="text-xs">Subject</Label>
-            <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
+            <Input value={subject} onChange={(e) => { setEdited(true); setSubject(e.target.value); }} />
           </div>
           <div>
             <Label className="text-xs">Message</Label>
-            <Textarea rows={11} value={body} onChange={(e) => setBody(e.target.value)} />
+            <Textarea rows={11} value={body} onChange={(e) => { setEdited(true); setBody(e.target.value); }} />
             <p className="text-[11px] text-muted-foreground mt-1">Your email signature is added automatically. Replies come back to {sender.email || 'you'}.</p>
           </div>
         </div>
