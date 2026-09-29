@@ -2028,6 +2028,10 @@ export function LeadDetailSheet({
               financeDueDate={lead.finance_due_date ?? null}
               contacts={contactsList as any}
               isPreviewMode={isPreviewMode}
+              brokerId={(lead as any).broker_id ?? null}
+              clientName={`${lead.first_name || ''} ${lead.last_name || ''}`.trim()}
+              clientEmail={lead.email ?? null}
+              dealName={(lead as any).opportunity_name ?? null}
               onChange={(updates) => onLeadChange?.({ ...lead, ...updates })}
             />
           </div>
