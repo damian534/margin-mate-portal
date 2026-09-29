@@ -13,11 +13,13 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated?: () => void;
+  /** Called with the newly created profile so callers can select it immediately. */
+  onCreatedProfile?: (profile: { id: string; full_name: string | null; email: string | null }) => void;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-export function QuickAddPartnerDialog({ open, onOpenChange, onCreated }: Props) {
+export function QuickAddPartnerDialog({ open, onOpenChange, onCreated, onCreatedProfile }: Props) {
   const { user, isPreviewMode } = useAuth();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
