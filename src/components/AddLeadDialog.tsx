@@ -509,16 +509,17 @@ export function AddLeadDialog({ leadSources, referrers, contacts, isPreviewMode,
           </Button>
         </div>
       </DialogContent>
-      <QuickAddPartnerDialog
-        open={quickAddPartnerOpen}
-        onOpenChange={setQuickAddPartnerOpen}
-        onCreated={() => onReferrerCreated?.()}
-        onCreatedProfile={(p) => {
-          const opt: ReferrerOption = { id: p.id, user_id: null, full_name: p.full_name, email: p.email };
-          setPendingNewReferrer(opt);
-          setSelectedReferrerId(p.id);
-        }}
-      />
     </Dialog>
+    <QuickAddPartnerDialog
+      open={quickAddPartnerOpen}
+      onOpenChange={setQuickAddPartnerOpen}
+      onCreated={() => onReferrerCreated?.()}
+      onCreatedProfile={(p) => {
+        const opt: ReferrerOption = { id: p.id, user_id: null, full_name: p.full_name, email: p.email };
+        setPendingNewReferrer(opt);
+        setSelectedReferrerId(p.id);
+      }}
+    />
+    </>
   );
 }
