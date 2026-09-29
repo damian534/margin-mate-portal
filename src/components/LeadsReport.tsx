@@ -160,11 +160,11 @@ export function LeadsReport({
   const monthlyAvg = buckets.length ? totals.count / buckets.length : 0;
 
   const sourceBreakdown = useMemo(() => {
-    const map = new Map<string, { label: string; count: number; volume: number }>();
+    const map = new Map<string, { raw: string; label: string; count: number; volume: number }>();
     buckets.forEach(b => b.leads.forEach(l => {
       const raw = l.source || 'unknown';
       const label = leadSources?.find(s => s.name === raw)?.label || (raw === 'unknown' ? 'No source' : raw);
-      const cur = map.get(raw) || { label, count: 0, volume: 0 };
+      const cur = map.get(raw) || { raw, label, count: 0, volume: 0 };
       cur.count += 1;
       cur.volume += l.loan_amount || 0;
       map.set(raw, cur);
@@ -343,8 +343,8 @@ export function LeadsReport({
                 </TableHeader>
                 <TableBody>
                   {sourceBreakdown.map(s => (
-                    <TableRow key={s.label}>
-                      <TableCell className="font-medium">{s.label}</TableCell>
+                    <TableRow key={s.raw} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedSource({ raw: s.raw, label: s.label })}>
+                      <TableCell className="font-medium text-primary underline-offset-2 hover:underline">{s.label}</TableCell>
                       <TableCell className="text-right tabular-nums">{s.count}</TableCell>
                       <TableCell className="text-right tabular-nums">{s.volume ? `$${s.volume.toLocaleString()}` : '—'}</TableCell>
                     </TableRow>
@@ -418,6 +418,53 @@ export function LeadsReport({
               </TableBody>
             </Table>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Source drill-down dialog — review & fix lead sources */}
+      <Dialog open={selectedSource !== null} onOpenChange={(open) => !open && setSelectedSource(null)}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedSource?.label} · {selectedSourceLeads.length} leads</DialogTitle>
+            <DialogDescription>Review these leads and change the source on any that are miscategorised.</DialogDescription>
+          </DialogHeader>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead className="text-right">Loan Amount</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-[200px]">Source</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {selectedSourceLeads.map(l => (
+                <TableRow key={l.id}>
+                  <TableCell className="text-sm">{format(parseISO(l.created_at), 'd MMM yyyy')}</TableCell>
+                  <TableCell className="font-medium">{l.first_name} {l.last_name}</TableCell>
+                  <TableCell className="text-right tabular-nums">{l.loan_amount ? `$${l.loan_amount.toLocaleString()}` : '—'}</TableCell>
+                  <TableCell className="text-sm capitalize">{l.status.replace(/_/g, ' ')}</TableCell>
+                  <TableCell>
+                    <Select
+                      value={l.source || ''}
+                      disabled={updatingLeadId === l.id}
+                      onValueChange={(v) => changeLeadSource(l, v)}
+                    >
+                      <SelectTrigger className="h-8 text-sm">
+                        <SelectValue placeholder="Select source..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(leadSources || []).map(s => (
+                          <SelectItem key={s.name} value={s.name}>{s.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </DialogContent>
       </Dialog>
     </div>
