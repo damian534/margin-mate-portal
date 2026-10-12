@@ -14,6 +14,7 @@
 - **Tools**: Calculators centralized in Hub. Exclude tools from the public landing page.
 
 ## Memories
+- [Meeting client emails](mem://features/meeting-client-emails) — Readable, formatted post-meeting emails rather than code or raw file notes
 - [Whitelabel](mem://features/whitelabel) — Tenant model, per-brokerage branding, custom domains, seat pricing, provisioning
 - [Project Purpose](mem://project/purpose) — Central CRM for Margin Finance leads, contacts, and partners
 - [Branding](mem://style/branding) — Visual identity, colors, typography, and styling guidelines
