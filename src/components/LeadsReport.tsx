@@ -519,7 +519,7 @@ export function LeadsReport({
                     <TableCell className="text-sm text-muted-foreground">{leadSources?.find(s => s.name === l.source)?.label || l.source || '—'}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{getReferrerName?.(l.referral_partner_id ?? null) || '—'}</TableCell>
                     <TableCell className="text-right tabular-nums">{l.loan_amount ? `$${l.loan_amount.toLocaleString()}` : '—'}</TableCell>
-                    <TableCell className="text-sm capitalize">{stageLabel(l)}</TableCell>
+<TableCell className="text-sm capitalize">{stageLabel(l, settledLeadIds)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -551,7 +551,7 @@ export function LeadsReport({
                   <TableCell className="text-sm">{format(parseISO(l.created_at), 'd MMM yyyy')}</TableCell>
                   <TableCell className="font-medium">{l.first_name} {l.last_name}</TableCell>
                   <TableCell className="text-right tabular-nums">{l.loan_amount ? `$${l.loan_amount.toLocaleString()}` : '—'}</TableCell>
-                  <TableCell className="text-sm capitalize">{stageLabel(l)}</TableCell>
+                  <TableCell className="text-sm capitalize">{stageLabel(l, settledLeadIds)}</TableCell>
                   <TableCell>
                     <Select
                       value={l.source || ''}
