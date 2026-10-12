@@ -26,6 +26,21 @@ interface ReportLead {
   source: string | null;
   created_at: string;
   referral_partner_id?: string | null;
+  lodged_date?: string | null;
+  approved_date?: string | null;
+  settled_date?: string | null;
+}
+
+// A lead counts as lodged/approved once it has reached that stage at any point,
+// even if it has since moved further along (approved, settled).
+export const isLeadLodged = (l: ReportLead) => !!(l.lodged_date || l.approved_date || l.settled_date || l.status === 'settled');
+export const isLeadApproved = (l: ReportLead) => !!(l.approved_date || l.settled_date || l.status === 'settled');
+
+function stageLabel(l: ReportLead) {
+  if (l.settled_date || l.status === 'settled') return `Settled${l.settled_date ? ' ' + format(parseISO(l.settled_date), 'd MMM') : ''}`;
+  if (l.approved_date) return `Approved ${format(parseISO(l.approved_date), 'd MMM')}`;
+  if (l.lodged_date) return `Lodged ${format(parseISO(l.lodged_date), 'd MMM')}`;
+  return l.status.replace(/_/g, ' ');
 }
 
 interface LeadSource {
@@ -70,15 +85,18 @@ interface MonthBucket {
   volume: number;
   settled: number;
   lost: number;
+  lodged: number;
+  lodgedVolume: number;
+  approved: number;
   leads: ReportLead[];
 }
 
 function exportMonthlyCsv(buckets: MonthBucket[], rangeLabel: string) {
-  const lines = [['Month', 'New Leads', 'Total Loan Amount', 'Settled', 'Lost'].join(',')];
-  buckets.forEach(b => lines.push([b.label, String(b.count), String(b.volume), String(b.settled), String(b.lost)].join(',')));
+  const lines = [['Month', 'New Leads', 'Total Loan Amount', 'Lodged', 'Lodged Amount', 'Approved', 'Settled', 'Lost'].join(',')];
+  buckets.forEach(b => lines.push([b.label, String(b.count), String(b.volume), String(b.lodged), String(b.lodgedVolume), String(b.approved), String(b.settled), String(b.lost)].join(',')));
   const total = buckets.reduce((s, b) => s + b.count, 0);
   const totalVol = buckets.reduce((s, b) => s + b.volume, 0);
-  lines.push(['Total', String(total), String(totalVol), String(buckets.reduce((s, b) => s + b.settled, 0)), String(buckets.reduce((s, b) => s + b.lost, 0))].join(','));
+  lines.push(['Total', String(total), String(totalVol), String(buckets.reduce((s, b) => s + b.lodged, 0)), String(buckets.reduce((s, b) => s + b.lodgedVolume, 0)), String(buckets.reduce((s, b) => s + b.approved, 0)), String(buckets.reduce((s, b) => s + b.settled, 0)), String(buckets.reduce((s, b) => s + b.lost, 0))].join(','));
   const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -114,7 +132,7 @@ export function LeadsReport({
     let cursor = startOfMonth(range.from);
     while (cursor <= range.to) {
       const key = format(cursor, 'yyyy-MM');
-      map.set(key, { key, label: format(cursor, 'MMM yyyy'), count: 0, volume: 0, settled: 0, lost: 0, leads: [] });
+      map.set(key, { key, label: format(cursor, 'MMM yyyy'), count: 0, volume: 0, settled: 0, lost: 0, lodged: 0, lodgedVolume: 0, approved: 0, leads: [] });
       cursor = addMonths(cursor, 1);
     }
     leads.forEach(l => {
@@ -127,6 +145,8 @@ export function LeadsReport({
       b.volume += l.loan_amount || 0;
       if (l.status === 'settled') b.settled += 1;
       if (l.status === 'lost') b.lost += 1;
+      if (isLeadLodged(l)) { b.lodged += 1; b.lodgedVolume += l.loan_amount || 0; }
+      if (isLeadApproved(l)) b.approved += 1;
       b.leads.push(l);
     });
     return Array.from(map.values());
@@ -157,6 +177,9 @@ export function LeadsReport({
     count: buckets.reduce((s, b) => s + b.count, 0),
     volume: buckets.reduce((s, b) => s + b.volume, 0),
     settled: buckets.reduce((s, b) => s + b.settled, 0),
+    lodged: buckets.reduce((s, b) => s + b.lodged, 0),
+    lodgedVolume: buckets.reduce((s, b) => s + b.lodgedVolume, 0),
+    approved: buckets.reduce((s, b) => s + b.approved, 0),
   }), [buckets]);
 
   const monthlyAvg = buckets.length ? totals.count / buckets.length : 0;
@@ -228,7 +251,7 @@ export function LeadsReport({
       </Card>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -247,6 +270,16 @@ export function LeadsReport({
             </div>
             <div className="mt-2 text-2xl font-semibold tabular-nums">${totals.volume.toLocaleString()}</div>
             <div className="text-sm text-muted-foreground tabular-nums">{totals.count ? `$${Math.round(totals.volume / totals.count).toLocaleString()} avg per lead` : '—'}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium text-muted-foreground">Lodged from these leads</div>
+              <TrendingUp className="w-4 h-4 text-primary" />
+            </div>
+            <div className="mt-2 text-2xl font-semibold tabular-nums">{totals.lodged}</div>
+            <div className="text-sm text-muted-foreground tabular-nums">{totals.count ? `${Math.round((totals.lodged / totals.count) * 100)}% · $${totals.lodgedVolume.toLocaleString()}` : '—'}</div>
           </CardContent>
         </Card>
         <Card>
@@ -299,6 +332,9 @@ export function LeadsReport({
                 <TableHead>Month</TableHead>
                 <TableHead className="text-right">New Leads</TableHead>
                 <TableHead className="text-right">Loan Amount</TableHead>
+                <TableHead className="text-right">Lodged</TableHead>
+                <TableHead className="text-right">Lodged Amount</TableHead>
+                <TableHead className="text-right">Approved</TableHead>
                 <TableHead className="text-right">Settled</TableHead>
                 <TableHead className="text-right">Lost</TableHead>
               </TableRow>
@@ -309,6 +345,9 @@ export function LeadsReport({
                   <TableCell className="font-medium">{b.label}</TableCell>
                   <TableCell className="text-right tabular-nums">{b.count}</TableCell>
                   <TableCell className="text-right tabular-nums">{b.volume ? `$${b.volume.toLocaleString()}` : '—'}</TableCell>
+                  <TableCell className="text-right tabular-nums">{b.lodged || '—'}</TableCell>
+                  <TableCell className="text-right tabular-nums">{b.lodgedVolume ? `$${b.lodgedVolume.toLocaleString()}` : '—'}</TableCell>
+                  <TableCell className="text-right tabular-nums">{b.approved || '—'}</TableCell>
                   <TableCell className="text-right tabular-nums">{b.settled || '—'}</TableCell>
                   <TableCell className="text-right tabular-nums">{b.lost || '—'}</TableCell>
                 </TableRow>
@@ -317,6 +356,9 @@ export function LeadsReport({
                 <TableCell>Total</TableCell>
                 <TableCell className="text-right tabular-nums">{totals.count}</TableCell>
                 <TableCell className="text-right tabular-nums">${totals.volume.toLocaleString()}</TableCell>
+                <TableCell className="text-right tabular-nums">{totals.lodged}</TableCell>
+                <TableCell className="text-right tabular-nums">${totals.lodgedVolume.toLocaleString()}</TableCell>
+                <TableCell className="text-right tabular-nums">{totals.approved}</TableCell>
                 <TableCell className="text-right tabular-nums">{totals.settled}</TableCell>
                 <TableCell className="text-right tabular-nums">{buckets.reduce((s, b) => s + b.lost, 0)}</TableCell>
               </TableRow>
@@ -441,7 +483,7 @@ export function LeadsReport({
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>New leads · {selectedMonth?.label}</DialogTitle>
-            <DialogDescription>{selectedMonth?.count} leads · ${selectedMonth?.volume.toLocaleString()} total loan amount</DialogDescription>
+            <DialogDescription>{selectedMonth?.count} leads · ${selectedMonth?.volume.toLocaleString()} total loan amount · {selectedMonth?.lodged} lodged since</DialogDescription>
           </DialogHeader>
           {selectedMonth && (
             <Table>
@@ -452,7 +494,7 @@ export function LeadsReport({
                   <TableHead>Source</TableHead>
                   <TableHead>Referrer</TableHead>
                   <TableHead className="text-right">Loan Amount</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Stage reached</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -463,7 +505,7 @@ export function LeadsReport({
                     <TableCell className="text-sm text-muted-foreground">{leadSources?.find(s => s.name === l.source)?.label || l.source || '—'}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{getReferrerName?.(l.referral_partner_id ?? null) || '—'}</TableCell>
                     <TableCell className="text-right tabular-nums">{l.loan_amount ? `$${l.loan_amount.toLocaleString()}` : '—'}</TableCell>
-                    <TableCell className="text-sm capitalize">{l.status.replace(/_/g, ' ')}</TableCell>
+                    <TableCell className="text-sm capitalize">{stageLabel(l)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -485,7 +527,7 @@ export function LeadsReport({
                 <TableHead>Date</TableHead>
                 <TableHead>Client</TableHead>
                 <TableHead className="text-right">Loan Amount</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Stage reached</TableHead>
                 <TableHead className="w-[200px]">Source</TableHead>
               </TableRow>
             </TableHeader>
@@ -495,7 +537,7 @@ export function LeadsReport({
                   <TableCell className="text-sm">{format(parseISO(l.created_at), 'd MMM yyyy')}</TableCell>
                   <TableCell className="font-medium">{l.first_name} {l.last_name}</TableCell>
                   <TableCell className="text-right tabular-nums">{l.loan_amount ? `$${l.loan_amount.toLocaleString()}` : '—'}</TableCell>
-                  <TableCell className="text-sm capitalize">{l.status.replace(/_/g, ' ')}</TableCell>
+                  <TableCell className="text-sm capitalize">{stageLabel(l)}</TableCell>
                   <TableCell>
                     <Select
                       value={l.source || ''}
