@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,11 +33,17 @@ interface ReportLead {
 
 // A lead counts as lodged/approved once it has reached that stage at any point,
 // even if it has since moved further along (approved, settled).
-export const isLeadLodged = (l: ReportLead) => !!(l.lodged_date || l.approved_date || l.settled_date || l.status === 'settled');
-export const isLeadApproved = (l: ReportLead) => !!(l.approved_date || l.settled_date || l.status === 'settled');
+// Settled deals are tracked in the settlements table (leads keep their last
+// pipeline status), so a lead also counts as settled when it has a settlement.
+export const isLeadSettled = (l: ReportLead, settledLeadIds?: Set<string>) =>
+  !!(l.settled_date || l.status === 'settled' || settledLeadIds?.has(l.id));
+export const isLeadLodged = (l: ReportLead, settledLeadIds?: Set<string>) =>
+  !!(l.lodged_date || l.approved_date || l.settled_date || l.status === 'settled' || settledLeadIds?.has(l.id));
+export const isLeadApproved = (l: ReportLead, settledLeadIds?: Set<string>) =>
+  !!(l.approved_date || l.settled_date || l.status === 'settled' || settledLeadIds?.has(l.id));
 
-function stageLabel(l: ReportLead) {
-  if (l.settled_date || l.status === 'settled') return `Settled${l.settled_date ? ' ' + format(parseISO(l.settled_date), 'd MMM') : ''}`;
+function stageLabel(l: ReportLead, settledLeadIds?: Set<string>) {
+  if (isLeadSettled(l, settledLeadIds)) return `Settled${l.settled_date ? ' ' + format(parseISO(l.settled_date), 'd MMM') : ''}`;
   if (l.approved_date) return `Approved ${format(parseISO(l.approved_date), 'd MMM')}`;
   if (l.lodged_date) return `Lodged ${format(parseISO(l.lodged_date), 'd MMM')}`;
   return l.status.replace(/_/g, ' ');
