@@ -129,6 +129,14 @@ export function LeadsReport({
   const [selectedMonth, setSelectedMonth] = useState<MonthBucket | null>(null);
   const [selectedSource, setSelectedSource] = useState<{ raw: string; label: string } | null>(null);
   const [updatingLeadId, setUpdatingLeadId] = useState<string | null>(null);
+  const [settledLeadIds, setSettledLeadIds] = useState<Set<string>>(new Set());
+
+  // Settled deals live in the settlements table, not in the lead status.
+  useEffect(() => {
+    supabase.from('settlements').select('lead_id').then(({ data }) => {
+      if (data) setSettledLeadIds(new Set(data.map((s: any) => s.lead_id).filter(Boolean)));
+    });
+  }, []);
 
   const range = useMemo(() => getPeriodRange(period, customFrom, customTo), [period, customFrom, customTo]);
 
@@ -149,14 +157,14 @@ export function LeadsReport({
       if (!b) return;
       b.count += 1;
       b.volume += l.loan_amount || 0;
-      if (l.status === 'settled') b.settled += 1;
+      if (isLeadSettled(l, settledLeadIds)) b.settled += 1;
       if (l.status === 'lost') b.lost += 1;
-      if (isLeadLodged(l)) { b.lodged += 1; b.lodgedVolume += l.loan_amount || 0; }
-      if (isLeadApproved(l)) b.approved += 1;
+      if (isLeadLodged(l, settledLeadIds)) { b.lodged += 1; b.lodgedVolume += l.loan_amount || 0; }
+      if (isLeadApproved(l, settledLeadIds)) b.approved += 1;
       b.leads.push(l);
     });
     return Array.from(map.values());
-  }, [leads, range]);
+  }, [leads, range, settledLeadIds]);
 
   const selectedSourceLeads = useMemo(() => {
     if (!selectedSource) return [];
