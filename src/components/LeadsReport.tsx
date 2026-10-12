@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,11 +33,17 @@ interface ReportLead {
 
 // A lead counts as lodged/approved once it has reached that stage at any point,
 // even if it has since moved further along (approved, settled).
-export const isLeadLodged = (l: ReportLead) => !!(l.lodged_date || l.approved_date || l.settled_date || l.status === 'settled');
-export const isLeadApproved = (l: ReportLead) => !!(l.approved_date || l.settled_date || l.status === 'settled');
+// Settled deals are tracked in the settlements table (leads keep their last
+// pipeline status), so a lead also counts as settled when it has a settlement.
+export const isLeadSettled = (l: ReportLead, settledLeadIds?: Set<string>) =>
+  !!(l.settled_date || l.status === 'settled' || settledLeadIds?.has(l.id));
+export const isLeadLodged = (l: ReportLead, settledLeadIds?: Set<string>) =>
+  !!(l.lodged_date || l.approved_date || l.settled_date || l.status === 'settled' || settledLeadIds?.has(l.id));
+export const isLeadApproved = (l: ReportLead, settledLeadIds?: Set<string>) =>
+  !!(l.approved_date || l.settled_date || l.status === 'settled' || settledLeadIds?.has(l.id));
 
-function stageLabel(l: ReportLead) {
-  if (l.settled_date || l.status === 'settled') return `Settled${l.settled_date ? ' ' + format(parseISO(l.settled_date), 'd MMM') : ''}`;
+function stageLabel(l: ReportLead, settledLeadIds?: Set<string>) {
+  if (isLeadSettled(l, settledLeadIds)) return `Settled${l.settled_date ? ' ' + format(parseISO(l.settled_date), 'd MMM') : ''}`;
   if (l.approved_date) return `Approved ${format(parseISO(l.approved_date), 'd MMM')}`;
   if (l.lodged_date) return `Lodged ${format(parseISO(l.lodged_date), 'd MMM')}`;
   return l.status.replace(/_/g, ' ');
@@ -123,6 +129,14 @@ export function LeadsReport({
   const [selectedMonth, setSelectedMonth] = useState<MonthBucket | null>(null);
   const [selectedSource, setSelectedSource] = useState<{ raw: string; label: string } | null>(null);
   const [updatingLeadId, setUpdatingLeadId] = useState<string | null>(null);
+  const [settledLeadIds, setSettledLeadIds] = useState<Set<string>>(new Set());
+
+  // Settled deals live in the settlements table, not in the lead status.
+  useEffect(() => {
+    supabase.from('settlements').select('lead_id').then(({ data }) => {
+      if (data) setSettledLeadIds(new Set(data.map((s: any) => s.lead_id).filter(Boolean)));
+    });
+  }, []);
 
   const range = useMemo(() => getPeriodRange(period, customFrom, customTo), [period, customFrom, customTo]);
 
@@ -143,14 +157,14 @@ export function LeadsReport({
       if (!b) return;
       b.count += 1;
       b.volume += l.loan_amount || 0;
-      if (l.status === 'settled') b.settled += 1;
+      if (isLeadSettled(l, settledLeadIds)) b.settled += 1;
       if (l.status === 'lost') b.lost += 1;
-      if (isLeadLodged(l)) { b.lodged += 1; b.lodgedVolume += l.loan_amount || 0; }
-      if (isLeadApproved(l)) b.approved += 1;
+      if (isLeadLodged(l, settledLeadIds)) { b.lodged += 1; b.lodgedVolume += l.loan_amount || 0; }
+      if (isLeadApproved(l, settledLeadIds)) b.approved += 1;
       b.leads.push(l);
     });
     return Array.from(map.values());
-  }, [leads, range]);
+  }, [leads, range, settledLeadIds]);
 
   const selectedSourceLeads = useMemo(() => {
     if (!selectedSource) return [];
@@ -505,7 +519,7 @@ export function LeadsReport({
                     <TableCell className="text-sm text-muted-foreground">{leadSources?.find(s => s.name === l.source)?.label || l.source || '—'}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{getReferrerName?.(l.referral_partner_id ?? null) || '—'}</TableCell>
                     <TableCell className="text-right tabular-nums">{l.loan_amount ? `$${l.loan_amount.toLocaleString()}` : '—'}</TableCell>
-                    <TableCell className="text-sm capitalize">{stageLabel(l)}</TableCell>
+<TableCell className="text-sm capitalize">{stageLabel(l, settledLeadIds)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -537,7 +551,7 @@ export function LeadsReport({
                   <TableCell className="text-sm">{format(parseISO(l.created_at), 'd MMM yyyy')}</TableCell>
                   <TableCell className="font-medium">{l.first_name} {l.last_name}</TableCell>
                   <TableCell className="text-right tabular-nums">{l.loan_amount ? `$${l.loan_amount.toLocaleString()}` : '—'}</TableCell>
-                  <TableCell className="text-sm capitalize">{stageLabel(l)}</TableCell>
+                  <TableCell className="text-sm capitalize">{stageLabel(l, settledLeadIds)}</TableCell>
                   <TableCell>
                     <Select
                       value={l.source || ''}
