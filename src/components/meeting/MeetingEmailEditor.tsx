@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Bold, Italic, List, ListOrdered, Undo2, Redo2 } from 'lucide-react';
@@ -11,7 +11,6 @@ interface Props {
 }
 
 export function MeetingEmailEditor({ value, onChange, disabled }: Props) {
-  const lastValue = useRef(value);
   const editor = useEditor({
     extensions: [StarterKit],
     content: value,
@@ -20,18 +19,9 @@ export function MeetingEmailEditor({ value, onChange, disabled }: Props) {
       role: 'textbox', 'aria-label': 'Email message', 'aria-multiline': 'true',
       class: 'prose prose-sm max-w-none min-h-[280px] p-5 focus:outline-none text-foreground prose-headings:text-foreground prose-headings:font-semibold prose-headings:text-base prose-p:my-3 prose-li:my-1 break-words',
     } },
-    onUpdate: ({ editor: updated }) => {
-      lastValue.current = updated.getHTML();
-      onChange(lastValue.current);
-    },
+    onUpdate: ({ editor: updated }) => onChange(updated.getHTML()),
   });
 
-  useEffect(() => {
-    if (editor && lastValue.current !== value) {
-      lastValue.current = value;
-      editor.commands.setContent(value, false);
-    }
-  }, [editor, value]);
   useEffect(() => { editor?.setEditable(!disabled); }, [editor, disabled]);
 
   if (!editor) return null;
