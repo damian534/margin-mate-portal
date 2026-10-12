@@ -14,7 +14,8 @@ import { toast } from 'sonner';
 import { logAudit } from '@/lib/leadAudit';
 import { isValidEmail } from '@/lib/email';
 import { MeetingEmailEditor } from '@/components/meeting/MeetingEmailEditor';
-import { createMeetingEmail, meetingMarkdownToHtml, emailHtmlToMarkdown, formatMeetingEmailForSending } from '@/lib/meetingEmail';
+import { meetingMarkdownToHtml, emailHtmlToMarkdown, formatMeetingEmailForSending } from '@/lib/meetingEmail';
+import { readMeetingEmailStream } from '@/lib/readMeetingEmailStream';
 
 interface MeetingNote {
   id: string;
@@ -44,7 +45,6 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
 
   // client info for the post-meeting email
   const [clientEmail, setClientEmail] = useState('');
-  const [clientFirstName, setClientFirstName] = useState('');
 
   // email-client dialog state
   const [emailOpen, setEmailOpen] = useState(false);
@@ -52,6 +52,8 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
   const [emailSending, setEmailSending] = useState(false);
+  const [emailGenerating, setEmailGenerating] = useState(false);
+  const [emailRevision, setEmailRevision] = useState(0);
 
   // new-form state
   const [newTitle, setNewTitle] = useState('');
@@ -84,7 +86,6 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
       .maybeSingle();
     if (data) {
       setClientEmail((data.email as string) || '');
-      setClientFirstName((data.first_name as string) || '');
     }
   }
 
@@ -195,13 +196,43 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
     toast.success('Summary copied');
   }
 
-  function openEmailDialog(m: MeetingNote) {
-    setEmailTo(clientEmail);
+  async function openEmailDialog(m: MeetingNote) {
+    if (isPreviewMode) { toast.info('Preview mode — AI disabled'); return; }
+    setEmailTo('');
     setEmailSubject(`Meeting summary — ${m.title} (${format(new Date(m.meeting_date + 'T00:00:00'), 'd MMM yyyy')})`);
-    setEmailBody(m.client_email_markdown
-      ? meetingMarkdownToHtml(m.client_email_markdown)
-      : createMeetingEmail(m.summary_markdown || '', clientFirstName, format(new Date(m.meeting_date + 'T00:00:00'), 'd MMM yyyy'))); 
+    setEmailBody('');
     setEmailOpen(true);
+    await generateClientEmail(m);
+  }
+
+  async function generateClientEmail(m: MeetingNote) {
+    if (emailBody.trim() && !confirm('Replace your current email with a new draft using the latest saved notes and client details?')) return;
+    setEmailGenerating(true);
+    try {
+      const { data: latestLead, error: clientError } = await supabase.from('leads').select('email,source_contact_id').eq('id', leadId).maybeSingle();
+      if (clientError || !latestLead) throw new Error('Could not load the current client details');
+      const { data: contact } = latestLead.source_contact_id
+        ? await supabase.from('contacts').select('email').eq('id', latestLead.source_contact_id).maybeSingle()
+        : { data: null };
+      const latestEmail = contact?.email || latestLead.email || '';
+      setClientEmail(latestEmail);
+      setEmailTo(latestEmail);
+      const { data, error } = await supabase.functions.invoke('generate-meeting-email', {
+        body: { meeting_id: m.id },
+      });
+      if (error) {
+        const detail = await error.context?.json?.().catch(() => null);
+        throw new Error(detail?.message || detail?.error?.message || detail?.error || error.message);
+      }
+      if (!(data instanceof Response)) throw new Error('No email draft was returned');
+      const markdown = await readMeetingEmailStream(data);
+      setEmailBody(meetingMarkdownToHtml(markdown));
+      setEmailRevision(value => value + 1);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not generate the email');
+    } finally {
+      setEmailGenerating(false);
+    }
   }
 
   async function sendClientEmail(m: MeetingNote) {
@@ -472,7 +503,7 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
                   onChange={(e) => setEmailTo(e.target.value)}
                   placeholder="client@example.com"
                   className="h-9"
-                  disabled={emailSending}
+                  disabled={emailSending || emailGenerating}
                 />
                 {!clientEmail && (
                   <p className="text-[11px] text-muted-foreground mt-1">No email saved on this deal — type the client's address above.</p>
@@ -484,25 +515,31 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
                   value={emailSubject}
                   onChange={(e) => setEmailSubject(e.target.value)}
                   className="h-9"
-                  disabled={emailSending}
+                  disabled={emailSending || emailGenerating}
                 />
               </div>
               <div>
-                <Label className="text-xs">Message</Label>
-                <MeetingEmailEditor
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <Label className="text-xs">Message</Label>
+                  <Button size="sm" variant="ghost" className="gap-1.5" disabled={emailGenerating || emailSending} onClick={() => generateClientEmail(openMeeting)}>
+                    <Sparkles className="h-3.5 w-3.5" /> {emailBody ? 'Regenerate email' : 'Generate email'}
+                  </Button>
+                </div>
+                {emailGenerating ? <div className="flex items-center justify-center gap-2 min-h-[280px] border rounded-md text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Drafting your client email…</div> : <MeetingEmailEditor
+                  key={emailRevision}
                   value={emailBody}
                   onChange={setEmailBody}
                   disabled={emailSending}
-                />
+                />}
                 <p className="text-[11px] text-muted-foreground mt-1">
                   Replies go to your own email address. The send is recorded on the deal's history.
                 </p>
               </div>
               <div className="flex items-center justify-end gap-2">
-                <Button variant="ghost" size="sm" disabled={emailSending} onClick={() => setEmailOpen(false)}>
+                <Button variant="ghost" size="sm" disabled={emailSending || emailGenerating} onClick={() => setEmailOpen(false)}>
                   Cancel
                 </Button>
-                <Button size="sm" className="gap-1.5" onClick={() => sendClientEmail(openMeeting)} disabled={emailSending}>
+                <Button size="sm" className="gap-1.5" onClick={() => sendClientEmail(openMeeting)} disabled={emailSending || emailGenerating || !emailBody}>
                   {emailSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
                   {emailSending ? 'Sending…' : 'Send to client'}
                 </Button>

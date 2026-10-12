@@ -4,3 +4,4 @@ description: Client-facing meeting summaries must look and read like normal emai
 type: feature
 ---
 Post-meeting emails must show editable formatted content, without raw Markdown/code symbols. Use a friendly greeting, readable discussion summary and next steps, and an email closing. Preserve internal meeting notes separately. Improve this inside Connect; Superhuman is not required.
+Generate the client email separately after meeting notes are completed and client details are updated. Use the latest saved client details; speak directly to the client as the broker (you/your, I/we), never address the team or copy internal file-note language. Allow review and corrections before sending.
