@@ -9,12 +9,13 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { FileDown, Users, TrendingUp, DollarSign } from 'lucide-react';
-import { format, parseISO, startOfMonth, endOfMonth, subMonths, addMonths } from 'date-fns';
+import { format, parseISO, startOfMonth, addMonths } from 'date-fns';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const PIE_COLORS = ['hsl(2, 76%, 48%)', 'hsl(152, 60%, 42%)', 'hsl(38, 92%, 50%)', 'hsl(210, 60%, 50%)', 'hsl(280, 50%, 55%)', 'hsl(170, 50%, 45%)', 'hsl(30, 70%, 50%)', 'hsl(0, 0%, 45%)', 'hsl(340, 60%, 55%)', 'hsl(200, 50%, 45%)'];
 
-type Period = 'this_month' | 'last_month' | 'last_6' | 'last_12' | 'this_fy' | 'last_fy' | 'custom';
+import { currentFYStart, financialYearLabel, FY_MONTHS, getLeadReportRange, type LeadReportPeriod as Period } from '@/lib/leadReportPeriods';
+import { useTenant } from '@/hooks/useTenant';
 
 interface ReportLead {
   id: string;
@@ -52,36 +53,6 @@ function stageLabel(l: ReportLead, settledLeadIds?: Set<string>) {
 interface LeadSource {
   name: string;
   label: string;
-}
-
-function getPeriodRange(period: Period, customFrom: string, customTo: string): { from: Date; to: Date; label: string } {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth();
-  if (period === 'this_month') {
-    return { from: startOfMonth(now), to: endOfMonth(now), label: format(now, 'MMMM yyyy') };
-  }
-  if (period === 'last_month') {
-    const prev = subMonths(now, 1);
-    return { from: startOfMonth(prev), to: endOfMonth(prev), label: format(prev, 'MMMM yyyy') };
-  }
-  if (period === 'last_6') {
-    return { from: startOfMonth(subMonths(now, 5)), to: endOfMonth(now), label: `Last 6 months (${format(subMonths(now, 5), 'MMM yyyy')} – ${format(now, 'MMM yyyy')})` };
-  }
-  if (period === 'last_12') {
-    return { from: startOfMonth(subMonths(now, 11)), to: endOfMonth(now), label: `Last 12 months (${format(subMonths(now, 11), 'MMM yyyy')} – ${format(now, 'MMM yyyy')})` };
-  }
-  if (period === 'this_fy') {
-    const fyStart = m >= 6 ? y : y - 1;
-    return { from: new Date(fyStart, 6, 1), to: new Date(fyStart + 1, 5, 30, 23, 59, 59), label: `FY${String(fyStart + 1).slice(-2)} (Jul ${fyStart} – Jun ${fyStart + 1})` };
-  }
-  if (period === 'last_fy') {
-    const fyStart = (m >= 6 ? y : y - 1) - 1;
-    return { from: new Date(fyStart, 6, 1), to: new Date(fyStart + 1, 5, 30, 23, 59, 59), label: `FY${String(fyStart + 1).slice(-2)} (Jul ${fyStart} – Jun ${fyStart + 1})` };
-  }
-  const from = customFrom ? new Date(customFrom) : startOfMonth(subMonths(now, 11));
-  const to = customTo ? new Date(customTo + 'T23:59:59') : now;
-  return { from, to, label: `${format(from, 'd MMM yyyy')} – ${format(to, 'd MMM yyyy')}` };
 }
 
 interface MonthBucket {
@@ -124,6 +95,11 @@ export function LeadsReport({
   onLeadUpdated?: () => void;
 }) {
   const [period, setPeriod] = useState<Period>('last_12');
+  const [selectedFy, setSelectedFy] = useState(currentFYStart);
+  const [selectedFyMonth, setSelectedFyMonth] = useState(0);
+  const [exporting, setExporting] = useState(false);
+  const { tenant } = useTenant();
+  const fyOptions = Array.from({ length: 8 }, (_, i) => currentFYStart() + 2 - i);
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [selectedMonth, setSelectedMonth] = useState<MonthBucket | null>(null);
@@ -138,7 +114,10 @@ export function LeadsReport({
     });
   }, []);
 
-  const range = useMemo(() => getPeriodRange(period, customFrom, customTo), [period, customFrom, customTo]);
+  const range = useMemo(() => {
+    const earliest = leads.reduce((min, lead) => Math.min(min, new Date(lead.created_at).getTime()), Date.now());
+    return getLeadReportRange(period, customFrom, customTo, selectedFy, selectedFyMonth, new Date(), new Date(earliest));
+  }, [period, customFrom, customTo, selectedFy, selectedFyMonth, leads]);
 
   const buckets = useMemo(() => {
     // Build a bucket for every month in range (even empty ones)
@@ -223,16 +202,49 @@ export function LeadsReport({
     return Array.from(map.values()).sort((a, b) => b.count - a.count);
   }, [buckets, getReferrerName]);
 
+  const downloadPdf = async () => {
+    setExporting(true);
+    try {
+      const { exportLeadFlowPdf, reportPrimaryColor } = await import('@/lib/pdf/leadFlowPdf');
+      await exportLeadFlowPdf({
+        rangeLabel: range.label, from: range.from, to: range.to,
+        buckets, sources: sourceBreakdown, referrers: referrerBreakdown,
+        brandName: tenant?.name || 'Connect', logoUrl: tenant?.logo_url || tenant?.icon_url,
+        primary: reportPrimaryColor(),
+      });
+    } catch {
+      toast.error('Could not download the report. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Filters */}
       <Card>
         <CardContent className="p-4 flex flex-wrap items-end gap-3">
           <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Financial Year</Label>
+            <Select value={String(selectedFy)} onValueChange={value => { setSelectedFy(Number(value)); if (!['fy', 'q1', 'q2', 'q3', 'q4', 'month'].includes(period)) setPeriod('fy'); }}>
+              <SelectTrigger aria-label="Financial Year" className="w-[150px] h-9 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>{fyOptions.map(year => <SelectItem key={year} value={String(year)}>{financialYearLabel(year)}{year === currentFYStart() ? ' (current)' : ''}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Period</Label>
             <Select value={period} onValueChange={v => setPeriod(v as Period)}>
-              <SelectTrigger className="w-[200px] h-9 text-sm"><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Report period" className="w-[200px] h-9 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">All Time</SelectItem>
+                <SelectItem value="fy">Full {financialYearLabel(selectedFy)}</SelectItem>
+                {selectedFy === currentFYStart() && <SelectItem value="ytd">FYTD</SelectItem>}
+                <SelectItem value="current_quarter">Current Quarter</SelectItem>
+                <SelectItem value="q1">Q1 (Jul–Sep)</SelectItem>
+                <SelectItem value="q2">Q2 (Oct–Dec)</SelectItem>
+                <SelectItem value="q3">Q3 (Jan–Mar)</SelectItem>
+                <SelectItem value="q4">Q4 (Apr–Jun)</SelectItem>
+                <SelectItem value="month">Selected Month</SelectItem>
                 <SelectItem value="this_month">This Month</SelectItem>
                 <SelectItem value="last_month">Last Month</SelectItem>
                 <SelectItem value="last_6">Last 6 Months</SelectItem>
@@ -243,6 +255,15 @@ export function LeadsReport({
               </SelectContent>
             </Select>
           </div>
+          {period === 'month' && (
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Month</Label>
+              <Select value={String(selectedFyMonth)} onValueChange={value => setSelectedFyMonth(Number(value))}>
+                <SelectTrigger aria-label="Report month" className="w-[140px] h-9 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>{FY_MONTHS.map((month, i) => <SelectItem key={month} value={String(i)}>{month} {i < 6 ? selectedFy : selectedFy + 1}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          )}
           {period === 'custom' && (
             <>
               <div className="space-y-1">
@@ -255,8 +276,11 @@ export function LeadsReport({
               </div>
             </>
           )}
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex flex-wrap items-center gap-3">
             <span className="text-sm text-muted-foreground">Showing: <span className="font-medium text-foreground">{range.label}</span></span>
+            <Button size="sm" onClick={downloadPdf} disabled={exporting || range.from > range.to}>
+              <FileDown className="w-3.5 h-3.5 mr-1.5" /> {exporting ? 'Preparing…' : 'Export PDF'}
+            </Button>
             <Button variant="outline" size="sm" onClick={() => exportMonthlyCsv(buckets, range.label)} disabled={totals.count === 0}>
               <FileDown className="w-3.5 h-3.5 mr-1.5" /> Export CSV
             </Button>
