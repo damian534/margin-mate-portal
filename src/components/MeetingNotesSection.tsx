@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { toast } from 'sonner';
 import { logAudit } from '@/lib/leadAudit';
 import { isValidEmail } from '@/lib/email';
+import { MeetingEmailEditor } from '@/components/meeting/MeetingEmailEditor';
+import { createMeetingEmail, meetingMarkdownToHtml, emailHtmlToMarkdown, formatMeetingEmailForSending } from '@/lib/meetingEmail';
 
 interface MeetingNote {
   id: string;
@@ -30,76 +32,6 @@ interface Props {
   leadId: string;
   brokerId: string | null;
   isPreviewMode?: boolean;
-}
-
-/** Minimal markdown → HTML for the client email (headings, bold/italic, lists, tables, paragraphs). */
-function mdToHtml(md: string): string {
-  const esc = (s: string) =>
-    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const inline = (s: string) =>
-    esc(s)
-      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-      .replace(/`([^`]+)`/g, '<code>$1</code>');
-
-  const lines = md.split('\n');
-  const out: string[] = [];
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i];
-    const trimmed = line.trim();
-
-    // Table block
-    if (trimmed.startsWith('|') && i + 1 < lines.length && /^\|[\s:|-]+\|$/.test(lines[i + 1].trim())) {
-      const headerCells = trimmed.split('|').slice(1, -1).map(c => inline(c.trim()));
-      i += 2;
-      const rows: string[][] = [];
-      while (i < lines.length && lines[i].trim().startsWith('|')) {
-        rows.push(lines[i].trim().split('|').slice(1, -1).map(c => inline(c.trim())));
-        i++;
-      }
-      out.push(
-        '<table style="border-collapse:collapse;width:100%;margin:12px 0;">' +
-          '<thead><tr>' +
-          headerCells.map(c => `<th style="border:1px solid #d4d4d8;padding:6px 10px;text-align:left;background:#f4f4f5;">${c}</th>`).join('') +
-          '</tr></thead><tbody>' +
-          rows.map(r => '<tr>' + r.map(c => `<td style="border:1px solid #d4d4d8;padding:6px 10px;">${c}</td>`).join('') + '</tr>').join('') +
-          '</tbody></table>'
-      );
-      continue;
-    }
-
-    if (/^###\s/.test(trimmed)) { out.push(`<h3 style="margin:16px 0 6px;">${inline(trimmed.replace(/^###\s*/, ''))}</h3>`); i++; continue; }
-    if (/^##\s/.test(trimmed)) { out.push(`<h2 style="margin:18px 0 8px;">${inline(trimmed.replace(/^##\s*/, ''))}</h2>`); i++; continue; }
-    if (/^#\s/.test(trimmed)) { out.push(`<h1 style="margin:20px 0 10px;">${inline(trimmed.replace(/^#\s*/, ''))}</h1>`); i++; continue; }
-    if (/^(-{3,}|\*{3,})$/.test(trimmed)) { out.push('<hr style="border:none;border-top:1px solid #e4e4e7;margin:16px 0;"/>'); i++; continue; }
-
-    // Bullet list
-    if (/^[-*]\s+/.test(trimmed)) {
-      const items: string[] = [];
-      while (i < lines.length && /^[-*]\s+/.test(lines[i].trim())) {
-        items.push(`<li style="margin:3px 0;">${inline(lines[i].trim().replace(/^[-*]\s+/, ''))}</li>`);
-        i++;
-      }
-      out.push(`<ul style="margin:8px 0;padding-left:22px;">${items.join('')}</ul>`);
-      continue;
-    }
-    // Numbered list
-    if (/^\d+[.)]\s+/.test(trimmed)) {
-      const items: string[] = [];
-      while (i < lines.length && /^\d+[.)]\s+/.test(lines[i].trim())) {
-        items.push(`<li style="margin:3px 0;">${inline(lines[i].trim().replace(/^\d+[.)]\s+/, ''))}</li>`);
-        i++;
-      }
-      out.push(`<ol style="margin:8px 0;padding-left:22px;">${items.join('')}</ol>`);
-      continue;
-    }
-
-    if (!trimmed) { i++; continue; }
-    out.push(`<p style="margin:8px 0;">${inline(trimmed)}</p>`);
-    i++;
-  }
-  return out.join('\n');
 }
 
 export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) {
@@ -264,11 +196,11 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
   }
 
   function openEmailDialog(m: MeetingNote) {
-    const body = m.client_email_markdown || m.summary_markdown || '';
     setEmailTo(clientEmail);
     setEmailSubject(`Meeting summary — ${m.title} (${format(new Date(m.meeting_date + 'T00:00:00'), 'd MMM yyyy')})`);
-    const greeting = clientFirstName ? `Hi ${clientFirstName},\n\nThank you for your time today. Here is a summary of what we discussed:\n\n` : '';
-    setEmailBody(greeting + body);
+    setEmailBody(m.client_email_markdown
+      ? meetingMarkdownToHtml(m.client_email_markdown)
+      : createMeetingEmail(m.summary_markdown || '', clientFirstName, format(new Date(m.meeting_date + 'T00:00:00'), 'd MMM yyyy'))); 
     setEmailOpen(true);
   }
 
@@ -276,15 +208,13 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
     if (isPreviewMode) { toast.info('Preview mode — email disabled'); return; }
     if (!isValidEmail(emailTo)) { toast.error('Enter a valid client email address'); return; }
     if (!emailSubject.trim()) { toast.error('Enter a subject'); return; }
-    if (!emailBody.trim()) { toast.error('The email body is empty'); return; }
+    if (!emailHtmlToMarkdown(emailBody).trim()) { toast.error('The email body is empty'); return; }
     setEmailSending(true);
     try {
       const { data: userRes } = await supabase.auth.getUser();
       const replyTo = userRes.user?.email || undefined;
-      const html =
-        `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#18181b;line-height:1.55;">` +
-        mdToHtml(emailBody) +
-        `</div>`;
+      const html = formatMeetingEmailForSending(emailBody);
+      const storedDraft = emailHtmlToMarkdown(emailBody);
       const { data, error } = await supabase.functions.invoke('send-email', {
         body: { to: emailTo.trim(), subject: emailSubject.trim(), html, reply_to: replyTo },
       });
@@ -295,10 +225,10 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
       const sentAt = new Date().toISOString();
       const { error: updErr } = await (supabase as any)
         .from('meeting_notes')
-        .update({ client_email_sent_at: sentAt, client_email_markdown: emailBody })
+        .update({ client_email_sent_at: sentAt, client_email_markdown: storedDraft })
         .eq('id', m.id);
       if (updErr) console.warn('Failed to record email send', updErr);
-      setMeetings(prev => prev.map(x => x.id === m.id ? { ...x, client_email_sent_at: sentAt, client_email_markdown: emailBody } : x));
+      setMeetings(prev => prev.map(x => x.id === m.id ? { ...x, client_email_sent_at: sentAt, client_email_markdown: storedDraft } : x));
       logAudit(leadId, `📧 Post-meeting summary emailed to ${emailTo.trim()} — "${m.title}"`, { isPreview: isPreviewMode });
       setEmailOpen(false);
       toast.success(`Summary emailed to ${emailTo.trim()}`);
@@ -559,11 +489,9 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
               </div>
               <div>
                 <Label className="text-xs">Message</Label>
-                <Textarea
+                <MeetingEmailEditor
                   value={emailBody}
-                  onChange={(e) => setEmailBody(e.target.value)}
-                  rows={14}
-                  className="text-sm font-mono"
+                  onChange={setEmailBody}
                   disabled={emailSending}
                 />
                 <p className="text-[11px] text-muted-foreground mt-1">
