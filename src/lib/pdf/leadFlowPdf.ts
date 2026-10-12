@@ -47,7 +47,7 @@ export async function createLeadFlowPdf(data: LeadFlowPdfData) {
   if (data.logoUrl) {
     try { logo = await loadImageAsBase64(data.logoUrl); } catch { /* Text branding remains if the logo cannot load. */ }
   }
-  const text = (value: string, x: number, y: number, size = 9, bold = false, color = PDF_COLORS.dark) => {
+  const text = (value: string | string[], x: number, y: number, size = 9, bold = false, color = PDF_COLORS.dark) => {
     doc.setFont('Poppins', bold ? 'bold' : 'normal'); doc.setFontSize(size); doc.setTextColor(...color); doc.text(value, x, y);
   };
   const header = () => {
