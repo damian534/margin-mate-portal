@@ -155,7 +155,7 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
         </div>
 
         <div>
-          <h4 className="text-sm font-semibold mb-2">Lead sources — {financialYearLabel(fy)} leads</h4>
+          <h4 className="text-sm font-semibold mb-2">Lead sources — {range.label}</h4>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader><TableRow>
@@ -166,7 +166,7 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
                 <TableHead className="text-right">Lodged $</TableHead><TableHead className="text-right">Settled $</TableHead>
               </TableRow></TableHeader>
               <TableBody>
-                {sources.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">No leads yet this financial year</TableCell></TableRow>}
+                {sources.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">No leads in this period</TableCell></TableRow>}
                 {sources.map(s => (
                   <TableRow key={s.source}>
                     <TableCell className="capitalize">{label(s.source)}</TableCell>
