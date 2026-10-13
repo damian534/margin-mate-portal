@@ -93,12 +93,6 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
               <Input type="date" className="w-[150px] h-9 text-sm" value={customTo} onChange={e => setCustomTo(e.target.value)} />
             </>
           )}
-          <Tabs value={view} onValueChange={v => setView(v as 'cohort' | 'activity')}>
-            <TabsList>
-              <TabsTrigger value="cohort">Follow the period's leads</TabsTrigger>
-              <TabsTrigger value="activity">When it happened</TabsTrigger>
-            </TabsList>
-          </Tabs>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
