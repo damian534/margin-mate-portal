@@ -189,7 +189,7 @@ export function useSettlements() {
       return;
     }
     const { error } = await supabase.from('settlements').insert(data as any);
-    if (error) { toast.error('Failed to add settlement'); console.error(error); return; }
+    if (error) { toast.error(error.code === '23505' ? 'This deal already has a settlement. Edit its existing settlement instead.' : 'Failed to add settlement'); console.error(error); return; }
     toast.success('Settlement added');
     fetchSettlements();
   };
