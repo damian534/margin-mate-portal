@@ -31,18 +31,17 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
     });
   }, []);
 
-  const fy = currentFYStart();
-  const from = new Date(fy, 6, 1);
-  const to = new Date(fy + 1, 5, 30, 23, 59, 59);
+  const range = useMemo(() => getLeadReportRange(period, customFrom, customTo, fyStart), [period, customFrom, customTo, fyStart]);
+  const { from, to } = range;
 
   const funnel = useMemo(
     () => (view === 'cohort' ? cohortFunnel : activityFunnel)(leads, settlements, from, to),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [view, leads, settlements, fy],
+    [view, leads, settlements, range],
   );
   const r = rates(funnel);
-  const months = useMemo(() => monthlyFunnels(view, leads, settlements, from, new Date()), [view, leads, settlements, fy]); // eslint-disable-line react-hooks/exhaustive-deps
-  const sources = useMemo(() => sourceMetrics(leads, settlements, from, to), [leads, settlements, fy]); // eslint-disable-line react-hooks/exhaustive-deps
+  const months = useMemo(() => monthlyFunnels(view, leads, settlements, from, new Date() < to ? new Date() : to), [view, leads, settlements, range]); // eslint-disable-line react-hooks/exhaustive-deps
+  const sources = useMemo(() => sourceMetrics(leads, settlements, from, to), [leads, settlements, range]); // eslint-disable-line react-hooks/exhaustive-deps
   const label = (raw: string) => leadSources?.find(s => s.name === raw)?.label || (raw === 'unknown' ? 'No source' : raw.replace(/_/g, ' '));
 
   const steps = [
