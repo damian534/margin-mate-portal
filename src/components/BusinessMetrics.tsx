@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { ArrowRight } from 'lucide-react';
 import { currentFYStart, financialYearLabel, getLeadReportRange, type LeadReportPeriod } from '@/lib/leadReportPeriods';
 import {
-  activityFunnel, cohortFunnel, monthlyFunnels, rates, sourceMetrics,
+  cohortFunnel, monthlyFunnels, rates, sourceMetrics,
   type MetricsLead, type SettlementDates,
 } from '@/lib/businessMetrics';
 
@@ -16,7 +15,6 @@ const money = (n: number) => '$' + Math.round(n).toLocaleString('en-AU');
 const pctFmt = (n: number) => `${n.toFixed(0)}%`;
 
 export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; leadSources?: { name: string; label: string }[] }) {
-  const [view, setView] = useState<'cohort' | 'activity'>('cohort');
   const [period, setPeriod] = useState<LeadReportPeriod>('ytd');
   const [fyStart, setFyStart] = useState(currentFYStart());
   const [customFrom, setCustomFrom] = useState('');
@@ -35,12 +33,12 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
   const { from, to } = range;
 
   const funnel = useMemo(
-    () => (view === 'cohort' ? cohortFunnel : activityFunnel)(leads, settlements, from, to),
+    () => cohortFunnel(leads, settlements, from, to),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [view, leads, settlements, range],
+    [leads, settlements, range],
   );
   const r = rates(funnel);
-  const months = useMemo(() => monthlyFunnels(view, leads, settlements, from, new Date() < to ? new Date() : to), [view, leads, settlements, range]); // eslint-disable-line react-hooks/exhaustive-deps
+  const months = useMemo(() => monthlyFunnels('cohort', leads, settlements, from, new Date() < to ? new Date() : to), [leads, settlements, range]); // eslint-disable-line react-hooks/exhaustive-deps
   const sources = useMemo(() => sourceMetrics(leads, settlements, from, to), [leads, settlements, range]); // eslint-disable-line react-hooks/exhaustive-deps
   const label = (raw: string) => leadSources?.find(s => s.name === raw)?.label || (raw === 'unknown' ? 'No source' : raw.replace(/_/g, ' '));
 
@@ -57,9 +55,7 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
         <div>
           <CardTitle className="text-lg">Business Metrics — {range.label}</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            {view === 'cohort'
-              ? 'Leads that came in during the period, followed through to settlement.'
-              : 'Every step counted in the period it happened, whenever the lead came in.'}
+            Leads that came in during the period, followed through to settlement.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -97,12 +93,6 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
               <Input type="date" className="w-[150px] h-9 text-sm" value={customTo} onChange={e => setCustomTo(e.target.value)} />
             </>
           )}
-          <Tabs value={view} onValueChange={v => setView(v as 'cohort' | 'activity')}>
-            <TabsList>
-              <TabsTrigger value="cohort">Follow the period's leads</TabsTrigger>
-              <TabsTrigger value="activity">When it happened</TabsTrigger>
-            </TabsList>
-          </Tabs>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -124,7 +114,6 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
           <span>Lodged → Settled: <b>{pctFmt(r.lodgedToSettled)}</b></span>
           <span>Lead → Settled: <b>{pctFmt(r.leadToSettled)}</b></span>
         </div>
-        {view === 'activity' && <p className="text-xs text-muted-foreground -mt-4">In this view the % compare counts within the period, so a deal lodged now may settle next month.</p>}
 
         <div>
           <h4 className="text-sm font-semibold mb-2">Month by month</h4>
