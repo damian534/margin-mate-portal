@@ -93,6 +93,7 @@ export function SettlementFiltersBar({ filters, filterOptions, isSuperAdmin, bro
       updateFilter('dateFrom', '');
       updateFilter('dateTo', '');
       updateFilter('month', '');
+      setAppliedRange({ from: '', to: '' });
       return;
     }
     const dates = getFYPeriodDates(period, fyStart);
@@ -100,22 +101,34 @@ export function SettlementFiltersBar({ filters, filterOptions, isSuperAdmin, bro
       updateFilter('month', '');
       updateFilter('dateFrom', dates.from);
       updateFilter('dateTo', dates.to);
+      setAppliedRange(dates);
     }
   };
 
   const handleFyChange = (v: string) => {
     const y = Number(v);
-    setSelectedFy(y);
+    setStoredFy(y);
     // Always re-scope KPIs & table to the newly selected FY. If the user
     // was on "All Time", switch to Full FY so the dashboard reflects it.
-    const period = selectedPeriod === 'all' ? 'fy' : selectedPeriod;
-    if (selectedPeriod === 'all') setSelectedPeriod('fy');
+    // FYTD only applies to the current financial year.
+    let period = selectedPeriod;
+    if (period === 'all' || (period === 'ytd' && y !== currentFyStart)) {
+      period = 'fy';
+      setStoredPeriod('fy');
+    }
     applyPeriod(period, y);
   };
 
   const handlePeriod = (period: string) => {
-    setSelectedPeriod(period);
+    setStoredPeriod(period);
     applyPeriod(period, selectedFy);
+  };
+
+  const handleReset = () => {
+    resetFilters();
+    setStoredFy(currentFyStart);
+    setStoredPeriod('fy');
+    setAppliedRange(defaultFyRange);
   };
 
   const handleMonth = (v: string) => {
