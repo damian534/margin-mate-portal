@@ -114,7 +114,6 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
           <span>Lodged → Settled: <b>{pctFmt(r.lodgedToSettled)}</b></span>
           <span>Lead → Settled: <b>{pctFmt(r.leadToSettled)}</b></span>
         </div>
-        {view === 'activity' && <p className="text-xs text-muted-foreground -mt-4">In this view the % compare counts within the period, so a deal lodged now may settle next month.</p>}
 
         <div>
           <h4 className="text-sm font-semibold mb-2">Month by month</h4>
