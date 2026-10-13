@@ -6,3 +6,4 @@
 - Lead Flow PDF exports consume the same filtered buckets and breakdowns as the screen, using the current tenant branding and embedded Poppins fonts to keep coaching documents consistent and printable.
 - Post-meeting email editing uses Tiptap with sanitised HTML and Markdown draft storage, preserving compatibility with saved meeting notes while hiding raw formatting from users.
 - Client-email generation reads finished notes and current deal/contact data under caller access policies at draft time, keeping internal notes separate and avoiding stale client details.
+- Business Metrics funnel logic lives in a pure helper (src/lib/businessMetrics.ts); "options presented" uses leads.proposal_sent_date, stamped by a DB trigger on first move to proposal_sent, so the metric survives later stage changes.
