@@ -185,7 +185,7 @@ export function SettlementFiltersBar({ filters, filterOptions, isSuperAdmin, bro
 
       <div className="space-y-1">
         <Label className="text-xs text-muted-foreground">Period</Label>
-        <Select value={selectedPeriod} onValueChange={handlePeriod}>
+        <Select value={displayPeriod} onValueChange={handlePeriod}>
           <SelectTrigger className="w-[130px] h-9 text-sm"><SelectValue placeholder="All Time" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Time</SelectItem>
@@ -271,7 +271,7 @@ export function SettlementFiltersBar({ filters, filterOptions, isSuperAdmin, bro
         </Select>
       </div>
 
-      <Button variant="ghost" size="sm" onClick={resetFilters} className="h-9">
+      <Button variant="ghost" size="sm" onClick={handleReset} className="h-9">
         <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reset
       </Button>
     </div>
