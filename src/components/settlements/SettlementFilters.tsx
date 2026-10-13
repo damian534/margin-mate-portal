@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -57,14 +58,28 @@ const MONTH_NAMES = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Ma
 
 export function SettlementFiltersBar({ filters, filterOptions, isSuperAdmin, brokers, updateFilter, resetFilters }: Props) {
   const currentFyStart = getCurrentFYStartYear();
-  const [selectedFy, setSelectedFy] = useState<number>(currentFyStart);
-  // Default to the full current FY so top-of-page KPIs immediately reflect
-  // the selected financial year rather than all-time totals.
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('fy');
+  const defaultFyRange = getFYPeriodDates('fy', currentFyStart) ?? { from: '', to: '' };
+  // Remember the chosen FY + period across tab switches and page reloads so the
+  // table/KPIs don't silently jump back to the full financial year.
+  const [storedFy, setStoredFy] = usePersistedState<number>('settlements.fyStart', currentFyStart);
+  const [storedPeriod, setStoredPeriod] = usePersistedState<string>('settlements.period', 'fy');
+  const [appliedRange, setAppliedRange] = usePersistedState<{ from: string; to: string }>('settlements.periodRange', defaultFyRange);
 
-  // Apply the default FY range once on mount so KPIs are scoped from the start.
+  const fyValid = Number.isFinite(storedFy) && storedFy >= 2015 && storedFy <= currentFyStart + 2;
+  const selectedFy = fyValid ? storedFy : currentFyStart;
+  const selectedPeriod = ['all', 'fy', 'ytd', 'q1', 'q2', 'q3', 'q4'].includes(storedPeriod) ? storedPeriod : 'fy';
+  // "FYTD" only exists for the current financial year — show Full FY otherwise.
+  const displayPeriod = selectedPeriod === 'ytd' && selectedFy !== currentFyStart ? 'fy' : selectedPeriod;
+
+  // Re-apply the saved period on mount so switching tabs (which remounts this
+  // bar) or reloading keeps the user's chosen quarter/month range. Skip when
+  // the filters already match the saved range or the user set custom dates.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { applyPeriod('fy', currentFyStart); }, []);
+  useEffect(() => {
+    if (filters.dateFrom === appliedRange.from && filters.dateTo === appliedRange.to) return;
+    if (filters.dateFrom !== '' || filters.dateTo !== '') return;
+    applyPeriod(selectedPeriod, selectedFy);
+  }, []);
 
   // Offer 5 past FYs + current + 2 future
   const fyOptions = useMemo(() => {
@@ -78,6 +93,7 @@ export function SettlementFiltersBar({ filters, filterOptions, isSuperAdmin, bro
       updateFilter('dateFrom', '');
       updateFilter('dateTo', '');
       updateFilter('month', '');
+      setAppliedRange({ from: '', to: '' });
       return;
     }
     const dates = getFYPeriodDates(period, fyStart);
@@ -85,22 +101,34 @@ export function SettlementFiltersBar({ filters, filterOptions, isSuperAdmin, bro
       updateFilter('month', '');
       updateFilter('dateFrom', dates.from);
       updateFilter('dateTo', dates.to);
+      setAppliedRange(dates);
     }
   };
 
   const handleFyChange = (v: string) => {
     const y = Number(v);
-    setSelectedFy(y);
+    setStoredFy(y);
     // Always re-scope KPIs & table to the newly selected FY. If the user
     // was on "All Time", switch to Full FY so the dashboard reflects it.
-    const period = selectedPeriod === 'all' ? 'fy' : selectedPeriod;
-    if (selectedPeriod === 'all') setSelectedPeriod('fy');
+    // FYTD only applies to the current financial year.
+    let period = selectedPeriod;
+    if (period === 'all' || (period === 'ytd' && y !== currentFyStart)) {
+      period = 'fy';
+      setStoredPeriod('fy');
+    }
     applyPeriod(period, y);
   };
 
   const handlePeriod = (period: string) => {
-    setSelectedPeriod(period);
+    setStoredPeriod(period);
     applyPeriod(period, selectedFy);
+  };
+
+  const handleReset = () => {
+    resetFilters();
+    setStoredFy(currentFyStart);
+    setStoredPeriod('fy');
+    setAppliedRange(defaultFyRange);
   };
 
   const handleMonth = (v: string) => {
@@ -157,7 +185,7 @@ export function SettlementFiltersBar({ filters, filterOptions, isSuperAdmin, bro
 
       <div className="space-y-1">
         <Label className="text-xs text-muted-foreground">Period</Label>
-        <Select value={selectedPeriod} onValueChange={handlePeriod}>
+        <Select value={displayPeriod} onValueChange={handlePeriod}>
           <SelectTrigger className="w-[130px] h-9 text-sm"><SelectValue placeholder="All Time" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Time</SelectItem>
@@ -243,7 +271,7 @@ export function SettlementFiltersBar({ filters, filterOptions, isSuperAdmin, bro
         </Select>
       </div>
 
-      <Button variant="ghost" size="sm" onClick={resetFilters} className="h-9">
+      <Button variant="ghost" size="sm" onClick={handleReset} className="h-9">
         <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reset
       </Button>
     </div>
