@@ -55,19 +55,55 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
         <div>
-          <CardTitle className="text-lg">Business Metrics — {financialYearLabel(fy)}</CardTitle>
+          <CardTitle className="text-lg">Business Metrics — {range.label}</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
             {view === 'cohort'
-              ? 'Leads that came in this financial year, followed through to settlement.'
-              : 'Every step counted in the month it happened this financial year, whenever the lead came in.'}
+              ? 'Leads that came in during the period, followed through to settlement.'
+              : 'Every step counted in the period it happened, whenever the lead came in.'}
           </p>
         </div>
-        <Tabs value={view} onValueChange={v => setView(v as 'cohort' | 'activity')}>
-          <TabsList>
-            <TabsTrigger value="cohort">Follow this FY's leads</TabsTrigger>
-            <TabsTrigger value="activity">When it happened</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={period} onValueChange={v => setPeriod(v as LeadReportPeriod)}>
+            <SelectTrigger className="w-[190px] h-9 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="this_month">This Month</SelectItem>
+              <SelectItem value="last_month">Last Month</SelectItem>
+              <SelectItem value="current_quarter">Current Quarter</SelectItem>
+              <SelectItem value="q1">Q1 (Jul–Sep)</SelectItem>
+              <SelectItem value="q2">Q2 (Oct–Dec)</SelectItem>
+              <SelectItem value="q3">Q3 (Jan–Mar)</SelectItem>
+              <SelectItem value="q4">Q4 (Apr–Jun)</SelectItem>
+              <SelectItem value="ytd">Financial Year to Date</SelectItem>
+              <SelectItem value="fy">Full Financial Year</SelectItem>
+              <SelectItem value="last_fy">Last Financial Year</SelectItem>
+              <SelectItem value="last_6">Last 6 Months</SelectItem>
+              <SelectItem value="last_12">Last 12 Months</SelectItem>
+              <SelectItem value="custom">Custom Range</SelectItem>
+            </SelectContent>
+          </Select>
+          {['q1', 'q2', 'q3', 'q4', 'fy', 'ytd'].includes(period) && (
+            <Select value={String(fyStart)} onValueChange={v => setFyStart(Number(v))}>
+              <SelectTrigger className="w-[110px] h-9 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {[0, 1, 2, 3].map(i => { const y = currentFYStart() - i; return (
+                  <SelectItem key={y} value={String(y)}>{financialYearLabel(y)}</SelectItem>
+                ); })}
+              </SelectContent>
+            </Select>
+          )}
+          {period === 'custom' && (
+            <>
+              <Input type="date" className="w-[150px] h-9 text-sm" value={customFrom} onChange={e => setCustomFrom(e.target.value)} />
+              <Input type="date" className="w-[150px] h-9 text-sm" value={customTo} onChange={e => setCustomTo(e.target.value)} />
+            </>
+          )}
+          <Tabs value={view} onValueChange={v => setView(v as 'cohort' | 'activity')}>
+            <TabsList>
+              <TabsTrigger value="cohort">Follow the period's leads</TabsTrigger>
+              <TabsTrigger value="activity">When it happened</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
