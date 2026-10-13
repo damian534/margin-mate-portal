@@ -2804,6 +2804,30 @@ export type Database = {
           },
         ]
       }
+      settlement_duplicate_archive: {
+        Row: {
+          archived_at: string
+          original_id: string
+          original_record: Json
+          reason: string
+          retained_id: string
+        }
+        Insert: {
+          archived_at?: string
+          original_id: string
+          original_record: Json
+          reason: string
+          retained_id: string
+        }
+        Update: {
+          archived_at?: string
+          original_id?: string
+          original_record?: Json
+          reason?: string
+          retained_id?: string
+        }
+        Relationships: []
+      }
       settlement_targets: {
         Row: {
           broker_id: string
