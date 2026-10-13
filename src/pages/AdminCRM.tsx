@@ -36,6 +36,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { notifyPartnerStatusChange } from '@/lib/notifications';
+import { settlementTransition } from '@/lib/settlementTransition';
 import { Search, TrendingUp, Clock, CheckCircle, AlertCircle, Filter, ListTodo, List, Columns, Building2, Users, BarChart3, DollarSign, Contact as ContactIcon, CalendarClock, Share2, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { Briefcase, Wrench, Landmark, Settings2, LogOut } from 'lucide-react';
 import { EDMPlatform } from '@/components/EDMPlatform';
@@ -547,33 +548,13 @@ export default function AdminCRM() {
     }
     const lead = leads.find(l => l.id === leadId);
     const oldStatus = lead?.status || '';
-    const { error } = await supabase.from('leads').update({ status: status as any }).eq('id', leadId);
+    const patch = settlementTransition('status', status, lead?.settled_date);
+    const { error } = await supabase.from('leads').update(patch as any).eq('id', leadId);
     if (error) { toast.error('Failed to update status'); return; }
     toast.success('Status updated');
     const stageNow = new Date().toISOString();
-    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status, stage_entered_at: stageNow } : l));
-    if (selectedLead?.id === leadId) setSelectedLead(prev => prev ? { ...prev, status, stage_entered_at: stageNow } : null);
-
-    // Auto-create settlement when lead moves to "settled"
-    if (status === 'settled' && oldStatus !== 'settled' && lead && user) {
-      const srcContact = lead.source_contact_id ? contacts.find(ct => ct.id === lead.source_contact_id) : null;
-      const contactName = srcContact ? `${srcContact.first_name} ${srcContact.last_name}`.trim() : null;
-      const { error: settError } = await supabase.from('settlements').insert({
-        broker_id: effectiveBrokerId || user.id,
-        client_name: `${lead.first_name} ${lead.last_name}`.trim(),
-        settlement_date: new Date().toISOString().split('T')[0],
-        loan_amount: lead.loan_amount || 0,
-        lead_source: lead.source || null,
-        status: 'settled',
-        contact_name: contactName || null,
-      } as any);
-      if (settError) {
-        console.error('Failed to auto-create settlement:', settError);
-        toast.error('Status updated but failed to create settlement record');
-      } else {
-        toast.success('Settlement record created automatically');
-      }
-    }
+    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...patch, status, stage_entered_at: stageNow } : l));
+    if (selectedLead?.id === leadId) setSelectedLead(prev => prev ? { ...prev, ...patch, status, stage_entered_at: stageNow } : null);
 
     // Send email notification to partner if lead has one
     if (lead?.referral_partner_id && oldStatus !== status) {
@@ -585,7 +566,6 @@ export default function AdminCRM() {
 
   const updateWipStatus = async (leadId: string, wip_status: string | null) => {
     const lead = leads.find(l => l.id === leadId);
-    const oldWip = lead?.wip_status || null;
     // Keep lead.status in sync: if file is now actively in WIP, it shouldn't show as Parked/Lost.
     const shouldClearStaleStatus =
       wip_status && wip_status !== 'settled' && lead && ['parked', 'lost'].includes(lead.status);
@@ -595,32 +575,12 @@ export default function AdminCRM() {
       ? { ...l, wip_status, status: shouldClearStaleStatus ? 'in_progress' : l.status, stage_entered_at: stageNow }
       : l));
     if (isPreviewMode) { toast.success('WIP status updated (preview)'); return; }
-    const updatePayload: any = { wip_status };
+    const updatePayload: any = settlementTransition('wip_status', wip_status, lead?.settled_date);
     if (shouldClearStaleStatus) updatePayload.status = 'in_progress';
     const { error } = await supabase.from('leads').update(updatePayload).eq('id', leadId);
-    if (error) toast.error('Failed to update WIP status');
-    else toast.success('WIP status updated');
-
-    // Auto-create settlement when WIP moves to "settled"
-    if (wip_status === 'settled' && oldWip !== 'settled' && lead && user) {
-      const srcContact = lead.source_contact_id ? contacts.find(ct => ct.id === lead.source_contact_id) : null;
-      const contactName = srcContact ? `${srcContact.first_name} ${srcContact.last_name}`.trim() : null;
-      const { error: settError } = await supabase.from('settlements').insert({
-        broker_id: effectiveBrokerId || user.id,
-        client_name: `${lead.first_name} ${lead.last_name}`.trim(),
-        settlement_date: new Date().toISOString().split('T')[0],
-        loan_amount: lead.loan_amount || 0,
-        lead_source: lead.source || null,
-        status: 'settled',
-        contact_name: contactName || null,
-      } as any);
-      if (settError) {
-        console.error('Failed to auto-create settlement:', settError);
-        toast.error('WIP updated but failed to create settlement record');
-      } else {
-        toast.success('Settlement record created automatically');
-      }
-    }
+    if (error) { toast.error('Failed to update WIP status'); await fetchLeads(); return; }
+    toast.success('WIP status updated');
+    await fetchLeads();
   };
 
 
