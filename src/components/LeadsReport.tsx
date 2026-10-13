@@ -16,6 +16,7 @@ const PIE_COLORS = ['hsl(2, 76%, 48%)', 'hsl(152, 60%, 42%)', 'hsl(38, 92%, 50%)
 
 import { currentFYStart, financialYearLabel, FY_MONTHS, getLeadReportRange, type LeadReportPeriod as Period } from '@/lib/leadReportPeriods';
 import { useTenant } from '@/hooks/useTenant';
+import { getLodgementMonths } from '@/lib/lodgementReport';
 
 interface ReportLead {
   id: string;
@@ -68,12 +69,15 @@ interface MonthBucket {
   leads: ReportLead[];
 }
 
-function exportMonthlyCsv(buckets: MonthBucket[], rangeLabel: string) {
+function exportMonthlyCsv(buckets: MonthBucket[], rangeLabel: string, lodgements: ReturnType<typeof getLodgementMonths>) {
   const lines = [['Month', 'New Leads', 'Total Loan Amount', 'Lodged', 'Lodged Amount', 'Approved', 'Settled', 'Lost'].join(',')];
   buckets.forEach(b => lines.push([b.label, String(b.count), String(b.volume), String(b.lodged), String(b.lodgedVolume), String(b.approved), String(b.settled), String(b.lost)].join(',')));
   const total = buckets.reduce((s, b) => s + b.count, 0);
   const totalVol = buckets.reduce((s, b) => s + b.volume, 0);
   lines.push(['Total', String(total), String(totalVol), String(buckets.reduce((s, b) => s + b.lodged, 0)), String(buckets.reduce((s, b) => s + b.lodgedVolume, 0)), String(buckets.reduce((s, b) => s + b.approved, 0)), String(buckets.reduce((s, b) => s + b.settled, 0)), String(buckets.reduce((s, b) => s + b.lost, 0))].join(','));
+  lines.push('', 'Actual lodgements by lodged date', 'Month,Deals Lodged,Lodged Amount');
+  lodgements.forEach(row => lines.push([row.label, row.count, row.volume].join(',')));
+  lines.push(['Total', lodgements.reduce((sum, r) => sum + r.count, 0), lodgements.reduce((sum, r) => sum + r.volume, 0)].join(','));
   const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -175,6 +179,12 @@ export function LeadsReport({
     approved: buckets.reduce((s, b) => s + b.approved, 0),
   }), [buckets]);
 
+  const lodgementMonths = useMemo(() => getLodgementMonths(leads, range.from, range.to), [leads, range]);
+  const [selectedLodgementMonth, setSelectedLodgementMonth] = useState<string | null>(null);
+  const lodgementDetail = lodgementMonths.find(row => row.key === selectedLodgementMonth);
+  const actualLodgedCount = lodgementMonths.reduce((sum, row) => sum + row.count, 0);
+  const actualLodgedVolume = lodgementMonths.reduce((sum, row) => sum + row.volume, 0);
+
   const monthlyAvg = buckets.length ? totals.count / buckets.length : 0;
 
   const sourceBreakdown = useMemo(() => {
@@ -208,7 +218,7 @@ export function LeadsReport({
       const { exportLeadFlowPdf, reportPrimaryColor } = await import('@/lib/pdf/leadFlowPdf');
       await exportLeadFlowPdf({
         rangeLabel: range.label, from: range.from, to: range.to,
-        buckets, sources: sourceBreakdown, referrers: referrerBreakdown,
+        buckets, lodgements: lodgementMonths, sources: sourceBreakdown, referrers: referrerBreakdown,
         brandName: tenant?.name || 'Connect', logoUrl: tenant?.logo_url || tenant?.icon_url,
         primary: reportPrimaryColor(),
       });
@@ -281,13 +291,32 @@ export function LeadsReport({
             <Button size="sm" onClick={downloadPdf} disabled={exporting || range.from > range.to}>
               <FileDown className="w-3.5 h-3.5 mr-1.5" /> {exporting ? 'Preparing…' : 'Export PDF'}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => exportMonthlyCsv(buckets, range.label)} disabled={totals.count === 0}>
+            <Button variant="outline" size="sm" onClick={() => exportMonthlyCsv(buckets, range.label, lodgementMonths)} disabled={totals.count === 0}>
               <FileDown className="w-3.5 h-3.5 mr-1.5" /> Export CSV
             </Button>
           </div>
         </CardContent>
       </Card>
 
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-lg font-semibold">Actual lodgements · {range.label}</h2>
+          <div className="font-semibold tabular-nums">{actualLodgedCount} deals · ${actualLodgedVolume.toLocaleString()}</div>
+        </div>
+        <Table>
+          <TableHeader><TableRow><TableHead>Lodged month</TableHead><TableHead className="text-right">Deals lodged</TableHead><TableHead className="text-right">Lodged amount</TableHead><TableHead /></TableRow></TableHeader>
+          <TableBody>
+            {[...lodgementMonths].reverse().map(row => (
+              <TableRow key={row.key}>
+                <TableCell>{row.label}</TableCell><TableCell className="text-right tabular-nums">{row.count}</TableCell><TableCell className="text-right tabular-nums">${row.volume.toLocaleString()}</TableCell>
+                <TableCell className="text-right"><Button variant="ghost" size="sm" disabled={!row.count} onClick={() => setSelectedLodgementMonth(row.key)}>View deals</Button></TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </section>
+
+      <h2 className="text-lg font-semibold">New leads and their subsequent progress · {range.label}</h2>
       {/* KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
@@ -370,8 +399,8 @@ export function LeadsReport({
                 <TableHead>Month</TableHead>
                 <TableHead className="text-right">New Leads</TableHead>
                 <TableHead className="text-right">Loan Amount</TableHead>
-                <TableHead className="text-right">Lodged</TableHead>
-                <TableHead className="text-right">Lodged Amount</TableHead>
+                <TableHead className="text-right">Lodged since</TableHead>
+                <TableHead className="text-right">Lodged since amount</TableHead>
                 <TableHead className="text-right">Approved</TableHead>
                 <TableHead className="text-right">Settled</TableHead>
                 <TableHead className="text-right">Lost</TableHead>
@@ -516,6 +545,18 @@ export function LeadsReport({
         </Card>
       </div>
 
+      <Dialog open={selectedLodgementMonth !== null} onOpenChange={open => !open && setSelectedLodgementMonth(null)}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Lodgements · {lodgementDetail?.label}</DialogTitle><DialogDescription>{lodgementDetail?.count} deals · ${lodgementDetail?.volume.toLocaleString()}</DialogDescription></DialogHeader>
+          <Table><TableHeader><TableRow><TableHead>Lodged</TableHead><TableHead>Client / Deal</TableHead><TableHead>Lead created</TableHead><TableHead className="text-right">Loan amount</TableHead></TableRow></TableHeader>
+            <TableBody>{lodgementDetail?.leads.map(lead => <TableRow key={lead.id}>
+              <TableCell>{lead.lodged_date ? format(parseISO(lead.lodged_date), 'd MMM yyyy') : '—'}</TableCell>
+              <TableCell className="font-medium">{lead.first_name} {lead.last_name}{lead.opportunity_name && <div className="text-xs text-muted-foreground">{lead.opportunity_name}</div>}</TableCell>
+              <TableCell>{format(parseISO(lead.created_at), 'd MMM yyyy')}</TableCell><TableCell className="text-right tabular-nums">${(lead.loan_amount || 0).toLocaleString()}</TableCell>
+            </TableRow>)}</TableBody>
+          </Table>
+        </DialogContent>
+      </Dialog>
       {/* Month drill-down dialog */}
       <Dialog open={selectedMonth !== null} onOpenChange={(open) => !open && setSelectedMonth(null)}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
