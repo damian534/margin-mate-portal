@@ -15,7 +15,6 @@ const money = (n: number) => '$' + Math.round(n).toLocaleString('en-AU');
 const pctFmt = (n: number) => `${n.toFixed(0)}%`;
 
 export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; leadSources?: { name: string; label: string }[] }) {
-  const [view, setView] = useState<'cohort' | 'activity'>('cohort');
   const [period, setPeriod] = useState<LeadReportPeriod>('ytd');
   const [fyStart, setFyStart] = useState(currentFYStart());
   const [customFrom, setCustomFrom] = useState('');
