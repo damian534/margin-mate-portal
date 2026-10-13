@@ -1,4 +1,5 @@
 # Tasks
+- [ ] Prevent duplicate automatic settlements and reconcile existing duplicates without removing distinct loans.
 - [x] Reconcile actual monthly lodgements separately from new-lead conversion, including exports and deal drill-down.
 - [x] Add a polished Lead Flow PDF export matching the selected reporting period.
 - [x] Match Lead Flow period choices to Settlements, including financial-year quarters, and verify.
