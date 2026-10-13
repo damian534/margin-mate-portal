@@ -1954,6 +1954,7 @@ export type Database = {
           pre_approval_ftc: number | null
           pre_approval_loan_amount: number | null
           pre_approval_purchase_price: number | null
+          proposal_sent_date: string | null
           referral_partner_id: string | null
           referred_by_contact_id: string | null
           referrer_commission: number | null
@@ -2002,6 +2003,7 @@ export type Database = {
           pre_approval_ftc?: number | null
           pre_approval_loan_amount?: number | null
           pre_approval_purchase_price?: number | null
+          proposal_sent_date?: string | null
           referral_partner_id?: string | null
           referred_by_contact_id?: string | null
           referrer_commission?: number | null
@@ -2050,6 +2052,7 @@ export type Database = {
           pre_approval_ftc?: number | null
           pre_approval_loan_amount?: number | null
           pre_approval_purchase_price?: number | null
+          proposal_sent_date?: string | null
           referral_partner_id?: string | null
           referred_by_contact_id?: string | null
           referrer_commission?: number | null

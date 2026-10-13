@@ -1,3 +1,4 @@
+import { BusinessMetrics } from '@/components/BusinessMetrics';
 import { useEffect, useState, useMemo } from 'react';
 import { LeadDetailSheet } from '@/components/LeadDetailSheet';
 import { supabase } from '@/integrations/supabase/client';
@@ -93,6 +94,7 @@ interface Lead {
   referred_by_contact_id?: string | null;
   wip_status?: string | null;
   lodged_date?: string | null;
+  proposal_sent_date?: string | null;
   approved_date?: string | null;
   settled_date?: string | null;
   estimated_settlement_date?: string | null;
@@ -1104,6 +1106,8 @@ export default function AdminCRM() {
           </TabsContent>
 
           <TabsContent value="reports" className="mt-4">
+            <BusinessMetrics leads={leads} leadSources={leadSources} />
+            <div className="h-6" />
             <LeadsReport leads={leads} leadSources={leadSources} getReferrerName={getReferrerName} onLeadUpdated={() => { if (!isPreviewMode) fetchLeads(); }} />
           </TabsContent>
 
