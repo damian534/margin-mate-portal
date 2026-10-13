@@ -13,6 +13,7 @@ export interface LeadFlowPdfData {
   from: Date;
   to: Date;
   buckets: MonthlyRow[];
+  lodgements: { label: string; count: number; volume: number }[];
   sources: BreakdownRow[];
   referrers: BreakdownRow[];
   brandName: string;
@@ -70,10 +71,12 @@ export async function createLeadFlowPdf(data: LeadFlowPdfData) {
   text(`${format(data.from, 'd MMM yyyy')} – ${format(data.to, 'd MMM yyyy')}  |  Prepared ${format(new Date(), 'd MMM yyyy')}`, margin, 65, 8, false, PDF_COLORS.muted);
   const totals = data.buckets.reduce((s, b) => ({ count: s.count + b.count, volume: s.volume + b.volume, lodged: s.lodged + b.lodged, lodgedVolume: s.lodgedVolume + b.lodgedVolume, approved: s.approved + b.approved, settled: s.settled + b.settled, lost: s.lost + b.lost }), { count: 0, volume: 0, lodged: 0, lodgedVolume: 0, approved: 0, settled: 0, lost: 0 });
   const pct = (count: number) => `${totals.count ? Math.round(count / totals.count * 100) : 0}%`;
+  const actualCount = data.lodgements.reduce((sum, row) => sum + row.count, 0);
+  const actualVolume = data.lodgements.reduce((sum, row) => sum + row.volume, 0);
   const metrics = [
     ['New leads', String(totals.count), `${data.buckets.length ? (totals.count / data.buckets.length).toFixed(1) : '0'} monthly average`],
     ['Loan amount', safeFormatCurrency(totals.volume), 'Current value of these leads'],
-    ['Lodged', String(totals.lodged), `${pct(totals.lodged)} · ${safeFormatCurrency(totals.lodgedVolume)}`],
+    ['Lodged in period', String(actualCount), safeFormatCurrency(actualVolume)],
     ['Settled', String(totals.settled), `${pct(totals.settled)} conversion`],
   ];
   metrics.forEach(([label, value, detail], i) => {
@@ -83,9 +86,9 @@ export async function createLeadFlowPdf(data: LeadFlowPdfData) {
     text(value, x + 3, 92, value.length > 10 ? 11 : 18, true);
     text(detail, x + 3, 101, 6.3, false, PDF_COLORS.muted);
   });
-  text('Lead progression', margin, 118, 11, true);
+  text('New-lead cohort progression', margin, 118, 11, true);
   text(`${totals.count} new leads  /  ${totals.lodged} lodged  /  ${totals.approved} approved  /  ${totals.settled} settled  /  ${totals.lost} lost`, margin, 126, 8);
-  const explanation = 'Leads are grouped by when they were created. Lodged, approved and settled reflect their latest recorded progress, including outcomes after this period; these are not settlement-date totals.';
+  const explanation = 'Lodged in period counts all deals by their recorded lodgement date, including older leads. Cohort progression groups leads by creation date and includes their later outcomes; settled is a cohort conversion figure.';
   text(doc.splitTextToSize(explanation, width), margin, 136, 8, false, PDF_COLORS.muted);
   text('New leads per month', margin, 159, 11, true);
   // Vector bars stay crisp in print; long histories remain complete in the monthly table.
@@ -115,7 +118,17 @@ export async function createLeadFlowPdf(data: LeadFlowPdfData) {
   };
   autoTable(doc, {
     ...tableBase, startY: 55,
-    head: [['Month', 'New\nleads', 'Loan\namount', 'Lodged', 'Lodged\namount', 'Approved', 'Settled', 'Lost']],
+    head: [['Lodged month', 'Deals lodged', 'Actual lodged amount']],
+    body: data.lodgements.map(row => [row.label, row.count, safeFormatCurrency(row.volume)]),
+    foot: [['Total', actualCount, safeFormatCurrency(actualVolume)]],
+    showFoot: 'lastPage',
+    footStyles: { fillColor: PDF_COLORS.bg, textColor: PDF_COLORS.dark, fontStyle: 'bold' },
+  });
+  doc.addPage(); header();
+  text('New-lead cohort progression', margin, 46, 19, true);
+  autoTable(doc, {
+    ...tableBase, startY: 55,
+    head: [['Created\nmonth', 'New\nleads', 'Loan\namount', 'Lodged\nsince', 'Lodged since\namount', 'Approved', 'Settled', 'Lost']],
     body: data.buckets.map(b => [b.label, b.count, safeFormatCurrency(b.volume), b.lodged, safeFormatCurrency(b.lodgedVolume), b.approved, b.settled, b.lost]),
     foot: [['Total', totals.count, safeFormatCurrency(totals.volume), totals.lodged, safeFormatCurrency(totals.lodgedVolume), totals.approved, totals.settled, totals.lost]],
     footStyles: { fillColor: PDF_COLORS.bg, textColor: PDF_COLORS.dark, fontStyle: 'bold' },
