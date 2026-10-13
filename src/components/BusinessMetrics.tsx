@@ -33,12 +33,12 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
   const { from, to } = range;
 
   const funnel = useMemo(
-    () => (view === 'cohort' ? cohortFunnel : activityFunnel)(leads, settlements, from, to),
+    () => cohortFunnel(leads, settlements, from, to),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [view, leads, settlements, range],
+    [leads, settlements, range],
   );
   const r = rates(funnel);
-  const months = useMemo(() => monthlyFunnels(view, leads, settlements, from, new Date() < to ? new Date() : to), [view, leads, settlements, range]); // eslint-disable-line react-hooks/exhaustive-deps
+  const months = useMemo(() => monthlyFunnels('cohort', leads, settlements, from, new Date() < to ? new Date() : to), [leads, settlements, range]); // eslint-disable-line react-hooks/exhaustive-deps
   const sources = useMemo(() => sourceMetrics(leads, settlements, from, to), [leads, settlements, range]); // eslint-disable-line react-hooks/exhaustive-deps
   const label = (raw: string) => leadSources?.find(s => s.name === raw)?.label || (raw === 'unknown' ? 'No source' : raw.replace(/_/g, ' '));
 
