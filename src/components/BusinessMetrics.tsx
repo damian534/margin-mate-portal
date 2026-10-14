@@ -89,7 +89,7 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
         <div>
           <CardTitle className="text-lg">Business Metrics — {range.label}</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Leads that came in during the period, followed through to settlement.
+            Leads that came in during the period, followed through to settlement. Options presented counts everything presented in the period, including older leads.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
