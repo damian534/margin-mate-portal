@@ -24,13 +24,15 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [settlements, setSettlements] = useState<SettlementDates>(new Map());
+  const [settlementRows, setSettlementRows] = useState<{ lead_id: string | null; settlement_date: string; status: string; loan_amount: number }[]>([]);
   const [drill, setDrill] = useState<{ title: string; stage: Stage; from: Date; to: Date; source?: string; activity?: boolean } | null>(null);
 
   useEffect(() => {
-    supabase.from('settlements').select('lead_id, settlement_date').then(({ data }) => {
+    supabase.from('settlements').select('lead_id, settlement_date, status, loan_amount').then(({ data }) => {
       const m: SettlementDates = new Map();
       (data || []).forEach((s: any) => { if (s.lead_id) m.set(s.lead_id, s.settlement_date); });
       setSettlements(m);
+      setSettlementRows((data as any) || []);
     });
   }, []);
 
