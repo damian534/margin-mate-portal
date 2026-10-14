@@ -231,7 +231,7 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
             <TableBody>
               {drillLeads.map(l => (
                 <TableRow key={l.id}>
-                  <TableCell className="font-medium">{(l as any).name || (l as any).client_name || 'Lead'}</TableCell>
+                  <TableCell className="font-medium">{[(l as any).first_name, (l as any).last_name].filter(Boolean).join(' ') || 'Lead'}</TableCell>
                   <TableCell className="capitalize">{label(l.source || 'unknown')}</TableCell>
                   <TableCell>{new Date(l.created_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}</TableCell>
                   <TableCell className="text-right">{money(Number(l.loan_amount) || 0)}</TableCell>
