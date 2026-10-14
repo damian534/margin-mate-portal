@@ -49,6 +49,15 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [leads, settlements, range],
   );
+  // Settled box matches the Settlements page: settlement records marked settled, dated in the period, using the settled amount.
+  const settledRows = useMemo(() => settlementRows.filter(s => {
+    if (s.status !== 'settled' || !s.settlement_date) return false;
+    const d = new Date(s.settlement_date + 'T00:00:00');
+    return d >= from && d <= to;
+  }), [settlementRows, from, to]);
+  const settledIds = useMemo(() => new Set(settledRows.map(s => s.lead_id).filter(Boolean) as string[]), [settledRows]);
+  const settledCount = settledRows.length;
+  const settledVolume = settledRows.reduce((a, s) => a + (Number(s.loan_amount) || 0), 0);
   const r = rates(funnel);
   const months = useMemo(() => monthlyFunnels('cohort', leads, settlements, from, new Date() < to ? new Date() : to), [leads, settlements, range]); // eslint-disable-line react-hooks/exhaustive-deps
   const sources = useMemo(() => sourceMetrics(leads, settlements, from, to), [leads, settlements, range]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -64,8 +73,7 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
         return true;
       }
       if (drill.activity && drill.stage === 'settled') {
-        if (!inR(settlements.get(l.id) || l.settled_date || null)) return false;
-        return true;
+        return settledIds.has(l.id);
       }
       if (drill.stage === 'presented' && drill.activity) {
         // Options presented during the period, regardless of when the lead came in.
@@ -83,7 +91,7 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
       if (drill.stage === 'settled') return isSettled(l, settlements);
       return true;
     });
-  }, [drill, leads, settlements]);
+  }, [drill, leads, settlements, settledIds]);
 
   const openDrill = (stage: Stage, title: string, dFrom: Date, dTo: Date, source?: string, activity?: boolean) =>
     setDrill({ stage, title, from: dFrom, to: dTo, source, activity });
@@ -92,7 +100,7 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
     { name: 'Leads', value: funnel.leads, sub: money(funnel.leadVolume) },
     { name: 'Options presented', value: activity.presented, sub: `${funnel.presented} of these were from this period's leads`, activity: true },
     { name: 'Lodged', value: activity.lodged, sub: `${money(activity.lodgedVolume)} · ${funnel.lodged} from this period's leads`, activity: true },
-    { name: 'Settled', value: activity.settled, sub: `${money(activity.settledVolume)} · ${funnel.settled} from this period's leads`, activity: true },
+    { name: 'Settled', value: settledCount, sub: `${money(settledVolume)} · ${funnel.settled} from this period's leads`, activity: true },
   ];
 
   return (
