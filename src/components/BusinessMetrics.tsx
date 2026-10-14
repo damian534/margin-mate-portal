@@ -210,12 +210,37 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
                     <TableCell className="text-right">{money(s.funnel.lodgedVolume)}</TableCell>
                     <TableCell className="text-right">{money(s.funnel.settledVolume)}</TableCell>
                   </TableRow>
-                ))}
+                ); })}
               </TableBody>
             </Table>
           </div>
         </div>
       </CardContent>
+
+      <Dialog open={drill !== null} onOpenChange={open => !open && setDrill(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{drill?.title}</DialogTitle>
+            <DialogDescription>{drillLeads.length} {drillLeads.length === 1 ? 'lead' : 'leads'}</DialogDescription>
+          </DialogHeader>
+          <Table>
+            <TableHeader><TableRow>
+              <TableHead>Lead</TableHead><TableHead>Source</TableHead>
+              <TableHead>Created</TableHead><TableHead className="text-right">Amount</TableHead>
+            </TableRow></TableHeader>
+            <TableBody>
+              {drillLeads.map(l => (
+                <TableRow key={l.id}>
+                  <TableCell className="font-medium">{(l as any).name || (l as any).client_name || 'Lead'}</TableCell>
+                  <TableCell className="capitalize">{label(l.source || 'unknown')}</TableCell>
+                  <TableCell>{new Date(l.created_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}</TableCell>
+                  <TableCell className="text-right">{money(Number(l.loan_amount) || 0)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
