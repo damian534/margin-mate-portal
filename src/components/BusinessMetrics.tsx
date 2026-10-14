@@ -73,12 +73,12 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
     });
   }, [drill, leads, settlements]);
 
-  const openDrill = (stage: Stage, title: string, dFrom: Date, dTo: Date, source?: string) =>
-    setDrill({ stage, title, from: dFrom, to: dTo, source });
+  const openDrill = (stage: Stage, title: string, dFrom: Date, dTo: Date, source?: string, activity?: boolean) =>
+    setDrill({ stage, title, from: dFrom, to: dTo, source, activity });
 
   const steps = [
     { name: 'Leads', value: funnel.leads, sub: money(funnel.leadVolume) },
-    { name: 'Options presented', value: funnel.presented, rate: r.leadToPresented, rateLabel: 'of leads' },
+    { name: 'Options presented', value: activity.presented, sub: `${funnel.presented} of these were from this period's leads`, activity: true },
     { name: 'Lodged', value: funnel.lodged, sub: money(funnel.lodgedVolume), rate: r.presentedToLodged, rateLabel: 'of options' },
     { name: 'Settled', value: funnel.settled, sub: money(funnel.settledVolume), rate: r.lodgedToSettled, rateLabel: 'of lodged' },
   ];
@@ -135,7 +135,7 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
             <div
               key={s.name}
               className={`relative rounded-lg border bg-card p-4 ${s.value > 0 ? 'cursor-pointer hover:border-primary/50 hover:shadow-sm transition' : ''}`}
-              onClick={() => s.value > 0 && openDrill(['leads', 'presented', 'lodged', 'settled'][i] as Stage, `${s.name} — ${range.label}`, from, to)}
+              onClick={() => s.value > 0 && openDrill(['leads', 'presented', 'lodged', 'settled'][i] as Stage, `${s.name} — ${range.label}`, from, to, undefined, (s as any).activity)}
               title={s.value > 0 ? 'Click to see these leads' : undefined}
             >
               <p className="text-xs uppercase tracking-wide text-muted-foreground">{s.name}</p>
