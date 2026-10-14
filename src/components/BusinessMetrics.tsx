@@ -152,15 +152,24 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
                 <TableHead className="text-right">Settled</TableHead><TableHead className="text-right">Lodged→Settled</TableHead>
               </TableRow></TableHeader>
               <TableBody>
-                {months.map(m => { const mr = rates(m.funnel); return (
+                {months.map(m => { const mr = rates(m.funnel);
+                  const mFrom = new Date(Number(m.key.slice(0, 4)), Number(m.key.slice(5, 7)) - 1, 1);
+                  const mTo = new Date(mFrom.getFullYear(), mFrom.getMonth() + 1, 0, 23, 59, 59);
+                  const cell = (stage: Stage, n: number) => (
+                    <TableCell
+                      className={`text-right ${n > 0 ? 'cursor-pointer text-primary hover:underline' : ''}`}
+                      onClick={() => n > 0 && openDrill(stage, `${stageLabel[stage]} — ${m.label}`, mFrom, mTo)}
+                    >{n}</TableCell>
+                  );
+                  return (
                   <TableRow key={m.key}>
                     <TableCell>{m.label}</TableCell>
-                    <TableCell className="text-right">{m.funnel.leads}</TableCell>
-                    <TableCell className="text-right">{m.funnel.presented}</TableCell>
+                    {cell('leads', m.funnel.leads)}
+                    {cell('presented', m.funnel.presented)}
                     <TableCell className="text-right text-muted-foreground">{pctFmt(mr.leadToPresented)}</TableCell>
-                    <TableCell className="text-right">{m.funnel.lodged}</TableCell>
+                    {cell('lodged', m.funnel.lodged)}
                     <TableCell className="text-right text-muted-foreground">{pctFmt(mr.presentedToLodged)}</TableCell>
-                    <TableCell className="text-right">{m.funnel.settled}</TableCell>
+                    {cell('settled', m.funnel.settled)}
                     <TableCell className="text-right text-muted-foreground">{pctFmt(mr.lodgedToSettled)}</TableCell>
                   </TableRow>
                 ); })}
