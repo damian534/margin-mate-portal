@@ -47,6 +47,22 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
   const sources = useMemo(() => sourceMetrics(leads, settlements, from, to), [leads, settlements, range]); // eslint-disable-line react-hooks/exhaustive-deps
   const label = (raw: string) => leadSources?.find(s => s.name === raw)?.label || (raw === 'unknown' ? 'No source' : raw.replace(/_/g, ' '));
 
+  const drillLeads = useMemo(() => {
+    if (!drill) return [];
+    return leads.filter(l => {
+      const created = new Date(l.created_at);
+      if (created < drill.from || created > drill.to) return false;
+      if (drill.source !== undefined && (l.source || 'unknown') !== drill.source) return false;
+      if (drill.stage === 'presented') return isPresented(l, settlements);
+      if (drill.stage === 'lodged') return isLodged(l, settlements);
+      if (drill.stage === 'settled') return isSettled(l, settlements);
+      return true;
+    });
+  }, [drill, leads, settlements]);
+
+  const openDrill = (stage: Stage, title: string, dFrom: Date, dTo: Date, source?: string) =>
+    setDrill({ stage, title, from: dFrom, to: dTo, source });
+
   const steps = [
     { name: 'Leads', value: funnel.leads, sub: money(funnel.leadVolume) },
     { name: 'Options presented', value: funnel.presented, rate: r.leadToPresented, rateLabel: 'of leads' },
