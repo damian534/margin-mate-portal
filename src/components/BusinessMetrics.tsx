@@ -5,11 +5,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { ArrowRight } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { currentFYStart, financialYearLabel, getLeadReportRange, type LeadReportPeriod } from '@/lib/leadReportPeriods';
 import {
-  cohortFunnel, monthlyFunnels, rates, sourceMetrics,
+  cohortFunnel, isLodged, isPresented, isSettled, monthlyFunnels, rates, sourceMetrics,
   type MetricsLead, type SettlementDates,
 } from '@/lib/businessMetrics';
+
+type Stage = 'leads' | 'presented' | 'lodged' | 'settled';
+const stageLabel: Record<Stage, string> = { leads: 'Leads', presented: 'Options presented', lodged: 'Lodged', settled: 'Settled' };
 
 const money = (n: number) => '$' + Math.round(n).toLocaleString('en-AU');
 const pctFmt = (n: number) => `${n.toFixed(0)}%`;
@@ -20,6 +24,7 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [settlements, setSettlements] = useState<SettlementDates>(new Map());
+  const [drill, setDrill] = useState<{ title: string; stage: Stage; from: Date; to: Date; source?: string } | null>(null);
 
   useEffect(() => {
     supabase.from('settlements').select('lead_id, settlement_date').then(({ data }) => {
@@ -41,6 +46,22 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
   const months = useMemo(() => monthlyFunnels('cohort', leads, settlements, from, new Date() < to ? new Date() : to), [leads, settlements, range]); // eslint-disable-line react-hooks/exhaustive-deps
   const sources = useMemo(() => sourceMetrics(leads, settlements, from, to), [leads, settlements, range]); // eslint-disable-line react-hooks/exhaustive-deps
   const label = (raw: string) => leadSources?.find(s => s.name === raw)?.label || (raw === 'unknown' ? 'No source' : raw.replace(/_/g, ' '));
+
+  const drillLeads = useMemo(() => {
+    if (!drill) return [];
+    return leads.filter(l => {
+      const created = new Date(l.created_at);
+      if (created < drill.from || created > drill.to) return false;
+      if (drill.source !== undefined && (l.source || 'unknown') !== drill.source) return false;
+      if (drill.stage === 'presented') return isPresented(l, settlements);
+      if (drill.stage === 'lodged') return isLodged(l, settlements);
+      if (drill.stage === 'settled') return isSettled(l, settlements);
+      return true;
+    });
+  }, [drill, leads, settlements]);
+
+  const openDrill = (stage: Stage, title: string, dFrom: Date, dTo: Date, source?: string) =>
+    setDrill({ stage, title, from: dFrom, to: dTo, source });
 
   const steps = [
     { name: 'Leads', value: funnel.leads, sub: money(funnel.leadVolume) },
@@ -98,7 +119,12 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
       <CardContent className="space-y-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {steps.map((s, i) => (
-            <div key={s.name} className="relative rounded-lg border bg-card p-4">
+            <div
+              key={s.name}
+              className={`relative rounded-lg border bg-card p-4 ${s.value > 0 ? 'cursor-pointer hover:border-primary/50 hover:shadow-sm transition' : ''}`}
+              onClick={() => s.value > 0 && openDrill(['leads', 'presented', 'lodged', 'settled'][i] as Stage, `${s.name} — ${range.label}`, from, to)}
+              title={s.value > 0 ? 'Click to see these leads' : undefined}
+            >
               <p className="text-xs uppercase tracking-wide text-muted-foreground">{s.name}</p>
               <p className="text-3xl font-semibold mt-1">{s.value}</p>
               {s.sub && <p className="text-xs text-muted-foreground">{s.sub}</p>}
@@ -126,15 +152,24 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
                 <TableHead className="text-right">Settled</TableHead><TableHead className="text-right">Lodged→Settled</TableHead>
               </TableRow></TableHeader>
               <TableBody>
-                {months.map(m => { const mr = rates(m.funnel); return (
+                {months.map(m => { const mr = rates(m.funnel);
+                  const mFrom = new Date(Number(m.key.slice(0, 4)), Number(m.key.slice(5, 7)) - 1, 1);
+                  const mTo = new Date(mFrom.getFullYear(), mFrom.getMonth() + 1, 0, 23, 59, 59);
+                  const cell = (stage: Stage, n: number) => (
+                    <TableCell
+                      className={`text-right ${n > 0 ? 'cursor-pointer text-primary hover:underline' : ''}`}
+                      onClick={() => n > 0 && openDrill(stage, `${stageLabel[stage]} — ${m.label}`, mFrom, mTo)}
+                    >{n}</TableCell>
+                  );
+                  return (
                   <TableRow key={m.key}>
                     <TableCell>{m.label}</TableCell>
-                    <TableCell className="text-right">{m.funnel.leads}</TableCell>
-                    <TableCell className="text-right">{m.funnel.presented}</TableCell>
+                    {cell('leads', m.funnel.leads)}
+                    {cell('presented', m.funnel.presented)}
                     <TableCell className="text-right text-muted-foreground">{pctFmt(mr.leadToPresented)}</TableCell>
-                    <TableCell className="text-right">{m.funnel.lodged}</TableCell>
+                    {cell('lodged', m.funnel.lodged)}
                     <TableCell className="text-right text-muted-foreground">{pctFmt(mr.presentedToLodged)}</TableCell>
-                    <TableCell className="text-right">{m.funnel.settled}</TableCell>
+                    {cell('settled', m.funnel.settled)}
                     <TableCell className="text-right text-muted-foreground">{pctFmt(mr.lodgedToSettled)}</TableCell>
                   </TableRow>
                 ); })}
@@ -156,24 +191,56 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
               </TableRow></TableHeader>
               <TableBody>
                 {sources.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">No leads in this period</TableCell></TableRow>}
-                {sources.map(s => (
+                {sources.map(s => {
+                  const cell = (stage: Stage, n: number) => (
+                    <TableCell
+                      className={`text-right ${n > 0 ? 'cursor-pointer text-primary hover:underline' : ''}`}
+                      onClick={() => n > 0 && openDrill(stage, `${stageLabel[stage]} — ${label(s.source)} — ${range.label}`, from, to, s.source)}
+                    >{n}</TableCell>
+                  );
+                  return (
                   <TableRow key={s.source}>
                     <TableCell className="capitalize">{label(s.source)}</TableCell>
-                    <TableCell className="text-right">{s.funnel.leads}</TableCell>
+                    {cell('leads', s.funnel.leads)}
                     <TableCell className="text-right font-medium">{pctFmt(s.share)}</TableCell>
-                    <TableCell className="text-right">{s.funnel.presented}</TableCell>
-                    <TableCell className="text-right">{s.funnel.lodged}</TableCell>
-                    <TableCell className="text-right">{s.funnel.settled}</TableCell>
+                    {cell('presented', s.funnel.presented)}
+                    {cell('lodged', s.funnel.lodged)}
+                    {cell('settled', s.funnel.settled)}
                     <TableCell className="text-right font-medium">{pctFmt(rates(s.funnel).leadToSettled)}</TableCell>
                     <TableCell className="text-right">{money(s.funnel.lodgedVolume)}</TableCell>
                     <TableCell className="text-right">{money(s.funnel.settledVolume)}</TableCell>
                   </TableRow>
-                ))}
+                ); })}
               </TableBody>
             </Table>
           </div>
         </div>
       </CardContent>
+
+      <Dialog open={drill !== null} onOpenChange={open => !open && setDrill(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{drill?.title}</DialogTitle>
+            <DialogDescription>{drillLeads.length} {drillLeads.length === 1 ? 'lead' : 'leads'}</DialogDescription>
+          </DialogHeader>
+          <Table>
+            <TableHeader><TableRow>
+              <TableHead>Lead</TableHead><TableHead>Source</TableHead>
+              <TableHead>Created</TableHead><TableHead className="text-right">Amount</TableHead>
+            </TableRow></TableHeader>
+            <TableBody>
+              {drillLeads.map(l => (
+                <TableRow key={l.id}>
+                  <TableCell className="font-medium">{[(l as any).first_name, (l as any).last_name].filter(Boolean).join(' ') || 'Lead'}</TableCell>
+                  <TableCell className="capitalize">{label(l.source || 'unknown')}</TableCell>
+                  <TableCell>{new Date(l.created_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}</TableCell>
+                  <TableCell className="text-right">{money(Number(l.loan_amount) || 0)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
