@@ -55,6 +55,16 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
   const drillLeads = useMemo(() => {
     if (!drill) return [];
     return leads.filter(l => {
+      const inR = (d?: string | null) => !!d && new Date(d) >= drill.from && new Date(d) <= drill.to;
+      if (drill.activity && drill.stage === 'lodged') {
+        if (!inR(l.lodged_date)) return false;
+        if (drill.source !== undefined && (l.source || 'unknown') !== drill.source) return false;
+        return true;
+      }
+      if (drill.activity && drill.stage === 'settled') {
+        if (!inR(settlements.get(l.id) || l.settled_date || null)) return false;
+        return true;
+      }
       if (drill.stage === 'presented' && drill.activity) {
         // Options presented during the period, regardless of when the lead came in.
         const ps = l.proposal_sent_date ? new Date(l.proposal_sent_date) : null;
@@ -79,8 +89,8 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
   const steps = [
     { name: 'Leads', value: funnel.leads, sub: money(funnel.leadVolume) },
     { name: 'Options presented', value: activity.presented, sub: `${funnel.presented} of these were from this period's leads`, activity: true },
-    { name: 'Lodged', value: funnel.lodged, sub: money(funnel.lodgedVolume), rate: r.presentedToLodged, rateLabel: 'of options' },
-    { name: 'Settled', value: funnel.settled, sub: money(funnel.settledVolume), rate: r.lodgedToSettled, rateLabel: 'of lodged' },
+    { name: 'Lodged', value: activity.lodged, sub: `${money(activity.lodgedVolume)} · ${funnel.lodged} from this period's leads`, activity: true },
+    { name: 'Settled', value: activity.settled, sub: `${money(activity.settledVolume)} · ${funnel.settled} from this period's leads`, activity: true },
   ];
 
   return (
