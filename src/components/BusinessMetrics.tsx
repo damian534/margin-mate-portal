@@ -119,7 +119,12 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
       <CardContent className="space-y-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {steps.map((s, i) => (
-            <div key={s.name} className="relative rounded-lg border bg-card p-4">
+            <div
+              key={s.name}
+              className={`relative rounded-lg border bg-card p-4 ${s.value > 0 ? 'cursor-pointer hover:border-primary/50 hover:shadow-sm transition' : ''}`}
+              onClick={() => s.value > 0 && openDrill(['leads', 'presented', 'lodged', 'settled'][i] as Stage, `${s.name} — ${range.label}`, from, to)}
+              title={s.value > 0 ? 'Click to see these leads' : undefined}
+            >
               <p className="text-xs uppercase tracking-wide text-muted-foreground">{s.name}</p>
               <p className="text-3xl font-semibold mt-1">{s.value}</p>
               {s.sub && <p className="text-xs text-muted-foreground">{s.sub}</p>}
