@@ -24,6 +24,7 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [settlements, setSettlements] = useState<SettlementDates>(new Map());
+  const [drill, setDrill] = useState<{ title: string; stage: Stage; from: Date; to: Date; source?: string } | null>(null);
 
   useEffect(() => {
     supabase.from('settlements').select('lead_id, settlement_date').then(({ data }) => {
