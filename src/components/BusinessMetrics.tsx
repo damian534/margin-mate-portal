@@ -5,11 +5,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { ArrowRight } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { currentFYStart, financialYearLabel, getLeadReportRange, type LeadReportPeriod } from '@/lib/leadReportPeriods';
 import {
-  cohortFunnel, monthlyFunnels, rates, sourceMetrics,
+  cohortFunnel, isLodged, isPresented, isSettled, monthlyFunnels, rates, sourceMetrics,
   type MetricsLead, type SettlementDates,
 } from '@/lib/businessMetrics';
+
+type Stage = 'leads' | 'presented' | 'lodged' | 'settled';
+const stageLabel: Record<Stage, string> = { leads: 'Leads', presented: 'Options presented', lodged: 'Lodged', settled: 'Settled' };
 
 const money = (n: number) => '$' + Math.round(n).toLocaleString('en-AU');
 const pctFmt = (n: number) => `${n.toFixed(0)}%`;
