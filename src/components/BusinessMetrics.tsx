@@ -24,7 +24,7 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [settlements, setSettlements] = useState<SettlementDates>(new Map());
-  const [drill, setDrill] = useState<{ title: string; stage: Stage; from: Date; to: Date; source?: string } | null>(null);
+  const [drill, setDrill] = useState<{ title: string; stage: Stage; from: Date; to: Date; source?: string; activity?: boolean } | null>(null);
 
   useEffect(() => {
     supabase.from('settlements').select('lead_id, settlement_date').then(({ data }) => {
@@ -55,10 +55,18 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
   const drillLeads = useMemo(() => {
     if (!drill) return [];
     return leads.filter(l => {
-      const created = new Date(l.created_at);
-      if (created < drill.from || created > drill.to) return false;
+      if (drill.stage === 'presented' && drill.activity) {
+        // Options presented during the period, regardless of when the lead came in.
+        const ps = l.proposal_sent_date ? new Date(l.proposal_sent_date) : null;
+        const presentedInRange = ps && ps >= drill.from && ps <= drill.to;
+        const skippedToLodged = !ps && l.lodged_date && new Date(l.lodged_date) >= drill.from && new Date(l.lodged_date) <= drill.to;
+        if (!presentedInRange && !skippedToLodged) return false;
+      } else {
+        const created = new Date(l.created_at);
+        if (created < drill.from || created > drill.to) return false;
+      }
       if (drill.source !== undefined && (l.source || 'unknown') !== drill.source) return false;
-      if (drill.stage === 'presented') return isPresented(l, settlements);
+      if (drill.stage === 'presented' && !drill.activity) return isPresented(l, settlements);
       if (drill.stage === 'lodged') return isLodged(l, settlements);
       if (drill.stage === 'settled') return isSettled(l, settlements);
       return true;
