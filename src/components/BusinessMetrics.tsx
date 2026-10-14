@@ -191,14 +191,21 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
               </TableRow></TableHeader>
               <TableBody>
                 {sources.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">No leads in this period</TableCell></TableRow>}
-                {sources.map(s => (
+                {sources.map(s => {
+                  const cell = (stage: Stage, n: number) => (
+                    <TableCell
+                      className={`text-right ${n > 0 ? 'cursor-pointer text-primary hover:underline' : ''}`}
+                      onClick={() => n > 0 && openDrill(stage, `${stageLabel[stage]} — ${label(s.source)} — ${range.label}`, from, to, s.source)}
+                    >{n}</TableCell>
+                  );
+                  return (
                   <TableRow key={s.source}>
                     <TableCell className="capitalize">{label(s.source)}</TableCell>
-                    <TableCell className="text-right">{s.funnel.leads}</TableCell>
+                    {cell('leads', s.funnel.leads)}
                     <TableCell className="text-right font-medium">{pctFmt(s.share)}</TableCell>
-                    <TableCell className="text-right">{s.funnel.presented}</TableCell>
-                    <TableCell className="text-right">{s.funnel.lodged}</TableCell>
-                    <TableCell className="text-right">{s.funnel.settled}</TableCell>
+                    {cell('presented', s.funnel.presented)}
+                    {cell('lodged', s.funnel.lodged)}
+                    {cell('settled', s.funnel.settled)}
                     <TableCell className="text-right font-medium">{pctFmt(rates(s.funnel).leadToSettled)}</TableCell>
                     <TableCell className="text-right">{money(s.funnel.lodgedVolume)}</TableCell>
                     <TableCell className="text-right">{money(s.funnel.settledVolume)}</TableCell>
