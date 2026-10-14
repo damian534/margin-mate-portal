@@ -8,7 +8,7 @@ import { ArrowRight } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { currentFYStart, financialYearLabel, getLeadReportRange, type LeadReportPeriod } from '@/lib/leadReportPeriods';
 import {
-  cohortFunnel, isLodged, isPresented, isSettled, monthlyFunnels, rates, sourceMetrics,
+  activityFunnel, cohortFunnel, isLodged, isPresented, isSettled, monthlyFunnels, rates, sourceMetrics,
   type MetricsLead, type SettlementDates,
 } from '@/lib/businessMetrics';
 
@@ -39,6 +39,11 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
 
   const funnel = useMemo(
     () => cohortFunnel(leads, settlements, from, to),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [leads, settlements, range],
+  );
+  const activity = useMemo(
+    () => activityFunnel(leads, settlements, from, to),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [leads, settlements, range],
   );
