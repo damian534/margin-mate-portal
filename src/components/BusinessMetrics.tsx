@@ -86,7 +86,7 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
   const openDrill = (stage: Stage, title: string, dFrom: Date, dTo: Date, source?: string, activity?: boolean) =>
     setDrill({ stage, title, from: dFrom, to: dTo, source, activity });
 
-  const steps = [
+  const steps: { name: string; value: number; sub: string; activity?: boolean; rate?: number; rateLabel?: string }[] = [
     { name: 'Leads', value: funnel.leads, sub: money(funnel.leadVolume) },
     { name: 'Options presented', value: activity.presented, sub: `${funnel.presented} of these were from this period's leads`, activity: true },
     { name: 'Lodged', value: activity.lodged, sub: `${money(activity.lodgedVolume)} · ${funnel.lodged} from this period's leads`, activity: true },
