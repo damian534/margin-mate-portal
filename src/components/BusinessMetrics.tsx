@@ -8,7 +8,7 @@ import { ArrowRight } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { currentFYStart, financialYearLabel, getLeadReportRange, type LeadReportPeriod } from '@/lib/leadReportPeriods';
 import {
-  cohortFunnel, isLodged, isPresented, isSettled, monthlyFunnels, rates, sourceMetrics,
+  activityFunnel, cohortFunnel, isLodged, isPresented, isSettled, monthlyFunnels, rates, sourceMetrics,
   type MetricsLead, type SettlementDates,
 } from '@/lib/businessMetrics';
 
@@ -24,7 +24,7 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [settlements, setSettlements] = useState<SettlementDates>(new Map());
-  const [drill, setDrill] = useState<{ title: string; stage: Stage; from: Date; to: Date; source?: string } | null>(null);
+  const [drill, setDrill] = useState<{ title: string; stage: Stage; from: Date; to: Date; source?: string; activity?: boolean } | null>(null);
 
   useEffect(() => {
     supabase.from('settlements').select('lead_id, settlement_date').then(({ data }) => {
@@ -42,6 +42,11 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [leads, settlements, range],
   );
+  const activity = useMemo(
+    () => activityFunnel(leads, settlements, from, to),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [leads, settlements, range],
+  );
   const r = rates(funnel);
   const months = useMemo(() => monthlyFunnels('cohort', leads, settlements, from, new Date() < to ? new Date() : to), [leads, settlements, range]); // eslint-disable-line react-hooks/exhaustive-deps
   const sources = useMemo(() => sourceMetrics(leads, settlements, from, to), [leads, settlements, range]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -50,22 +55,30 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
   const drillLeads = useMemo(() => {
     if (!drill) return [];
     return leads.filter(l => {
-      const created = new Date(l.created_at);
-      if (created < drill.from || created > drill.to) return false;
+      if (drill.stage === 'presented' && drill.activity) {
+        // Options presented during the period, regardless of when the lead came in.
+        const ps = l.proposal_sent_date ? new Date(l.proposal_sent_date) : null;
+        const presentedInRange = ps && ps >= drill.from && ps <= drill.to;
+        const skippedToLodged = !ps && l.lodged_date && new Date(l.lodged_date) >= drill.from && new Date(l.lodged_date) <= drill.to;
+        if (!presentedInRange && !skippedToLodged) return false;
+      } else {
+        const created = new Date(l.created_at);
+        if (created < drill.from || created > drill.to) return false;
+      }
       if (drill.source !== undefined && (l.source || 'unknown') !== drill.source) return false;
-      if (drill.stage === 'presented') return isPresented(l, settlements);
+      if (drill.stage === 'presented' && !drill.activity) return isPresented(l, settlements);
       if (drill.stage === 'lodged') return isLodged(l, settlements);
       if (drill.stage === 'settled') return isSettled(l, settlements);
       return true;
     });
   }, [drill, leads, settlements]);
 
-  const openDrill = (stage: Stage, title: string, dFrom: Date, dTo: Date, source?: string) =>
-    setDrill({ stage, title, from: dFrom, to: dTo, source });
+  const openDrill = (stage: Stage, title: string, dFrom: Date, dTo: Date, source?: string, activity?: boolean) =>
+    setDrill({ stage, title, from: dFrom, to: dTo, source, activity });
 
   const steps = [
     { name: 'Leads', value: funnel.leads, sub: money(funnel.leadVolume) },
-    { name: 'Options presented', value: funnel.presented, rate: r.leadToPresented, rateLabel: 'of leads' },
+    { name: 'Options presented', value: activity.presented, sub: `${funnel.presented} of these were from this period's leads`, activity: true },
     { name: 'Lodged', value: funnel.lodged, sub: money(funnel.lodgedVolume), rate: r.presentedToLodged, rateLabel: 'of options' },
     { name: 'Settled', value: funnel.settled, sub: money(funnel.settledVolume), rate: r.lodgedToSettled, rateLabel: 'of lodged' },
   ];
@@ -76,7 +89,7 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
         <div>
           <CardTitle className="text-lg">Business Metrics — {range.label}</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Leads that came in during the period, followed through to settlement.
+            Leads that came in during the period, followed through to settlement. Options presented counts everything presented in the period, including older leads.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -122,7 +135,7 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
             <div
               key={s.name}
               className={`relative rounded-lg border bg-card p-4 ${s.value > 0 ? 'cursor-pointer hover:border-primary/50 hover:shadow-sm transition' : ''}`}
-              onClick={() => s.value > 0 && openDrill(['leads', 'presented', 'lodged', 'settled'][i] as Stage, `${s.name} — ${range.label}`, from, to)}
+              onClick={() => s.value > 0 && openDrill(['leads', 'presented', 'lodged', 'settled'][i] as Stage, `${s.name} — ${range.label}`, from, to, undefined, (s as any).activity)}
               title={s.value > 0 ? 'Click to see these leads' : undefined}
             >
               <p className="text-xs uppercase tracking-wide text-muted-foreground">{s.name}</p>
