@@ -346,7 +346,7 @@ export function LeadsReport({
               <TrendingUp className="w-4 h-4 text-primary" />
             </div>
             <div className="mt-2 text-2xl font-semibold tabular-nums">{totals.lodged}</div>
-            <div className="text-sm text-muted-foreground tabular-nums">{totals.count ? `${Math.round((totals.lodged / totals.count) * 100)}% · $${totals.lodgedVolume.toLocaleString()}` : '—'}</div>
+            <div className="text-sm text-muted-foreground tabular-nums">{totals.lodgedVolume ? `$${totals.lodgedVolume.toLocaleString()}` : '—'}</div>
           </CardContent>
         </Card>
         <Card>
@@ -356,7 +356,7 @@ export function LeadsReport({
               <TrendingUp className="w-4 h-4 text-primary" />
             </div>
             <div className="mt-2 text-2xl font-semibold tabular-nums">{totals.settled}</div>
-            <div className="text-sm text-muted-foreground tabular-nums">{totals.count ? `${Math.round((totals.settled / totals.count) * 100)}% conversion` : '—'}</div>
+            <div className="text-sm text-muted-foreground tabular-nums">{totals.count ? `from ${totals.count} leads` : '—'}</div>
           </CardContent>
         </Card>
       </div>

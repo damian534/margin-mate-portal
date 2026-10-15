@@ -58,7 +58,6 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
   const settledIds = useMemo(() => new Set(settledRows.map(s => s.lead_id).filter(Boolean) as string[]), [settledRows]);
   const settledCount = settledRows.length;
   const settledVolume = settledRows.reduce((a, s) => a + (Number(s.loan_amount) || 0), 0);
-  const r = rates(funnel);
   const months = useMemo(() => monthlyFunnels('cohort', leads, settlements, from, new Date() < to ? new Date() : to), [leads, settlements, range]); // eslint-disable-line react-hooks/exhaustive-deps
   const sources = useMemo(() => sourceMetrics(leads, settlements, from, to), [leads, settlements, range]); // eslint-disable-line react-hooks/exhaustive-deps
   const label = (raw: string) => leadSources?.find(s => s.name === raw)?.label || (raw === 'unknown' ? 'No source' : raw.replace(/_/g, ' '));
@@ -168,12 +167,6 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
           ))}
         </div>
 
-        <div className="rounded-lg bg-muted/50 p-4 flex flex-wrap gap-x-8 gap-y-2 text-sm">
-          <span>Lead → Options: <b>{pctFmt(r.leadToPresented)}</b></span>
-          <span>Options → Lodged: <b>{pctFmt(r.presentedToLodged)}</b></span>
-          <span>Lodged → Settled: <b>{pctFmt(r.lodgedToSettled)}</b></span>
-          <span>Lead → Settled: <b>{pctFmt(r.leadToSettled)}</b></span>
-        </div>
 
         <div>
           <h4 className="text-sm font-semibold mb-2">Month by month</h4>

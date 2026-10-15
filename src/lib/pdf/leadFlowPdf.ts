@@ -77,7 +77,7 @@ export async function createLeadFlowPdf(data: LeadFlowPdfData) {
     ['New leads', String(totals.count), `${data.buckets.length ? (totals.count / data.buckets.length).toFixed(1) : '0'} monthly average`],
     ['Loan amount', safeFormatCurrency(totals.volume), 'Current value of these leads'],
     ['Lodged in period', String(actualCount), safeFormatCurrency(actualVolume)],
-    ['Settled', String(totals.settled), `${pct(totals.settled)} conversion`],
+    ['Settled', String(totals.settled), `from ${totals.count} leads`],
   ];
   metrics.forEach(([label, value, detail], i) => {
     const x = margin + i * 46;
