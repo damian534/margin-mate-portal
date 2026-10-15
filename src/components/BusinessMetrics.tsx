@@ -181,9 +181,9 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
             <Table>
               <TableHeader><TableRow>
                 <TableHead>Month</TableHead><TableHead className="text-right">Leads</TableHead>
-                <TableHead className="text-right">Options</TableHead><TableHead className="text-right">Lead→Options</TableHead>
-                <TableHead className="text-right">Lodged</TableHead><TableHead className="text-right">Options→Lodged</TableHead>
-                <TableHead className="text-right">Settled</TableHead><TableHead className="text-right">Lodged→Settled</TableHead>
+                <TableHead className="text-right">Options</TableHead>
+                <TableHead className="text-right">Lodged</TableHead>
+                <TableHead className="text-right">Settled</TableHead>
               </TableRow></TableHeader>
               <TableBody>
                 {months.map(m => { const mr = rates(m.funnel);
