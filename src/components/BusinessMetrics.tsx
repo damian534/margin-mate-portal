@@ -181,12 +181,12 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
             <Table>
               <TableHeader><TableRow>
                 <TableHead>Month</TableHead><TableHead className="text-right">Leads</TableHead>
-                <TableHead className="text-right">Options</TableHead><TableHead className="text-right">Lead→Options</TableHead>
-                <TableHead className="text-right">Lodged</TableHead><TableHead className="text-right">Options→Lodged</TableHead>
-                <TableHead className="text-right">Settled</TableHead><TableHead className="text-right">Lodged→Settled</TableHead>
+                <TableHead className="text-right">Options</TableHead>
+                <TableHead className="text-right">Lodged</TableHead>
+                <TableHead className="text-right">Settled</TableHead>
               </TableRow></TableHeader>
               <TableBody>
-                {months.map(m => { const mr = rates(m.funnel);
+                {months.map(m => {
                   const mFrom = new Date(Number(m.key.slice(0, 4)), Number(m.key.slice(5, 7)) - 1, 1);
                   const mTo = new Date(mFrom.getFullYear(), mFrom.getMonth() + 1, 0, 23, 59, 59);
                   const cell = (stage: Stage, n: number) => (
@@ -200,11 +200,8 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
                     <TableCell>{m.label}</TableCell>
                     {cell('leads', m.funnel.leads)}
                     {cell('presented', m.funnel.presented)}
-                    <TableCell className="text-right text-muted-foreground">{pctFmt(mr.leadToPresented)}</TableCell>
                     {cell('lodged', m.funnel.lodged)}
-                    <TableCell className="text-right text-muted-foreground">{pctFmt(mr.presentedToLodged)}</TableCell>
                     {cell('settled', m.funnel.settled)}
-                    <TableCell className="text-right text-muted-foreground">{pctFmt(mr.lodgedToSettled)}</TableCell>
                   </TableRow>
                 ); })}
               </TableBody>
