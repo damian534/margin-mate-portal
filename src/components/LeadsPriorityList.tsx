@@ -45,7 +45,14 @@ interface LeadsPriorityListProps {
   tasksByLead?: Map<string, LeadTask[]>;
 }
 
+/** Stages where a lead is no longer active, so it should never appear in "Needs you today". */
+function isTerminalStage(status: LeadStatus | undefined, statusName: string): boolean {
+  const text = `${statusName} ${status?.label ?? ''}`.toLowerCase();
+  return ['lost', 'park', 'not proceed', 'settle', 'archiv', 'withdrawn', 'dead'].some(k => text.includes(k));
+}
+
 function getUrgency(lead: Lead, status: LeadStatus | undefined, tasksByLead?: Map<string, LeadTask[]>): Urgency {
+  if (isTerminalStage(status, lead.status)) return null;
   const tasks = tasksByLead?.get(lead.id)?.filter(t => !t.completed) || [];
   const withDue = tasks.filter(t => t.due_date).sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
   if (withDue.length > 0) {
