@@ -11,6 +11,7 @@ import { AppSideNav } from '@/components/AppSideNav';
 import { StatusBadge } from '@/components/StatusBadge';
 import { TasksPanel } from '@/components/TasksPanel';
 import { LeadsKanban } from '@/components/LeadsKanban';
+import { LeadsPriorityList } from '@/components/LeadsPriorityList';
 import { StatusSettings } from '@/components/StatusSettings';
 import { CompanyManagement, Company } from '@/components/CompanyManagement';
 import { CompanyCRM } from '@/components/company/CompanyCRM';
@@ -125,7 +126,7 @@ export default function AdminCRM() {
   const [assigneeFilter, setAssigneeFilter] = usePersistedState<string[]>('crm.leads.assigneeFilterMulti', []);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [leadsView, setLeadsView] = usePersistedState<'table' | 'kanban'>('crm.leads.view', 'kanban');
+  const [leadsView, setLeadsView] = usePersistedState<'table' | 'kanban' | 'priority'>('crm.leads.view', 'priority');
   const [companies, setCompanies] = useState<Company[]>([]);
   const [referrers, setReferrers] = useState<ReferrerProfileData[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -755,7 +756,10 @@ export default function AdminCRM() {
               <AssigneeFilter value={assigneeFilter} onChange={setAssigneeFilter} />
               {/* View toggle */}
               <div className="flex items-center border rounded-md">
-                <Button variant={leadsView === 'table' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-2" onClick={() => setLeadsView('table')}>
+                <Button variant={leadsView === 'priority' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-2" onClick={() => setLeadsView('priority')} title="Priority list">
+                  <ListTodo className="w-4 h-4" />
+                </Button>
+                <Button variant={leadsView === 'table' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-2" onClick={() => setLeadsView('table')} title="Table view">
                   <List className="w-4 h-4" />
                 </Button>
                 <Button variant={leadsView === 'kanban' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-2" onClick={() => setLeadsView('kanban')}>
@@ -842,6 +846,15 @@ export default function AdminCRM() {
             {/* Leads view */}
             {loading ? (
               <p className="text-muted-foreground text-center py-12">Loading leads...</p>
+            ) : leadsView === 'priority' ? (
+              <LeadsPriorityList
+                leads={filteredLeads}
+                statuses={statuses}
+                leadSources={leadSources}
+                getReferrerName={getReferrerName}
+                onOpenLead={openLead}
+                tasksByLead={tasksByLead}
+              />
             ) : leadsView === 'kanban' ? (
               <LeadsKanban
                 leads={filteredLeads}
