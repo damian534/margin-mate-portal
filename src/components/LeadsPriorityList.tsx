@@ -51,7 +51,7 @@ function isTerminalStage(status: LeadStatus | undefined, statusName: string): bo
 }
 
 /** A lead sitting this many calendar days in one stage is "needs you" — kept deliberately tight so the daily list stays short. */
-const STALE_AFTER_DAYS = 7;
+const STALE_AFTER_DAYS = 14;
 
 function getUrgency(lead: Lead, status: LeadStatus | undefined, tasksByLead?: Map<string, LeadTask[]>): Urgency {
   if (isTerminalStage(status, lead.status)) return null;
@@ -70,7 +70,7 @@ function getUrgency(lead: Lead, status: LeadStatus | undefined, tasksByLead?: Ma
 const URGENCY_TEXT: Record<NonNullable<Urgency>, string> = {
   overdue: 'Follow-up overdue',
   today: 'Follow-up due today',
-  stale: 'In this stage for 7+ days',
+  stale: 'In this stage for 14+ days',
 };
 
 function greeting(): string {
