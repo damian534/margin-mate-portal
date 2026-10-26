@@ -38,7 +38,6 @@ import { CoApplicantPicker } from '@/components/CoApplicantPicker';
 import { ProfessionalContactsSection } from '@/components/ProfessionalContactsSection';
 import { SubjectToFinanceSection } from '@/components/SubjectToFinanceSection';
 import { EntityMapSection } from '@/components/lead/entity-map/EntityMapSection';
-import { DealChatPanel } from '@/components/chat/DealChatPanel';
 import { PreApprovalSection } from '@/components/PreApprovalSection';
 import { MeetingNotesSection } from '@/components/MeetingNotesSection';
 import { LoanSplitsEditor } from '@/components/LoanSplitsEditor';
@@ -2041,16 +2040,6 @@ export function LeadDetailSheet({
             <EntityMapSection leadId={lead.id} leadName={[lead.first_name, lead.last_name].filter(Boolean).join(' ')} isPreviewMode={isPreviewMode} />
           )}
 
-          {activeTab === 'chat' && (
-            <DealChatPanel
-              leadId={lead.id}
-              subtitle={[
-                lead.loan_amount ? `$${Number(lead.loan_amount).toLocaleString()}` : null,
-                lead.loan_purpose || null,
-                lead.wip_status || lead.status || null,
-              ].filter(Boolean).join(' · ') || undefined}
-            />
-          )}
 
           {/* Deal Setup + Pre-Approval — side by side when Pre Approval applies */}
           <div id="sec-status" className="scroll-mt-16" />

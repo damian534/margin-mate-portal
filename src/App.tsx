@@ -34,7 +34,7 @@ import FeasibilityCalculator from "./pages/FeasibilityCalculator";
 import RetirementCalculator from "./pages/RetirementCalculator";
 import OAuthConsent from "./pages/OAuthConsent";
 import FundsPosition from "./pages/FundsPosition";
-import Chat from "./pages/Chat";
+import Newsfeed from "./pages/Newsfeed";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'broker' | 'referral_partner' | 'super_admin' | 'broker_or_admin' | 'broker_staff' }) {
@@ -108,9 +108,9 @@ const App = () => (
                 <Settlements />
               </ProtectedRoute>
             } />
-            <Route path="/chat" element={
+            <Route path="/newsfeed" element={
               <ProtectedRoute>
-                <Chat />
+                <Newsfeed />
               </ProtectedRoute>
             } />
             <Route path="/submit-referral" element={
