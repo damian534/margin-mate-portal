@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import { LeadStatus } from '@/hooks/useLeadStatuses';
-import { format, isPast, isToday } from 'date-fns';
+import { format, isPast, isToday, differenceInCalendarDays } from 'date-fns';
 import { ChevronRight, ChevronDown } from 'lucide-react';
-import { getCardAging } from '@/lib/stageAging';
 
 interface Lead {
   id: string;
@@ -51,6 +50,9 @@ function isTerminalStage(status: LeadStatus | undefined, statusName: string): bo
   return ['lost', 'park', 'not proceed', 'settle', 'archiv', 'withdrawn', 'dead'].some(k => text.includes(k));
 }
 
+/** A lead sitting this many calendar days in one stage is "needs you" — kept deliberately tight so the daily list stays short. */
+const STALE_AFTER_DAYS = 7;
+
 function getUrgency(lead: Lead, status: LeadStatus | undefined, tasksByLead?: Map<string, LeadTask[]>): Urgency {
   if (isTerminalStage(status, lead.status)) return null;
   const tasks = tasksByLead?.get(lead.id)?.filter(t => !t.completed) || [];
@@ -60,8 +62,8 @@ function getUrgency(lead: Lead, status: LeadStatus | undefined, tasksByLead?: Ma
     if (isPast(earliest) && !isToday(earliest)) return 'overdue';
     if (isToday(earliest)) return 'today';
   }
-  const aging = getCardAging(lead.stage_entered_at, lead.status, status);
-  if (aging?.level === 'red') return 'stale';
+  const entered = lead.stage_entered_at ? new Date(lead.stage_entered_at) : null;
+  if (entered && !isNaN(entered.getTime()) && differenceInCalendarDays(new Date(), entered) >= STALE_AFTER_DAYS) return 'stale';
   return null;
 }
 
