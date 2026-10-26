@@ -29,7 +29,7 @@ export function AlertsBell({ compact = false }: { compact?: boolean }) {
       </PopoverTrigger>
       <PopoverContent align="start" className="w-72">
         <p className="text-sm font-semibold mb-1">Alerts</p>
-        <p className="text-[11px] text-muted-foreground mb-2">Get told straight away when someone messages you or something happens on a deal.</p>
+        <p className="text-[11px] text-muted-foreground mb-2">Get told straight away when something happens on a deal.</p>
         <div className="divide-y">
           <Row id="alerts-on" label="Alerts on" checked={settings.enabled} onChange={v => setSettings(s => ({ ...s, enabled: v }))} />
           <Row id="alerts-sound" label="Play a sound" checked={settings.sound} disabled={!settings.enabled} onChange={v => setSettings(s => ({ ...s, sound: v }))} />
@@ -43,14 +43,6 @@ export function AlertsBell({ compact = false }: { compact?: boolean }) {
               if (v && permission !== 'granted') { await requestPermission(); return; }
               setSettings(s => ({ ...s, desktop: v }));
             }}
-          />
-          <Row
-            id="alerts-mentions"
-            label="Mentions only"
-            hint="In group chats and channels, only alert when someone types @your name. Direct messages always alert."
-            checked={settings.mentionsOnly}
-            disabled={!settings.enabled}
-            onChange={v => setSettings(s => ({ ...s, mentionsOnly: v }))}
           />
           <Row
             id="alerts-deals"
