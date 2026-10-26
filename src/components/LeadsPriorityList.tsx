@@ -157,7 +157,7 @@ export function LeadsPriorityList({ leads, statuses, leadSources = [], getReferr
       </h2>
       <p className="text-muted-foreground mt-1 mb-8">
         {needsYou.length === 0
-          ? 'Nothing needs you right now — you're on top of it.'
+          ? "Nothing needs you right now — you're on top of it."
           : `${needsYou.length} ${needsYou.length === 1 ? 'thing needs' : 'things need'} you today`}
       </p>
 

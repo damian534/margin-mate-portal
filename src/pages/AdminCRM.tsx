@@ -854,6 +854,7 @@ export default function AdminCRM() {
                 getReferrerName={getReferrerName}
                 onOpenLead={openLead}
                 tasksByLead={tasksByLead}
+                userName={((user?.user_metadata?.full_name as string | undefined) || '').split(' ')[0] || undefined}
               />
             ) : leadsView === 'kanban' ? (
               <LeadsKanban
