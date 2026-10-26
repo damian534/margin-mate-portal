@@ -143,8 +143,11 @@ function LeadRow({
   );
 }
 
+const NEWEST_PAGE_SIZE = 25;
+
 export function LeadsPriorityList({ leads, statuses, leadSources = [], getReferrerName, onOpenLead, tasksByLead }: LeadsPriorityListProps) {
   const statusByName = useMemo(() => new Map(statuses.map(s => [s.name, s])), [statuses]);
+  const [showAllNewest, setShowAllNewest] = useState(false);
 
   const { needsYou, newest } = useMemo(() => {
     const needs: { lead: Lead; urgency: NonNullable<Urgency> }[] = [];
