@@ -756,7 +756,10 @@ export default function AdminCRM() {
               <AssigneeFilter value={assigneeFilter} onChange={setAssigneeFilter} />
               {/* View toggle */}
               <div className="flex items-center border rounded-md">
-                <Button variant={leadsView === 'table' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-2" onClick={() => setLeadsView('table')}>
+                <Button variant={leadsView === 'priority' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-2" onClick={() => setLeadsView('priority')} title="Priority list">
+                  <ListTodo className="w-4 h-4" />
+                </Button>
+                <Button variant={leadsView === 'table' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-2" onClick={() => setLeadsView('table')} title="Table view">
                   <List className="w-4 h-4" />
                 </Button>
                 <Button variant={leadsView === 'kanban' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-2" onClick={() => setLeadsView('kanban')}>
