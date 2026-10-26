@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react';
 import { LeadStatus } from '@/hooks/useLeadStatuses';
-import { format, isPast, isToday, isTomorrow } from 'date-fns';
-import { ClipboardList, AlertCircle, Sparkles } from 'lucide-react';
+import { format, isPast, isToday } from 'date-fns';
+import { ChevronRight, ChevronDown } from 'lucide-react';
 import { getCardAging } from '@/lib/stageAging';
-import { AssigneeBadge } from '@/components/AssigneePicker';
 
 interface Lead {
   id: string;
@@ -43,6 +42,7 @@ interface LeadsPriorityListProps {
   getReferrerName?: (partnerId: string | null) => string | null;
   onOpenLead: (lead: Lead) => void;
   tasksByLead?: Map<string, LeadTask[]>;
+  userName?: string;
 }
 
 /** Stages where a lead is no longer active, so it should never appear in "Needs you today". */
@@ -65,91 +65,77 @@ function getUrgency(lead: Lead, status: LeadStatus | undefined, tasksByLead?: Ma
   return null;
 }
 
-const URGENCY_LABEL: Record<NonNullable<Urgency>, { text: string; className: string }> = {
-  overdue: { text: 'Overdue task', className: 'bg-destructive/10 text-destructive' },
-  today: { text: 'Due today', className: 'bg-warning/15 text-warning' },
-  stale: { text: 'Sitting too long', className: 'bg-destructive/10 text-destructive' },
+const URGENCY_TEXT: Record<NonNullable<Urgency>, string> = {
+  overdue: 'Follow-up overdue',
+  today: 'Follow-up due today',
+  stale: 'Sitting too long in this stage',
 };
 
-function LeadRow({
-  lead,
-  status,
-  urgency,
-  leadSources,
-  getReferrerName,
-  onOpenLead,
-  showDate,
-}: {
-  lead: Lead;
-  status: LeadStatus | undefined;
-  urgency: Urgency;
-  leadSources: LeadSource[];
-  getReferrerName?: (partnerId: string | null) => string | null;
-  onOpenLead: (lead: Lead) => void;
-  showDate: boolean;
-}) {
-  const sourceLabel = lead.source ? (leadSources.find(s => s.name === lead.source)?.label || lead.source) : null;
-  const referrer = getReferrerName?.(lead.referral_partner_id ?? null);
-  const u = urgency ? URGENCY_LABEL[urgency] : null;
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
 
+function FocusRow({ lead, detail, onOpenLead }: { lead: Lead; detail: string; onOpenLead: (lead: Lead) => void }) {
   return (
     <button
       type="button"
       onClick={() => onOpenLead(lead)}
-      className="w-full text-left flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors border-b border-border/50 last:border-b-0"
+      className="w-full text-left flex items-center gap-4 py-5 border-b border-border/40 last:border-b-0 group"
     >
-      {/* Name + opportunity */}
+      <span className="w-2 h-2 rounded-full bg-destructive shrink-0" />
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold truncate">
-          {lead.first_name} {lead.last_name}
-          {lead.opportunity_name && (
-            <span className="font-normal text-muted-foreground"> · {lead.opportunity_name}</span>
-          )}
-        </p>
-        <p className="text-xs text-muted-foreground truncate">
-          {[
-            lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : null,
-            lead.loan_purpose,
-            referrer ? `via ${referrer}` : sourceLabel,
-          ].filter(Boolean).join(' · ')}
-        </p>
+        <p className="text-base font-medium truncate">{lead.first_name} {lead.last_name}</p>
+        <p className="text-sm text-muted-foreground truncate">{detail}</p>
       </div>
-
-      {/* Urgency chip */}
-      {u && (
-        <span className={`hidden sm:inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0 ${u.className}`}>
-          <AlertCircle className="w-3 h-3" /> {u.text}
-        </span>
-      )}
-
-      {/* Stage */}
-      {status && (
-        <span
-          className="hidden md:inline-flex text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0"
-          style={{ backgroundColor: `${status.color}18`, color: status.color }}
-        >
-          {status.label}
-        </span>
-      )}
-
-      {/* Date / assignee */}
-      <div className="flex items-center gap-2 shrink-0">
-        {showDate && (
-          <span className="text-xs text-muted-foreground tabular-nums">{format(new Date(lead.created_at), 'd MMM')}</span>
-        )}
-        <AssigneeBadge userId={lead.assigned_to ?? null} />
-      </div>
+      <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-foreground transition-colors shrink-0" />
     </button>
   );
 }
 
-const NEWEST_PAGE_SIZE = 25;
+function QuietRow({
+  lead,
+  status,
+  leadSources,
+  getReferrerName,
+  onOpenLead,
+}: {
+  lead: Lead;
+  status: LeadStatus | undefined;
+  leadSources: LeadSource[];
+  getReferrerName?: (partnerId: string | null) => string | null;
+  onOpenLead: (lead: Lead) => void;
+}) {
+  const sourceLabel = lead.source ? (leadSources.find(s => s.name === lead.source)?.label || lead.source) : null;
+  const referrer = getReferrerName?.(lead.referral_partner_id ?? null);
+  return (
+    <button
+      type="button"
+      onClick={() => onOpenLead(lead)}
+      className="w-full text-left flex items-center gap-3 py-3 border-b border-border/40 last:border-b-0 hover:bg-muted/30 transition-colors px-1"
+    >
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium truncate">{lead.first_name} {lead.last_name}</p>
+        <p className="text-xs text-muted-foreground truncate">
+          {[
+            lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : null,
+            referrer ? `via ${referrer}` : sourceLabel,
+            status?.label,
+          ].filter(Boolean).join(' · ')}
+        </p>
+      </div>
+      <span className="text-xs text-muted-foreground tabular-nums shrink-0">{format(new Date(lead.created_at), 'd MMM')}</span>
+    </button>
+  );
+}
 
-export function LeadsPriorityList({ leads, statuses, leadSources = [], getReferrerName, onOpenLead, tasksByLead }: LeadsPriorityListProps) {
+export function LeadsPriorityList({ leads, statuses, leadSources = [], getReferrerName, onOpenLead, tasksByLead, userName }: LeadsPriorityListProps) {
   const statusByName = useMemo(() => new Map(statuses.map(s => [s.name, s])), [statuses]);
-  const [showAllNewest, setShowAllNewest] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
-  const { needsYou, newest } = useMemo(() => {
+  const { needsYou, rest } = useMemo(() => {
     const needs: { lead: Lead; urgency: NonNullable<Urgency> }[] = [];
     const rest: Lead[] = [];
     for (const lead of leads) {
@@ -160,81 +146,59 @@ export function LeadsPriorityList({ leads, statuses, leadSources = [], getReferr
     const rank = { overdue: 0, today: 1, stale: 2 };
     needs.sort((a, b) => rank[a.urgency] - rank[b.urgency] || new Date(b.lead.created_at).getTime() - new Date(a.lead.created_at).getTime());
     rest.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    return { needsYou: needs, newest: rest };
+    return { needsYou: needs, rest };
   }, [leads, statusByName, tasksByLead]);
 
-  if (leads.length === 0) {
-    return <p className="text-muted-foreground text-center py-12">No leads found</p>;
-  }
-
   return (
-    <div className="space-y-6 max-w-4xl">
-      {/* Needs you today */}
-      <section>
-        <div className="flex items-center gap-2 mb-2">
-          <ClipboardList className="w-4 h-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold">Needs you today</h3>
-          <span className="text-xs text-muted-foreground">({needsYou.length})</span>
-        </div>
-        {needsYou.length === 0 ? (
-          <div className="rounded-lg border border-border bg-card px-4 py-6 text-center">
-            <p className="text-sm text-muted-foreground">Nothing overdue — you're on top of it.</p>
-          </div>
-        ) : (
-          <div className="rounded-lg border border-border bg-card overflow-hidden">
-            {needsYou.map(({ lead, urgency }) => (
-              <LeadRow
-                key={lead.id}
-                lead={lead}
-                status={statusByName.get(lead.status)}
-                urgency={urgency}
-                leadSources={leadSources}
-                getReferrerName={getReferrerName}
-                onOpenLead={onOpenLead}
-                showDate={false}
-              />
-            ))}
-          </div>
-        )}
-      </section>
+    <div className="max-w-3xl pt-4 pb-12">
+      {/* Greeting */}
+      <h2 className="text-2xl font-semibold tracking-tight">
+        {greeting()}{userName ? `, ${userName}` : ''}
+      </h2>
+      <p className="text-muted-foreground mt-1 mb-8">
+        {needsYou.length === 0
+          ? 'Nothing needs you right now — you're on top of it.'
+          : `${needsYou.length} ${needsYou.length === 1 ? 'thing needs' : 'things need'} you today`}
+      </p>
 
-      {/* Newest leads */}
-      <section>
-        <div className="flex items-center gap-2 mb-2">
-          <Sparkles className="w-4 h-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold">Newest leads</h3>
-          <span className="text-xs text-muted-foreground">({newest.length})</span>
+      {/* Focus list */}
+      <div>
+        {needsYou.map(({ lead, urgency }) => (
+          <FocusRow key={lead.id} lead={lead} detail={URGENCY_TEXT[urgency]} onOpenLead={onOpenLead} />
+        ))}
+      </div>
+
+      {/* Everything else, tucked away */}
+      {rest.length > 0 && (
+        <div className="mt-10">
+          <button
+            type="button"
+            onClick={() => setShowAll(s => !s)}
+            className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {showAll ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            All other leads ({rest.length})
+          </button>
+          {showAll && (
+            <div className="mt-3">
+              {rest.map(lead => (
+                <QuietRow
+                  key={lead.id}
+                  lead={lead}
+                  status={statusByName.get(lead.status)}
+                  leadSources={leadSources}
+                  getReferrerName={getReferrerName}
+                  onOpenLead={onOpenLead}
+                />
+              ))}
+            </div>
+          )}
         </div>
-        {newest.length === 0 ? (
-          <div className="rounded-lg border border-border bg-card px-4 py-6 text-center">
-            <p className="text-sm text-muted-foreground">Every lead needs attention — see above.</p>
-          </div>
-        ) : (
-          <div className="rounded-lg border border-border bg-card overflow-hidden">
-            {(showAllNewest ? newest : newest.slice(0, NEWEST_PAGE_SIZE)).map(lead => (
-              <LeadRow
-                key={lead.id}
-                lead={lead}
-                status={statusByName.get(lead.status)}
-                urgency={null}
-                leadSources={leadSources}
-                getReferrerName={getReferrerName}
-                onOpenLead={onOpenLead}
-                showDate
-              />
-            ))}
-            {!showAllNewest && newest.length > NEWEST_PAGE_SIZE && (
-              <button
-                type="button"
-                onClick={() => setShowAllNewest(true)}
-                className="w-full py-2.5 text-xs font-medium text-primary hover:bg-muted/40 transition-colors"
-              >
-                Show all {newest.length} leads
-              </button>
-            )}
-          </div>
-        )}
-      </section>
+      )}
+
+      {leads.length === 0 && (
+        <p className="text-muted-foreground py-12 text-center">No leads found</p>
+      )}
     </div>
   );
 }
