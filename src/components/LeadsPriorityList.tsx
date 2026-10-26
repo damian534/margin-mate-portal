@@ -139,15 +139,10 @@ function FocusRow({
           </span>
         </div>
         <p className="text-[13px] text-muted-foreground truncate mt-0.5">
-          {[
-            lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : null,
-            status?.label,
-            `sm:${meta.label}`,
-          ]
+          {[lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : null, status?.label]
             .filter(Boolean)
-            .slice(0, 2)
             .join(' · ')}
-          <span className="sm:hidden"> · {meta.label}</span>
+          <span className="sm:hidden">{lead.loan_amount || status?.label ? ' · ' : ''}{meta.label}</span>
         </p>
       </div>
       <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-foreground group-hover:translate-x-0.5 transition-all shrink-0" />
