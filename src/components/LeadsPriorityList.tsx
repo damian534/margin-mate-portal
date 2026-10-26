@@ -70,7 +70,7 @@ function getUrgency(lead: Lead, status: LeadStatus | undefined, tasksByLead?: Ma
 const URGENCY_TEXT: Record<NonNullable<Urgency>, string> = {
   overdue: 'Follow-up overdue',
   today: 'Follow-up due today',
-  stale: 'Sitting too long in this stage',
+  stale: 'In this stage for 7+ days',
 };
 
 function greeting(): string {
