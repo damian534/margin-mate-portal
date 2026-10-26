@@ -846,6 +846,15 @@ export default function AdminCRM() {
             {/* Leads view */}
             {loading ? (
               <p className="text-muted-foreground text-center py-12">Loading leads...</p>
+            ) : leadsView === 'priority' ? (
+              <LeadsPriorityList
+                leads={filteredLeads}
+                statuses={statuses}
+                leadSources={leadSources}
+                getReferrerName={getReferrerName}
+                onOpenLead={openLead}
+                tasksByLead={tasksByLead}
+              />
             ) : leadsView === 'kanban' ? (
               <LeadsKanban
                 leads={filteredLeads}
