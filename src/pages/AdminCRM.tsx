@@ -126,7 +126,7 @@ export default function AdminCRM() {
   const [assigneeFilter, setAssigneeFilter] = usePersistedState<string[]>('crm.leads.assigneeFilterMulti', []);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [leadsView, setLeadsView] = usePersistedState<'table' | 'kanban' | 'priority'>('crm.leads.view', 'priority');
+  const [leadsView, setLeadsView] = usePersistedState<'table' | 'kanban' | 'priority'>('crm.leads.view.v2', 'priority');
   const [companies, setCompanies] = useState<Company[]>([]);
   const [referrers, setReferrers] = useState<ReferrerProfileData[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
