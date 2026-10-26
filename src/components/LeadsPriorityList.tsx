@@ -211,7 +211,7 @@ export function LeadsPriorityList({ leads, statuses, leadSources = [], getReferr
           </div>
         ) : (
           <div className="rounded-lg border border-border bg-card overflow-hidden">
-            {newest.map(lead => (
+            {(showAllNewest ? newest : newest.slice(0, NEWEST_PAGE_SIZE)).map(lead => (
               <LeadRow
                 key={lead.id}
                 lead={lead}
@@ -223,6 +223,15 @@ export function LeadsPriorityList({ leads, statuses, leadSources = [], getReferr
                 showDate
               />
             ))}
+            {!showAllNewest && newest.length > NEWEST_PAGE_SIZE && (
+              <button
+                type="button"
+                onClick={() => setShowAllNewest(true)}
+                className="w-full py-2.5 text-xs font-medium text-primary hover:bg-muted/40 transition-colors"
+              >
+                Show all {newest.length} leads
+              </button>
+            )}
           </div>
         )}
       </section>
