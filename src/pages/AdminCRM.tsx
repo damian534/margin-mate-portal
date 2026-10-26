@@ -11,6 +11,7 @@ import { AppSideNav } from '@/components/AppSideNav';
 import { StatusBadge } from '@/components/StatusBadge';
 import { TasksPanel } from '@/components/TasksPanel';
 import { LeadsKanban } from '@/components/LeadsKanban';
+import { LeadsPriorityList } from '@/components/LeadsPriorityList';
 import { StatusSettings } from '@/components/StatusSettings';
 import { CompanyManagement, Company } from '@/components/CompanyManagement';
 import { CompanyCRM } from '@/components/company/CompanyCRM';
@@ -125,7 +126,7 @@ export default function AdminCRM() {
   const [assigneeFilter, setAssigneeFilter] = usePersistedState<string[]>('crm.leads.assigneeFilterMulti', []);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [leadsView, setLeadsView] = usePersistedState<'table' | 'kanban'>('crm.leads.view', 'kanban');
+  const [leadsView, setLeadsView] = usePersistedState<'table' | 'kanban' | 'priority'>('crm.leads.view', 'priority');
   const [companies, setCompanies] = useState<Company[]>([]);
   const [referrers, setReferrers] = useState<ReferrerProfileData[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
