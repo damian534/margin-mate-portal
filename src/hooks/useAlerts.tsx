@@ -108,46 +108,6 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
     }
   }, [navigate]);
 
-  // Chat message alerts
-  useEffect(() => {
-    if (!user || isPreviewMode) return;
-    let myConversations: Record<string, { type: string; name: string | null }> = {};
-    let cancelled = false;
-
-    const loadConversations = async () => {
-      const { data } = await supabase
-        .from('conversation_members')
-        .select('conversation_id, conversations(type, name)')
-        .eq('user_id', user.id);
-      if (cancelled) return;
-      myConversations = {};
-      for (const row of (data || []) as unknown as { conversation_id: string; conversations: { type: string; name: string | null } | null }[]) {
-        if (row.conversations) myConversations[row.conversation_id] = row.conversations;
-      }
-    };
-    loadConversations();
-
-    const channel = supabase
-      .channel('alerts-messages')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async payload => {
-        const m = payload.new as { conversation_id: string; sender_id: string | null; body: string | null };
-        if (!m || m.sender_id === user.id) return;
-        if (!myConversations[m.conversation_id]) {
-          await loadConversations();
-          if (!myConversations[m.conversation_id]) return;
-        }
-        const conv = myConversations[m.conversation_id];
-        const body = m.body || 'Sent an attachment';
-        const first = (myName || '').split(/\s+/)[0]?.toLowerCase();
-        const mentioned = !!first && body.toLowerCase().includes(`@${first}`);
-        if (settingsRef.current.mentionsOnly && conv.type !== 'direct' && !mentioned) return;
-        const title = conv.type === 'direct' ? 'New message' : mentioned ? `Mentioned in ${conv.name || 'chat'}` : conv.name || 'New message';
-        notify(title, body.slice(0, 140), '/chat');
-      })
-      .subscribe();
-    return () => { cancelled = true; supabase.removeChannel(channel); };
-  }, [user, isPreviewMode, myName, notify]);
-
   // Deal activity alerts
   useEffect(() => {
     if (!user || isPreviewMode) return;
