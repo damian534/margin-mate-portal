@@ -166,23 +166,16 @@ export function IntegrationsSettings() {
           <h2 className="text-lg font-semibold">GoHighLevel (landing page leads)</h2>
         </div>
         <ol className="text-sm text-muted-foreground space-y-1.5 list-decimal list-inside">
-          <li>In GHL, open <strong>Automation → Workflows</strong> and edit the workflow that runs when a landing-page form is submitted.</li>
-          <li>Add a <strong>Webhook</strong> action (Premium triggers/actions).</li>
-          <li>Set the method to <strong>POST</strong> and paste your intake URL above.</li>
-          <li>Save and publish the workflow — new form leads will appear in Connect within seconds.</li>
+          <li>In GHL, open <strong>Automation → Workflows</strong> and edit the workflow that runs when a landing-page form or survey is submitted.</li>
+          <li>Add the standard <strong>Webhook</strong> action (not Custom Webhook), set the method to <strong>POST</strong> and paste your intake URL above.</li>
+          <li>Optionally add one Custom Data item — key <code className="bg-muted px-1 rounded">source</code>, value like <code className="bg-muted px-1 rounded">GHL Landing Page</code> — so reporting groups these leads.</li>
+          <li>Save and publish the workflow — new leads will appear in Connect within seconds.</li>
         </ol>
         <p className="text-xs text-muted-foreground">
-          GHL sends the contact's details automatically. To set the lead source, add a field named{' '}
-          <code className="bg-muted px-1 rounded">source</code> with a value like{' '}
-          <code className="bg-muted px-1 rounded">GHL Landing Page</code> — Connect will match or create that
-          source for your reporting.
-        </p>
-        <p className="text-xs text-muted-foreground">
-          Any extra fields you add to the webhook body — your form's questions such as loan balance, current
-          lender or credit score — are saved with the lead and shown in a <strong>Form answers</strong> card on
-          the deal, the same way Privyr shows them. Add <code className="bg-muted px-1 rounded">campaign</code>,{' '}
-          <code className="bg-muted px-1 rounded">adset</code> and <code className="bg-muted px-1 rounded">ad</code>{' '}
-          fields and they'll be shown there too.
+          The standard Webhook action automatically sends every answer on the form or survey — no field mapping,
+          and nothing to update when you add or change questions. Each answer shows in the <strong>Form answers</strong>{' '}
+          card on the deal, the same way Privyr shows them. (A Custom Webhook with your own fields also works —
+          any extra field you add is captured the same way.)
         </p>
       </div>
 

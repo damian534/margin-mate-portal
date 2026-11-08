@@ -49,20 +49,48 @@ const KNOWN_FIELD_KEYS = new Set([
   "phone", "mobile", "phone_number", "phonenumber",
   "loan_amount", "loanamount", "amount", "loan_size",
   "loan_purpose", "loanpurpose", "purpose",
-  "source_label", "sourcelabel", "source", "lead_source",
+  "source_label", "sourcelabel", "source", "lead_source", "customdata.source",
   "notes", "message", "comments", "note",
-  "campaign", "campaign_name", "campaignname",
+  "campaign", "campaign_name", "campaignname", "utm_campaign",
   "adset", "ad_set", "adset_name", "adsetname",
   "ad", "ad_name", "adname",
-  "form", "form_name", "formname",
+  "form", "form_name", "formname", "form.name", "form.id", "formid", "form_id",
   // common GHL / Zapier system fields that aren't answers
   "contact_id", "contactid", "location_id", "locationid", "location",
-  "workflow", "workflow_id", "workflowid", "tags", "tag",
-  "date_created", "datecreated", "contact", "key", "id", "type", "status",
+  "workflow", "workflow_id", "workflowid", "tags", "tag", "dnd",
+  "address", "address1", "city", "state", "country", "postal_code", "zip",
+  "website", "timezone", "companyname", "company_name",
+  "date_created", "datecreated", "date_added", "created_at", "updated_at",
+  "opportunity", "pipeline", "stage", "assigned_to",
+  "event", "eventtype", "event_type", "trigger", "type", "status", "id", "key",
+  "page", "url", "ip", "user_agent",
+  "utm_source", "utm_medium", "utm_term", "utm_content",
 ]);
 
+// Nested object keys that are just wrappers — their inner fields are lifted up
+const CONTAINER_SEGMENTS = new Set([
+  "contact", "customdata", "customfields", "custom_fields", "fields",
+  "submission", "data", "attributes", "payload",
+  "triggerdata", "trigger_data", "formdata", "form_data",
+]);
+
+// Whole subtrees that are system noise (GHL location details, UTM blobs, …)
+const SKIP_SUBTREES = new Set([
+  "location", "attributionsource", "attribution_source", "latestattributionsource",
+  "dndsettings", "dnd_settings", "opportunity", "workflow",
+]);
+
+function normalizeKey(k: string): string {
+  const parts = k.toLowerCase().split(".").filter((p) => !CONTAINER_SEGMENTS.has(p));
+  return parts.join(".");
+}
+
 function prettifyQuestion(k: string): string {
-  const s = k.replace(/[_\-.]+/g, " ").replace(/\s+/g, " ").trim();
+  const s = normalizeKey(k)
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_\-.]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   return s ? s[0].toUpperCase() + s.slice(1) : s;
 }
 
@@ -71,6 +99,55 @@ function cleanAnswer(v: string): string {
   // Form builders often encode spaces as underscores in option values
   if (t.includes("_") && !t.includes(" ")) return t.replace(/_+/g, " ").trim();
   return t;
+}
+
+// Flatten whatever the sender posts into dotted key → string pairs. Handles
+// nested objects (GHL's standard Webhook payload), arrays of name/value pairs
+// (Meta-style), and JSON-encoded strings, so no per-field mapping is needed.
+function flattenPayload(root: Record<string, unknown>): [string, string][] {
+  const out: [string, string][] = [];
+  const walk = (obj: Record<string, unknown>, prefix: string, depth: number) => {
+    for (const [k, v] of Object.entries(obj)) {
+      if (v == null) continue;
+      const key = prefix ? `${prefix}.${k}` : k;
+      if (Array.isArray(v)) {
+        // Arrays of {name/key/field/question/label, value/answer} pairs
+        for (const item of v) {
+          if (item && typeof item === "object" && !Array.isArray(item)) {
+            const rec = item as Record<string, unknown>;
+            const q = firstString(rec.name, rec.key, rec.field, rec.question, rec.label);
+            const raw = rec.value ?? rec.answer;
+            const a = Array.isArray(raw) ? raw.join(", ") : raw != null ? String(raw) : "";
+            if (q && a.trim()) out.push([q, a]);
+          }
+        }
+        continue;
+      }
+      if (typeof v === "object") {
+        if (SKIP_SUBTREES.has(k.toLowerCase())) {
+          // Keep the campaign name from GHL attribution blobs, skip the rest
+          const rec = v as Record<string, unknown>;
+          const camp = firstString(rec.campaign, rec.utmCampaign, rec.utm_campaign);
+          if (camp) out.push(["utm_campaign", camp]);
+          continue;
+        }
+        if (depth < 3) walk(v as Record<string, unknown>, key, depth + 1);
+        continue;
+      }
+      const s = String(v).trim();
+      if (!s || s === "null" || s === "undefined") continue;
+      // Some senders put a JSON-encoded blob inside a string field
+      if (s.startsWith("{") && s.endsWith("}")) {
+        try {
+          walk(JSON.parse(s) as Record<string, unknown>, key, depth + 1);
+          continue;
+        } catch { /* not JSON — keep as a plain value */ }
+      }
+      out.push([key, s]);
+    }
+  };
+  walk(root, "", 0);
+  return out;
 }
 
 Deno.serve(async (req) => {
@@ -97,45 +174,60 @@ Deno.serve(async (req) => {
     } else {
       body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
     }
-    // Some senders nest the contact one level down
-    const src = (body.contact && typeof body.contact === "object" ? body.contact : body) as Record<string, unknown>;
+    // Flatten whatever was posted — GHL's standard Webhook action sends the whole
+    // contact + form submission dump (nested), Custom Webhook / Zapier send flatter
+    // JSON. Flattening means new or changed form questions are captured without
+    // any field-mapping changes.
+    const entries = flattenPayload(body);
+    const flat: Record<string, string> = {};
+    const stripped: Record<string, string> = {};
+    for (const [k, v] of entries) {
+      flat[k.toLowerCase()] = v;
+      const nk = normalizeKey(k);
+      if (!(nk in stripped)) stripped[nk] = v;
+    }
+    const get = (...keys: string[]): string =>
+      firstString(...keys.map((k) => flat[k] ?? stripped[k]));
 
-    const fullName = firstString(src.full_name, src.fullName, src.name);
-    let firstName = firstString(src.first_name, src.firstName, src.firstname, src.first);
-    let lastName = firstString(src.last_name, src.lastName, src.lastname, src.last);
+    const fullName = get("full_name", "fullname", "name");
+    let firstName = get("first_name", "firstname", "first");
+    let lastName = get("last_name", "lastname", "last");
     if (!firstName && fullName) {
       const parts = fullName.split(/\s+/);
       firstName = parts[0] || "";
       lastName = parts.slice(1).join(" ");
     }
-    const email = firstString(src.email, src.email_address, src.emailAddress) || null;
-    const phone = firstString(src.phone, src.mobile, src.phone_number, src.phoneNumber) || null;
-    const loanAmount = parseAmount(src.loan_amount ?? src.loanAmount ?? src.amount ?? src.loan_size);
-    const loanPurpose = mapPurpose(firstString(src.loan_purpose, src.loanPurpose, src.purpose));
-    const sourceLabel = firstString(src.source_label, src.sourceLabel, src.source, src.lead_source) || "Website";
-    const notes = firstString(src.notes, src.message, src.comments, src.note) || null;
+    const email = get("email", "email_address", "emailaddress") || null;
+    const phone = get("phone", "mobile", "phone_number", "phonenumber") || null;
+    const loanAmount = parseAmount(get("loan_amount", "loanamount", "amount", "loan_size"));
+    const loanPurpose = mapPurpose(get("loan_purpose", "loanpurpose", "purpose"));
+    const sourceLabel = get("source_label", "sourcelabel", "lead_source", "customdata.source", "source") || "Website";
+    const notes = get("notes", "message", "comments", "note") || null;
 
     // Which campaign / ad set / ad / form the lead came from (if provided)
     const attribution: Record<string, string> = {};
-    const campaign = firstString(src.campaign, src.campaign_name, src.campaignName);
-    const adset = firstString(src.adset, src.ad_set, src.adset_name, src.adsetName);
-    const ad = firstString(src.ad, src.ad_name, src.adName);
-    const formName = firstString(src.form_name, src.formName, src.form);
+    const campaign = get("campaign", "campaign_name", "campaignname", "utm_campaign");
+    const adset = get("adset", "ad_set", "adset_name", "adsetname");
+    const ad = get("ad", "ad_name", "adname");
+    const formName = get("form_name", "formname", "form.name");
     if (campaign) attribution.campaign = campaign;
     if (adset) attribution.adset = adset;
     if (ad) attribution.ad = ad;
     if (formName) attribution.form_name = formName;
 
-    // Every other field in the payload is treated as a form question + answer,
-    // so landing-page questions (loan balance, credit score, …) show on the deal
+    // Every remaining field is treated as a form question + answer, so landing
+    // page / survey questions show on the deal with no field mapping needed
     const formAnswers: { question: string; answer: string }[] = [];
-    for (const [k, v] of Object.entries(src)) {
-      if (KNOWN_FIELD_KEYS.has(k.toLowerCase())) continue;
-      let answer = "";
-      if (typeof v === "string") answer = cleanAnswer(v);
-      else if (typeof v === "number" || typeof v === "boolean") answer = String(v);
-      if (!answer) continue;
-      formAnswers.push({ question: prettifyQuestion(k), answer });
+    const seenQuestions = new Set<string>();
+    for (const [k, v] of entries) {
+      const nk = normalizeKey(k);
+      if (KNOWN_FIELD_KEYS.has(nk) || KNOWN_FIELD_KEYS.has(k.toLowerCase())) continue;
+      const answer = cleanAnswer(v);
+      if (!answer || answer.length > 2000) continue;
+      const question = prettifyQuestion(k);
+      if (!question || seenQuestions.has(question.toLowerCase())) continue;
+      seenQuestions.add(question.toLowerCase());
+      formAnswers.push({ question, answer });
     }
 
     const customFields: Record<string, unknown> = {};
