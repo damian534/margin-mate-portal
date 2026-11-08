@@ -1,7 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { z } from 'npm:zod@3';
-import { canManageMeta } from '../_shared/metaLeadRules.ts';
+import { canManageMeta, connectVerifyToken } from '../_shared/metaLeadRules.ts';
 const schema = z.object({ action: z.enum(['status', 'connect', 'toggle', 'check']), broker_id: z.string().uuid(), page_id: z.string().regex(/^\d{1,30}$/).optional(), enabled: z.boolean().optional() });
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 Deno.serve(async req => {
@@ -18,7 +18,7 @@ Deno.serve(async req => {
     const input = parsed.data;
     const { data: roles } = await db.from('user_roles').select('role').eq('user_id', auth.user.id);
     if (!canManageMeta(auth.user.id, input.broker_id, (roles ?? []).map(r => r.role))) return json({ error: 'Brokerage owner access required' }, 403);
-    const credentialsReady = ['META_VERIFY_TOKEN', 'META_APP_SECRET', 'META_PAGE_ACCESS_TOKEN'].every(k => !!Deno.env.get(k));
+    const credentialsReady = ['META_APP_SECRET', 'META_PAGE_ACCESS_TOKEN'].every(k => !!Deno.env.get(k));
     if (input.action !== 'status') {
       if (!input.page_id) return json({ error: 'Facebook Page ID is required' }, 400);
       const { data: existing } = await db.from('meta_lead_pages').select('broker_id').eq('page_id', input.page_id).maybeSingle();
@@ -54,6 +54,6 @@ Deno.serve(async req => {
     const { data: pages, error } = await db.from('meta_lead_pages').select('*').eq('broker_id', input.broker_id).order('created_at', { ascending: false });
     if (error) throw error;
     const { data: deliveries } = await db.from('meta_lead_deliveries').select('page_id,leadgen_id,status,lead_id,error,received_at').eq('broker_id', input.broker_id).order('received_at', { ascending: false }).limit(20);
-    return json({ credentials_ready: credentialsReady, pages: pages ?? [], deliveries: deliveries ?? [] });
+    return json({ credentials_ready: credentialsReady, verify_token: await connectVerifyToken(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''), pages: pages ?? [], deliveries: deliveries ?? [] });
   } catch { return json({ error: 'Could not update the Facebook connection' }, 500); }
 });

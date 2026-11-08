@@ -1,15 +1,17 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { z } from 'npm:zod@3';
-import { parseMetaLead, verifyMetaSignature } from '../_shared/metaLeadRules.ts';
+import { connectVerifyToken, parseMetaLead, verifyMetaSignature } from '../_shared/metaLeadRules.ts';
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 const payloadSchema = z.object({ object: z.string(), entry: z.array(z.object({ id: z.string().regex(/^\d+$/), changes: z.array(z.object({ field: z.string(), value: z.object({ leadgen_id: z.union([z.string(), z.number()]).optional(), page_id: z.union([z.string(), z.number()]).optional() }).passthrough() })) })).default([]) });
 Deno.serve(async req => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method === 'GET') {
     const url = new URL(req.url);
-    const token = Deno.env.get('META_VERIFY_TOKEN');
-    if (token && url.searchParams.get('hub.mode') === 'subscribe' && url.searchParams.get('hub.verify_token') === token) return new Response(url.searchParams.get('hub.challenge') ?? '', { headers: corsHeaders });
+    const given = url.searchParams.get('hub.verify_token') ?? '';
+    const accepted = [Deno.env.get('META_VERIFY_TOKEN'), await connectVerifyToken(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')].filter(Boolean);
+    console.log('Facebook verification attempt', { mode: url.searchParams.get('hub.mode'), matched: accepted.includes(given) });
+    if (given && url.searchParams.get('hub.mode') === 'subscribe' && accepted.includes(given)) return new Response(url.searchParams.get('hub.challenge') ?? '', { headers: corsHeaders });
     return json({ error: 'Verification failed' }, 403);
   }
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);

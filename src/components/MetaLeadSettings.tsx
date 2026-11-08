@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 
 type Page = { page_id: string; page_name: string | null; enabled: boolean; verified_at: string | null };
 type Delivery = { page_id: string; leadgen_id: string; status: string; lead_id: string | null; error: string | null; received_at: string };
-type State = { credentials_ready: boolean; pages: Page[]; deliveries: Delivery[] };
+type State = { credentials_ready: boolean; verify_token?: string; pages: Page[]; deliveries: Delivery[] };
 
 export function MetaLeadSettings() {
   const { effectiveBrokerId, isPreviewMode } = useAuth();
@@ -57,9 +57,10 @@ export function MetaLeadSettings() {
       </div>)}
       {!state.pages.length && <p className="text-sm text-muted-foreground py-3">No Facebook Pages connected.</p>}
     </div>
-    <details className="border-y border-border py-3"><summary className="cursor-pointer text-sm font-medium">Facebook setup details</summary><div className="pt-4 space-y-3 text-sm text-muted-foreground">
-      <ol className="list-decimal pl-5 space-y-2"><li>Use your Facebook developer app with lead retrieval access. Live customer leads may require Meta app review and business verification.</li><li>Securely configure the app secret, Page access token and webhook verify token with Lovable.</li><li>In your app’s Webhooks settings, select Page, add the callback below and the same verify token, then subscribe to <strong>leadgen</strong>.</li><li>Subscribe that app to your Facebook Page’s leadgen events and grant it lead access in your business settings.</li><li>Add the Page ID above, check the connection, then create a test using Facebook’s Lead Ads Testing Tool.</li></ol>
+    <details open className="border-y border-border py-3"><summary className="cursor-pointer text-sm font-medium">Facebook setup details</summary><div className="pt-4 space-y-3 text-sm text-muted-foreground">
+      <ol className="list-decimal pl-5 space-y-2"><li>Use your Facebook developer app with lead retrieval access. Live customer leads may require Meta app review and business verification.</li><li>Securely configure the app secret, Page access token and webhook verify token with Lovable.</li><li>In your app’s Webhooks settings, select Page, paste the callback address and verify token shown below, then subscribe to <strong>leadgen</strong>.</li><li>Subscribe that app to your Facebook Page’s leadgen events and grant it lead access in your business settings.</li><li>Add the Page ID above, check the connection, then create a test using Facebook’s Lead Ads Testing Tool.</li></ol>
       <Label htmlFor="facebook-callback">Callback address</Label><div className="flex gap-2"><Input id="facebook-callback" value={callback} readOnly className="font-mono text-xs" /><Button variant="outline" size="icon" title="Copy Facebook callback" onClick={async () => { try { await navigator.clipboard.writeText(callback); toast.success('Callback copied'); } catch { toast.error('Select and copy the address manually'); } }}><Copy className="w-4 h-4" /></Button></div>
+      <Label htmlFor="facebook-verify">Verify token</Label><div className="flex gap-2"><Input id="facebook-verify" value={state.verify_token ?? ''} placeholder="Loading…" readOnly className="font-mono text-xs" /><Button variant="outline" size="icon" title="Copy verify token" disabled={!state.verify_token} onClick={async () => { try { await navigator.clipboard.writeText(state.verify_token ?? ''); toast.success('Verify token copied'); } catch { toast.error('Select and copy the token manually'); } }}><Copy className="w-4 h-4" /></Button></div>
       <Button variant="outline" size="sm" asChild><a href="https://developers.facebook.com/tools/lead-ads-testing" target="_blank" rel="noopener noreferrer"><ExternalLink className="w-4 h-4 mr-2" />Open Facebook testing tool</a></Button>
     </div></details>
     <div className="space-y-3"><h3 className="text-sm font-semibold">Recent Facebook deliveries</h3>

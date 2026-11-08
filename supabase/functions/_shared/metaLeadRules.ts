@@ -19,3 +19,9 @@ export async function verifyMetaSignature(raw: string, signature: string | null,
 export function canManageMeta(userId: string, brokerId: string, roles: string[]) {
   return roles.some(r => ['super_admin', 'platform_owner'].includes(r)) || (userId === brokerId && roles.some(r => ['broker', 'tenant_owner'].includes(r)));
 }
+/** Stable verify token derived from a server-only key, shown to Page managers so it can be copied into Facebook. */
+export async function connectVerifyToken(serverKey: string): Promise<string> {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(serverKey), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode('connect-meta-verify-v1')));
+  return 'connect_' + Array.from(sig.slice(0, 16), b => b.toString(16).padStart(2, '0')).join('');
+}
