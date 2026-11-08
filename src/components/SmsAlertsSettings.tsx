@@ -17,6 +17,7 @@ export function SmsAlertsSettings() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<'save' | 'test' | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [sendError, setSendError] = useState('');
   useEffect(() => {
     if (!effectiveBrokerId || isPreviewMode) { setLoading(false); return; }
     let active = true;
@@ -33,20 +34,25 @@ export function SmsAlertsSettings() {
   const submit = async (action: 'save' | 'test') => {
     if (!effectiveBrokerId || isPreviewMode) return;
     setBusy(action);
+    setSendError('');
     try {
       const { data, error } = await supabase.functions.invoke('new-lead-sms', { body: { action, broker_id: effectiveBrokerId, ...(action === 'save' ? { enabled, phone, sender } : {}) } });
       if (error) {
         let message = error.message;
         if (error instanceof FunctionsHttpError) {
           const details = await error.context.json().catch(() => null);
-          message = details?.details || details?.error || message;
+          message = details?.error || details?.details || message;
         }
         throw new Error(message);
       }
       if (!data?.ok) throw new Error(data?.error || 'SMS request failed');
       if (action === 'save') { setDirty(false); toast.success(enabled ? 'New-lead SMS alerts switched on' : 'SMS settings saved — automatic alerts off'); }
       else toast.success('Twilio accepted your test text — check your mobile');
-    } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not update SMS alerts'); }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not update SMS alerts';
+      setSendError(message);
+      toast.error(message);
+    }
     finally { setBusy(null); }
   };
   const disabled = loading || isPreviewMode || !!busy;
@@ -60,6 +66,7 @@ export function SmsAlertsSettings() {
       </div>
       <p className="text-xs text-muted-foreground">Twilio message charges apply. Use an SMS-capable Twilio number and enable SMS Pumping Protection and destination-country restrictions in Twilio.</p>
       <div className="flex flex-wrap gap-2"><Button disabled={disabled} onClick={() => submit('save')}><Save className="w-4 h-4 mr-2" />{busy === 'save' ? 'Saving…' : 'Save SMS settings'}</Button><Button variant="outline" disabled={disabled || dirty || !phone || !sender} onClick={() => submit('test')}><Send className="w-4 h-4 mr-2" />{busy === 'test' ? 'Sending…' : 'Send test SMS'}</Button></div>
+      {sendError && <p role="alert" className="text-sm text-destructive break-words">{sendError}</p>}
     </section>
   );
 }

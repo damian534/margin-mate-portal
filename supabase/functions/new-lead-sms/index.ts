@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { z } from 'npm:zod@3';
 import { normalizeSmsPhone, newLeadSms } from './rules.ts';
+import { twilioSendError } from '../_shared/twilioErrors.ts';
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/twilio';
 const schema = z.union([
@@ -73,7 +74,7 @@ Deno.serve(async req => {
       const details = await response.text();
       console.error(`Twilio request failed [${response.status}]: ${details}`);
       if (jobId) await db.from('lead_sms_jobs').update({ status: 'failed', error_details: `[${response.status}]: ${details}`, processed_at: new Date().toISOString() }).eq('id', jobId);
-      return json({ error: 'Twilio could not send the text', status: response.status, details }, response.status);
+      return json({ ok: false, error: twilioSendError(response.status, details), status: response.status, details });
     }
     const data = await response.json();
     if (jobId) await db.from('lead_sms_jobs').update({ status: 'accepted', provider_message_id: data.sid, processed_at: new Date().toISOString() }).eq('id', jobId);
