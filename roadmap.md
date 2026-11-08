@@ -15,3 +15,4 @@
 - [x] Make post-meeting client emails read and display like polished emails, with editable formatted content.
 - [x] Build direct Facebook lead-form setup, Page routing, signed delivery checks and duplicate protection; focused tests and authenticated settings read verified.
 - [ ] Verify a real Facebook form lead — requires the user's Facebook app credentials, Page access and subscription.
+- [ ] Restore Facebook callback verification — waiting for the user to save and copy a replacement verify token, then retry Facebook verification.
