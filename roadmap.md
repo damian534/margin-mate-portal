@@ -1,4 +1,6 @@
 # Tasks
+- [x] Add Twilio SMS settings and automatic new-lead dispatch; verify authenticated settings save/readback and phone validation.
+- [ ] Verify a delivered new-lead SMS — waiting for an SMS-capable Twilio sending number and recipient mobile; no sending numbers found on Damian's Twilio account.
 - [x] Prevent duplicate automatic settlements; archive and remove ten confirmed duplicates, verify Alex appears once and duplicate insertion is blocked.
 - [x] Keep Daniel & Merinda O’Donnell’s confirmed 28 October 2025 settlement; archive and remove the incorrect 15 October duplicate.
 - [x] Reconcile actual monthly lodgements separately from new-lead conversion, including exports and deal drill-down.

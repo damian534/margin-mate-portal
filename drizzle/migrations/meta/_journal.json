@@ -36,6 +36,13 @@
       "when": 1794114295840,
       "tag": "0004_add_zapier_contact_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794129578041,
+      "tag": "0005_new_lead_sms_alerts",
+      "breakpoints": true
     }
   ]
 }

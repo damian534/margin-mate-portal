@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { SmsAlertsSettings } from '@/components/SmsAlertsSettings';
 import { Webhook, Copy, RefreshCw, Send, CheckCircle2, Facebook, Landmark, Zap, Save } from 'lucide-react';
 
 /**
@@ -136,6 +137,7 @@ export function IntegrationsSettings() {
 
   return (
     <div className="space-y-6 max-w-3xl">
+      <SmsAlertsSettings />
       {/* Intake URL */}
       <div className="rounded-xl border border-border bg-card p-6 space-y-4">
         <div className="flex items-center gap-2">

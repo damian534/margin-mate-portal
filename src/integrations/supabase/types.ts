@@ -97,6 +97,9 @@ export type Database = {
           created_at: string
           inbound_webhook_key: string | null
           milestone_bcc_email: string | null
+          sms_alert_phone: string | null
+          sms_alerts_enabled: boolean
+          sms_sender_phone: string | null
           updated_at: string
           zapier_new_lead_webhook_url: string | null
           zapier_webhook_url: string | null
@@ -111,6 +114,9 @@ export type Database = {
           created_at?: string
           inbound_webhook_key?: string | null
           milestone_bcc_email?: string | null
+          sms_alert_phone?: string | null
+          sms_alerts_enabled?: boolean
+          sms_sender_phone?: string | null
           updated_at?: string
           zapier_new_lead_webhook_url?: string | null
           zapier_webhook_url?: string | null
@@ -125,6 +131,9 @@ export type Database = {
           created_at?: string
           inbound_webhook_key?: string | null
           milestone_bcc_email?: string | null
+          sms_alert_phone?: string | null
+          sms_alerts_enabled?: boolean
+          sms_sender_phone?: string | null
           updated_at?: string
           zapier_new_lead_webhook_url?: string | null
           zapier_webhook_url?: string | null
@@ -1865,6 +1874,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      lead_sms_jobs: {
+        Row: {
+          broker_id: string
+          created_at: string
+          dispatch_token: string
+          error_details: string | null
+          id: string
+          lead_id: string
+          processed_at: string | null
+          provider_message_id: string | null
+          status: string
+        }
+        Insert: {
+          broker_id: string
+          created_at?: string
+          dispatch_token?: string
+          error_details?: string | null
+          id?: string
+          lead_id: string
+          processed_at?: string | null
+          provider_message_id?: string | null
+          status?: string
+        }
+        Update: {
+          broker_id?: string
+          created_at?: string
+          dispatch_token?: string
+          error_details?: string | null
+          id?: string
+          lead_id?: string
+          processed_at?: string | null
+          provider_message_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_sms_jobs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lead_sources: {
         Row: {
