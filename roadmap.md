@@ -14,5 +14,7 @@
 - [x] Generate a separate client-addressed email after notes are finished, using freshly updated client details.
 - [x] Make post-meeting client emails read and display like polished emails, with editable formatted content.
 - [x] Build direct Facebook lead-form setup, Page routing, signed delivery checks and duplicate protection; focused tests and authenticated settings read verified.
+- [x] Show the Facebook webhook verify token inside Connect's Integrations settings so it can be copied into Facebook; Connect returns Facebook's challenge for that token.
+- [ ] Finish Facebook callback setup — user must paste Connect's verify token into Facebook, verify the callback, then subscribe to leadgen.
+- [ ] Add Facebook app secret and Page access token securely — credentials are not configured, so leads cannot be pulled yet.
 - [ ] Verify a real Facebook form lead — requires the user's Facebook app credentials, Page access and subscription.
-- [ ] Restore Facebook callback verification — waiting for the user to save and copy a replacement verify token, then retry Facebook verification.
