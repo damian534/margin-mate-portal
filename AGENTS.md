@@ -10,3 +10,5 @@
 - Post-meeting email editing uses Tiptap with sanitised HTML and Markdown draft storage, preserving compatibility with saved meeting notes while hiding raw formatting from users.
 - Client-email generation reads finished notes and current deal/contact data under caller access policies at draft time, keeping internal notes separate and avoiding stale client details.
 - Business Metrics funnel logic lives in a pure helper (src/lib/businessMetrics.ts); "options presented" uses leads.proposal_sent_date, stamped by a DB trigger on first move to proposal_sent, so the metric survives later stage changes.
+
+- Authentication emails use the managed email SDK and scaffolded auth-email-hook, not database queues, so sending matches the project’s managed email service.

@@ -1,31 +1,25 @@
 project_id = "capydxuqpclcwadhwgvz"
 
-[functions.inbound-lead]
-verify_jwt = false
-
-[functions.company-leaderboard]
-verify_jwt = false
-
-[functions.send-fact-find]
-verify_jwt = false
-
-[functions.google-cal-oauth-callback]
-verify_jwt = false
-
-[functions.send-document-reminders]
-verify_jwt = false
-
-[functions.unsubscribe-doc-reminders]
-verify_jwt = false
-
-[functions.address-search]
-verify_jwt = false
-
-[functions.resend-webhook]
-verify_jwt = false
-
-[functions.meta-lead-webhook]
-verify_jwt = false
-
-[functions.email-unsubscribe]
-verify_jwt = false
+[functions]
+  [functions.address-search]
+    verify_jwt = false
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.company-leaderboard]
+    verify_jwt = false
+  [functions.email-unsubscribe]
+    verify_jwt = false
+  [functions.google-cal-oauth-callback]
+    verify_jwt = false
+  [functions.inbound-lead]
+    verify_jwt = false
+  [functions.meta-lead-webhook]
+    verify_jwt = false
+  [functions.resend-webhook]
+    verify_jwt = false
+  [functions.send-document-reminders]
+    verify_jwt = false
+  [functions.send-fact-find]
+    verify_jwt = false
+  [functions.unsubscribe-doc-reminders]
+    verify_jwt = false
