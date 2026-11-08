@@ -178,6 +178,9 @@ Deno.serve(async (req) => {
     // contact + form submission dump (nested), Custom Webhook / Zapier send flatter
     // JSON. Flattening means new or changed form questions are captured without
     // any field-mapping changes.
+    // Temporary diagnostics: see exactly what the sender posted (tune parsing)
+    console.log("Intake payload:", JSON.stringify(body).slice(0, 4000));
+
     const entries = flattenPayload(body);
     const flat: Record<string, string> = {};
     const stripped: Record<string, string> = {};
