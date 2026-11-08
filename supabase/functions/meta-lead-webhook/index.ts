@@ -10,6 +10,18 @@ const corsHeaders = {
 // POST — leadgen events; fetches each lead's field data from the Graph API and
 //        creates a contact + lead in the CRM with source "Facebook / Instagram Ad".
 
+function prettifyQuestion(k: string): string {
+  const s = k.replace(/[_\-.]+/g, " ").replace(/\s+/g, " ").trim();
+  return s ? s[0].toUpperCase() + s.slice(1) : s;
+}
+
+function cleanAnswer(v: string): string {
+  const t = v.trim();
+  // Form builders often encode spaces as underscores in option values
+  if (t.includes("_") && !t.includes(" ")) return t.replace(/_+/g, " ").trim();
+  return t;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -95,7 +107,7 @@ Deno.serve(async (req) => {
     for (const leadgenId of leadgenIds) {
       try {
         const res = await fetch(
-          `https://graph.facebook.com/v21.0/${leadgenId}?access_token=${encodeURIComponent(pageToken)}`,
+          `https://graph.facebook.com/v21.0/${leadgenId}?fields=field_data,ad_name,adset_name,campaign_name,form_id&access_token=${encodeURIComponent(pageToken)}`,
         );
         const leadData = await res.json();
         if (!res.ok) {
@@ -122,11 +134,25 @@ Deno.serve(async (req) => {
         const email = fields.email || null;
         const phone = fields.phone_number || fields.phone || null;
 
-        // Extra answers (e.g. custom questions) go into the note
-        const extras = Object.entries(fields)
-          .filter(([k]) => !["full_name", "first_name", "last_name", "email", "phone_number", "phone"].includes(k))
-          .map(([k, v]) => `${k.replace(/_/g, " ")}: ${v}`)
-          .join("\n");
+        // Custom question answers (loan balance, credit score, …) shown on the deal
+        const formAnswers: { question: string; answer: string }[] = [];
+        for (const [k, v] of Object.entries(fields)) {
+          if (["full_name", "first_name", "last_name", "email", "phone_number", "phone"].includes(k)) continue;
+          if (!v) continue;
+          formAnswers.push({ question: prettifyQuestion(k), answer: cleanAnswer(v) });
+        }
+
+        // Which campaign / ad set / ad the lead came from
+        const attribution: Record<string, string> = {};
+        if (leadData.campaign_name) attribution.campaign = String(leadData.campaign_name);
+        if (leadData.adset_name) attribution.adset = String(leadData.adset_name);
+        if (leadData.ad_name) attribution.ad = String(leadData.ad_name);
+
+        const customFields: Record<string, unknown> = {};
+        if (formAnswers.length > 0) customFields.form_answers = formAnswers;
+        if (Object.keys(attribution).length > 0) customFields.ad_attribution = attribution;
+
+        const answersText = formAnswers.map((a) => `${a.question}: ${a.answer}`).join("\n");
 
         const { data: newContact } = await supabase.from("contacts").insert({
           first_name: firstName,
@@ -134,7 +160,7 @@ Deno.serve(async (req) => {
           email,
           phone,
           type: "client",
-          notes: extras || null,
+          notes: answersText || null,
           created_by: brokerId,
         }).select("id").maybeSingle();
 
@@ -147,6 +173,7 @@ Deno.serve(async (req) => {
           status: "new",
           broker_id: brokerId,
           source_contact_id: newContact?.id || null,
+          custom_fields: customFields,
         }).select("id").single();
 
         if (leadError) {
@@ -155,9 +182,14 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        const noteLines = ["📣 Auto-created from a Facebook / Instagram lead ad"];
+        if (attribution.campaign) noteLines.push(`Campaign: ${attribution.campaign}`);
+        if (attribution.adset) noteLines.push(`Ad set: ${attribution.adset}`);
+        if (attribution.ad) noteLines.push(`Ad: ${attribution.ad}`);
+        if (formAnswers.length > 0) noteLines.push("", ...formAnswers.map((a) => `${a.question}: ${a.answer}`));
         await supabase.from("notes").insert({
           lead_id: newLead.id,
-          content: `📣 Auto-created from a Facebook / Instagram lead ad\n${extras || ""}`.trim(),
+          content: noteLines.join("\n"),
           author_id: brokerId,
         });
 

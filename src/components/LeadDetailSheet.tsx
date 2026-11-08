@@ -43,6 +43,7 @@ import { MeetingNotesSection } from '@/components/MeetingNotesSection';
 import { LoanSplitsEditor } from '@/components/LoanSplitsEditor';
 import { EsignSection } from '@/components/esign/EsignSection';
 import { SectionCard } from '@/components/lead/SectionCard';
+import { FormAnswersCard } from '@/components/lead/FormAnswersCard';
 import { ClientFileTabs, type ClientFileTab } from '@/components/lead/tabs/ClientFileTabs';
 import { FundingPositionTab } from '@/components/lead/tabs/FundingPositionTab';
 import { FactFindWizardDialog } from '@/components/lead/FactFindWizardDialog';
@@ -1580,6 +1581,9 @@ export function LeadDetailSheet({
           </div>
           </>)}
 
+          {activeTab === 'summary' && (
+            <FormAnswersCard customFields={lead.custom_fields as unknown as Record<string, unknown>} />
+          )}
 
           {activeTab === 'summary' && (<>
           {/* Expand / Collapse all sections */}

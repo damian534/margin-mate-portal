@@ -177,6 +177,13 @@ export function IntegrationsSettings() {
           <code className="bg-muted px-1 rounded">GHL Landing Page</code> — Connect will match or create that
           source for your reporting.
         </p>
+        <p className="text-xs text-muted-foreground">
+          Any extra fields you add to the webhook body — your form's questions such as loan balance, current
+          lender or credit score — are saved with the lead and shown in a <strong>Form answers</strong> card on
+          the deal, the same way Privyr shows them. Add <code className="bg-muted px-1 rounded">campaign</code>,{' '}
+          <code className="bg-muted px-1 rounded">adset</code> and <code className="bg-muted px-1 rounded">ad</code>{' '}
+          fields and they'll be shown there too.
+        </p>
       </div>
 
       {/* Meta setup */}
@@ -240,6 +247,8 @@ export function IntegrationsSettings() {
                 ['loan_amount', 'Loan amount as a number'],
                 ['loan_purpose', ' refinance, investment, first home, next home'],
                 ['notes', 'Extra details — saved to the deal history'],
+                ['campaign / adset / ad / form_name', 'Which ad or form the lead came from — shown on the deal'],
+                ['any other field', "Saved as a question + answer and shown in the deal's Form answers card"],
               ].map(([field, desc]) => (
                 <tr key={field} className="border-b border-border/50 last:border-0">
                   <td className="py-2 pr-4 font-mono text-xs text-foreground">{field}</td>

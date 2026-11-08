@@ -40,6 +40,39 @@ function slugify(v: string): string {
   return v.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "website";
 }
 
+// Fields already mapped to lead/contact columns or ad attribution — everything
+// else in the payload is treated as a form question + answer.
+const KNOWN_FIELD_KEYS = new Set([
+  "full_name", "fullname", "name", "first_name", "firstname", "first",
+  "last_name", "lastname", "last",
+  "email", "email_address", "emailaddress",
+  "phone", "mobile", "phone_number", "phonenumber",
+  "loan_amount", "loanamount", "amount", "loan_size",
+  "loan_purpose", "loanpurpose", "purpose",
+  "source_label", "sourcelabel", "source", "lead_source",
+  "notes", "message", "comments", "note",
+  "campaign", "campaign_name", "campaignname",
+  "adset", "ad_set", "adset_name", "adsetname",
+  "ad", "ad_name", "adname",
+  "form", "form_name", "formname",
+  // common GHL / Zapier system fields that aren't answers
+  "contact_id", "contactid", "location_id", "locationid", "location",
+  "workflow", "workflow_id", "workflowid", "tags", "tag",
+  "date_created", "datecreated", "contact", "key", "id", "type", "status",
+]);
+
+function prettifyQuestion(k: string): string {
+  const s = k.replace(/[_\-.]+/g, " ").replace(/\s+/g, " ").trim();
+  return s ? s[0].toUpperCase() + s.slice(1) : s;
+}
+
+function cleanAnswer(v: string): string {
+  const t = v.trim();
+  // Form builders often encode spaces as underscores in option values
+  if (t.includes("_") && !t.includes(" ")) return t.replace(/_+/g, " ").trim();
+  return t;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -81,6 +114,33 @@ Deno.serve(async (req) => {
     const loanPurpose = mapPurpose(firstString(src.loan_purpose, src.loanPurpose, src.purpose));
     const sourceLabel = firstString(src.source_label, src.sourceLabel, src.source, src.lead_source) || "Website";
     const notes = firstString(src.notes, src.message, src.comments, src.note) || null;
+
+    // Which campaign / ad set / ad / form the lead came from (if provided)
+    const attribution: Record<string, string> = {};
+    const campaign = firstString(src.campaign, src.campaign_name, src.campaignName);
+    const adset = firstString(src.adset, src.ad_set, src.adset_name, src.adsetName);
+    const ad = firstString(src.ad, src.ad_name, src.adName);
+    const formName = firstString(src.form_name, src.formName, src.form);
+    if (campaign) attribution.campaign = campaign;
+    if (adset) attribution.adset = adset;
+    if (ad) attribution.ad = ad;
+    if (formName) attribution.form_name = formName;
+
+    // Every other field in the payload is treated as a form question + answer,
+    // so landing-page questions (loan balance, credit score, …) show on the deal
+    const formAnswers: { question: string; answer: string }[] = [];
+    for (const [k, v] of Object.entries(src)) {
+      if (KNOWN_FIELD_KEYS.has(k.toLowerCase())) continue;
+      let answer = "";
+      if (typeof v === "string") answer = cleanAnswer(v);
+      else if (typeof v === "number" || typeof v === "boolean") answer = String(v);
+      if (!answer) continue;
+      formAnswers.push({ question: prettifyQuestion(k), answer });
+    }
+
+    const customFields: Record<string, unknown> = {};
+    if (formAnswers.length > 0) customFields.form_answers = formAnswers;
+    if (Object.keys(attribution).length > 0) customFields.ad_attribution = attribution;
 
     if (!firstName && !email && !phone) {
       return json({ error: "Provide at least a name, email or phone for the lead" }, 400);
@@ -148,6 +208,7 @@ Deno.serve(async (req) => {
         status: "new",
         broker_id: brokerId,
         source_contact_id: newContact?.id || null,
+        custom_fields: customFields,
       })
       .select("id")
       .single();
@@ -157,9 +218,17 @@ Deno.serve(async (req) => {
       return json({ error: `Could not create lead: ${leadError.message}` }, 500);
     }
 
+    const noteLines = [`🔗 Auto-created from ${sourceLabel} (webhook)`];
+    if (attribution.campaign) noteLines.push(`Campaign: ${attribution.campaign}`);
+    if (attribution.adset) noteLines.push(`Ad set: ${attribution.adset}`);
+    if (attribution.ad) noteLines.push(`Ad: ${attribution.ad}`);
+    if (notes) noteLines.push("", notes);
+    if (formAnswers.length > 0) {
+      noteLines.push("", ...formAnswers.map((a) => `${a.question}: ${a.answer}`));
+    }
     await supabase.from("notes").insert({
       lead_id: newLead.id,
-      content: `🔗 Auto-created from ${sourceLabel} (webhook)${notes ? `\n\n${notes}` : ""}`,
+      content: noteLines.join("\n"),
       author_id: brokerId,
     });
 
