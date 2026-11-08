@@ -13,6 +13,7 @@ import { FactFindToggle } from '@/components/FactFindToggle';
 import { MilestoneEmailsManagement } from '@/components/MilestoneEmailsManagement';
 import { EmailSignatureSettings } from '@/components/EmailSignatureSettings';
 import { BankStatementsSettings } from '@/components/BankStatementsSettings';
+import { IntegrationsSettings } from '@/components/IntegrationsSettings';
 import { BrandingSettings } from '@/components/tenant/BrandingSettings';
 import { BrandPreviewPanel } from '@/components/tenant/BrandPreviewPanel';
 import { TenantAdminConsole } from '@/components/tenant/TenantAdminConsole';
@@ -20,7 +21,7 @@ import { BillingSettings } from '@/components/tenant/BillingSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
-import { KeyRound, UserCog, Settings2, FileText, ListChecks, Tag, Building2, ClipboardList, Mail, PenLine, Banknote, Palette, Layers, CreditCard } from 'lucide-react';
+import { KeyRound, UserCog, Settings2, FileText, ListChecks, Tag, Building2, ClipboardList, Mail, PenLine, Banknote, Palette, Layers, CreditCard, Webhook } from 'lucide-react';
 
 export default function AdminSettings() {
   const { isPreviewMode, role, isPlatformOwner } = useAuth();
@@ -55,6 +56,9 @@ export default function AdminSettings() {
       : []),
     { value: 'signature', label: 'Email Signature', icon: PenLine },
     { value: 'bank-statements', label: 'Bank Statements Link', icon: Banknote },
+    ...(role !== 'broker_staff'
+      ? [{ value: 'integrations', label: 'Integrations', icon: Webhook }]
+      : []),
     ...(role !== 'broker_staff'
       ? [{ value: 'branding', label: 'Branding', icon: Palette },
          { value: 'billing', label: 'Billing & Seats', icon: CreditCard }]
@@ -108,6 +112,7 @@ export default function AdminSettings() {
         {activeSection === 'milestone-emails' && role !== 'broker_staff' && <MilestoneEmailsManagement />}
         {activeSection === 'signature' && <EmailSignatureSettings />}
         {activeSection === 'bank-statements' && <BankStatementsSettings />}
+        {activeSection === 'integrations' && role !== 'broker_staff' && <IntegrationsSettings />}
         {activeSection === 'branding' && role !== 'broker_staff' && (
           <div className="space-y-6">
             <BrandingSettings />

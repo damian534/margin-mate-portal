@@ -95,6 +95,7 @@ export type Database = {
           claude_webhook_secret: string | null
           claude_webhook_url: string | null
           created_at: string
+          inbound_webhook_key: string | null
           milestone_bcc_email: string | null
           updated_at: string
           zapier_new_lead_webhook_url: string | null
@@ -107,6 +108,7 @@ export type Database = {
           claude_webhook_secret?: string | null
           claude_webhook_url?: string | null
           created_at?: string
+          inbound_webhook_key?: string | null
           milestone_bcc_email?: string | null
           updated_at?: string
           zapier_new_lead_webhook_url?: string | null
@@ -119,6 +121,7 @@ export type Database = {
           claude_webhook_secret?: string | null
           claude_webhook_url?: string | null
           created_at?: string
+          inbound_webhook_key?: string | null
           milestone_bcc_email?: string | null
           updated_at?: string
           zapier_new_lead_webhook_url?: string | null

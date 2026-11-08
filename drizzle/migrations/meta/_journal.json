@@ -15,6 +15,20 @@
       "when": 1791854067030,
       "tag": "0001_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794109894689,
+      "tag": "0002_add_inbound_webhook_key",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794110052583,
+      "tag": "0003_audit_tasks_skip_deleted_lead",
+      "breakpoints": true
     }
   ]
 }
