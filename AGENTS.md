@@ -1,4 +1,5 @@
 # Architecture rules
+- Native releases bundle web assets through Capacitor; a separate pure configuration helper permits hosted live reload only with explicit opt-in, preventing store builds from loading the editor preview.
 - New-lead SMS uses a lead-insert trigger and service-only unique jobs with one-use dispatch capabilities; Twilio calls stay server-side and settings/test actions verify broker ownership to prevent duplicate sends and cross-tenant access.
 - Automatic settlements are created only by the lead-date database trigger with a unique lead link; CRM stage changes write the settlement date instead of inserting another row, preventing dual-path duplicates.
 - Duplicate settlement cleanup archives original rows in a service-only table before merging metadata and deleting confirmed copies, preserving recovery and distinct loans.

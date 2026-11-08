@@ -1,4 +1,6 @@
 # Tasks
+- [x] Prepare Margin Connect for native iPhone/Android packaging with safe release settings and local setup instructions; release configuration tests pass.
+- [ ] Build, device-test and submit store apps — requires Apple/Google developer accounts, local native tools and signing.
 - [x] Add Twilio SMS settings and automatic new-lead dispatch; verify authenticated settings save/readback and phone validation.
 - [ ] Verify a delivered new-lead SMS — waiting for an SMS-capable Twilio sending number and recipient mobile; no sending numbers found on Damian's Twilio account.
 - [x] Prevent duplicate automatic settlements; archive and remove ten confirmed duplicates, verify Alex appears once and duplicate insertion is blocked.
