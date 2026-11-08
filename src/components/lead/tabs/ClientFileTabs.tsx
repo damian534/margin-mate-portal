@@ -26,6 +26,7 @@ export const CLIENT_FILE_TABS: { key: ClientFileTab; label: string }[] = [
   { key: 'esign', label: 'E-Sign' },
   { key: 'notes', label: 'Notes' },
   { key: 'communications', label: 'Communications' },
+  { key: 'consent', label: 'Privacy & consents' },
 ];
 
 
