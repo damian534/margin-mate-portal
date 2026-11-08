@@ -13,4 +13,5 @@
 - [x] Match Lead Flow period choices to Settlements, including financial-year quarters, and verify.
 - [x] Generate a separate client-addressed email after notes are finished, using freshly updated client details.
 - [x] Make post-meeting client emails read and display like polished emails, with editable formatted content.
-- [ ] Meta lead import setup — waiting for the user's Meta credentials and configuration.
+- [x] Build direct Facebook lead-form setup, Page routing, signed delivery checks and duplicate protection; focused tests and authenticated settings read verified.
+- [ ] Verify a real Facebook form lead — requires the user's Facebook app credentials, Page access and subscription.

@@ -12,3 +12,4 @@
 - Business Metrics funnel logic lives in a pure helper (src/lib/businessMetrics.ts); "options presented" uses leads.proposal_sent_date, stamped by a DB trigger on first move to proposal_sent, so the metric survives later stage changes.
 
 - Authentication emails use the managed email SDK and scaffolded auth-email-hook, not database queues, so sending matches the project’s managed email service.
+- Direct Facebook lead intake validates app-signed events, routes only configured Pages to their brokerage and atomically imports each Page/lead ID once; credentials remain server-only and Page management verifies owner roles.

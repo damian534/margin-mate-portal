@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { SmsAlertsSettings } from '@/components/SmsAlertsSettings';
-import { Webhook, Copy, RefreshCw, Send, CheckCircle2, Facebook, Landmark, Zap, Save } from 'lucide-react';
+import { MetaLeadSettings } from '@/components/MetaLeadSettings';
+import { Webhook, Copy, RefreshCw, Send, CheckCircle2, Landmark, Zap, Save } from 'lucide-react';
 
 /**
  * Per-brokerage inbound lead integrations. Shows the private intake URL that
@@ -27,7 +28,6 @@ export function IntegrationsSettings() {
     () => (intakeKey ? `${functionsBase}/lead-intake?key=${intakeKey}` : ''),
     [functionsBase, intakeKey],
   );
-  const metaCallbackUrl = `${functionsBase}/meta-lead-webhook`;
 
   useEffect(() => {
     if (isPreviewMode || !effectiveBrokerId) {
@@ -245,43 +245,7 @@ export function IntegrationsSettings() {
         </p>
       </div>
 
-      {/* Meta setup */}
-      <div className="rounded-xl border border-border bg-card p-6 space-y-3">
-        <div className="flex items-center gap-2">
-          <Facebook className="w-5 h-5 text-primary" />
-          <h2 className="text-lg font-semibold">Meta lead ads (Facebook / Instagram)</h2>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Two ways to get Meta leads in — use whichever suits you:
-        </p>
-        <div className="space-y-3 text-sm">
-          <div className="rounded-lg bg-muted/50 p-4 space-y-1.5">
-            <p className="font-medium text-foreground">Option 1 — Zapier or Make (quickest)</p>
-            <p className="text-muted-foreground">
-              Create a Zap: <strong>Facebook Lead Ads → Webhooks by Zapier (POST)</strong> to your intake URL,
-              mapping the name, email and phone fields. Set <code className="bg-muted px-1 rounded">source</code> to{' '}
-              <code className="bg-muted px-1 rounded">Facebook / Instagram Ad</code>.
-            </p>
-          </div>
-          <div className="rounded-lg bg-muted/50 p-4 space-y-2">
-            <p className="font-medium text-foreground">Option 2 — Direct connection (no Zapier cost)</p>
-            <p className="text-muted-foreground">
-              Connect already has a Meta webhook built in. In your Meta app (Webhooks → Page), use this
-              callback URL:
-            </p>
-            <div className="flex gap-2">
-              <Input readOnly value={metaCallbackUrl} className="font-mono text-xs" onFocus={e => e.target.select()} />
-              <Button variant="outline" size="icon" onClick={() => copy(metaCallbackUrl, 'Meta callback URL')} title="Copy Meta callback URL">
-                <Copy className="w-4 h-4" />
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              The direct connection also needs your Meta verify token and page access token saved on our side —
-              send those through the secure prompt in chat and it goes live.
-            </p>
-          </div>
-        </div>
-      </div>
+      <MetaLeadSettings />
 
       {/* Field reference */}
       <div className="rounded-xl border border-border bg-card p-6 space-y-3">

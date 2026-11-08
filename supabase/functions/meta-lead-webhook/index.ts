@@ -1,227 +1,62 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-// Meta Lead Ads webhook receiver.
-// GET  — webhook verification handshake (hub.mode, hub.verify_token, hub.challenge)
-// POST — leadgen events; fetches each lead's field data from the Graph API and
-//        creates a contact + lead in the CRM with source "Facebook / Instagram Ad".
-
-function prettifyQuestion(k: string): string {
-  const s = k.replace(/[_\-.]+/g, " ").replace(/\s+/g, " ").trim();
-  return s ? s[0].toUpperCase() + s.slice(1) : s;
-}
-
-function cleanAnswer(v: string): string {
-  const t = v.trim();
-  // Form builders often encode spaces as underscores in option values
-  if (t.includes("_") && !t.includes(" ")) return t.replace(/_+/g, " ").trim();
-  return t;
-}
-
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  const verifyToken = Deno.env.get("META_VERIFY_TOKEN");
-  const pageToken = Deno.env.get("META_PAGE_ACCESS_TOKEN");
-
-  // --- Webhook verification (Meta calls this once when you save the callback URL) ---
-  if (req.method === "GET") {
+import { createClient } from 'npm:@supabase/supabase-js@2';
+import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { z } from 'npm:zod@3';
+import { parseMetaLead, verifyMetaSignature } from '../_shared/metaLeadRules.ts';
+const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+const payloadSchema = z.object({ object: z.string(), entry: z.array(z.object({ id: z.string().regex(/^\d+$/), changes: z.array(z.object({ field: z.string(), value: z.object({ leadgen_id: z.union([z.string(), z.number()]).optional(), page_id: z.union([z.string(), z.number()]).optional() }).passthrough() })) })).default([]) });
+Deno.serve(async req => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'GET') {
     const url = new URL(req.url);
-    const mode = url.searchParams.get("hub.mode");
-    const token = url.searchParams.get("hub.verify_token");
-    const challenge = url.searchParams.get("hub.challenge");
-    if (mode === "subscribe" && token && token === verifyToken) {
-      console.log("Meta webhook verified");
-      return new Response(challenge, { status: 200, headers: { "Content-Type": "text/plain" } });
-    }
-    return new Response("Forbidden", { status: 403 });
+    const token = Deno.env.get('META_VERIFY_TOKEN');
+    if (token && url.searchParams.get('hub.mode') === 'subscribe' && url.searchParams.get('hub.verify_token') === token) return new Response(url.searchParams.get('hub.challenge') ?? '', { headers: corsHeaders });
+    return json({ error: 'Verification failed' }, 403);
   }
-
-  if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
-  }
-
-  try {
-    const body = await req.json();
-    if (body.object !== "page") {
-      return new Response(JSON.stringify({ ignored: true }), {
-        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if (!pageToken) throw new Error("META_PAGE_ACCESS_TOKEN is not configured");
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Collect every leadgen event in the payload
-    const leadgenIds: string[] = [];
-    for (const entry of body.entry || []) {
-      for (const change of entry.changes || []) {
-        if (change.field === "leadgen" && change.value?.leadgen_id) {
-          leadgenIds.push(String(change.value.leadgen_id));
-        }
-      }
-    }
-    console.log("Leadgen events received:", leadgenIds.length);
-
-    // Resolve the lead source row once (create it if missing)
-    let sourceName = "facebook_instagram_ad";
-    const { data: existingSource } = await supabase
-      .from("lead_sources")
-      .select("name")
-      .or("name.ilike.%facebook%,name.ilike.%instagram%,label.ilike.%facebook%,label.ilike.%instagram%")
-      .limit(1)
-      .maybeSingle();
-    if (existingSource?.name) {
-      sourceName = existingSource.name;
-    } else {
-      const { data: maxOrder } = await supabase
-        .from("lead_sources").select("display_order").order("display_order", { ascending: false }).limit(1).maybeSingle();
-      const { data: created } = await supabase.from("lead_sources").insert({
-        name: sourceName,
-        label: "Facebook / Instagram Ad",
-        display_order: (maxOrder?.display_order ?? 0) + 1,
-      }).select("name").maybeSingle();
-      if (created?.name) sourceName = created.name;
-    }
-
-    // Find a broker to own the leads (same rule as inbound-lead)
-    const { data: brokerRole } = await supabase
-      .from("user_roles")
-      .select("user_id")
-      .in("role", ["broker", "super_admin"])
-      .limit(1)
-      .single();
-    const brokerId = brokerRole?.user_id || null;
-
-    const results: { leadgen_id: string; lead_id?: string; error?: string }[] = [];
-
-    for (const leadgenId of leadgenIds) {
+  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
+  const appSecret = Deno.env.get('META_APP_SECRET');
+  const pageToken = Deno.env.get('META_PAGE_ACCESS_TOKEN');
+  if (!appSecret || !pageToken) return json({ error: 'Facebook credentials are not configured' }, 503);
+  const raw = await req.text();
+  if (raw.length > 1000000) return json({ error: 'Payload too large' }, 413);
+  if (!await verifyMetaSignature(raw, req.headers.get('x-hub-signature-256'), appSecret)) return json({ error: 'Invalid delivery signature' }, 401);
+  let payload: unknown;
+  try { payload = JSON.parse(raw); } catch { return json({ error: 'Invalid JSON' }, 400); }
+  const parsed = payloadSchema.safeParse(payload);
+  if (!parsed.success) return json({ error: 'Invalid Facebook delivery' }, 400);
+  if (parsed.data.object !== 'page') return json({ ignored: true });
+  const db = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
+  let failed = false;
+  let imported = 0;
+  for (const entry of parsed.data.entry) {
+    const { data: page } = await db.from('meta_lead_pages').select('broker_id').eq('page_id', entry.id).eq('enabled', true).maybeSingle();
+    if (!page) continue; // Unknown Pages never fall back to an arbitrary broker.
+    for (const change of entry.changes) {
+      if (change.field !== 'leadgen' || !change.value.leadgen_id) continue;
+      if (change.value.page_id && String(change.value.page_id) !== entry.id) continue;
+      const id = String(change.value.leadgen_id);
+      const { data: prior } = await db.from('meta_lead_deliveries').select('status').eq('page_id', entry.id).eq('leadgen_id', id).maybeSingle();
+      if (prior?.status === 'imported') continue;
       try {
-        const res = await fetch(
-          `https://graph.facebook.com/v21.0/${leadgenId}?fields=field_data,ad_name,adset_name,campaign_name,form_id&access_token=${encodeURIComponent(pageToken)}`,
-        );
-        const leadData = await res.json();
-        if (!res.ok) {
-          console.error("Graph API error for", leadgenId, res.status, JSON.stringify(leadData));
-          results.push({ leadgen_id: leadgenId, error: `Meta API error [${res.status}]` });
-          continue;
+        const response = await fetch(`https://graph.facebook.com/v26.0/${encodeURIComponent(id)}?fields=field_data,ad_name,adset_name,campaign_name,form_id`, { headers: { Authorization: `Bearer ${pageToken}` } });
+        const body = await response.json();
+        if (!response.ok) throw new Error(`Facebook could not retrieve this lead (${response.status}, code ${body.error?.code ?? 'unknown'}). Check Page lead access and token validity.`);
+        const lead = parseMetaLead(body);
+        const { data: result, error } = await db.rpc('ingest_meta_lead', { _page_id: entry.id, _leadgen_id: id, _first_name: lead.firstName, _last_name: lead.lastName, _email: lead.email, _phone: lead.phone, _custom_fields: lead.customFields, _notes: lead.notes });
+        if (error) throw new Error('Could not save the Facebook lead; delivery will be retried.');
+        if (!result?.duplicate) {
+          imported++;
+          try {
+            const notification = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/notify-new-lead`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` }, body: JSON.stringify({ broker_id: page.broker_id, lead: { first_name: lead.firstName, last_name: lead.lastName, email: lead.email, phone: lead.phone, source: 'facebook_instagram_ad', loan_amount: null, loan_purpose: null } }) });
+            await notification.text();
+          } catch { console.error('Facebook lead saved; broker email notification failed'); }
         }
-
-        // field_data: [{ name: "full_name"|"email"|"phone_number"|..., values: ["..."] }]
-        const fields: Record<string, string> = {};
-        for (const f of leadData.field_data || []) {
-          fields[String(f.name).toLowerCase()] = (f.values || [])[0] || "";
-        }
-
-        let firstName = fields.first_name || "";
-        let lastName = fields.last_name || "";
-        if (!firstName && fields.full_name) {
-          const parts = fields.full_name.trim().split(/\s+/);
-          firstName = parts[0] || "Unknown";
-          lastName = parts.slice(1).join(" ");
-        }
-        if (!firstName) firstName = "Unknown";
-
-        const email = fields.email || null;
-        const phone = fields.phone_number || fields.phone || null;
-
-        // Custom question answers (loan balance, credit score, …) shown on the deal
-        const formAnswers: { question: string; answer: string }[] = [];
-        for (const [k, v] of Object.entries(fields)) {
-          if (["full_name", "first_name", "last_name", "email", "phone_number", "phone"].includes(k)) continue;
-          if (!v) continue;
-          formAnswers.push({ question: prettifyQuestion(k), answer: cleanAnswer(v) });
-        }
-
-        // Which campaign / ad set / ad the lead came from
-        const attribution: Record<string, string> = {};
-        if (leadData.campaign_name) attribution.campaign = String(leadData.campaign_name);
-        if (leadData.adset_name) attribution.adset = String(leadData.adset_name);
-        if (leadData.ad_name) attribution.ad = String(leadData.ad_name);
-
-        const customFields: Record<string, unknown> = {};
-        if (formAnswers.length > 0) customFields.form_answers = formAnswers;
-        if (Object.keys(attribution).length > 0) customFields.ad_attribution = attribution;
-
-        const answersText = formAnswers.map((a) => `${a.question}: ${a.answer}`).join("\n");
-
-        const { data: newContact } = await supabase.from("contacts").insert({
-          first_name: firstName,
-          last_name: lastName,
-          email,
-          phone,
-          type: "client",
-          notes: answersText || null,
-          created_by: brokerId,
-        }).select("id").maybeSingle();
-
-        const { data: newLead, error: leadError } = await supabase.from("leads").insert({
-          first_name: firstName,
-          last_name: lastName,
-          email,
-          phone,
-          source: sourceName,
-          status: "new",
-          broker_id: brokerId,
-          source_contact_id: newContact?.id || null,
-          custom_fields: customFields,
-        }).select("id").single();
-
-        if (leadError) {
-          console.error("Failed to create lead:", leadError);
-          results.push({ leadgen_id: leadgenId, error: leadError.message });
-          continue;
-        }
-
-        const noteLines = ["📣 Auto-created from a Facebook / Instagram lead ad"];
-        if (attribution.campaign) noteLines.push(`Campaign: ${attribution.campaign}`);
-        if (attribution.adset) noteLines.push(`Ad set: ${attribution.adset}`);
-        if (attribution.ad) noteLines.push(`Ad: ${attribution.ad}`);
-        if (formAnswers.length > 0) noteLines.push("", ...formAnswers.map((a) => `${a.question}: ${a.answer}`));
-        await supabase.from("notes").insert({
-          lead_id: newLead.id,
-          content: noteLines.join("\n"),
-          author_id: brokerId,
-        });
-
-        // Notify broker (best-effort)
-        try {
-          await fetch(`${supabaseUrl}/functions/v1/notify-new-lead`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${supabaseServiceKey}` },
-            body: JSON.stringify({
-              lead: { first_name: firstName, last_name: lastName, email, phone, loan_amount: null, loan_purpose: null, source: sourceName },
-              broker_id: brokerId,
-            }),
-          });
-        } catch (notifyErr) {
-          console.error("Failed to notify broker:", notifyErr);
-        }
-
-        console.log("Lead created:", newLead.id, firstName, lastName);
-        results.push({ leadgen_id: leadgenId, lead_id: newLead.id });
-      } catch (err) {
-        console.error("Error processing leadgen", leadgenId, err);
-        results.push({ leadgen_id: leadgenId, error: (err as Error).message });
+      } catch (error) {
+        failed = true;
+        const message = error instanceof Error ? error.message : 'Import failed';
+        await db.from('meta_lead_deliveries').upsert({ page_id: entry.id, leadgen_id: id, broker_id: page.broker_id, status: 'failed', error: message }, { onConflict: 'page_id,leadgen_id', ignoreDuplicates: true });
+        console.error('Facebook lead import failed:', message);
       }
     }
-
-    return new Response(JSON.stringify({ success: true, processed: results.length, results }), {
-      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    console.error("Meta lead webhook error:", error);
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
   }
+  return json({ imported, retry_required: failed }, failed ? 503 : 200);
 });

@@ -2705,6 +2705,78 @@ export type Database = {
           },
         ]
       }
+      meta_lead_deliveries: {
+        Row: {
+          broker_id: string
+          error: string | null
+          lead_id: string | null
+          leadgen_id: string
+          page_id: string
+          received_at: string
+          status: string
+        }
+        Insert: {
+          broker_id: string
+          error?: string | null
+          lead_id?: string | null
+          leadgen_id: string
+          page_id: string
+          received_at?: string
+          status?: string
+        }
+        Update: {
+          broker_id?: string
+          error?: string | null
+          lead_id?: string | null
+          leadgen_id?: string
+          page_id?: string
+          received_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_lead_deliveries_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meta_lead_deliveries_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "meta_lead_pages"
+            referencedColumns: ["page_id"]
+          },
+        ]
+      }
+      meta_lead_pages: {
+        Row: {
+          broker_id: string
+          created_at: string
+          enabled: boolean
+          page_id: string
+          page_name: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          broker_id: string
+          created_at?: string
+          enabled?: boolean
+          page_id: string
+          page_name?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          broker_id?: string
+          created_at?: string
+          enabled?: boolean
+          page_id?: string
+          page_name?: string | null
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       milestone_email_templates: {
         Row: {
           attachment_name: string | null
@@ -3541,6 +3613,19 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      ingest_meta_lead: {
+        Args: {
+          _custom_fields: Json
+          _email: string
+          _first_name: string
+          _last_name: string
+          _leadgen_id: string
+          _notes: string
+          _page_id: string
+          _phone: string
+        }
+        Returns: Json
       }
       is_broker_or_staff: { Args: { _user_id: string }; Returns: boolean }
       is_conversation_admin: {
