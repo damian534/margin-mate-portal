@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Webhook, Copy, RefreshCw, Send, CheckCircle2, Facebook, Landmark } from 'lucide-react';
+import { Webhook, Copy, RefreshCw, Send, CheckCircle2, Facebook, Landmark, Zap, Save } from 'lucide-react';
 
 /**
  * Per-brokerage inbound lead integrations. Shows the private intake URL that
@@ -18,6 +18,8 @@ export function IntegrationsSettings() {
   const [loading, setLoading] = useState(true);
   const [regenerating, setRegenerating] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [zapierUrl, setZapierUrl] = useState('');
+  const [savingZapier, setSavingZapier] = useState(false);
 
   const functionsBase = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
   const intakeUrl = useMemo(
@@ -36,19 +38,20 @@ export function IntegrationsSettings() {
       // database default generates the intake key.
       let { data } = await supabase
         .from('broker_email_settings')
-        .select('inbound_webhook_key')
+        .select('inbound_webhook_key, zapier_webhook_url')
         .eq('broker_id', effectiveBrokerId)
         .maybeSingle();
       if (!data) {
         await supabase.from('broker_email_settings').insert({ broker_id: effectiveBrokerId } as any);
         const res = await supabase
           .from('broker_email_settings')
-          .select('inbound_webhook_key')
+          .select('inbound_webhook_key, zapier_webhook_url')
           .eq('broker_id', effectiveBrokerId)
           .maybeSingle();
         data = res.data;
       }
       setIntakeKey(((data as any)?.inbound_webhook_key as string) || '');
+      setZapierUrl(((data as any)?.zapier_webhook_url as string) || '');
       setLoading(false);
     })();
   }, [effectiveBrokerId, isPreviewMode]);
@@ -106,6 +109,27 @@ export function IntegrationsSettings() {
     }
   };
 
+  const saveZapierUrl = async () => {
+    if (!effectiveBrokerId) return;
+    setSavingZapier(true);
+    const trimmed = zapierUrl.trim();
+    if (trimmed && !/^https:\/\//i.test(trimmed)) {
+      setSavingZapier(false);
+      toast.error('The Zapier webhook address must start with https://');
+      return;
+    }
+    const { error } = await supabase
+      .from('broker_email_settings')
+      .update({ zapier_webhook_url: trimmed || null } as any)
+      .eq('broker_id', effectiveBrokerId);
+    setSavingZapier(false);
+    if (error) {
+      toast.error('Failed to save: ' + error.message);
+      return;
+    }
+    toast.success(trimmed ? 'Saved — new contacts will now be sent to Zapier' : 'Zapier contact sync turned off');
+  };
+
   if (loading) {
     return <p className="text-muted-foreground text-sm py-8">Loading integrations…</p>;
   }
@@ -156,6 +180,46 @@ export function IntegrationsSettings() {
             <Send className="w-4 h-4 mr-2" />
             {testing ? 'Sending…' : 'Send test lead'}
           </Button>
+        </div>
+      </div>
+
+      {/* Zapier outbound contact sync */}
+      <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <Zap className="w-5 h-5 text-primary" />
+          <h2 className="text-lg font-semibold">Send new contacts to your other CRM (Zapier)</h2>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Every time a contact is created in Connect — from a new lead, a landing page, or added by hand — it can
+          be sent straight to Zapier, and Zapier can add it to your other CRM (MyCRM, Salesforce, HubSpot and
+          thousands more). Set it up once:
+        </p>
+        <ol className="text-sm text-muted-foreground space-y-1.5 list-decimal list-inside">
+          <li>In Zapier, create a new Zap with the trigger <strong>Webhooks by Zapier → Catch Hook</strong>.</li>
+          <li>Zapier gives you a webhook address — paste it below and save.</li>
+          <li>For the Zap's action, choose your CRM's <strong>Create Contact</strong> step and map the name, email and phone fields.</li>
+          <li>Turn the Zap on — from then on, new Connect contacts appear in your CRM automatically.</li>
+        </ol>
+        <div className="space-y-2">
+          <Label htmlFor="zapier-url">Zapier webhook address</Label>
+          <div className="flex gap-2">
+            <Input
+              id="zapier-url"
+              value={zapierUrl}
+              onChange={e => setZapierUrl(e.target.value)}
+              placeholder="https://hooks.zapier.com/hooks/catch/…"
+              className="font-mono text-xs"
+              disabled={isPreviewMode}
+            />
+            <Button onClick={saveZapierUrl} disabled={savingZapier || isPreviewMode}>
+              <Save className="w-4 h-4 mr-2" />
+              {savingZapier ? 'Saving…' : 'Save'}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Contacts are sent with name, email, phone, type and notes. Clear the field and save to turn the sync
+            off. Use Zapier's filters if you only want certain contact types synced.
+          </p>
         </div>
       </div>
 
