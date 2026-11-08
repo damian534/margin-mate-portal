@@ -1,4 +1,5 @@
 # Architecture rules
+- Client workflows enroll only on lead insertion with immutable step snapshots and one-use service-only dispatch tokens; sends recheck channel-specific consent and recipient opt-outs, while dry runs never send messages.
 - Native releases bundle web assets through Capacitor; a separate pure configuration helper permits hosted live reload only with explicit opt-in, preventing store builds from loading the editor preview.
 - New-lead SMS uses a lead-insert trigger and service-only unique jobs with one-use dispatch capabilities; Twilio calls stay server-side and settings/test actions verify broker ownership to prevent duplicate sends and cross-tenant access.
 - Automatic settlements are created only by the lead-date database trigger with a unique lead link; CRM stage changes write the settlement date instead of inserting another row, preventing dual-path duplicates.

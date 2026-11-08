@@ -193,6 +193,169 @@ export type Database = {
           },
         ]
       }
+      client_workflow_dispatch: {
+        Row: {
+          run_id: string
+          token: string
+        }
+        Insert: {
+          run_id: string
+          token?: string
+        }
+        Update: {
+          run_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_workflow_dispatch_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "client_workflow_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_workflow_optouts: {
+        Row: {
+          broker_id: string
+          channel: string
+          created_at: string
+          id: string
+          recipient: string
+        }
+        Insert: {
+          broker_id: string
+          channel: string
+          created_at?: string
+          id?: string
+          recipient: string
+        }
+        Update: {
+          broker_id?: string
+          channel?: string
+          created_at?: string
+          id?: string
+          recipient?: string
+        }
+        Relationships: []
+      }
+      client_workflow_runs: {
+        Row: {
+          broker_id: string
+          created_at: string
+          finished_at: string | null
+          id: string
+          lead_id: string
+          results: Json
+          status: string
+          steps: Json
+          workflow_id: string
+          workflow_name: string
+        }
+        Insert: {
+          broker_id: string
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          lead_id: string
+          results?: Json
+          status?: string
+          steps: Json
+          workflow_id: string
+          workflow_name: string
+        }
+        Update: {
+          broker_id?: string
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          lead_id?: string
+          results?: Json
+          status?: string
+          steps?: Json
+          workflow_id?: string
+          workflow_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_workflow_runs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_workflow_runs_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "client_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_workflow_unsubscribe: {
+        Row: {
+          broker_id: string
+          channel: string
+          lead_id: string
+          recipient: string
+          token: string
+        }
+        Insert: {
+          broker_id: string
+          channel: string
+          lead_id: string
+          recipient: string
+          token?: string
+        }
+        Update: {
+          broker_id?: string
+          channel?: string
+          lead_id?: string
+          recipient?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_workflow_unsubscribe_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_workflows: {
+        Row: {
+          active: boolean
+          broker_id: string
+          created_at: string
+          id: string
+          name: string
+          steps: Json
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          broker_id: string
+          created_at?: string
+          id?: string
+          name: string
+          steps?: Json
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          broker_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          steps?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           address: string | null

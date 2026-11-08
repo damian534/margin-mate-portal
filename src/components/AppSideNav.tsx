@@ -2,7 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   TrendingUp, Briefcase, ListTodo, Contact as ContactIcon, Building2, Share2,
   Mail as MailIcon, BarChart3, Wrench, Landmark, Settings2, LogOut,
-  PanelLeftClose, PanelLeftOpen, ChevronDown, Star, Newspaper, type LucideIcon,
+  PanelLeftClose, PanelLeftOpen, ChevronDown, Star, Newspaper, Workflow, type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -57,6 +57,7 @@ export function AppSideNav({ activeTab, onSelectTab, pendingReferralsCount = 0 }
   const links = [
     ...(isBrokerOrAdmin
       ? [
+          { label: 'Workflows', icon: Workflow, path: '/workflows', onClick: () => navigate(`/workflows${suffix}`) },
           { label: 'Settlements', icon: Landmark, path: '/admin/settlements', onClick: () => navigate(`/admin/settlements${suffix}`) },
           { label: 'Settings', icon: Settings2, path: '/admin/settings', onClick: () => navigate(`/admin/settings${suffix}`) },
         ]

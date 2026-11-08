@@ -22,6 +22,8 @@ interface Consent {
 }
 
 export const CONSENT_TYPES: { key: string; label: string; help: string }[] = [
+  { key: 'email_follow_up', label: 'Email follow-up consent', help: 'Client agreed to receive automated enquiry follow-up emails.' },
+  { key: 'sms_follow_up', label: 'SMS follow-up consent', help: 'Client agreed to receive automated enquiry follow-up texts. Keep evidence of consent.' },
   { key: 'privacy', label: 'Privacy consent', help: 'Consent to collect, use and disclose personal information.' },
   { key: 'credit_guide', label: 'Credit guide issued', help: 'Credit guide provided to the client.' },
   { key: 'credit_check', label: 'Credit check authority', help: 'Authority to obtain a credit report.' },

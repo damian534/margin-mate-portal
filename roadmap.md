@@ -1,4 +1,7 @@
 # Tasks
+- [x] Add new-lead workflow editing, activation, client email/SMS steps, consent checks and run history; verify authenticated save/readback and safe client dry run.
+- [ ] Enable and verify workflow email delivery — waiting for email sender-domain setup; email actions currently save and preview but do not send.
+- [ ] Verify workflow SMS delivery — waiting for a Twilio sending number and a consented test recipient.
 - [x] Prepare Margin Connect for native iPhone/Android packaging with safe release settings and local setup instructions; release configuration tests pass.
 - [ ] Build, device-test and submit store apps — requires Apple/Google developer accounts, local native tools and signing.
 - [x] Add Twilio SMS settings and automatic new-lead dispatch; verify authenticated settings save/readback and phone validation.
