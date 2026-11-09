@@ -1,3 +1,4 @@
+import { stageDashboard } from '@/lib/crmDashboardGroups';
 import { LeadStatus } from '@/hooks/useLeadStatuses';
 import { usePersistedState, usePersistedStringSet } from '@/hooks/usePersistedState';
 import { useMemo, useState } from 'react';
@@ -100,6 +101,7 @@ interface LeadSource {
 }
 
 interface WIPDashboardProps {
+  dashboard?: 'wip' | 'onboarding';
   leads: WIPLead[];
   leadStatuses?: LeadStatus[];
   isPreviewMode: boolean;
@@ -117,12 +119,16 @@ interface WIPDashboardProps {
   onAddInStage?: (wipStatusName: string) => void;
 }
 
-export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead, docsByLead, onDownloadDocs, leadSources = [], getReferrerName, getReferrerCompany, getContactName, externalSearch, tasksByLead, onAddInStage }: WIPDashboardProps) {
+export function WIPDashboard({ dashboard = 'wip', leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead, docsByLead, onDownloadDocs, leadSources = [], getReferrerName, getReferrerCompany, getContactName, externalSearch, tasksByLead, onAddInStage }: WIPDashboardProps) {
   const { statuses: wipStatusesDynamic, addStatus, updateStatus: updateWipStatusConfig, deleteStatus, reorderStatuses } = useWipStatuses();
-  const wipStatuses = wipStatusesDynamic.length > 0 ? wipStatusesDynamic : (WIP_STATUSES as unknown as { name: string; label: string; color: string; amber_after_days?: number | null; red_after_days?: number | null }[]);
-  const [assigneeFilter, setAssigneeFilter] = usePersistedState<string[]>('crm.wip.assigneeFilterMulti', []);
-  const [collapsedColumns, setCollapsedColumns] = usePersistedStringSet('crm.wip.collapsedColumns', []);
-  const [search, setSearch] = usePersistedState<string>('crm.wip.search', '');
+  const allWipStatuses = wipStatusesDynamic.length > 0 ? wipStatusesDynamic : (WIP_STATUSES as unknown as { name: string; label: string; color: string; amber_after_days?: number | null; red_after_days?: number | null }[]);
+  const wipStatuses = allWipStatuses.filter(s => dashboard === 'onboarding'
+    ? stageDashboard(s.name, allWipStatuses) === 'onboarding'
+    : !stageDashboard(s.name, allWipStatuses));
+  const persistenceKey = `crm.${dashboard}`;
+  const [assigneeFilter, setAssigneeFilter] = usePersistedState<string[]>(`${persistenceKey}.assigneeFilterMulti`, []);
+  const [collapsedColumns, setCollapsedColumns] = usePersistedStringSet(`${persistenceKey}.collapsedColumns`, []);
+  const [search, setSearch] = usePersistedState<string>(`${persistenceKey}.search`, '');
   const [sortOverrides, setSortOverrides] = useState<Record<string, number>>({});
   const [stageOverrides, setStageOverrides] = useState<Record<string, string>>({});
   const [dragOverCard, setDragOverCard] = useState<{ leadId: string; position: 'before' | 'after' } | null>(null);
@@ -159,11 +165,11 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
     return compareManualOrder(a, b);
   });
 
-  const [compact, setCompact] = usePersistedState<boolean>('crm.wip.compact', false);
-  const [view, setView] = usePersistedState<'kanban' | 'list'>('crm.wip.view', 'kanban');
-  const [taskDueFilter, setTaskDueFilter] = usePersistedState<WipTaskDueFilter>('crm.wip.taskDueFilter', 'all_leads');
-  const [agingFilter, setAgingFilter] = usePersistedState<'all' | 'green' | 'amber' | 'red'>('crm.wip.agingFilter', 'all');
-  const [agingSort, setAgingSort] = usePersistedState<boolean>('crm.wip.agingSort', false);
+  const [compact, setCompact] = usePersistedState<boolean>(`${persistenceKey}.compact`, false);
+  const [view, setView] = usePersistedState<'kanban' | 'list'>(`${persistenceKey}.view`, dashboard === 'onboarding' ? 'list' : 'kanban');
+  const [taskDueFilter, setTaskDueFilter] = usePersistedState<WipTaskDueFilter>(`${persistenceKey}.taskDueFilter`, 'all_leads');
+  const [agingFilter, setAgingFilter] = usePersistedState<'all' | 'green' | 'amber' | 'red'>(`${persistenceKey}.agingFilter`, 'all');
+  const [agingSort, setAgingSort] = usePersistedState<boolean>(`${persistenceKey}.agingSort`, false);
 
   const toggleCollapse = (name: string) => {
     setCollapsedColumns(prev => {
@@ -332,7 +338,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search WIP by name, opportunity, or amount..."
+            placeholder={`Search ${dashboard === 'onboarding' ? 'onboarding' : 'WIP'} by name, opportunity, or amount…`}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 pr-9"
@@ -348,7 +354,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
             </button>
           )}
         </div>
-        <div className="flex justify-end gap-2 sm:ml-auto">
+        <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 sm:ml-auto min-w-0">
         <div className="flex items-center border rounded-md">
           <Button variant={view === 'list' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-2" onClick={() => setView('list')} title="List view">
             <List className="w-4 h-4" />
@@ -380,7 +386,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
         </Button>
         <AssigneeFilter value={assigneeFilter} onChange={setAssigneeFilter} className="w-full sm:w-56" />
         <StatusSettings
-          statuses={wipStatuses as any}
+          statuses={allWipStatuses as any}
           onAdd={addStatus}
           onUpdate={updateWipStatusConfig}
           onDelete={deleteStatus}
@@ -478,7 +484,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
 
       {view === 'list' ? (
         visibleLeads.filter(l => l.wip_status).length === 0 ? (
-          <Card><CardContent className="p-0"><p className="text-muted-foreground text-center py-12">No deals in WIP</p></CardContent></Card>
+          <Card><CardContent className="p-0"><p className="text-muted-foreground text-center py-12">No deals in {dashboard === 'onboarding' ? 'onboarding' : 'WIP'}</p></CardContent></Card>
         ) : (
           <div className="space-y-6">
             {wipStatuses.map(stage => {
@@ -586,7 +592,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                     <DropdownMenuContent align="end" className="max-h-[60vh] overflow-y-auto bg-popover z-50">
                                       <DropdownMenuLabel className="text-xs">Move to stage</DropdownMenuLabel>
                                       <DropdownMenuSeparator />
-                                      {wipStatuses.map(s => (
+                                      {allWipStatuses.map(s => (
                                         <DropdownMenuItem
                                           key={s.name}
                                           disabled={s.name === lead.wip_status}
@@ -776,7 +782,7 @@ export function WIPDashboard({ leads, leadStatuses = [], isPreviewMode, onOpenLe
                                     <DropdownMenuContent align="end" className="max-h-[60vh] overflow-y-auto bg-popover z-50">
                                       <DropdownMenuLabel className="text-xs">Move to stage</DropdownMenuLabel>
                                       <DropdownMenuSeparator />
-                                      {wipStatuses.map(s => (
+                                      {allWipStatuses.map(s => (
                                         <DropdownMenuItem
                                           key={s.name}
                                           disabled={s.name === stage.name}

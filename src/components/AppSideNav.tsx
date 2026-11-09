@@ -2,7 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   TrendingUp, Briefcase, ListTodo, Contact as ContactIcon, Building2, Share2,
   Mail as MailIcon, BarChart3, Wrench, Landmark, Settings2, LogOut,
-  PanelLeftClose, PanelLeftOpen, ChevronDown, Star, Newspaper, Workflow, type LucideIcon,
+  PanelLeftClose, PanelLeftOpen, ChevronDown, Star, Newspaper, Workflow, ClipboardCheck, PauseCircle, CircleX, type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -21,7 +21,10 @@ import {
 
 export const CRM_NAV_TABS = [
   { value: 'leads', label: 'Leads', icon: TrendingUp },
+  { value: 'onboarding', label: 'Onboarding', icon: ClipboardCheck },
   { value: 'wip', label: 'WIP', icon: Briefcase },
+  { value: 'parked', label: 'Parked', icon: PauseCircle },
+  { value: 'lost', label: 'Lost', icon: CircleX },
   { value: 'tasks', label: 'Tasks', icon: ListTodo },
   { value: 'contacts', label: 'Contacts', icon: ContactIcon },
   { value: 'partners', label: 'Partners', icon: Building2 },
