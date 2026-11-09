@@ -24,7 +24,7 @@ import { IncomingReferralsPanel } from '@/components/IncomingReferralsPanel';
 import { WIPDashboard } from '@/components/WIPDashboard';
 import { StageDashboard } from '@/components/StageDashboard';
 import { useWipStatuses } from '@/hooks/useWipStatuses';
-import { getDealDashboard, stageDashboard } from '@/lib/crmDashboardGroups';
+import { getDealDashboard, stageDashboard, LEAD_BOARD_OPTIONS } from '@/lib/crmDashboardGroups';
 import { PipelineReport } from '@/components/PipelineReport';
 import { LeadsReport } from '@/components/LeadsReport';
 import { AssigneeFilter } from '@/components/AssigneePicker';
@@ -786,6 +786,7 @@ export default function AdminCRM() {
                 onUpdate={updateLeadStatus}
                 onDelete={deleteStatus}
                 onReorder={reorderStatuses}
+                boardOptions={[...LEAD_BOARD_OPTIONS]}
               />
               <AddLeadDialog
                 leadSources={leadSources}

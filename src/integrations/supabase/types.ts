@@ -2114,6 +2114,7 @@ export type Database = {
           amber_after_days: number
           color: string
           created_at: string
+          dashboard: string
           display_order: number
           id: string
           label: string
@@ -2124,6 +2125,7 @@ export type Database = {
           amber_after_days?: number
           color?: string
           created_at?: string
+          dashboard?: string
           display_order?: number
           id?: string
           label: string
@@ -2134,6 +2136,7 @@ export type Database = {
           amber_after_days?: number
           color?: string
           created_at?: string
+          dashboard?: string
           display_order?: number
           id?: string
           label?: string
@@ -3485,6 +3488,7 @@ export type Database = {
           amber_after_days: number
           color: string
           created_at: string
+          dashboard: string
           display_order: number
           id: string
           label: string
@@ -3495,6 +3499,7 @@ export type Database = {
           amber_after_days?: number
           color?: string
           created_at?: string
+          dashboard?: string
           display_order?: number
           id?: string
           label: string
@@ -3505,6 +3510,7 @@ export type Database = {
           amber_after_days?: number
           color?: string
           created_at?: string
+          dashboard?: string
           display_order?: number
           id?: string
           label?: string

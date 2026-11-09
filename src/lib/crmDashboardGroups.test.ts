@@ -38,4 +38,23 @@ describe('dedicated deal dashboards', () => {
     expect(getDealDashboard({ ...lead, wip_status: 'lodged' })).toBe('wip');
     expect(getDealDashboard({ ...lead, status: 'lost' })).toBe('lost');
   });
+  it('honours an explicit board assignment over the status name', () => {
+    // "Lost/Archived" does not name-match 'lost', so it needs an explicit assignment.
+    const leadStatuses = [{ name: 'lost/archived', label: 'Lost/Archived', dashboard: 'lost' }];
+    expect(stageDashboard('lost/archived', leadStatuses)).toBe('lost');
+    expect(getDealDashboard({ status: 'lost/archived', wip_status: 'lodged' }, leadStatuses)).toBe('lost');
+  });
+  it('lets an explicit leads/wip assignment keep a name-matched status on the main board', () => {
+    expect(stageDashboard('lost', [{ name: 'lost', label: 'Lost', dashboard: 'leads' }])).toBe(null);
+    expect(getDealDashboard({ status: 'lost' }, [{ name: 'lost', label: 'Lost', dashboard: 'leads' }])).toBe('leads');
+    expect(getDealDashboard(
+      { status: 'in_progress', wip_status: 'settled' },
+      [],
+      [{ name: 'settled', label: 'Settled', dashboard: 'wip' }],
+    )).toBe('wip');
+  });
+  it('falls back to name matching when a status has no explicit assignment', () => {
+    expect(stageDashboard('lost', [{ name: 'lost', label: 'Lost', dashboard: null }])).toBe('lost');
+    expect(stageDashboard('parked', [{ name: 'parked', label: 'Parked' }])).toBe('parked');
+  });
 });

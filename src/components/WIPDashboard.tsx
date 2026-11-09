@@ -1,4 +1,4 @@
-import { stageDashboard } from '@/lib/crmDashboardGroups';
+import { stageDashboard, WIP_BOARD_OPTIONS } from '@/lib/crmDashboardGroups';
 import { LeadStatus } from '@/hooks/useLeadStatuses';
 import { usePersistedState, usePersistedStringSet } from '@/hooks/usePersistedState';
 import { useMemo, useState } from 'react';
@@ -393,6 +393,7 @@ export function WIPDashboard({ dashboard = 'wip', leads, leadStatuses = [], isPr
           onReorder={reorderStatuses as any}
           title="WIP Statuses"
           triggerLabel="Manage WIP Statuses"
+          boardOptions={[...WIP_BOARD_OPTIONS]}
         />
         </div>
       </div>

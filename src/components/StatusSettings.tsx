@@ -3,39 +3,51 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Settings, Plus, Trash2, GripVertical, Pencil } from 'lucide-react';
 import { LeadStatus } from '@/hooks/useLeadStatuses';
 
+export interface BoardOption { value: string; label: string }
+
 interface StatusSettingsProps {
   statuses: LeadStatus[];
-  onAdd: (name: string, label: string, color: string) => Promise<boolean>;
-  onUpdate: (id: string, updates: Partial<Pick<LeadStatus, 'label' | 'color' | 'name' | 'amber_after_days' | 'red_after_days'>>) => Promise<boolean>;
+  onAdd: (name: string, label: string, color: string, dashboard?: string) => Promise<boolean>;
+  onUpdate: (id: string, updates: Partial<Pick<LeadStatus, 'label' | 'color' | 'name' | 'amber_after_days' | 'red_after_days' | 'dashboard'>>) => Promise<boolean>;
   onDelete: (id: string) => Promise<boolean>;
   onReorder: (reordered: LeadStatus[]) => Promise<boolean>;
   title?: string;
   triggerLabel?: string;
+  /** Boards a status can be assigned to; the first option is the default for new statuses. */
+  boardOptions?: BoardOption[];
 }
 
-export function StatusSettings({ statuses, onAdd, onUpdate, onDelete, onReorder, title = 'Lead Statuses', triggerLabel = 'Manage Statuses' }: StatusSettingsProps) {
+export function StatusSettings({ statuses, onAdd, onUpdate, onDelete, onReorder, title = 'Lead Statuses', triggerLabel = 'Manage Statuses', boardOptions }: StatusSettingsProps) {
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [newLabel, setNewLabel] = useState('');
   const [newColor, setNewColor] = useState('#6b7280');
+  const [newBoard, setNewBoard] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState('');
   const [editColor, setEditColor] = useState('');
   const [editAmber, setEditAmber] = useState('4');
   const [editRed, setEditRed] = useState('7');
+  const [editBoard, setEditBoard] = useState('');
+
+  const defaultBoard = boardOptions?.[0]?.value || 'leads';
+  const boardLabel = (value: string | null | undefined) =>
+    boardOptions?.find(o => o.value === (value || defaultBoard))?.label || value || defaultBoard;
 
   const handleAdd = async () => {
     if (!newLabel.trim()) return;
     const name = newLabel.trim().toLowerCase().replace(/\s+/g, '_');
-    const ok = await onAdd(name, newLabel.trim(), newColor);
+    const ok = await onAdd(name, newLabel.trim(), newColor, newBoard || defaultBoard);
     if (ok) {
       toast.success('Status added');
       setNewLabel('');
       setNewColor('#6b7280');
+      setNewBoard('');
       setAdding(false);
     } else {
       toast.error('Failed to add status');
@@ -46,7 +58,7 @@ export function StatusSettings({ statuses, onAdd, onUpdate, onDelete, onReorder,
     const name = editLabel.trim().toLowerCase().replace(/\s+/g, '_');
     const amber = Math.max(1, parseInt(editAmber) || 4);
     const red = Math.max(amber + 1, parseInt(editRed) || 7);
-    const ok = await onUpdate(id, { label: editLabel.trim(), color: editColor, name, amber_after_days: amber, red_after_days: red });
+    const ok = await onUpdate(id, { label: editLabel.trim(), color: editColor, name, amber_after_days: amber, red_after_days: red, ...(boardOptions ? { dashboard: editBoard || defaultBoard } : {}) });
     if (ok) {
       toast.success('Status updated');
       setEditingId(null);
@@ -143,10 +155,24 @@ export function StatusSettings({ statuses, onAdd, onUpdate, onDelete, onReorder,
                       />
                     </label>
                   </div>
+                  {boardOptions && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span className="shrink-0">Show in:</span>
+                      <Select value={editBoard || defaultBoard} onValueChange={setEditBoard}>
+                        <SelectTrigger className="h-7 text-xs flex-1"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {boardOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <>
                   <span className="flex-1 text-sm font-medium">{status.label}</span>
+                  {boardOptions && (
+                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground border rounded px-1.5 py-0.5 shrink-0">{boardLabel(status.dashboard)}</span>
+                  )}
                   <Button
                     size="sm"
                     variant="ghost"
@@ -157,6 +183,7 @@ export function StatusSettings({ statuses, onAdd, onUpdate, onDelete, onReorder,
                       setEditColor(status.color);
                       setEditAmber(String(status.amber_after_days ?? 4));
                       setEditRed(String(status.red_after_days ?? 7));
+                      setEditBoard(status.dashboard || defaultBoard);
                     }}
                   >
                     <Pencil className="w-3 h-3" />
@@ -176,13 +203,13 @@ export function StatusSettings({ statuses, onAdd, onUpdate, onDelete, onReorder,
         </div>
 
         {adding ? (
-          <div className="flex items-center gap-2 p-2 rounded-lg border border-dashed">
+          <div className="flex flex-wrap items-center gap-2 p-2 rounded-lg border border-dashed">
             <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: newColor }} />
             <Input
               value={newLabel}
               onChange={e => setNewLabel(e.target.value)}
               placeholder="Status name..."
-              className="h-8 text-sm flex-1"
+              className="h-8 text-sm flex-1 min-w-28"
               autoFocus
             />
             <input
@@ -191,6 +218,14 @@ export function StatusSettings({ statuses, onAdd, onUpdate, onDelete, onReorder,
               onChange={e => setNewColor(e.target.value)}
               className="w-8 h-8 rounded cursor-pointer border-0 p-0"
             />
+            {boardOptions && (
+              <Select value={newBoard || defaultBoard} onValueChange={setNewBoard}>
+                <SelectTrigger className="h-8 text-xs w-32"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {boardOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
             <Button size="sm" onClick={handleAdd} disabled={!newLabel.trim()} className="h-8">Add</Button>
             <Button size="sm" variant="ghost" onClick={() => setAdding(false)} className="h-8">✕</Button>
           </div>
