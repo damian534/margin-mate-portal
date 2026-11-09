@@ -2,6 +2,17 @@ import { describe, expect, it } from 'vitest';
 import { getDealDashboard, stageDashboard } from './crmDashboardGroups';
 
 describe('dedicated deal dashboards', () => {
+  it('separates pre-approved deals in either status field from active Leads and WIP', () => {
+    expect(getDealDashboard({ status: 'in_progress', wip_status: 'preapproved' })).toBe('preapproved');
+    expect(getDealDashboard({ status: 'pre_approved' })).toBe('preapproved');
+    expect(stageDashboard('custom_preapproval', [{ name: 'custom_preapproval', label: 'Pre-approved' }])).toBe('preapproved');
+    expect(getDealDashboard({ status: 'preapproved', wip_status: 'lodged' })).toBe('wip');
+  });
+  it('separates settled deals in either status field without using historical settlement dates', () => {
+    expect(getDealDashboard({ status: 'in_progress', wip_status: 'settled' })).toBe('settled');
+    expect(getDealDashboard({ status: 'settled', wip_status: 'lodged' })).toBe('settled');
+    expect(getDealDashboard({ status: 'in_progress', wip_status: 'formal_approval' })).toBe('wip');
+  });
   it('keeps Parked out of Leads and WIP even with a previous WIP stage', () => {
     expect(getDealDashboard({ status: 'parked', wip_status: 'lodged' })).toBe('parked');
   });

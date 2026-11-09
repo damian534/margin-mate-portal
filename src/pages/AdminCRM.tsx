@@ -247,6 +247,8 @@ export default function AdminCRM() {
     wip: leads.filter(l => getDealDashboard(l, statuses, wipStatuses) === 'wip'),
     parked: leads.filter(l => getDealDashboard(l, statuses, wipStatuses) === 'parked'),
     lost: leads.filter(l => getDealDashboard(l, statuses, wipStatuses) === 'lost'),
+    preapproved: leads.filter(l => getDealDashboard(l, statuses, wipStatuses) === 'preapproved'),
+    settled: leads.filter(l => getDealDashboard(l, statuses, wipStatuses) === 'settled'),
   }), [leads, statuses, wipStatuses]);
   const activeLeadStatuses = statuses.filter(s => !stageDashboard(s.name, statuses));
 
@@ -1046,7 +1048,7 @@ export default function AdminCRM() {
             />
           </TabsContent>
 
-          {(['parked', 'lost'] as const).map(stage => (
+          {(['parked', 'lost', 'preapproved', 'settled'] as const).map(stage => (
             <TabsContent key={stage} value={stage} className="mt-4">
               <StageDashboard stage={stage} leads={dashboardLeads[stage]} loading={loading} onOpenLead={openLead} leadSources={leadSources} getReferrerName={getReferrerName} />
             </TabsContent>

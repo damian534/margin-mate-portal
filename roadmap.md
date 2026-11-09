@@ -1,4 +1,5 @@
 # Tasks
+- [x] Add dedicated Pre-approved and Settled deal dashboards; verified 28 pre-approved and 47 settled saved deals, search, full deal access, WIP separation, reload persistence and phone layout; eleven focused tests passed.
 - [x] Separate Parked and Lost into dedicated dashboards and add an Onboarding dashboard; authenticated stage filtering, saved deal access, search, reload persistence and phone layout verified; nine focused tests passed.
 - [x] Simplify the Leads contact card with immediate notes, contact actions and tasks, preserving the full WIP card; authenticated note/task saving, completion, reopening and mobile layout verified, temporary test activity removed.
 - [x] Add new-lead workflow editing, activation, client email/SMS steps, consent checks and run history; verify authenticated save/readback and safe client dry run.

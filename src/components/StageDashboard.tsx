@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Search, ChevronRight, PauseCircle, CircleX } from 'lucide-react';
+import { Search, ChevronRight, PauseCircle, CircleX, BadgeCheck, CheckCircle2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AssigneeFilter, AssigneeBadge } from '@/components/AssigneePicker';
@@ -10,10 +10,11 @@ interface StageLead {
   id: string; first_name: string; last_name: string; email: string | null; phone: string | null;
   loan_amount: number | null; source: string | null; referral_partner_id: string | null;
   assigned_to?: string | null; stage_entered_at?: string | null; updated_at: string;
+  settled_date?: string | null;
 }
 
 interface Props<T extends StageLead> {
-  stage: 'parked' | 'lost'; leads: T[]; loading: boolean; onOpenLead: (lead: T) => void;
+  stage: 'parked' | 'lost' | 'preapproved' | 'settled'; leads: T[]; loading: boolean; onOpenLead: (lead: T) => void;
   leadSources: { name: string; label: string }[];
   getReferrerName: (id: string | null) => string | null;
 }
@@ -21,8 +22,12 @@ interface Props<T extends StageLead> {
 export function StageDashboard<T extends StageLead>({ stage, leads, loading, onOpenLead, leadSources, getReferrerName }: Props<T>) {
   const [search, setSearch] = useState('');
   const [assignees, setAssignees] = useState<string[]>([]);
-  const title = stage === 'parked' ? 'Parked' : 'Lost';
-  const Icon = stage === 'parked' ? PauseCircle : CircleX;
+  const { title, Icon } = {
+    parked: { title: 'Parked', Icon: PauseCircle },
+    lost: { title: 'Lost', Icon: CircleX },
+    preapproved: { title: 'Pre-approved', Icon: BadgeCheck },
+    settled: { title: 'Settled', Icon: CheckCircle2 },
+  }[stage];
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
     return leads.filter(lead => {
@@ -54,7 +59,7 @@ export function StageDashboard<T extends StageLead>({ stage, leads, loading, onO
         <Table>
           <TableHeader><TableRow>
             <TableHead>Client</TableHead><TableHead>Contact</TableHead><TableHead>Source / referrer</TableHead>
-            <TableHead>Amount</TableHead><TableHead>Assignee</TableHead><TableHead>{title} since</TableHead><TableHead className="w-10" />
+            <TableHead>Amount</TableHead><TableHead>Assignee</TableHead><TableHead>{stage === 'settled' ? 'Settlement date' : `${title} since`}</TableHead><TableHead className="w-10" />
           </TableRow></TableHeader>
           <TableBody>{visible.map(lead => (
             <TableRow key={lead.id} onClick={() => onOpenLead(lead)} className="cursor-pointer">
@@ -63,7 +68,7 @@ export function StageDashboard<T extends StageLead>({ stage, leads, loading, onO
               <TableCell><div>{leadSources.find(s => s.name === lead.source)?.label || lead.source || '—'}</div><div className="text-xs text-muted-foreground">{getReferrerName(lead.referral_partner_id)}</div></TableCell>
               <TableCell className="tabular-nums">{lead.loan_amount ? `$${lead.loan_amount.toLocaleString('en-AU')}` : '—'}</TableCell>
               <TableCell><AssigneeBadge userId={lead.assigned_to ?? null} /></TableCell>
-              <TableCell className="text-muted-foreground whitespace-nowrap">{format(new Date(lead.stage_entered_at || lead.updated_at), 'dd MMM yyyy')}</TableCell>
+              <TableCell className="text-muted-foreground whitespace-nowrap">{stage === 'settled' ? (lead.settled_date ? format(new Date(lead.settled_date), 'dd MMM yyyy') : '—') : format(new Date(lead.stage_entered_at || lead.updated_at), 'dd MMM yyyy')}</TableCell>
               <TableCell><ChevronRight className="h-4 w-4 text-muted-foreground" /></TableCell>
             </TableRow>
           ))}</TableBody>
