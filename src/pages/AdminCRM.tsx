@@ -1050,7 +1050,27 @@ export default function AdminCRM() {
 
           {(['parked', 'lost', 'preapproved', 'settled'] as const).map(stage => (
             <TabsContent key={stage} value={stage} className="mt-4">
-              <StageDashboard stage={stage} leads={dashboardLeads[stage]} loading={loading} onOpenLead={openLead} leadSources={leadSources} getReferrerName={getReferrerName} />
+              <StageDashboard
+                stage={stage}
+                leads={dashboardLeads[stage]}
+                loading={loading}
+                onOpenLead={openLead}
+                leadSources={leadSources}
+                getReferrerName={getReferrerName}
+                statuses={statuses}
+                onUpdateStatus={updateStatus}
+                wipStatuses={wipStatuses}
+                onUpdateWipStatus={(leadId, wipStatus) => updateWipStatus(leadId, wipStatus)}
+                getReferrerCompany={getReferrerCompany}
+                getContactName={(contactId) => {
+                  if (!contactId) return null;
+                  const c = contacts.find(ct => ct.id === contactId);
+                  return c ? `${c.first_name} ${c.last_name}` : null;
+                }}
+                tasksByLead={tasksByLead}
+                docsByLead={docsByLead}
+                onDownloadDocs={downloadLeadDocsZip}
+              />
             </TabsContent>
           ))}
 

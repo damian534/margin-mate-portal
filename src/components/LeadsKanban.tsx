@@ -50,6 +50,10 @@ interface LeadTask {
 interface LeadsKanbanProps {
   leads: Lead[];
   statuses: LeadStatus[];
+  /** Statuses offered in the card "Move to status" menu; defaults to the column statuses. */
+  moveStatuses?: LeadStatus[];
+  /** localStorage key prefix for collapsed/compact prefs, so different boards keep separate layouts. */
+  persistKeyPrefix?: string;
   leadSources?: LeadSource[];
   getReferrerName?: (partnerId: string | null) => string | null;
   getReferrerCompany?: (partnerId: string | null) => string | null;
@@ -64,9 +68,9 @@ interface LeadsKanbanProps {
   onAddInStage?: (statusName: string) => void;
 }
 
-export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName, getReferrerCompany, getContactName, onOpenLead, onUpdateStatus, onUpdateWipStatus, tasksByLead, taskDueFilter, docsByLead, onDownloadDocs, onAddInStage }: LeadsKanbanProps) {
-  const [collapsedColumns, setCollapsedColumns] = usePersistedStringSet('crm.leads.kanban.collapsedColumns', []);
-  const [compact, setCompact] = usePersistedState<boolean>('crm.leads.kanban.compact', false);
+export function LeadsKanban({ leads, statuses, moveStatuses, persistKeyPrefix = 'crm.leads.kanban', leadSources = [], getReferrerName, getReferrerCompany, getContactName, onOpenLead, onUpdateStatus, onUpdateWipStatus, tasksByLead, taskDueFilter, docsByLead, onDownloadDocs, onAddInStage }: LeadsKanbanProps) {
+  const [collapsedColumns, setCollapsedColumns] = usePersistedStringSet(`${persistKeyPrefix}.collapsedColumns`, []);
+  const [compact, setCompact] = usePersistedState<boolean>(`${persistKeyPrefix}.compact`, false);
   // Local optimistic overrides for sort_order and status to keep DnD snappy.
   const [sortOverrides, setSortOverrides] = useState<Record<string, number>>({});
   const [statusOverrides, setStatusOverrides] = useState<Record<string, string>>({});
@@ -217,7 +221,9 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
           const columnLeads = sortLeads(leads.filter(l => getStatus(l) === status.name));
           const totalAmount = columnLeads.reduce((sum, l) => sum + (l.loan_amount || 0), 0);
           const isCollapsed = collapsedColumns.has(status.name);
-          const staleCount = AGING_EXEMPT_STATUSES.has(status.name)
+          // Stage dashboards prefix wip-stage columns with "wip:"; age against the real stage name.
+          const agingName = status.name.startsWith('wip:') ? status.name.slice(4) : status.name;
+          const staleCount = AGING_EXEMPT_STATUSES.has(agingName)
             ? 0
             : columnLeads.filter(l => getAgingLevel(l.stage_entered_at, status)?.level === 'red').length;
 
@@ -287,7 +293,7 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                         const hasTask = getLeadHasActiveTasks(lead.id);
                         const docs = docsByLead?.get(lead.id);
                         const docsPct = docs && docs.requested > 0 ? Math.round((docs.completed / docs.requested) * 100) : null;
-                        const aging = getCardAging(lead.stage_entered_at, status.name, status);
+                        const aging = getCardAging(lead.stage_entered_at, agingName, status);
                         return (
                           <Card
                             key={lead.id}
@@ -330,7 +336,7 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                                 </div>
                                 <StageAgingDot
                                   stageEnteredAt={lead.stage_entered_at}
-                                  statusName={status.name}
+                                  statusName={agingName}
                                   thresholds={status}
                                   className="mt-0.5"
                                 />
@@ -347,7 +353,7 @@ export function LeadsKanban({ leads, statuses, leadSources = [], getReferrerName
                                   <DropdownMenuContent align="end" className="max-h-[60vh] overflow-y-auto bg-popover z-50">
                                     <DropdownMenuLabel className="text-xs">Move to status</DropdownMenuLabel>
                                     <DropdownMenuSeparator />
-                                    {statuses.map(s => (
+                                    {(moveStatuses ?? statuses).map(s => (
                                       <DropdownMenuItem
                                         key={s.name}
                                         disabled={s.name === status.name}
