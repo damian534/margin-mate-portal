@@ -1151,6 +1151,7 @@ export default function AdminCRM() {
         onOpenChange={setSheetOpen}
         lead={selectedLead}
         initialTaskId={focusTaskId}
+        presentation={activeTab === 'leads' ? 'lead' : 'deal'}
         statuses={statuses}
         leadSources={leadSources}
         referrerName={selectedLead ? getReferrerName(selectedLead.referral_partner_id) : null}

@@ -1,4 +1,5 @@
 # Tasks
+- [x] Simplify the Leads contact card with immediate notes, contact actions and tasks, preserving the full WIP card; authenticated note/task saving, completion, reopening and mobile layout verified, temporary test activity removed.
 - [x] Add new-lead workflow editing, activation, client email/SMS steps, consent checks and run history; verify authenticated save/readback and safe client dry run.
 - [ ] Enable and verify workflow email delivery — waiting for email sender-domain setup; email actions currently save and preview but do not send.
 - [ ] Verify workflow SMS delivery — waiting for a Twilio sending number and a consented test recipient.

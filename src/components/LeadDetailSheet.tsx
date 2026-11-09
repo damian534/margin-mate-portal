@@ -44,6 +44,7 @@ import { LoanSplitsEditor } from '@/components/LoanSplitsEditor';
 import { EsignSection } from '@/components/esign/EsignSection';
 import { SectionCard } from '@/components/lead/SectionCard';
 import { FormAnswersCard } from '@/components/lead/FormAnswersCard';
+import { SimpleLeadCard } from '@/components/lead/SimpleLeadCard';
 import { ClientFileTabs, type ClientFileTab } from '@/components/lead/tabs/ClientFileTabs';
 import { FundingPositionTab } from '@/components/lead/tabs/FundingPositionTab';
 import { FactFindWizardDialog } from '@/components/lead/FactFindWizardDialog';
@@ -225,6 +226,7 @@ interface LeadDetailSheetProps {
   sampleNotes?: Note[];
   onLeadSourcesChanged?: () => void;
   initialTaskId?: string | null;
+  presentation?: 'lead' | 'deal';
 }
 
 const FOLLOW_UP_OPTIONS = [
@@ -251,7 +253,7 @@ function formatDatetimeLocal(d: Date) {
 
 export function LeadDetailSheet({
   open, onOpenChange, lead, statuses, leadSources = [], referrerName, referrerCompany, sourceContactName,
-  contacts: contactsList = [], referrers: referrersList = [], isPreviewMode, onUpdateStatus, onUpdateWipStatus, onUpdateCommission, onDeleteLead, onDuplicateLead, onLeadChange, onOpenContact, sampleNotes, onLeadSourcesChanged, initialTaskId
+  contacts: contactsList = [], referrers: referrersList = [], isPreviewMode, onUpdateStatus, onUpdateWipStatus, onUpdateCommission, onDeleteLead, onDuplicateLead, onLeadChange, onOpenContact, sampleNotes, onLeadSourcesChanged, initialTaskId, presentation
 }: LeadDetailSheetProps) {
   const { user, role, effectiveBrokerId } = useAuth();
   const { members: teamMembers } = useTeamMembers();
@@ -292,6 +294,13 @@ export function LeadDetailSheet({
     }
   }, [showTaskForm, user?.id]);
   const [activeTab, setActiveTab] = useState<ClientFileTab>('summary');
+  const [showFullFile, setShowFullFile] = useState(false);
+  useEffect(() => {
+    setShowFullFile(false);
+    setActiveTab('summary');
+    setNewNote('');
+    setShowTaskForm(false);
+  }, [lead?.id, open]);
   const [factFindOpen, setFactFindOpen] = useState(false);
   const [factFindVersion, setFactFindVersion] = useState(0);
 
@@ -496,7 +505,7 @@ export function LeadDetailSheet({
   };
 
   const addNote = async (content: string, type: 'note' | 'email' | 'call' | 'text' = 'note', taskId?: string) => {
-    if (!content.trim() || !lead || !user) return;
+    if (!content.trim() || !lead || !user) return false;
     const noteContent = type === 'email'
       ? `📧 Email sent to ${lead.email}\n${content}`
       : type === 'call'
@@ -510,12 +519,12 @@ export function LeadDetailSheet({
       setNotes(prev => [fakeNote, ...prev]);
       toast.success('Note added (preview)');
     if (!taskId) { setNewNote(''); setNotifyPartner(false); setNoteType('note'); }
-      return;
+      return true;
     }
     const insertData: any = { lead_id: lead.id, author_id: user.id, content: noteContent.trim(), notify_partner: notifyPartner };
     if (taskId) insertData.task_id = taskId;
     const { data: inserted, error } = await supabase.from('notes').insert(insertData).select('id').single();
-    if (error || !inserted) { toast.error('Failed to add note'); return; }
+    if (error || !inserted) { toast.error('Failed to add note'); return false; }
 
     // Upload any staged attachments (only for the main timeline form, not task notes)
     if (!taskId && noteFiles.length > 0) {
@@ -541,6 +550,7 @@ export function LeadDetailSheet({
     toast.success(notifyPartner ? 'Note added & partner notified' : 'Note added');
     if (!taskId) { setNewNote(''); setNotifyPartner(false); setNoteFiles([]); setNoteType('note'); }
     fetchNotes(lead.id);
+    return true;
   };
 
   const downloadAttachment = async (att: NoteAttachment) => {
@@ -1220,9 +1230,64 @@ export function LeadDetailSheet({
     ? mergedContactsList.find(c => c.id === lead.co_applicant_contact_id) ?? null
     : null;
 
+  const simpleLead = (presentation === 'lead' || (!presentation && !lead.wip_status)) && !showFullFile;
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-[95vw] sm:max-w-5xl lg:max-w-[1100px] overflow-y-auto p-0">
+        {simpleLead ? (<>
+          <SheetHeader className="sr-only"><SheetTitle>{lead.first_name} {lead.last_name}</SheetTitle></SheetHeader>
+          <SimpleLeadCard
+            key={lead.id}
+            name={`${lead.first_name} ${lead.last_name}`.trim()}
+            email={primaryApplicantContact?.email || lead.email}
+            phone={primaryApplicantContact?.phone || lead.phone}
+            status={lead.status}
+            statuses={statuses}
+            source={lead.source}
+            sources={leadSources}
+            createdAt={lead.created_at}
+            customFields={lead.custom_fields as unknown as Record<string, unknown>}
+            notes={notes}
+            authorName={id => teamMembers.find(m => m.user_id === id)?.name || (id === user?.id ? 'You' : 'Team member')}
+            onStatus={value => onUpdateStatus(lead.id, value)}
+            onSource={async source => {
+              if (!isPreviewMode) {
+                const { error } = await supabase.from('leads').update({ source }).eq('id', lead.id);
+                if (error) { toast.error('Failed to update source'); return; }
+              }
+              onLeadChange({ ...lead, source });
+            }}
+            onEditContact={primaryApplicantContact && onOpenContact ? () => onOpenContact(primaryApplicantContact.id) : undefined}
+            onSaveNote={async (text, type) => {
+              const saved = await addNote(text, type);
+              if (!saved) throw new Error('Note not saved');
+            }}
+            onPin={id => { const note = notes.find(n => n.id === id); if (note) void togglePinNote(note); }}
+            onAttachment={(noteId, attachmentId) => { const att = notes.find(n => n.id === noteId)?.attachments?.find(a => a.id === attachmentId); if (att) void downloadAttachment(att); }}
+            onAddTask={() => setShowTaskForm(v => !v)}
+            taskCount={pendingTasks.length}
+            tasks={<div className="space-y-2">
+              {pendingTasks.length === 0 && <p className="text-xs text-muted-foreground">No open tasks</p>}
+              {pendingTasks.map(task => <div key={task.id} className="flex items-start gap-2 py-2 border-b last:border-0">
+                <Checkbox aria-label={`Complete ${task.title}`} className="mt-1" checked={task.completed} onCheckedChange={() => toggleTaskComplete(task)} />
+                <Button variant="ghost" className="h-auto min-w-0 flex-1 px-0 py-0 justify-start text-left font-normal whitespace-normal" onClick={() => { setOpenHeroTaskId(task.id); setOpenHeroTaskSnapshot(task); setExpandedTaskId(task.id); setEditingTask({ id: task.id, title: task.title, dueDate: task.due_date ? formatDatetimeLocal(new Date(task.due_date)) : '' }); }}>
+                  <span><span className="block text-sm break-words">{task.title}</span><span className="block text-xs text-muted-foreground mt-1">{task.due_date ? format(new Date(task.due_date), 'dd MMM yyyy') : 'No due date'}</span></span>
+                </Button>
+              </div>)}
+              {completedTasks.length > 0 && <details className="text-xs text-muted-foreground pt-2"><summary className="cursor-pointer">Completed ({completedTasks.length})</summary>{completedTasks.map(task => <div key={task.id} className="flex items-center gap-2 py-2"><Checkbox aria-label={`Reopen ${task.title}`} checked onCheckedChange={() => toggleTaskComplete(task)} /><span className="line-through">{task.title}</span></div>)}</details>}
+            </div>}
+            taskForm={showTaskForm && <div className="space-y-3 mb-4">
+              <Input aria-label="Task title" placeholder="Task title" value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)} autoFocus />
+              <Textarea aria-label="Task details" placeholder="Details (optional)" value={newTaskDescription} onChange={e => setNewTaskDescription(e.target.value)} />
+              <Input aria-label="Task due date" type="date" value={newTaskDueDate.slice(0, 10)} onChange={e => setNewTaskDueDate(e.target.value ? `${e.target.value}T09:00` : '')} />
+              <AssigneePicker value={newTaskAssignee} onChange={setNewTaskAssignee} size="sm" />
+              <div className="flex gap-2"><Button size="sm" disabled={!newTaskTitle.trim()} onClick={createTask}>Create task</Button><Button size="sm" variant="ghost" onClick={() => setShowTaskForm(false)}>Cancel</Button></div>
+            </div>}
+            fullFile={<Button variant="ghost" size="sm" className="text-xs text-muted-foreground gap-1.5" onClick={() => setShowFullFile(true)}>Open full file <ExternalLink className="h-3.5 w-3.5" /></Button>}
+          />
+        </>) : (<>
+        {showFullFile && <Button variant="ghost" size="sm" className="m-4" onClick={() => setShowFullFile(false)}>Back to lead</Button>}
         {/* Contact Header Card */}
         <div className="bg-muted/30 p-6 pb-4 border-b">
           <SheetHeader className="mb-3">
@@ -2598,6 +2663,7 @@ export function LeadDetailSheet({
             </AlertDialog>
           </div>
         </div>
+        </>)}
       </SheetContent>
       <Dialog
         open={!!openHeroTaskId}
