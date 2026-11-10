@@ -4,7 +4,7 @@ interface StageConfig { name: string; label: string; dashboard?: string | null }
 interface DashboardLead { status: string; wip_status?: string | null }
 
 const normalise = (value: string) => value.trim().toLowerCase().replace(/[\s-]+/g, '_');
-const ONBOARDING_STAGES = new Set(['pending_fact_find', 'onboarding', 'pending_additional_docs', 'pending_additional_documents', 'sent_for_onboarding']);
+const ONBOARDING_STAGES = new Set(['pending_fact_find', 'onboarding', 'pending_documents', 'pending_docs', 'pending_additional_docs', 'pending_additional_documents', 'sent_for_onboarding']);
 const DEDICATED_DASHBOARDS = new Set(['onboarding', 'parked', 'lost', 'preapproved', 'settled']);
 
 export function stageDashboard(name: string, statuses: StageConfig[] = []): Exclude<DealDashboard, 'leads' | 'wip'> | null {

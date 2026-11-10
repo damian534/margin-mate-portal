@@ -24,6 +24,13 @@ describe('dedicated deal dashboards', () => {
       expect(getDealDashboard({ status: 'in_progress', wip_status })).toBe('onboarding');
     }
   });
+  it('keeps deals on the Onboarding dashboard when the Onboarding stage is renamed to Pending Documents', () => {
+    // Renaming the stage must not drop its deals onto the WIP board.
+    expect(getDealDashboard({ status: 'in_progress', wip_status: 'pending_documents' })).toBe('onboarding');
+    const renamed = [{ name: 'pending_documents', label: 'Pending Documents', dashboard: 'onboarding' }];
+    expect(stageDashboard('pending_documents', renamed)).toBe('onboarding');
+    expect(getDealDashboard({ status: 'in_progress', wip_status: 'pending_documents' }, [], renamed)).toBe('onboarding');
+  });
   it('retains later processing stages in WIP and new enquiries in Leads', () => {
     expect(getDealDashboard({ status: 'in_progress', wip_status: 'researching' })).toBe('wip');
     expect(getDealDashboard({ status: 'new' })).toBe('leads');
