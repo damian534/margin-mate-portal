@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { getDealDashboard, stageDashboard } from './crmDashboardGroups';
+import { getDealDashboard, stageDashboard, getStatusDashboard, getLeadsColumnKey, WIP_BOARD_OPTIONS } from './crmDashboardGroups';
 
 describe('dedicated deal dashboards', () => {
+  it('offers Leads as a destination for Meeting Booked processing columns', () => {
+    expect(WIP_BOARD_OPTIONS.some(option => option.value === 'leads')).toBe(true);
+  });
+  it('moves Meeting Booked deals to Leads without changing their recorded stages', () => {
+    const stages = [{ name: 'meeting_booked', label: 'Meeting Booked', dashboard: 'leads' }];
+    const deal = { status: 'in_progress', wip_status: 'meeting_booked' };
+    expect(getDealDashboard(deal, [], stages)).toBe('leads');
+    expect(getStatusDashboard('meeting_booked', stages, 'wip')).toBe('leads');
+    expect(getLeadsColumnKey(deal)).toBe('wip:meeting_booked');
+    expect(getDealDashboard(deal, [], [{ ...stages[0], dashboard: 'wip' }])).toBe('wip');
+  });
   it('separates pre-approved deals in either status field from active Leads and WIP', () => {
     expect(getDealDashboard({ status: 'in_progress', wip_status: 'preapproved' })).toBe('preapproved');
     expect(getDealDashboard({ status: 'pre_approved' })).toBe('preapproved');

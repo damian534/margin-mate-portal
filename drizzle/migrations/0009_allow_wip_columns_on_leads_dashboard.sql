@@ -1,0 +1,2 @@
+ALTER TABLE public.wip_statuses DROP CONSTRAINT wip_statuses_dashboard_check;
+ALTER TABLE public.wip_statuses ADD CONSTRAINT wip_statuses_dashboard_check CHECK (dashboard IN ('wip', 'leads', 'onboarding', 'parked', 'lost', 'preapproved', 'settled'));

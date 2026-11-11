@@ -64,6 +64,13 @@
       "when": 1794257787669,
       "tag": "0008_status_dashboard_assignment",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794364211597,
+      "tag": "0009_allow_wip_columns_on_leads_dashboard",
+      "breakpoints": true
     }
   ]
 }

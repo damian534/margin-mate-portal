@@ -24,7 +24,7 @@ import { IncomingReferralsPanel } from '@/components/IncomingReferralsPanel';
 import { WIPDashboard } from '@/components/WIPDashboard';
 import { StageDashboard } from '@/components/StageDashboard';
 import { useWipStatuses } from '@/hooks/useWipStatuses';
-import { getDealDashboard, stageDashboard, LEAD_BOARD_OPTIONS } from '@/lib/crmDashboardGroups';
+import { getDealDashboard, getStatusDashboard, getLeadsColumnKey, stageDashboard, LEAD_BOARD_OPTIONS, WIP_BOARD_OPTIONS } from '@/lib/crmDashboardGroups';
 import { PipelineReport } from '@/components/PipelineReport';
 import { LeadsReport } from '@/components/LeadsReport';
 import { AssigneeFilter } from '@/components/AssigneePicker';
@@ -120,7 +120,8 @@ export default function AdminCRM() {
   const navigate = useNavigate();
   const { user, isPreviewMode, effectiveBrokerId, isBrokerOrAdmin, signOut } = useAuth();
   const { statuses, addStatus, updateStatus: updateLeadStatus, deleteStatus, reorderStatuses } = useLeadStatuses();
-  const { statuses: wipStatuses } = useWipStatuses();
+  const wipStatusManagement = useWipStatuses();
+  const { statuses: wipStatuses } = wipStatusManagement;
   const [leads, setLeads] = useState<Lead[]>([]);
   const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -250,7 +251,24 @@ export default function AdminCRM() {
     preapproved: leads.filter(l => getDealDashboard(l, statuses, wipStatuses) === 'preapproved'),
     settled: leads.filter(l => getDealDashboard(l, statuses, wipStatuses) === 'settled'),
   }), [leads, statuses, wipStatuses]);
-  const activeLeadStatuses = statuses.filter(s => !stageDashboard(s.name, statuses));
+  const activeLeadStatuses = [
+    ...statuses.filter(s => getStatusDashboard(s.name, statuses, 'leads') === 'leads'),
+    ...wipStatuses.filter(s => getStatusDashboard(s.name, wipStatuses, 'wip') === 'leads')
+      .map(s => ({ ...s, name: `wip:${s.name}` })),
+  ];
+  const leadsViewRecords = filteredLeads.map(lead => ({ ...lead, status: getLeadsColumnKey(lead) }));
+  const openLeadsRecord = (lead: { id: string }) => {
+    const original = leads.find(record => record.id === lead.id);
+    if (original) openLead(original);
+  };
+  const moveLeadsColumn = (leadId: string, column: string) => {
+    if (column.startsWith('wip:')) updateWipStatus(leadId, column.slice(4));
+    else {
+      updateStatus(leadId, column);
+      const record = leads.find(lead => lead.id === leadId);
+      if (record?.wip_status) updateWipStatus(leadId, null);
+    }
+  };
 
   useEffect(() => {
     let result = dashboardLeads.leads;
@@ -264,7 +282,7 @@ export default function AdminCRM() {
       );
     }
     if (statusFilter !== 'all' && activeLeadStatuses.some(s => s.name === statusFilter)) {
-      result = result.filter(l => l.status === statusFilter);
+      result = result.filter(l => getLeadsColumnKey(l) === statusFilter);
     }
     if (assigneeFilter.length > 0) {
       const wantUnassigned = assigneeFilter.includes('__unassigned__');
@@ -278,7 +296,7 @@ export default function AdminCRM() {
       result = result.filter(l => getLeadTaskDueCategory(l.id, tasksByLead) === taskDueFilter);
     }
     setFilteredLeads(result);
-  }, [dashboardLeads, statuses, search, statusFilter, assigneeFilter, taskDueFilter, referrers, tasksByLead]);
+  }, [dashboardLeads, statuses, wipStatuses, search, statusFilter, assigneeFilter, taskDueFilter, referrers, tasksByLead]);
 
   const fetchLeads = async () => {
     const tenantId = effectiveBrokerId || user?.id;
@@ -788,6 +806,16 @@ export default function AdminCRM() {
                 onReorder={reorderStatuses}
                 boardOptions={[...LEAD_BOARD_OPTIONS]}
               />
+              <StatusSettings
+                statuses={wipStatuses}
+                onAdd={wipStatusManagement.addStatus}
+                onUpdate={wipStatusManagement.updateStatus}
+                onDelete={wipStatusManagement.deleteStatus}
+                onReorder={wipStatusManagement.reorderStatuses}
+                title="WIP Statuses"
+                triggerLabel="Manage WIP Statuses"
+                boardOptions={[...WIP_BOARD_OPTIONS]}
+              />
               <AddLeadDialog
                 leadSources={leadSources}
                 referrers={referrers}
@@ -815,7 +843,7 @@ export default function AdminCRM() {
                       getReferrerName(l.referral_partner_id)?.toLowerCase().includes(q);
                     if (!matches) return false;
                   }
-                  if (statusFilter !== 'all' && activeLeadStatuses.some(s => s.name === statusFilter) && l.status !== statusFilter) return false;
+                  if (statusFilter !== 'all' && activeLeadStatuses.some(s => s.name === statusFilter) && getLeadsColumnKey(l) !== statusFilter) return false;
                   if (assigneeFilter.length > 0) {
                     const wantUnassigned = assigneeFilter.includes('__unassigned__');
                     const a = (l as any).assigned_to as string | null | undefined;
@@ -862,17 +890,17 @@ export default function AdminCRM() {
               <p className="text-muted-foreground text-center py-12">Loading leads...</p>
             ) : leadsView === 'priority' ? (
               <LeadsPriorityList
-                leads={filteredLeads}
+                leads={leadsViewRecords}
                 statuses={activeLeadStatuses}
                 leadSources={leadSources}
                 getReferrerName={getReferrerName}
-                onOpenLead={openLead}
+                onOpenLead={openLeadsRecord}
                 tasksByLead={tasksByLead}
                 userName={((user?.user_metadata?.full_name as string | undefined) || '').split(' ')[0] || undefined}
               />
             ) : leadsView === 'kanban' ? (
               <LeadsKanban
-                leads={filteredLeads}
+                leads={leadsViewRecords}
                 statuses={activeLeadStatuses}
                 leadSources={leadSources}
                 getReferrerName={getReferrerName}
@@ -882,21 +910,21 @@ export default function AdminCRM() {
                   const c = contacts.find(ct => ct.id === contactId);
                   return c ? `${c.first_name} ${c.last_name}` : null;
                 }}
-                onOpenLead={openLead}
-                onUpdateStatus={updateStatus}
+                onOpenLead={openLeadsRecord}
+                onUpdateStatus={moveLeadsColumn}
                 onUpdateWipStatus={(leadId, wip_status) => updateWipStatus(leadId, wip_status)}
                 tasksByLead={tasksByLead}
                 taskDueFilter={taskDueFilter}
                 docsByLead={docsByLead}
                 onDownloadDocs={downloadLeadDocsZip}
-                onAddInStage={(statusName) => setStageAddDialog({ kind: 'lead', name: statusName })}
+                onAddInStage={(statusName) => setStageAddDialog(statusName.startsWith('wip:') ? { kind: 'wip', name: statusName.slice(4) } : { kind: 'lead', name: statusName })}
               />
             ) : filteredLeads.length === 0 ? (
               <Card><CardContent className="p-0"><p className="text-muted-foreground text-center py-12">No leads found</p></CardContent></Card>
             ) : (
               <div className="space-y-6">
                 {activeLeadStatuses.map(status => {
-                  const statusLeads = filteredLeads.filter(l => l.status === status.name);
+                  const statusLeads = filteredLeads.filter(l => getLeadsColumnKey(l) === status.name);
                   if (statusLeads.length === 0 && !status) return null;
                   return (
                     <div
@@ -905,7 +933,7 @@ export default function AdminCRM() {
                       onDrop={(e) => {
                         e.preventDefault();
                         const leadId = e.dataTransfer.getData('leadId');
-                        if (leadId) updateStatus(leadId, status.name);
+                        if (leadId) moveLeadsColumn(leadId, status.name);
                       }}
                     >
                       <div className="flex items-center gap-2 mb-2">
@@ -982,8 +1010,8 @@ export default function AdminCRM() {
                 })}
                 {/* Leads with statuses not in the configured list */}
                 {(() => {
-                  const knownStatuses = statuses.map(s => s.name);
-                  const uncategorized = filteredLeads.filter(l => !knownStatuses.includes(l.status));
+                  const knownStatuses = activeLeadStatuses.map(s => s.name);
+                  const uncategorized = filteredLeads.filter(l => !knownStatuses.includes(getLeadsColumnKey(l)));
                   if (uncategorized.length === 0) return null;
                   return (
                     <div>
@@ -1092,6 +1120,7 @@ export default function AdminCRM() {
             </div>
             <WIPDashboard
               key={dashboard}
+              statusManagement={wipStatusManagement}
               dashboard={dashboard}
               leads={dashboardLeads[dashboard]}
               leadStatuses={statuses}

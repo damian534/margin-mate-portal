@@ -26,8 +26,19 @@ export function stageDashboard(name: string, statuses: StageConfig[] = []): Excl
 export function getDealDashboard(lead: DashboardLead, leadStatuses: StageConfig[] = [], wipStatuses: StageConfig[] = []): DealDashboard {
   const leadGroup = stageDashboard(lead.status, leadStatuses);
   if (leadGroup === 'parked' || leadGroup === 'lost' || leadGroup === 'settled') return leadGroup;
-  if (lead.wip_status) return stageDashboard(lead.wip_status, wipStatuses) || 'wip';
-  return leadGroup || 'leads';
+  if (lead.wip_status) return getStatusDashboard(lead.wip_status, wipStatuses, 'wip');
+  return getStatusDashboard(lead.status, leadStatuses, 'leads');
+}
+
+/** Resolve all destinations, including a processing column moved back to Leads. */
+export function getStatusDashboard(name: string, statuses: StageConfig[], fallback: 'leads' | 'wip'): DealDashboard {
+  const assigned = statuses.find(s => s.name === name)?.dashboard;
+  if (assigned === 'leads' || assigned === 'wip') return assigned;
+  return stageDashboard(name, statuses) || fallback;
+}
+
+export function getLeadsColumnKey(lead: DashboardLead): string {
+  return lead.wip_status ? `wip:${lead.wip_status}` : lead.status;
 }
 
 /** Board choices offered when managing lead statuses (first = default for new statuses). */
@@ -43,6 +54,7 @@ export const LEAD_BOARD_OPTIONS = [
 /** Board choices offered when managing WIP (loan progress) statuses. */
 export const WIP_BOARD_OPTIONS = [
   { value: 'wip', label: 'WIP' },
+  { value: 'leads', label: 'Leads' },
   { value: 'onboarding', label: 'Onboarding' },
   { value: 'parked', label: 'Parked' },
   { value: 'lost', label: 'Lost' },

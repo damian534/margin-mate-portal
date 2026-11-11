@@ -1,4 +1,4 @@
-import { stageDashboard, WIP_BOARD_OPTIONS } from '@/lib/crmDashboardGroups';
+import { getStatusDashboard, WIP_BOARD_OPTIONS } from '@/lib/crmDashboardGroups';
 import { LeadStatus } from '@/hooks/useLeadStatuses';
 import { usePersistedState, usePersistedStringSet } from '@/hooks/usePersistedState';
 import { useMemo, useState } from 'react';
@@ -101,6 +101,7 @@ interface LeadSource {
 }
 
 interface WIPDashboardProps {
+  statusManagement?: ReturnType<typeof useWipStatuses>;
   dashboard?: 'wip' | 'onboarding';
   leads: WIPLead[];
   leadStatuses?: LeadStatus[];
@@ -119,12 +120,11 @@ interface WIPDashboardProps {
   onAddInStage?: (wipStatusName: string) => void;
 }
 
-export function WIPDashboard({ dashboard = 'wip', leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead, docsByLead, onDownloadDocs, leadSources = [], getReferrerName, getReferrerCompany, getContactName, externalSearch, tasksByLead, onAddInStage }: WIPDashboardProps) {
-  const { statuses: wipStatusesDynamic, addStatus, updateStatus: updateWipStatusConfig, deleteStatus, reorderStatuses } = useWipStatuses();
+export function WIPDashboard({ statusManagement, dashboard = 'wip', leads, leadStatuses = [], isPreviewMode, onOpenLead, onLocalUpdate, onSendBackToLead, docsByLead, onDownloadDocs, leadSources = [], getReferrerName, getReferrerCompany, getContactName, externalSearch, tasksByLead, onAddInStage }: WIPDashboardProps) {
+  const localStatusManagement = useWipStatuses();
+  const { statuses: wipStatusesDynamic, addStatus, updateStatus: updateWipStatusConfig, deleteStatus, reorderStatuses } = statusManagement || localStatusManagement;
   const allWipStatuses = wipStatusesDynamic.length > 0 ? wipStatusesDynamic : (WIP_STATUSES as unknown as { name: string; label: string; color: string; amber_after_days?: number | null; red_after_days?: number | null }[]);
-  const wipStatuses = allWipStatuses.filter(s => dashboard === 'onboarding'
-    ? stageDashboard(s.name, allWipStatuses) === 'onboarding'
-    : !stageDashboard(s.name, allWipStatuses));
+  const wipStatuses = allWipStatuses.filter(s => getStatusDashboard(s.name, allWipStatuses, 'wip') === dashboard);
   const persistenceKey = `crm.${dashboard}`;
   const [assigneeFilter, setAssigneeFilter] = usePersistedState<string[]>(`${persistenceKey}.assigneeFilterMulti`, []);
   const [collapsedColumns, setCollapsedColumns] = usePersistedStringSet(`${persistenceKey}.collapsedColumns`, []);

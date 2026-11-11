@@ -1,5 +1,5 @@
 # Architecture rules
-- CRM dashboard membership uses a shared pure stage classifier; dedicated views reuse existing tenant-scoped records and activity handlers, avoiding duplicated deals or workflows.
+- CRM dashboard membership uses a shared pure stage classifier honoring cross-dashboard assignments; Leads projects processing columns with namespaced keys, and status management shares the parent hook so saves update membership immediately without duplicating deals or workflows.
 - LeadDetailSheet provides a lightweight Leads presentation using the same note/task handlers as the full WIP file, so both views share persisted activity without duplicate workflows.
 - Client workflows enroll only on lead insertion with immutable step snapshots and one-use service-only dispatch tokens; sends recheck channel-specific consent and recipient opt-outs, while dry runs never send messages.
 - Native releases bundle web assets through Capacitor; a separate pure configuration helper permits hosted live reload only with explicit opt-in, preventing store builds from loading the editor preview.
