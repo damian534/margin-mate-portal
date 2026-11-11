@@ -23,3 +23,7 @@ project_id = "capydxuqpclcwadhwgvz"
     verify_jwt = false
   [functions.unsubscribe-doc-reminders]
     verify_jwt = false
+  [functions.preview-transactional-email]
+    verify_jwt = false
+  [functions.esign-sign]
+    verify_jwt = false

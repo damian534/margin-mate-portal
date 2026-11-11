@@ -1,4 +1,5 @@
 # Tasks
+- [x] Notify the owning broker when every party signs a document; deployed, three rule tests pass, two-party signing produced a completed PDF and one completion event, and managed email logs confirmed a test notification sent to Damian. Temporary test document removed.
 - [x] Allow processing columns to move to Leads with shared live status management; saved Meeting Booked to Leads and verified its eight deals and reload persistence; fourteen routing tests passed.
 - [x] Keep renamed onboarding stages ("Pending Documents") on the Onboarding dashboard via name-match fallback; regression test added, 72 tests pass, preview verified with live data (10 onboarding deals). Live site fix requires publishing.
 - [x] Add a Board (kanban) view toggle to the Parked, Lost, Pre-approved and Settled dashboards, reusing the leads board with per-dashboard saved layout and full move-to-status menu; verified in preview (Parked 90 deals, Settled 47 deals wip-grouped, reload persistence, no page errors). Moving a deal via the board menu was not exercised end-to-end to avoid changing live deal data.

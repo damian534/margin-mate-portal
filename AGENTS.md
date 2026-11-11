@@ -1,4 +1,5 @@
 # Architecture rules
+- E-sign completion emails use the managed template sender with a document-specific idempotency key, trusted broker recipient and fresh all-signed check; conditional completion writes prevent duplicate activity during simultaneous signing.
 - CRM dashboard membership uses a shared pure stage classifier honoring cross-dashboard assignments; Leads projects processing columns with namespaced keys, and status management shares the parent hook so saves update membership immediately without duplicating deals or workflows.
 - LeadDetailSheet provides a lightweight Leads presentation using the same note/task handlers as the full WIP file, so both views share persisted activity without duplicate workflows.
 - Client workflows enroll only on lead insertion with immutable step snapshots and one-use service-only dispatch tokens; sends recheck channel-specific consent and recipient opt-outs, while dry runs never send messages.

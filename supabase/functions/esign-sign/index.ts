@@ -1,13 +1,11 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
+import { allPartiesSigned } from "../_shared/esignCompletion.ts";
+import { sendTemplateEmail } from "../_shared/transactional-email-templates/send-email.ts";
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
-
-const escapeHtml = (s: string) =>
-  String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 function dataUrlToBytes(dataUrl: string): Uint8Array | null {
   const m = /^data:image\/png;base64,([A-Za-z0-9+/=\s]+)$/.exec(dataUrl);
@@ -43,6 +41,7 @@ Deno.serve(async (req) => {
     const sigBytes = dataUrlToBytes(signatureDataUrl);
     if (!sigBytes || sigBytes.length > 2 * 1024 * 1024) return json({ error: "Invalid signature image" }, 400);
 
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return json({ error: "Signing is not configured" }, 500);
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const ip = req.headers.get("x-forwarded-for") || null;
     const ua = req.headers.get("user-agent") || null;
@@ -57,7 +56,7 @@ Deno.serve(async (req) => {
 
     const { data: doc } = await admin
       .from("esign_documents")
-      .select("id, title, file_path, file_name, broker_id, status, lead_id")
+      .select("id, title, file_path, file_name, broker_id, status, lead_id, contact_id")
       .eq("id", signer.document_id)
       .maybeSingle();
     if (!doc || doc.status === "voided") return json({ error: "This document is no longer available." }, 403);
@@ -80,7 +79,7 @@ Deno.serve(async (req) => {
     if (upErr) return json({ error: "Could not save signature" }, 500);
 
     const signedAt = new Date().toISOString();
-    await admin
+    const { error: signerError } = await admin
       .from("esign_signers")
       .update({
         status: "signed",
@@ -92,6 +91,7 @@ Deno.serve(async (req) => {
         user_agent: ua,
       })
       .eq("id", signer.id);
+    if (signerError) throw signerError;
 
     // Record the values typed into any placed fields for this signer
     if (fieldValues.length) {
@@ -119,14 +119,15 @@ Deno.serve(async (req) => {
       user_agent: ua,
     });
 
-    const refreshed = (allSigners || []).map((s) =>
-      s.id === signer.id
-        ? { ...s, status: "signed", signed_at: signedAt, signature_path: sigPath, typed_name: typedName, ip_address: ip }
-        : s,
-    );
-    const outstanding = refreshed.filter((s) => s.status !== "signed" && s.status !== "declined");
+    const { data: refreshed, error: refreshError } = await admin
+      .from("esign_signers")
+      .select("id, name, email, status, signing_order, signed_at, signature_path, typed_name, ip_address")
+      .eq("document_id", doc.id)
+      .order("signing_order", { ascending: true });
+    if (refreshError || !refreshed) throw refreshError || new Error("Could not check all signatures");
+    const completed = allPartiesSigned(refreshed);
 
-    if (outstanding.length === 0) {
+    if (completed) {
       // Build the completed pack: original document + signature certificate page
       let signedPath: string | null = null;
       try {
@@ -248,19 +249,27 @@ Deno.serve(async (req) => {
         const bytes = await pdf.save();
         signedPath = `${doc.broker_id}/${doc.id}/signed-${doc.file_name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
         if (!signedPath.toLowerCase().endsWith(".pdf")) signedPath += ".pdf";
-        await admin.storage.from("esign-documents").upload(signedPath, bytes, {
+        const { error: packError } = await admin.storage.from("esign-documents").upload(signedPath, bytes, {
           contentType: "application/pdf",
           upsert: true,
         });
+        if (packError) throw packError;
       } catch (e) {
         console.error("Certificate build failed", e);
+        signedPath = null;
       }
 
-      await admin
+      const { data: completedDoc, error: completionError } = await admin
         .from("esign_documents")
         .update({ status: "completed", completed_at: signedAt, signed_file_path: signedPath })
-        .eq("id", doc.id);
+        .eq("id", doc.id)
+        .neq("status", "completed")
+        .neq("status", "voided")
+        .select("id")
+        .maybeSingle();
+      if (completionError) throw completionError;
 
+      if (completedDoc) {
       await admin.from("esign_events").insert({
         document_id: doc.id,
         event_type: "completed",
@@ -273,6 +282,7 @@ Deno.serve(async (req) => {
           content: `✍️ Document signed: ${doc.title} — all signers completed`,
         });
       }
+      }
 
       // Notify the broker
       const { data: profile } = await admin
@@ -281,21 +291,38 @@ Deno.serve(async (req) => {
         .eq("user_id", doc.broker_id)
         .maybeSingle();
       if (profile?.email) {
-        await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            from: "Margin Finance <notifications@margin.com.au>",
-            to: [profile.email],
-            subject: `Signed: ${doc.title}`,
-            html: `<p>All signers have completed <strong>${escapeHtml(doc.title)}</strong>.</p>
-                   <p>The signed copy and audit trail are available in Connect.</p>`,
-          }),
-        }).catch((e) => console.error("broker notify failed", e));
+        let clientName: string | undefined;
+        if (doc.lead_id || doc.contact_id) {
+          const { data: client } = await admin
+            .from(doc.lead_id ? "leads" : "contacts")
+            .select("first_name, last_name")
+            .eq("id", doc.lead_id || doc.contact_id)
+            .eq("broker_id", doc.broker_id)
+            .maybeSingle();
+          clientName = client ? [client.first_name, client.last_name].filter(Boolean).join(" ") : undefined;
+        }
+        try {
+          const result = await sendTemplateEmail("esign-completed", profile.email, {
+            idempotencyKey: `esign-completed-${doc.id}`,
+            templateData: {
+              brokerName: profile.full_name,
+              documentTitle: doc.title,
+              clientName,
+              completedAt: new Date(signedAt).toLocaleString("en-AU", { timeZone: "Australia/Melbourne", timeZoneName: "short" }),
+              documentUrl: doc.contact_id
+                ? `https://connect.margin.com.au/admin/clients/${doc.contact_id}`
+                : "https://connect.margin.com.au/admin",
+            },
+          });
+          console.info("E-sign completion email", { documentId: doc.id, outcome: result.sent ? "sent" : result.reason });
+        } catch (error) {
+          // Never undo a client's signature because the broker's email failed.
+          console.error("E-sign completion email failed", { documentId: doc.id, error });
+        }
       }
     }
 
-    return json({ success: true, completed: outstanding.length === 0 });
+    return json({ success: true, completed });
   } catch (err) {
     console.error(err);
     return json({ error: (err as Error).message }, 500);
