@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FormAnswersCard } from '@/components/lead/FormAnswersCard';
+import { SmsComposeDialog } from '@/components/lead/SmsComposeDialog';
 
 interface Attachment { id: string; file_name: string }
 interface Note { id: string; content: string; created_at: string; pinned?: boolean; author_id: string | null; attachments?: Attachment[] }
@@ -37,7 +38,7 @@ export function SimpleLeadCard(props: Props) {
   const [text, setText] = useState('');
   const [type, setType] = useState<'note' | 'call' | 'email' | 'text'>('note');
   const [saving, setSaving] = useState(false);
-  const whatsapp = props.phone?.replace(/\D/g, '').replace(/^0/, '61');
+  const [smsOpen, setSmsOpen] = useState(false);
   return (
     <div className="bg-background text-foreground">
       <header className="border-b px-5 pb-5 pt-8 sm:px-8">
@@ -64,7 +65,7 @@ export function SimpleLeadCard(props: Props) {
             </dl>
             <div className="flex gap-2 mt-4">
               {props.phone && <Button asChild size="icon" variant="outline" title="Call" aria-label="Call"><a href={`tel:${props.phone}`}><Phone className="h-4 w-4" /></a></Button>}
-              {whatsapp && <Button asChild size="icon" variant="outline" title="WhatsApp" aria-label="WhatsApp"><a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer"><MessageSquare className="h-4 w-4" /></a></Button>}
+              {props.phone && <Button size="icon" variant="outline" title="Text" aria-label="Text" onClick={() => setSmsOpen(true)}><MessageSquare className="h-4 w-4" /></Button>}
               {props.email && <Button asChild size="icon" variant="outline" title="Email" aria-label="Email"><a href={`mailto:${props.email}`}><Mail className="h-4 w-4" /></a></Button>}
             </div>
           </section>
@@ -101,6 +102,11 @@ export function SimpleLeadCard(props: Props) {
           </div>
         </main>
       </div>
+      <SmsComposeDialog
+        lead={smsOpen ? { first_name: props.name, phone: props.phone } : null}
+        onClose={() => setSmsOpen(false)}
+        onLog={async content => { await props.onSaveNote(content, 'text'); }}
+      />
     </div>
   );
 }

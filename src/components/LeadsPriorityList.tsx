@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { LeadStatus } from '@/hooks/useLeadStatuses';
+import { SmsComposeDialog } from '@/components/lead/SmsComposeDialog';
 import { format, isToday, differenceInCalendarDays, differenceInMinutes, differenceInHours, differenceInDays } from 'date-fns';
 import {
   ChevronRight,
@@ -7,7 +8,7 @@ import {
   Search,
   Phone,
   Mail,
-  MessageCircle,
+  MessageSquare,
   AlarmClock,
   CalendarClock,
   CalendarPlus,
@@ -125,15 +126,6 @@ function avatarStyle(lead: Lead): string {
   return AVATAR_STYLES[Math.abs(hash) % AVATAR_STYLES.length];
 }
 
-/** Normalise an Australian phone number into a wa.me link. */
-function whatsappHref(phone: string | null): string | null {
-  if (!phone) return null;
-  let digits = phone.replace(/\D/g, '');
-  if (!digits) return null;
-  if (digits.startsWith('0')) digits = `61${digits.slice(1)}`;
-  return `https://wa.me/${digits}`;
-}
-
 function telHref(phone: string | null): string | null {
   if (!phone) return null;
   const cleaned = phone.replace(/[^\d+]/g, '');
@@ -170,11 +162,10 @@ function followUpChip(bucket: Bucket, due: Date | null): { text: string; classNa
   };
 }
 
-function QuickActions({ lead }: { lead: Lead }) {
+function QuickActions({ lead, onSms }: { lead: Lead; onSms: (lead: Lead) => void }) {
   const tel = telHref(lead.phone);
-  const wa = whatsappHref(lead.phone);
   const email = lead.email ? `mailto:${lead.email}` : null;
-  if (!tel && !wa && !email) return null;
+  if (!tel && !lead.phone && !email) return null;
   const btn =
     'w-9 h-9 rounded-full flex items-center justify-center border border-border/60 bg-card text-muted-foreground hover:text-foreground hover:border-foreground/25 hover:bg-muted/50 transition-colors';
   return (
@@ -184,17 +175,16 @@ function QuickActions({ lead }: { lead: Lead }) {
           <Phone className="w-4 h-4" strokeWidth={2} />
         </a>
       )}
-      {wa && (
-        <a
-          href={wa}
-          target="_blank"
-          rel="noreferrer"
-          aria-label={`WhatsApp ${lead.first_name}`}
-          title="WhatsApp"
+      {lead.phone && (
+        <button
+          type="button"
+          onClick={() => onSms(lead)}
+          aria-label={`Text ${lead.first_name}`}
+          title="Text"
           className={`${btn} hover:!text-success hover:!border-success/40`}
         >
-          <MessageCircle className="w-4 h-4" strokeWidth={2} />
-        </a>
+          <MessageSquare className="w-4 h-4" strokeWidth={2} />
+        </button>
       )}
       {email && (
         <a href={email} aria-label={`Email ${lead.first_name}`} title="Email" className={btn}>
@@ -213,6 +203,7 @@ function LeadRow({
   getReferrerName,
   tasksByLead,
   onOpenLead,
+  onSms,
 }: {
   lead: Lead;
   bucket: Bucket;
@@ -221,6 +212,7 @@ function LeadRow({
   getReferrerName?: (partnerId: string | null) => string | null;
   tasksByLead?: Map<string, LeadTask[]>;
   onOpenLead: (lead: Lead) => void;
+  onSms: (lead: Lead) => void;
 }) {
   const { Icon: SourceIcon, label: sourceLabel } = sourceMeta(lead.source, leadSources);
   const referrer = getReferrerName?.(lead.referral_partner_id ?? null);
@@ -279,7 +271,7 @@ function LeadRow({
       <div className="flex flex-col items-end gap-1.5 shrink-0">
         <span className="text-[11px] text-muted-foreground/70 tabular-nums">{timeAgo(lead.created_at)}</span>
         <div className="hidden sm:flex">
-          <QuickActions lead={lead} />
+          <QuickActions lead={lead} onSms={onSms} />
         </div>
       </div>
       <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-foreground group-hover:translate-x-0.5 transition-all shrink-0" />
@@ -307,6 +299,7 @@ export function LeadsPriorityList({ leads, statuses, leadSources = [], getReferr
   const statusByName = useMemo(() => new Map(statuses.map(s => [s.name, s])), [statuses]);
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
+  const [smsLead, setSmsLead] = useState<Lead | null>(null);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(Object.entries(SECTIONS).map(([k, v]) => [k, v.defaultOpen])),
   );
@@ -441,6 +434,7 @@ export function LeadsPriorityList({ leads, statuses, leadSources = [], getReferr
                       getReferrerName={getReferrerName}
                       tasksByLead={tasksByLead}
                       onOpenLead={onOpenLead}
+                      onSms={setSmsLead}
                     />
                   ))}
                 </div>
@@ -465,6 +459,8 @@ export function LeadsPriorityList({ leads, statuses, leadSources = [], getReferr
       </div>
 
       {leads.length === 0 && <p className="text-muted-foreground py-16 text-center text-sm">No leads found</p>}
+
+      <SmsComposeDialog lead={smsLead} onClose={() => setSmsLead(null)} />
     </div>
   );
 }
