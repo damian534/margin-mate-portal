@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type FieldType = 'signature' | 'initials' | 'date' | 'text' | 'checkbox';
+export type FieldType = 'signature' | 'initials' | 'full_name' | 'date' | 'text' | 'checkbox';
 
 export interface PlacedField {
   id: string;
@@ -28,6 +28,7 @@ const SIGNER_COLOURS = [
 const DEFAULT_SIZE: Record<FieldType, { w: number; h: number }> = {
   signature: { w: 0.24, h: 0.055 },
   initials: { w: 0.09, h: 0.045 },
+  full_name: { w: 0.22, h: 0.035 },
   date: { w: 0.16, h: 0.035 },
   text: { w: 0.22, h: 0.035 },
   checkbox: { w: 0.035, h: 0.028 },
@@ -36,6 +37,7 @@ const DEFAULT_SIZE: Record<FieldType, { w: number; h: number }> = {
 const TYPE_LABELS: Record<FieldType, string> = {
   signature: 'Signature',
   initials: 'Initials',
+  full_name: 'Full name',
   date: 'Date',
   text: 'Text',
   checkbox: 'Tick box',

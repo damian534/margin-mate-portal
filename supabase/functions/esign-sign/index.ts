@@ -195,6 +195,8 @@ Deno.serve(async (req) => {
                 ? String(f.value)
                 : f.field_type === "date"
                 ? new Date(owner.signed_at as string).toLocaleDateString("en-AU")
+                : f.field_type === "full_name"
+                ? owner.name
                 : "";
             if (!text) continue;
             page.drawText(text.slice(0, 120), {

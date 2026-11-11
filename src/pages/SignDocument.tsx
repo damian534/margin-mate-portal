@@ -12,7 +12,7 @@ import { PdfCanvas } from '@/components/esign/PdfCanvas';
 
 interface SignField {
   id: string;
-  field_type: 'signature' | 'initials' | 'date' | 'text' | 'checkbox';
+  field_type: 'signature' | 'initials' | 'full_name' | 'date' | 'text' | 'checkbox';
   page_number: number;
   x_pct: number;
   y_pct: number;
@@ -62,6 +62,7 @@ export default function SignDocument() {
       const seed: Record<string, string> = {};
       (json.fields || []).forEach(f => {
         if (f.field_type === 'date') seed[f.id] = f.value || new Date().toLocaleDateString('en-AU');
+        else if (f.field_type === 'full_name') seed[f.id] = f.value || json.signer.name || '';
         else if (f.field_type === 'text') seed[f.id] = f.value || '';
         else if (f.field_type === 'checkbox') seed[f.id] = f.value || '';
       });
@@ -207,7 +208,7 @@ export default function SignDocument() {
                               key={f.id}
                               value={fieldValues[f.id] || ''}
                               onChange={e => setFieldValues(p => ({ ...p, [f.id]: e.target.value }))}
-                              placeholder={f.field_type === 'date' ? 'Date' : 'Type here'}
+                              placeholder={f.field_type === 'date' ? 'Date' : f.field_type === 'full_name' ? 'Full name' : 'Type here'}
                               className="absolute rounded border-2 border-dashed border-primary/70 bg-white/90 text-[10px] px-1"
                               style={style}
                             />

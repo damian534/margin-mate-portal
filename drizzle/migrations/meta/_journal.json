@@ -71,6 +71,13 @@
       "when": 1794364211597,
       "tag": "0009_allow_wip_columns_on_leads_dashboard",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794384574876,
+      "tag": "0010_esign_full_name_field",
+      "breakpoints": true
     }
   ]
 }
