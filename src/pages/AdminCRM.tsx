@@ -252,11 +252,22 @@ export default function AdminCRM() {
     preapproved: leads.filter(l => getDealDashboard(l, statuses, wipStatuses) === 'preapproved'),
     settled: leads.filter(l => getDealDashboard(l, statuses, wipStatuses) === 'settled'),
   }), [leads, statuses, wipStatuses]);
+  const wipOnLeads = wipStatuses.filter(s => getStatusDashboard(s.name, wipStatuses, 'wip') === 'leads');
+  // Lead and WIP stages on the Leads board share one display_order sequence once reordered together.
   const activeLeadStatuses = [
     ...statuses.filter(s => getStatusDashboard(s.name, statuses, 'leads') === 'leads'),
-    ...wipStatuses.filter(s => getStatusDashboard(s.name, wipStatuses, 'wip') === 'leads')
-      .map(s => ({ ...s, name: `wip:${s.name}` })),
-  ];
+    ...wipOnLeads.map(s => ({ ...s, name: `wip:${s.name}` })),
+  ].map((s, i) => ({ s, i })).sort((a, b) => ((a.s.display_order ?? 0) - (b.s.display_order ?? 0)) || (a.i - b.i)).map(x => x.s);
+  const reorderLeadsColumns = async (names: string[]) => {
+    const order = new Map(names.map((n, i) => [n, i]));
+    const merged = [...statuses, ...wipOnLeads.map(s => ({ ...s, name: `wip:${s.name}` }))];
+    const base = names.length;
+    const numbered = merged.map((s, i) => ({ ...s, display_order: order.get(s.name) ?? base + i }));
+    const own = numbered.filter(s => !s.name.startsWith('wip:'));
+    const linked = numbered.filter(s => s.name.startsWith('wip:')).map(s => ({ ...wipOnLeads.find(w => w.id === s.id)!, display_order: s.display_order }));
+    await reorderStatuses(own as any);
+    await wipStatusManagement.reorderStatuses(linked as any);
+  };
   const leadsViewRecords = filteredLeads.map(lead => ({ ...lead, status: getLeadsColumnKey(lead) }));
   const openLeadsRecord = (lead: { id: string }) => {
     const original = leads.find(record => record.id === lead.id);
@@ -806,6 +817,8 @@ export default function AdminCRM() {
                 onDelete={deleteStatus}
                 onReorder={reorderStatuses}
                 boardOptions={[...LEAD_BOARD_OPTIONS]}
+                linkedStatuses={wipOnLeads as any}
+                onReorderLinked={wipStatusManagement.reorderStatuses as any}
               />
               <StatusSettings
                 statuses={wipStatuses}
@@ -904,6 +917,7 @@ export default function AdminCRM() {
                 leads={leadsViewRecords}
                 colourMode="overdue"
                 statuses={activeLeadStatuses}
+                onReorderColumns={reorderLeadsColumns}
                 leadSources={leadSources}
                 getReferrerName={getReferrerName}
                 getReferrerCompany={getReferrerCompany}

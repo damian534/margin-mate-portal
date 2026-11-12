@@ -20,9 +20,13 @@ interface StatusSettingsProps {
   triggerLabel?: string;
   /** Boards a status can be assigned to; the first option is the default for new statuses. */
   boardOptions?: BoardOption[];
+  /** Statuses from another list shown on this board (e.g. WIP stages on Leads); reorderable here, edited in their own list. */
+  linkedStatuses?: LeadStatus[];
+  linkedLabel?: string;
+  onReorderLinked?: (reordered: LeadStatus[]) => Promise<boolean>;
 }
 
-export function StatusSettings({ statuses, onAdd, onUpdate, onDelete, onReorder, title = 'Lead Statuses', triggerLabel = 'Manage Statuses', boardOptions }: StatusSettingsProps) {
+export function StatusSettings({ statuses, onAdd, onUpdate, onDelete, onReorder, title = 'Lead Statuses', triggerLabel = 'Manage Statuses', boardOptions, linkedStatuses, linkedLabel = 'WIP stage', onReorderLinked }: StatusSettingsProps) {
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [newLabel, setNewLabel] = useState('');
@@ -80,12 +84,19 @@ export function StatusSettings({ statuses, onAdd, onUpdate, onDelete, onReorder,
     }
   };
 
+  const linkedIds = new Set((linkedStatuses || []).map(s => s.id));
+  const rows: LeadStatus[] = linkedStatuses?.length
+    ? [...statuses, ...linkedStatuses].map((s, i) => ({ s, i })).sort((a, b) => ((a.s.display_order ?? 0) - (b.s.display_order ?? 0)) || (a.i - b.i)).map(x => x.s)
+    : statuses;
   const moveStatus = async (index: number, direction: -1 | 1) => {
     const newIndex = index + direction;
-    if (newIndex < 0 || newIndex >= statuses.length) return;
-    const reordered = [...statuses];
+    if (newIndex < 0 || newIndex >= rows.length) return;
+    const reordered = [...rows];
     [reordered[index], reordered[newIndex]] = [reordered[newIndex], reordered[index]];
-    const ok = await onReorder(reordered.map((s, i) => ({ ...s, display_order: i })));
+    const numbered = reordered.map((s, i) => ({ ...s, display_order: i }));
+    const own = numbered.filter(s => !linkedIds.has(s.id));
+    const linked = numbered.filter(s => linkedIds.has(s.id));
+    const ok = (await onReorder(own)) && (linked.length && onReorderLinked ? await onReorderLinked(linked) : true);
     if (!ok) toast.error('Failed to save status order');
   };
 
@@ -102,7 +113,7 @@ export function StatusSettings({ statuses, onAdd, onUpdate, onDelete, onReorder,
         </DialogHeader>
 
         <div className="space-y-2 mt-2">
-          {statuses.map((status, index) => (
+          {rows.map((status, index) => (
             <div key={status.id} className="flex items-center gap-2 p-2 rounded-lg border bg-card">
               <div className="flex flex-col gap-0.5">
                 <button
@@ -112,7 +123,7 @@ export function StatusSettings({ statuses, onAdd, onUpdate, onDelete, onReorder,
                 >▲</button>
                 <button
                   onClick={() => moveStatus(index, 1)}
-                  disabled={index === statuses.length - 1}
+                  disabled={index === rows.length - 1}
                   className="text-muted-foreground hover:text-foreground disabled:opacity-30 text-xs leading-none"
                 >▼</button>
               </div>
@@ -170,9 +181,12 @@ export function StatusSettings({ statuses, onAdd, onUpdate, onDelete, onReorder,
               ) : (
                 <>
                   <span className="flex-1 text-sm font-medium">{status.label}</span>
-                  {boardOptions && (
+                  {linkedIds.has(status.id) ? (
+                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground border rounded px-1.5 py-0.5 shrink-0">{linkedLabel}</span>
+                  ) : boardOptions && (
                     <span className="text-[10px] uppercase tracking-wide text-muted-foreground border rounded px-1.5 py-0.5 shrink-0">{boardLabel(status.dashboard)}</span>
                   )}
+                  {!linkedIds.has(status.id) && (<>
                   <Button
                     size="sm"
                     variant="ghost"
@@ -196,6 +210,7 @@ export function StatusSettings({ statuses, onAdd, onUpdate, onDelete, onReorder,
                   >
                     <Trash2 className="w-3 h-3" />
                   </Button>
+                  </>)}
                 </>
               )}
             </div>

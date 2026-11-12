@@ -114,10 +114,12 @@ export function useWipStatuses() {
   };
 
   const reorderStatuses = async (reordered: WipStatus[]) => {
-    setStatuses(reordered);
+    // Merge (callers may pass a subset with explicit display_order values) and keep the list sorted.
+    const byId = new Map(reordered.map((s, i) => [s.id, { ...s, display_order: s.display_order ?? i }]));
+    setStatuses(prev => prev.map(s => byId.get(s.id) ?? s).sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)));
     if (isPreviewMode) return true;
     const updates = reordered.map((s, i) =>
-      supabase.from('wip_statuses').update({ display_order: i }).eq('id', s.id)
+      supabase.from('wip_statuses').update({ display_order: s.display_order ?? i }).eq('id', s.id)
     );
     const results = await Promise.all(updates);
     const failed = results.some(result => result.error);

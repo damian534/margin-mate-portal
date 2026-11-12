@@ -69,25 +69,22 @@ interface LeadsKanbanProps {
   docsByLead?: Map<string, { requested: number; completed: number; files: { path: string; name: string; label?: string }[] }>;
   onDownloadDocs?: (leadId: string) => void;
   onAddInStage?: (statusName: string) => void;
+  /** When set, column headers can be dragged to reorder; receives the new column name order. */
+  onReorderColumns?: (names: string[]) => void;
 }
 
-export function LeadsKanban({ leads, statuses, moveStatuses, persistKeyPrefix = 'crm.leads.kanban', colourMode = 'aging', leadSources = [], getReferrerName, getReferrerCompany, getContactName, onOpenLead, onUpdateStatus, onUpdateWipStatus, tasksByLead, taskDueFilter, docsByLead, onDownloadDocs, onAddInStage }: LeadsKanbanProps) {
+export function LeadsKanban({ leads, statuses, moveStatuses, persistKeyPrefix = 'crm.leads.kanban', colourMode = 'aging', leadSources = [], getReferrerName, getReferrerCompany, getContactName, onOpenLead, onUpdateStatus, onUpdateWipStatus, tasksByLead, taskDueFilter, docsByLead, onDownloadDocs, onAddInStage, onReorderColumns }: LeadsKanbanProps) {
   const [collapsedColumns, setCollapsedColumns] = usePersistedStringSet(`${persistKeyPrefix}.collapsedColumns`, []);
   const [compact, setCompact] = usePersistedState<boolean>(`${persistKeyPrefix}.compact`, false);
-  // Board-level column order, so columns from different status lists (e.g. WIP stages shown on Leads) can be moved.
-  const [columnOrder, setColumnOrder] = usePersistedState<string[]>(`${persistKeyPrefix}.columnOrder`, []);
-  const orderedStatuses = useMemo(() => {
-    const idx = (n: string) => { const i = columnOrder.indexOf(n); return i === -1 ? Number.MAX_SAFE_INTEGER : i; };
-    return statuses.map((s, i) => ({ s, i })).sort((a, b) => (idx(a.s.name) - idx(b.s.name)) || (a.i - b.i)).map(x => x.s);
-  }, [statuses, columnOrder]);
+  const orderedStatuses = statuses;
   const moveColumn = (from: string, to: string) => {
-    if (from === to) return;
-    const names = orderedStatuses.map(s => s.name).filter(n => n !== from);
+    if (from === to || !onReorderColumns) return;
+    const names = statuses.map(s => s.name).filter(n => n !== from);
     const at = names.indexOf(to);
-    const fromIdx = orderedStatuses.findIndex(s => s.name === from);
-    const toIdx = orderedStatuses.findIndex(s => s.name === to);
+    const fromIdx = statuses.findIndex(s => s.name === from);
+    const toIdx = statuses.findIndex(s => s.name === to);
     names.splice(fromIdx < toIdx ? at + 1 : at, 0, from);
-    setColumnOrder(names);
+    onReorderColumns(names);
   };
   // Local optimistic overrides for sort_order and status to keep DnD snappy.
   const [sortOverrides, setSortOverrides] = useState<Record<string, number>>({});
@@ -277,10 +274,10 @@ export function LeadsKanban({ leads, statuses, moveStatuses, persistKeyPrefix = 
               ) : (
                 <div className="flex flex-col rounded-lg border bg-muted/30 h-full">
                   <div
-                    draggable
+                    draggable={!!onReorderColumns}
                     onDragStart={(e) => { e.dataTransfer.setData('columnName', status.name); e.dataTransfer.effectAllowed = 'move'; }}
-                    title="Drag to move this column"
-                    className="p-3 border-b cursor-grab active:cursor-grabbing group"
+                    title={onReorderColumns ? 'Drag to move this column' : undefined}
+                    className={`p-3 border-b group ${onReorderColumns ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}`}
                     style={colourMode === 'aging' ? { borderTopColor: status.color, borderTopWidth: 3 } : undefined}
                     onClick={() => toggleCollapse(status.name)}
                   >
