@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { LeadStatus } from '@/hooks/useLeadStatuses';
 import { SmsComposeDialog } from '@/components/lead/SmsComposeDialog';
 import { hasOverdueTask } from '@/lib/dealTaskUrgency';
+import { avatarTint } from '@/lib/avatarTint';
 import { format, isToday, differenceInCalendarDays, differenceInMinutes, differenceInHours, differenceInDays } from 'date-fns';
 import {
   ChevronRight,
@@ -140,12 +141,12 @@ function followUpChip(bucket: Bucket, due: Date | null): { text: string; classNa
     };
   }
   if (bucket === 'today') {
-    return { text: 'Follow up today', className: 'bg-muted text-muted-foreground' };
+    return { text: 'Follow up today', className: 'bg-warning/10 text-warning' };
   }
   const days = differenceInCalendarDays(due, new Date());
   return {
     text: days <= 1 ? 'Follow up tomorrow' : `Follow up ${format(due, 'd MMM')}`,
-    className: 'bg-muted text-muted-foreground',
+    className: 'bg-info/10 text-info',
   };
 }
 
@@ -221,7 +222,7 @@ function LeadRow({
       }}
       className={`w-full text-left flex items-center gap-3.5 px-4 sm:px-5 py-3.5 ${overdue ? 'bg-destructive/10 hover:bg-destructive/15' : 'hover:bg-muted/40 active:bg-muted/60'} transition-colors cursor-pointer group`}
     >
-      <span className="w-11 h-11 rounded-full flex items-center justify-center text-[13px] font-semibold shrink-0 bg-muted text-muted-foreground">
+      <span className={`w-11 h-11 rounded-full flex items-center justify-center text-[13px] font-semibold shrink-0 ${avatarTint(`${lead.first_name} ${lead.last_name ?? ''}`)}`}>
         {initials(lead)}
       </span>
 
@@ -231,7 +232,7 @@ function LeadRow({
             {lead.first_name} {lead.last_name}
           </p>
           {isNew && (
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground text-[10px] font-bold tracking-wide shrink-0">
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-bold tracking-wide shrink-0">
               NEW
             </span>
           )}
@@ -272,11 +273,11 @@ const SECTIONS: Record<
   { title: string; Icon: typeof AlarmClock; iconClass: string; collapsible: boolean; defaultOpen: boolean }
 > = {
   overdue: { title: 'Overdue follow-ups', Icon: AlarmClock, iconClass: 'bg-destructive/10 text-destructive', collapsible: false, defaultOpen: true },
-  today: { title: 'Due today', Icon: CalendarClock, iconClass: 'bg-muted text-muted-foreground', collapsible: false, defaultOpen: true },
-  new: { title: 'New leads', Icon: Sparkles, iconClass: 'bg-muted text-muted-foreground', collapsible: false, defaultOpen: true },
-  upcoming: { title: 'Coming up', Icon: CalendarPlus, iconClass: 'bg-muted text-muted-foreground', collapsible: false, defaultOpen: true },
+  today: { title: 'Due today', Icon: CalendarClock, iconClass: 'bg-warning/10 text-warning', collapsible: false, defaultOpen: true },
+  new: { title: 'New leads', Icon: Sparkles, iconClass: 'bg-primary/10 text-primary', collapsible: false, defaultOpen: true },
+  upcoming: { title: 'Coming up', Icon: CalendarPlus, iconClass: 'bg-info/10 text-info', collapsible: false, defaultOpen: true },
   none: { title: 'No follow-up set', Icon: Inbox, iconClass: 'bg-muted text-muted-foreground', collapsible: true, defaultOpen: false },
-  closed: { title: 'Settled & closed', Icon: CheckCircle2, iconClass: 'bg-muted text-muted-foreground', collapsible: true, defaultOpen: false },
+  closed: { title: 'Settled & closed', Icon: CheckCircle2, iconClass: 'bg-success/10 text-success', collapsible: true, defaultOpen: false },
 };
 
 const SECTION_ORDER: Bucket[] = ['overdue', 'today', 'new', 'upcoming', 'none', 'closed'];

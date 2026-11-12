@@ -44,11 +44,11 @@ export function StageDashboard<T extends StageLead>({ stage, leads, loading, onO
   const [search, setSearch] = useState('');
   const [assignees, setAssignees] = useState<string[]>([]);
   const [view, setView] = usePersistedState<'list' | 'board'>(`crm.stage.${stage}.view`, 'list');
-  const { title, Icon } = {
-    parked: { title: 'Parked', Icon: PauseCircle },
-    lost: { title: 'Lost', Icon: CircleX },
-    preapproved: { title: 'Pre-approved', Icon: BadgeCheck },
-    settled: { title: 'Settled', Icon: CheckCircle2 },
+  const { title, Icon, iconClass } = {
+    parked: { title: 'Parked', Icon: PauseCircle, iconClass: 'bg-warning/10 text-warning' },
+    lost: { title: 'Lost', Icon: CircleX, iconClass: 'bg-destructive/10 text-destructive' },
+    preapproved: { title: 'Pre-approved', Icon: BadgeCheck, iconClass: 'bg-info/10 text-info' },
+    settled: { title: 'Settled', Icon: CheckCircle2, iconClass: 'bg-success/10 text-success' },
   }[stage];
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -96,7 +96,9 @@ export function StageDashboard<T extends StageLead>({ stage, leads, loading, onO
     <section className="space-y-6" aria-label={`${title} dashboard`}>
       <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-5">
         <div className="flex items-center gap-3">
-          <Icon className="h-6 w-6 text-muted-foreground" />
+          <span className={`w-9 h-9 rounded-xl flex items-center justify-center ${iconClass}`}>
+            <Icon className="h-5 w-5" />
+          </span>
           <h2 className="text-xl font-semibold">{title}</h2>
           <span className="text-sm tabular-nums text-muted-foreground">{visible.length} deals</span>
         </div>

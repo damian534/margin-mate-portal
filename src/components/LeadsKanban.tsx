@@ -14,6 +14,7 @@ import { usePersistedState, usePersistedStringSet } from '@/hooks/usePersistedSt
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { HorizontalScrollWithTopBar } from '@/components/HorizontalScrollWithTopBar';
 import { hasOverdueTask } from '@/lib/dealTaskUrgency';
+import { avatarTint } from '@/lib/avatarTint';
 
 interface Lead {
   id: string;
@@ -245,7 +246,7 @@ export function LeadsKanban({ leads, statuses, moveStatuses, persistKeyPrefix = 
                   onClick={() => toggleCollapse(status.name)}
                 >
                   <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  <div className="w-3 h-3 rounded-full flex-shrink-0 bg-muted-foreground" style={colourMode === 'aging' ? { backgroundColor: status.color } : undefined} />
+                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: status.color }} />
                   <span className="text-xs font-semibold [writing-mode:vertical-lr] rotate-180">{status.label}</span>
                   <span className="text-[10px] text-muted-foreground font-medium">{columnLeads.length}</span>
                   {totalAmount > 0 && (
@@ -264,6 +265,7 @@ export function LeadsKanban({ leads, statuses, moveStatuses, persistKeyPrefix = 
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5 min-w-0">
                         <ChevronDown className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: status.color }} />
                         <h3 className="text-sm font-semibold leading-tight truncate">{status.label}</h3>
                       </div>
                       <span className="text-xs px-2 py-0.5 rounded-full bg-background border shrink-0">{columnLeads.length}</span>
@@ -325,7 +327,7 @@ export function LeadsKanban({ leads, statuses, moveStatuses, persistKeyPrefix = 
                           >
                             <CardContent className={compact ? "p-1.5 space-y-0.5" : "p-2 space-y-1"}>
                               <div className="flex items-start gap-1.5">
-                                <div className={`w-5 h-5 rounded-full ${colourMode === 'overdue' ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'} text-[9px] font-semibold flex items-center justify-center shrink-0`}>
+                                <div className={`w-5 h-5 rounded-full ${avatarTint(`${lead.first_name} ${lead.last_name ?? ''}`)} text-[9px] font-semibold flex items-center justify-center shrink-0`}>
                                   {lead.first_name[0]}{lead.last_name?.[0] || ''}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -365,7 +367,7 @@ export function LeadsKanban({ leads, statuses, moveStatuses, persistKeyPrefix = 
                                         onClick={(e) => { e.stopPropagation(); onUpdateStatus(lead.id, s.name); }}
                                         className="text-xs"
                                       >
-                                        {colourMode === 'aging' && <span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: s.color }} />}
+                                        <span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: s.color }} />
                                         {s.label}
                                         {s.name === status.name && <span className="ml-auto text-muted-foreground">(current)</span>}
                                       </DropdownMenuItem>
