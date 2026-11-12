@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -74,6 +74,21 @@ interface LeadsKanbanProps {
 export function LeadsKanban({ leads, statuses, moveStatuses, persistKeyPrefix = 'crm.leads.kanban', colourMode = 'aging', leadSources = [], getReferrerName, getReferrerCompany, getContactName, onOpenLead, onUpdateStatus, onUpdateWipStatus, tasksByLead, taskDueFilter, docsByLead, onDownloadDocs, onAddInStage }: LeadsKanbanProps) {
   const [collapsedColumns, setCollapsedColumns] = usePersistedStringSet(`${persistKeyPrefix}.collapsedColumns`, []);
   const [compact, setCompact] = usePersistedState<boolean>(`${persistKeyPrefix}.compact`, false);
+  // Board-level column order, so columns from different status lists (e.g. WIP stages shown on Leads) can be moved.
+  const [columnOrder, setColumnOrder] = usePersistedState<string[]>(`${persistKeyPrefix}.columnOrder`, []);
+  const orderedStatuses = useMemo(() => {
+    const idx = (n: string) => { const i = columnOrder.indexOf(n); return i === -1 ? Number.MAX_SAFE_INTEGER : i; };
+    return statuses.map((s, i) => ({ s, i })).sort((a, b) => (idx(a.s.name) - idx(b.s.name)) || (a.i - b.i)).map(x => x.s);
+  }, [statuses, columnOrder]);
+  const moveColumn = (from: string, to: string) => {
+    if (from === to) return;
+    const names = orderedStatuses.map(s => s.name).filter(n => n !== from);
+    const at = names.indexOf(to);
+    const fromIdx = orderedStatuses.findIndex(s => s.name === from);
+    const toIdx = orderedStatuses.findIndex(s => s.name === to);
+    names.splice(fromIdx < toIdx ? at + 1 : at, 0, from);
+    setColumnOrder(names);
+  };
   // Local optimistic overrides for sort_order and status to keep DnD snappy.
   const [sortOverrides, setSortOverrides] = useState<Record<string, number>>({});
   const [statusOverrides, setStatusOverrides] = useState<Record<string, string>>({});
@@ -142,6 +157,8 @@ export function LeadsKanban({ leads, statuses, moveStatuses, persistKeyPrefix = 
 
   const handleDrop = (e: React.DragEvent, statusName: string) => {
     e.preventDefault();
+    const col = e.dataTransfer.getData('columnName');
+    if (col) { moveColumn(col, statusName); return; }
     const leadId = e.dataTransfer.getData('leadId');
     if (!leadId) return;
     // Drop at end of column
@@ -163,6 +180,8 @@ export function LeadsKanban({ leads, statuses, moveStatuses, persistKeyPrefix = 
   const handleCardDrop = (e: React.DragEvent, targetLead: Lead, statusName: string) => {
     e.preventDefault();
     e.stopPropagation();
+    const col = e.dataTransfer.getData('columnName');
+    if (col) { moveColumn(col, statusName); setDragOverCard(null); return; }
     const leadId = e.dataTransfer.getData('leadId');
     if (!leadId || leadId === targetLead.id) { setDragOverCard(null); return; }
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -220,7 +239,7 @@ export function LeadsKanban({ leads, statuses, moveStatuses, persistKeyPrefix = 
 
       <HorizontalScrollWithTopBar style={{ minHeight: '60vh' }}>
         <div className="flex gap-3 pb-4" style={{ minWidth: 'max-content' }}>
-        {statuses.map(status => {
+        {orderedStatuses.map(status => {
           const columnLeads = sortLeads(leads.filter(l => getStatus(l) === status.name));
           const totalAmount = columnLeads.reduce((sum, l) => sum + (l.loan_amount || 0), 0);
           const isCollapsed = collapsedColumns.has(status.name);
@@ -258,7 +277,10 @@ export function LeadsKanban({ leads, statuses, moveStatuses, persistKeyPrefix = 
               ) : (
                 <div className="flex flex-col rounded-lg border bg-muted/30 h-full">
                   <div
-                    className="p-3 border-b cursor-pointer group"
+                    draggable
+                    onDragStart={(e) => { e.dataTransfer.setData('columnName', status.name); e.dataTransfer.effectAllowed = 'move'; }}
+                    title="Drag to move this column"
+                    className="p-3 border-b cursor-grab active:cursor-grabbing group"
                     style={colourMode === 'aging' ? { borderTopColor: status.color, borderTopWidth: 3 } : undefined}
                     onClick={() => toggleCollapse(status.name)}
                   >
