@@ -742,9 +742,9 @@ export default function AdminCRM() {
             return { count: arr.length, volume: arr.reduce((s, l) => s + (l.loan_amount || 0), 0) };
           };
           const items = [
-            { key: 'lodged', label: 'Lodged', icon: TrendingUp, ...calc('lodged_date') },
-            { key: 'approved', label: 'Approved', icon: CheckCircle, ...calc('approved_date') },
-            { key: 'settled', label: 'Settled', icon: DollarSign, ...calc('settled_date') },
+            { key: 'lodged', label: 'Lodged', icon: TrendingUp, accent: 'info', ...calc('lodged_date') },
+            { key: 'approved', label: 'Approved', icon: CheckCircle, accent: 'warning', ...calc('approved_date') },
+            { key: 'settled', label: 'Settled', icon: DollarSign, accent: 'success', ...calc('settled_date') },
           ];
           return (
             <div>
@@ -755,6 +755,7 @@ export default function AdminCRM() {
                     key={s.key}
                     label={s.label}
                     Icon={s.icon}
+                    accent={s.accent}
                     volume={s.volume}
                     count={s.count}
                     period={`This Month · ${now.toLocaleString('en-AU', { month: 'long', year: 'numeric' })}`}
