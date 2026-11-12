@@ -2163,6 +2163,7 @@ export type Database = {
           email: string | null
           estimated_settlement_date: string | null
           excluded_from_competition: boolean
+          facebook_lead_id: string | null
           finance_due_date: string | null
           first_name: string
           id: string
@@ -2171,6 +2172,7 @@ export type Database = {
           loan_amount: number | null
           loan_purpose: string | null
           lodged_date: string | null
+          metadata: Json | null
           opportunity_name: string | null
           original_broker_id: string | null
           phone: string | null
@@ -2212,6 +2214,7 @@ export type Database = {
           email?: string | null
           estimated_settlement_date?: string | null
           excluded_from_competition?: boolean
+          facebook_lead_id?: string | null
           finance_due_date?: string | null
           first_name: string
           id?: string
@@ -2220,6 +2223,7 @@ export type Database = {
           loan_amount?: number | null
           loan_purpose?: string | null
           lodged_date?: string | null
+          metadata?: Json | null
           opportunity_name?: string | null
           original_broker_id?: string | null
           phone?: string | null
@@ -2261,6 +2265,7 @@ export type Database = {
           email?: string | null
           estimated_settlement_date?: string | null
           excluded_from_competition?: boolean
+          facebook_lead_id?: string | null
           finance_due_date?: string | null
           first_name?: string
           id?: string
@@ -2269,6 +2274,7 @@ export type Database = {
           loan_amount?: number | null
           loan_purpose?: string | null
           lodged_date?: string | null
+          metadata?: Json | null
           opportunity_name?: string | null
           original_broker_id?: string | null
           phone?: string | null
