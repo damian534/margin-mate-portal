@@ -129,6 +129,7 @@ export function SettlementFiltersBar({ filters, filterOptions, isSuperAdmin, bro
     setStoredFy(currentFyStart);
     setStoredPeriod('fy');
     setAppliedRange(defaultFyRange);
+    applyPeriod('fy', currentFyStart);
   };
 
   const handleMonth = (v: string) => {

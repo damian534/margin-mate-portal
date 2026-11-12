@@ -78,8 +78,7 @@ export function BusinessMetrics({ leads, leadSources }: { leads: MetricsLead[]; 
         // Options presented during the period, regardless of when the lead came in.
         const ps = l.proposal_sent_date ? new Date(l.proposal_sent_date) : null;
         const presentedInRange = ps && ps >= drill.from && ps <= drill.to;
-        const skippedToLodged = !ps && l.lodged_date && new Date(l.lodged_date) >= drill.from && new Date(l.lodged_date) <= drill.to;
-        if (!presentedInRange && !skippedToLodged) return false;
+        if (!presentedInRange) return false;
       } else {
         const created = new Date(l.created_at);
         if (created < drill.from || created > drill.to) return false;

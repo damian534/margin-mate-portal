@@ -202,11 +202,11 @@ export function MeetingNotesSection({ leadId, brokerId, isPreviewMode }: Props) 
     setEmailSubject(`Meeting summary — ${m.title} (${format(new Date(m.meeting_date + 'T00:00:00'), 'd MMM yyyy')})`);
     setEmailBody('');
     setEmailOpen(true);
-    await generateClientEmail(m);
+    await generateClientEmail(m, true);
   }
 
-  async function generateClientEmail(m: MeetingNote) {
-    if (emailBody.trim() && !confirm('Replace your current email with a new draft using the latest saved notes and client details?')) return;
+  async function generateClientEmail(m: MeetingNote, fresh = false) {
+    if (!fresh && emailBody.trim() && !confirm('Replace your current email with a new draft using the latest saved notes and client details?')) return;
     setEmailGenerating(true);
     try {
       const { data: latestLead, error: clientError } = await supabase.from('leads').select('email,source_contact_id').eq('id', leadId).maybeSingle();

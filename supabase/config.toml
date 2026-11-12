@@ -27,3 +27,13 @@ project_id = "capydxuqpclcwadhwgvz"
     verify_jwt = false
   [functions.esign-sign]
     verify_jwt = false
+  [functions.lead-intake]
+    verify_jwt = false
+  [functions.workflow-unsubscribe]
+    verify_jwt = false
+  [functions.new-lead-sms]
+    verify_jwt = false
+  [functions.client-workflow]
+    verify_jwt = false
+  [functions.contact-zapier-sync]
+    verify_jwt = false
