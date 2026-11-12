@@ -45,6 +45,7 @@ import { EsignSection } from '@/components/esign/EsignSection';
 import { SectionCard } from '@/components/lead/SectionCard';
 import { FormAnswersCard } from '@/components/lead/FormAnswersCard';
 import { SimpleLeadCard } from '@/components/lead/SimpleLeadCard';
+import { buildStageChoices, currentStageChoice } from '@/lib/crmDashboardGroups';
 import { ClientFileTabs, type ClientFileTab } from '@/components/lead/tabs/ClientFileTabs';
 import { FundingPositionTab } from '@/components/lead/tabs/FundingPositionTab';
 import { FactFindWizardDialog } from '@/components/lead/FactFindWizardDialog';
@@ -1242,15 +1243,20 @@ export function LeadDetailSheet({
             name={`${lead.first_name} ${lead.last_name}`.trim()}
             email={primaryApplicantContact?.email || lead.email}
             phone={primaryApplicantContact?.phone || lead.phone}
-            status={lead.status}
-            statuses={statuses}
+            status={currentStageChoice(lead)}
+            stageGroups={buildStageChoices(statuses as any, wipStatusList as any)}
             source={lead.source}
             sources={leadSources}
             createdAt={lead.created_at}
             customFields={lead.custom_fields as unknown as Record<string, unknown>}
             notes={notes}
             authorName={id => teamMembers.find(m => m.user_id === id)?.name || (id === user?.id ? 'You' : 'Team member')}
-            onStatus={value => onUpdateStatus(lead.id, value)}
+            onStatus={async value => {
+              const [kind, name] = [value.slice(0, value.indexOf(':')), value.slice(value.indexOf(':') + 1)];
+              if (kind === 'wip') { onUpdateWipStatus?.(lead.id, name); return; }
+              await onUpdateStatus(lead.id, name);
+              if (lead.wip_status) onUpdateWipStatus?.(lead.id, null);
+            }}
             onSource={async source => {
               if (!isPreviewMode) {
                 const { error } = await supabase.from('leads').update({ source }).eq('id', lead.id);

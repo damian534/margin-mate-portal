@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { Mail, Phone, MessageSquare, Pencil, Plus, Send, Pin, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FormAnswersCard } from '@/components/lead/FormAnswersCard';
 import { SmsComposeDialog } from '@/components/lead/SmsComposeDialog';
 
@@ -14,7 +14,7 @@ interface Props {
   email: string | null;
   phone: string | null;
   status: string;
-  statuses: { name: string; label: string }[];
+  stageGroups: { board: string; label: string; options: { value: string; label: string }[] }[];
   source: string | null;
   sources: { name: string; label: string }[];
   createdAt: string;
@@ -45,8 +45,11 @@ export function SimpleLeadCard(props: Props) {
         <h2 className="font-heading text-2xl font-bold pr-8 break-words">{props.name}</h2>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <Select value={props.status} onValueChange={props.onStatus}>
-            <SelectTrigger aria-label="Lead stage" className="h-8 w-44 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>{props.statuses.map(s => <SelectItem key={s.name} value={s.name}>{s.label}</SelectItem>)}</SelectContent>
+            <SelectTrigger aria-label="Lead stage" className="h-8 w-52 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent className="max-h-96">{props.stageGroups.map(g => (
+              <SelectGroup key={g.board}><SelectLabel className="text-[10px] uppercase tracking-wide text-muted-foreground">{g.label}</SelectLabel>
+                {g.options.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+              </SelectGroup>))}</SelectContent>
           </Select>
           <span className="text-xs text-muted-foreground">Added {format(new Date(props.createdAt), 'dd MMM yyyy')}</span>
           <div className="sm:ml-auto">{props.fullFile}</div>

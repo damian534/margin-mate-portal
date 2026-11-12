@@ -61,3 +61,22 @@ export const WIP_BOARD_OPTIONS = [
   { value: 'preapproved', label: 'Pre-approved' },
   { value: 'settled', label: 'Settled' },
 ] as const;
+const BOARD_ORDER: { value: DealDashboard; label: string }[] = [
+  { value: 'leads', label: 'Leads' }, { value: 'onboarding', label: 'Onboarding' }, { value: 'wip', label: 'WIP' },
+  { value: 'preapproved', label: 'Pre-approved' }, { value: 'settled', label: 'Settled' },
+  { value: 'parked', label: 'Parked' }, { value: 'lost', label: 'Lost' },
+];
+
+export interface StageChoiceGroup { board: DealDashboard; label: string; options: { value: string; label: string }[] }
+
+/** Every lead and WIP stage, grouped by the dashboard it lands on. Values are `lead:<name>` or `wip:<name>`. */
+export function buildStageChoices(leadStatuses: StageConfig[], wipStatuses: StageConfig[]): StageChoiceGroup[] {
+  const groups = new Map<DealDashboard, StageChoiceGroup>(BOARD_ORDER.map(b => [b.value, { board: b.value, label: b.label, options: [] }]));
+  leadStatuses.forEach(s => groups.get(getStatusDashboard(s.name, leadStatuses, 'leads'))!.options.push({ value: `lead:${s.name}`, label: s.label }));
+  wipStatuses.forEach(s => groups.get(getStatusDashboard(s.name, wipStatuses, 'wip'))!.options.push({ value: `wip:${s.name}`, label: s.label }));
+  return [...groups.values()].filter(g => g.options.length > 0);
+}
+
+export function currentStageChoice(lead: DashboardLead): string {
+  return lead.wip_status ? `wip:${lead.wip_status}` : `lead:${lead.status}`;
+}

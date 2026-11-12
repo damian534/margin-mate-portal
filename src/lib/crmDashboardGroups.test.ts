@@ -76,3 +76,15 @@ describe('dedicated deal dashboards', () => {
     expect(stageDashboard('parked', [{ name: 'parked', label: 'Parked' }])).toBe('parked');
   });
 });
+import { buildStageChoices, currentStageChoice } from './crmDashboardGroups';
+describe('buildStageChoices', () => {
+  it('offers WIP stages assigned to Leads under the Leads group', () => {
+    const groups = buildStageChoices([{ name: 'new', label: 'New' }], [{ name: 'meeting_booked', label: 'Meeting Booked', dashboard: 'leads' }, { name: 'lodged', label: 'Lodged' }]);
+    expect(groups.find(g => g.board === 'leads')!.options.map(o => o.value)).toEqual(['lead:new', 'wip:meeting_booked']);
+    expect(groups.find(g => g.board === 'wip')!.options.map(o => o.value)).toEqual(['wip:lodged']);
+  });
+  it('current choice prefers the WIP stage', () => {
+    expect(currentStageChoice({ status: 'new', wip_status: 'lodged' })).toBe('wip:lodged');
+    expect(currentStageChoice({ status: 'new', wip_status: null })).toBe('lead:new');
+  });
+});
