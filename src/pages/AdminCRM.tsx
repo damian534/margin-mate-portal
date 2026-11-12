@@ -12,6 +12,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { TasksPanel } from '@/components/TasksPanel';
 import { LeadsKanban } from '@/components/LeadsKanban';
 import { LeadsPriorityList } from '@/components/LeadsPriorityList';
+import { hasOverdueTask } from '@/lib/dealTaskUrgency';
 import { StatusSettings } from '@/components/StatusSettings';
 import { CompanyManagement, Company } from '@/components/CompanyManagement';
 import { CompanyCRM } from '@/components/company/CompanyCRM';
@@ -901,6 +902,7 @@ export default function AdminCRM() {
             ) : leadsView === 'kanban' ? (
               <LeadsKanban
                 leads={leadsViewRecords}
+                colourMode="overdue"
                 statuses={activeLeadStatuses}
                 leadSources={leadSources}
                 getReferrerName={getReferrerName}
@@ -937,7 +939,7 @@ export default function AdminCRM() {
                       }}
                     >
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: status.color }} />
+                        <div className="w-3 h-3 rounded-full bg-muted-foreground" />
                         <h3 className="text-sm font-semibold">{status.label}</h3>
                         <span className="text-xs text-muted-foreground">({statusLeads.length})</span>
                       </div>
@@ -969,7 +971,7 @@ export default function AdminCRM() {
                                     e.dataTransfer.setData('leadId', lead.id);
                                     e.dataTransfer.effectAllowed = 'move';
                                   }}
-                                  className="cursor-grab active:cursor-grabbing hover:bg-muted/50"
+                                  className={`cursor-grab active:cursor-grabbing ${hasOverdueTask(tasksByLead.get(lead.id)) ? 'bg-destructive/10 hover:bg-destructive/15' : 'hover:bg-muted/50'}`}
                                   onClick={() => openLead(lead)}
                                 >
                                   <TableCell className="font-medium">{lead.first_name} {lead.last_name}</TableCell>
@@ -996,7 +998,7 @@ export default function AdminCRM() {
                                     </div>
                                   </TableCell>
                                   <TableCell>{lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '—'}</TableCell>
-                                  <TableCell><StatusBadge status={lead.status} statuses={statuses} /></TableCell>
+                                  <TableCell><span className="text-xs text-muted-foreground">{status.label}</span></TableCell>
                                   <TableCell className="text-muted-foreground">{format(new Date(lead.created_at), 'dd MMM')}</TableCell>
                                 </TableRow>
                               ))}
@@ -1036,7 +1038,7 @@ export default function AdminCRM() {
                             </TableHeader>
                             <TableBody>
                               {uncategorized.map(lead => (
-                                <TableRow key={lead.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openLead(lead)}>
+                                <TableRow key={lead.id} className={`cursor-pointer ${hasOverdueTask(tasksByLead.get(lead.id)) ? 'bg-destructive/10 hover:bg-destructive/15' : 'hover:bg-muted/50'}`} onClick={() => openLead(lead)}>
                                   <TableCell className="font-medium">{lead.first_name} {lead.last_name}</TableCell>
                                   <TableCell>
                                     <span className="text-xs px-2 py-0.5 rounded-full bg-muted">
@@ -1055,7 +1057,7 @@ export default function AdminCRM() {
                                     </div>
                                   </TableCell>
                                   <TableCell>{lead.loan_amount ? `$${lead.loan_amount.toLocaleString()}` : '—'}</TableCell>
-                                  <TableCell><StatusBadge status={lead.status} statuses={statuses} /></TableCell>
+                                  <TableCell><span className="text-xs text-muted-foreground">{statuses.find(s => s.name === lead.status)?.label || lead.status}</span></TableCell>
                                   <TableCell className="text-muted-foreground">{format(new Date(lead.created_at), 'dd MMM')}</TableCell>
                                 </TableRow>
                               ))}

@@ -1,4 +1,5 @@
 # Architecture rules
+- Shared deal views support an explicit overdue-only colour mode using one pure date-only task predicate, keeping task highlighting consistent without changing other dashboards' stage aging.
 - E-sign completion emails use the managed template sender with a document-specific idempotency key, trusted broker recipient and fresh all-signed check; conditional completion writes prevent duplicate activity during simultaneous signing.
 - CRM dashboard membership uses a shared pure stage classifier honoring cross-dashboard assignments; Leads projects processing columns with namespaced keys, and status management shares the parent hook so saves update membership immediately without duplicating deals or workflows.
 - LeadDetailSheet provides a lightweight Leads presentation using the same note/task handlers as the full WIP file, so both views share persisted activity without duplicate workflows.

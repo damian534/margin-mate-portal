@@ -1,4 +1,5 @@
 # Tasks
+- [x] Simplify Leads, Settled and Pre-approved to neutral deals with red only for overdue incomplete tasks; five date-rule tests pass, signed-in Leads priority/table/board and Pre-approved/Settled boards verified, build clean.
 - [x] Notify the owning broker when every party signs a document; deployed, three rule tests pass, two-party signing produced a completed PDF and one completion event, and managed email logs confirmed a test notification sent to Damian. Temporary test document removed.
 - [x] Allow processing columns to move to Leads with shared live status management; saved Meeting Booked to Leads and verified its eight deals and reload persistence; fourteen routing tests passed.
 - [x] Keep renamed onboarding stages ("Pending Documents") on the Onboarding dashboard via name-match fallback; regression test added, 72 tests pass, preview verified with live data (10 onboarding deals). Live site fix requires publishing.

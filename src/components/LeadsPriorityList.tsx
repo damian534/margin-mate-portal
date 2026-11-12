@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { LeadStatus } from '@/hooks/useLeadStatuses';
 import { SmsComposeDialog } from '@/components/lead/SmsComposeDialog';
+import { hasOverdueTask } from '@/lib/dealTaskUrgency';
 import { format, isToday, differenceInCalendarDays, differenceInMinutes, differenceInHours, differenceInDays } from 'date-fns';
 import {
   ChevronRight,
@@ -112,20 +113,6 @@ function initials(lead: Lead): string {
   return `${lead.first_name?.[0] ?? ''}${lead.last_name?.[0] ?? ''}`.toUpperCase() || '?';
 }
 
-const AVATAR_STYLES = [
-  'bg-primary/10 text-primary',
-  'bg-info/10 text-info',
-  'bg-success/10 text-success',
-  'bg-warning/10 text-warning',
-];
-
-function avatarStyle(lead: Lead): string {
-  const name = `${lead.first_name}${lead.last_name}`;
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) | 0;
-  return AVATAR_STYLES[Math.abs(hash) % AVATAR_STYLES.length];
-}
-
 function telHref(phone: string | null): string | null {
   if (!phone) return null;
   const cleaned = phone.replace(/[^\d+]/g, '');
@@ -153,12 +140,12 @@ function followUpChip(bucket: Bucket, due: Date | null): { text: string; classNa
     };
   }
   if (bucket === 'today') {
-    return { text: 'Follow up today', className: 'bg-warning/10 text-warning' };
+    return { text: 'Follow up today', className: 'bg-muted text-muted-foreground' };
   }
   const days = differenceInCalendarDays(due, new Date());
   return {
     text: days <= 1 ? 'Follow up tomorrow' : `Follow up ${format(due, 'd MMM')}`,
-    className: 'bg-info/10 text-info',
+    className: 'bg-muted text-muted-foreground',
   };
 }
 
@@ -181,7 +168,7 @@ function QuickActions({ lead, onSms }: { lead: Lead; onSms: (lead: Lead) => void
           onClick={() => onSms(lead)}
           aria-label={`Text ${lead.first_name}`}
           title="Text"
-          className={`${btn} hover:!text-success hover:!border-success/40`}
+          className={btn}
         >
           <MessageSquare className="w-4 h-4" strokeWidth={2} />
         </button>
@@ -219,6 +206,7 @@ function LeadRow({
   const due = nextFollowUp(lead, tasksByLead);
   const chip = followUpChip(bucket, due);
   const isNew = bucket === 'new';
+  const overdue = hasOverdueTask(tasksByLead?.get(lead.id));
 
   return (
     <div
@@ -231,9 +219,9 @@ function LeadRow({
           onOpenLead(lead);
         }
       }}
-      className="w-full text-left flex items-center gap-3.5 px-4 sm:px-5 py-3.5 hover:bg-muted/40 active:bg-muted/60 transition-colors cursor-pointer group"
+      className={`w-full text-left flex items-center gap-3.5 px-4 sm:px-5 py-3.5 ${overdue ? 'bg-destructive/10 hover:bg-destructive/15' : 'hover:bg-muted/40 active:bg-muted/60'} transition-colors cursor-pointer group`}
     >
-      <span className={`w-11 h-11 rounded-full flex items-center justify-center text-[13px] font-semibold shrink-0 ${avatarStyle(lead)}`}>
+      <span className="w-11 h-11 rounded-full flex items-center justify-center text-[13px] font-semibold shrink-0 bg-muted text-muted-foreground">
         {initials(lead)}
       </span>
 
@@ -243,7 +231,7 @@ function LeadRow({
             {lead.first_name} {lead.last_name}
           </p>
           {isNew && (
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-bold tracking-wide shrink-0">
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground text-[10px] font-bold tracking-wide shrink-0">
               NEW
             </span>
           )}
@@ -284,11 +272,11 @@ const SECTIONS: Record<
   { title: string; Icon: typeof AlarmClock; iconClass: string; collapsible: boolean; defaultOpen: boolean }
 > = {
   overdue: { title: 'Overdue follow-ups', Icon: AlarmClock, iconClass: 'bg-destructive/10 text-destructive', collapsible: false, defaultOpen: true },
-  today: { title: 'Due today', Icon: CalendarClock, iconClass: 'bg-warning/10 text-warning', collapsible: false, defaultOpen: true },
-  new: { title: 'New leads', Icon: Sparkles, iconClass: 'bg-primary/10 text-primary', collapsible: false, defaultOpen: true },
-  upcoming: { title: 'Coming up', Icon: CalendarPlus, iconClass: 'bg-info/10 text-info', collapsible: false, defaultOpen: true },
+  today: { title: 'Due today', Icon: CalendarClock, iconClass: 'bg-muted text-muted-foreground', collapsible: false, defaultOpen: true },
+  new: { title: 'New leads', Icon: Sparkles, iconClass: 'bg-muted text-muted-foreground', collapsible: false, defaultOpen: true },
+  upcoming: { title: 'Coming up', Icon: CalendarPlus, iconClass: 'bg-muted text-muted-foreground', collapsible: false, defaultOpen: true },
   none: { title: 'No follow-up set', Icon: Inbox, iconClass: 'bg-muted text-muted-foreground', collapsible: true, defaultOpen: false },
-  closed: { title: 'Settled & closed', Icon: CheckCircle2, iconClass: 'bg-success/10 text-success', collapsible: true, defaultOpen: false },
+  closed: { title: 'Settled & closed', Icon: CheckCircle2, iconClass: 'bg-muted text-muted-foreground', collapsible: true, defaultOpen: false },
 };
 
 const SECTION_ORDER: Bucket[] = ['overdue', 'today', 'new', 'upcoming', 'none', 'closed'];
@@ -445,7 +433,7 @@ export function LeadsPriorityList({ leads, statuses, leadSources = [], getReferr
 
         {visibleSections.length === 0 && (
           <div className="rounded-3xl border border-border/70 bg-card shadow-[0_1px_2px_hsl(var(--foreground)/0.04)] px-6 py-14 text-center">
-            <span className="mx-auto w-14 h-14 rounded-full bg-success/10 text-success flex items-center justify-center">
+            <span className="mx-auto w-14 h-14 rounded-full bg-muted text-muted-foreground flex items-center justify-center">
               <CheckCircle2 className="w-7 h-7" strokeWidth={1.8} />
             </span>
             <p className="mt-4 text-lg font-semibold tracking-tight">

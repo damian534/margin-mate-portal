@@ -13,6 +13,7 @@ import { getAgingLevel, AGING_EXEMPT_STATUSES } from '@/lib/stageAging';
 import { usePersistedState, usePersistedStringSet } from '@/hooks/usePersistedState';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { HorizontalScrollWithTopBar } from '@/components/HorizontalScrollWithTopBar';
+import { hasOverdueTask } from '@/lib/dealTaskUrgency';
 
 interface Lead {
   id: string;
@@ -54,6 +55,7 @@ interface LeadsKanbanProps {
   moveStatuses?: LeadStatus[];
   /** localStorage key prefix for collapsed/compact prefs, so different boards keep separate layouts. */
   persistKeyPrefix?: string;
+  colourMode?: 'aging' | 'overdue';
   leadSources?: LeadSource[];
   getReferrerName?: (partnerId: string | null) => string | null;
   getReferrerCompany?: (partnerId: string | null) => string | null;
@@ -68,7 +70,7 @@ interface LeadsKanbanProps {
   onAddInStage?: (statusName: string) => void;
 }
 
-export function LeadsKanban({ leads, statuses, moveStatuses, persistKeyPrefix = 'crm.leads.kanban', leadSources = [], getReferrerName, getReferrerCompany, getContactName, onOpenLead, onUpdateStatus, onUpdateWipStatus, tasksByLead, taskDueFilter, docsByLead, onDownloadDocs, onAddInStage }: LeadsKanbanProps) {
+export function LeadsKanban({ leads, statuses, moveStatuses, persistKeyPrefix = 'crm.leads.kanban', colourMode = 'aging', leadSources = [], getReferrerName, getReferrerCompany, getContactName, onOpenLead, onUpdateStatus, onUpdateWipStatus, tasksByLead, taskDueFilter, docsByLead, onDownloadDocs, onAddInStage }: LeadsKanbanProps) {
   const [collapsedColumns, setCollapsedColumns] = usePersistedStringSet(`${persistKeyPrefix}.collapsedColumns`, []);
   const [compact, setCompact] = usePersistedState<boolean>(`${persistKeyPrefix}.compact`, false);
   // Local optimistic overrides for sort_order and status to keep DnD snappy.
@@ -223,7 +225,9 @@ export function LeadsKanban({ leads, statuses, moveStatuses, persistKeyPrefix = 
           const isCollapsed = collapsedColumns.has(status.name);
           // Stage dashboards prefix wip-stage columns with "wip:"; age against the real stage name.
           const agingName = status.name.startsWith('wip:') ? status.name.slice(4) : status.name;
-          const staleCount = AGING_EXEMPT_STATUSES.has(agingName)
+          const staleCount = colourMode === 'overdue'
+            ? columnLeads.filter(l => hasOverdueTask(tasksByLead?.get(l.id))).length
+            : AGING_EXEMPT_STATUSES.has(agingName)
             ? 0
             : columnLeads.filter(l => getAgingLevel(l.stage_entered_at, status)?.level === 'red').length;
 
@@ -241,7 +245,7 @@ export function LeadsKanban({ leads, statuses, moveStatuses, persistKeyPrefix = 
                   onClick={() => toggleCollapse(status.name)}
                 >
                   <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: status.color }} />
+                  <div className="w-3 h-3 rounded-full flex-shrink-0 bg-muted-foreground" style={colourMode === 'aging' ? { backgroundColor: status.color } : undefined} />
                   <span className="text-xs font-semibold [writing-mode:vertical-lr] rotate-180">{status.label}</span>
                   <span className="text-[10px] text-muted-foreground font-medium">{columnLeads.length}</span>
                   {totalAmount > 0 && (
@@ -254,7 +258,7 @@ export function LeadsKanban({ leads, statuses, moveStatuses, persistKeyPrefix = 
                 <div className="flex flex-col rounded-lg border bg-muted/30 h-full">
                   <div
                     className="p-3 border-b cursor-pointer group"
-                    style={{ borderTopColor: status.color, borderTopWidth: 3 }}
+                    style={colourMode === 'aging' ? { borderTopColor: status.color, borderTopWidth: 3 } : undefined}
                     onClick={() => toggleCollapse(status.name)}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -266,7 +270,7 @@ export function LeadsKanban({ leads, statuses, moveStatuses, persistKeyPrefix = 
                       {staleCount > 0 && (
                         <span
                           className="text-[10px] px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold shrink-0 inline-flex items-center gap-1"
-                          title={`${staleCount} deal${staleCount === 1 ? '' : 's'} sitting too long in this stage`}
+                          title={`${staleCount} deal${staleCount === 1 ? '' : 's'} ${colourMode === 'overdue' ? 'with overdue tasks' : 'sitting too long in this stage'}`}
                         >
                           <span className="w-1.5 h-1.5 rounded-full bg-destructive" /> {staleCount}
                         </span>
@@ -293,7 +297,8 @@ export function LeadsKanban({ leads, statuses, moveStatuses, persistKeyPrefix = 
                         const hasTask = getLeadHasActiveTasks(lead.id);
                         const docs = docsByLead?.get(lead.id);
                         const docsPct = docs && docs.requested > 0 ? Math.round((docs.completed / docs.requested) * 100) : null;
-                        const aging = getCardAging(lead.stage_entered_at, agingName, status);
+                        const aging = colourMode === 'aging' ? getCardAging(lead.stage_entered_at, agingName, status) : null;
+                        const overdue = colourMode === 'overdue' && hasOverdueTask(tasksByLead?.get(lead.id));
                         return (
                           <Card
                             key={lead.id}
@@ -312,7 +317,7 @@ export function LeadsKanban({ leads, statuses, moveStatuses, persistKeyPrefix = 
                             }}
                             onDrop={(e) => handleCardDrop(e, lead, status.name)}
                             onClick={() => onOpenLead(lead)}
-                            className={`cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors border ${aging ? AGING_CARD_CLASS[aging.level] : 'bg-card'} ${
+                            className={`cursor-grab active:cursor-grabbing hover:border-foreground/40 transition-colors border ${overdue ? 'bg-destructive/10 border-destructive/50' : aging ? AGING_CARD_CLASS[aging.level] : 'bg-card'} ${
                               dragOverCard?.leadId === lead.id && dragOverCard.position === 'before' ? 'border-t-2 border-t-primary' : ''
                             } ${
                               dragOverCard?.leadId === lead.id && dragOverCard.position === 'after' ? 'border-b-2 border-b-primary' : ''
@@ -320,7 +325,7 @@ export function LeadsKanban({ leads, statuses, moveStatuses, persistKeyPrefix = 
                           >
                             <CardContent className={compact ? "p-1.5 space-y-0.5" : "p-2 space-y-1"}>
                               <div className="flex items-start gap-1.5">
-                                <div className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[9px] font-semibold flex items-center justify-center shrink-0">
+                                <div className={`w-5 h-5 rounded-full ${colourMode === 'overdue' ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'} text-[9px] font-semibold flex items-center justify-center shrink-0`}>
                                   {lead.first_name[0]}{lead.last_name?.[0] || ''}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -334,14 +339,14 @@ export function LeadsKanban({ leads, statuses, moveStatuses, persistKeyPrefix = 
                                     <p className="text-[9px] text-muted-foreground truncate">{lead.loan_purpose}</p>
                                   )}
                                 </div>
-                                <StageAgingDot
+                                {colourMode === 'aging' && <StageAgingDot
                                   stageEnteredAt={lead.stage_entered_at}
                                   statusName={agingName}
                                   thresholds={status}
                                   className="mt-0.5"
-                                />
+                                />}
                                 {hasTask && (
-                                  <ClipboardList className="w-3 h-3 text-primary shrink-0 mt-0.5" />
+                                  <ClipboardList aria-label={overdue ? 'Overdue task' : 'Active task'} className={`w-3 h-3 ${overdue ? 'text-destructive' : colourMode === 'overdue' ? 'text-muted-foreground' : 'text-primary'} shrink-0 mt-0.5`} />
                                 )}
                                 <AssigneeBadge userId={lead.assigned_to ?? null} />
                                 <DropdownMenu>
@@ -360,7 +365,7 @@ export function LeadsKanban({ leads, statuses, moveStatuses, persistKeyPrefix = 
                                         onClick={(e) => { e.stopPropagation(); onUpdateStatus(lead.id, s.name); }}
                                         className="text-xs"
                                       >
-                                        <span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: s.color }} />
+                                        {colourMode === 'aging' && <span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: s.color }} />}
                                         {s.label}
                                         {s.name === status.name && <span className="ml-auto text-muted-foreground">(current)</span>}
                                       </DropdownMenuItem>

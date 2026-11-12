@@ -10,6 +10,7 @@ import { stageDashboard } from '@/lib/crmDashboardGroups';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import type { LeadStatus } from '@/hooks/useLeadStatuses';
 import type { WipStatus } from '@/hooks/useWipStatuses';
+import { hasOverdueTask } from '@/lib/dealTaskUrgency';
 
 interface StageLead {
   id: string; first_name: string; last_name: string; email: string | null; phone: string | null;
@@ -121,6 +122,7 @@ export function StageDashboard<T extends StageLead>({ stage, leads, loading, onO
       ) : view === 'board' ? (
         <LeadsKanban
           leads={boardLeads}
+          colourMode={stage === 'settled' || stage === 'preapproved' ? 'overdue' : 'aging'}
           statuses={groupStatuses}
           moveStatuses={moveStatuses}
           persistKeyPrefix={`crm.stage.${stage}.kanban`}
@@ -141,7 +143,7 @@ export function StageDashboard<T extends StageLead>({ stage, leads, loading, onO
             <TableHead>Amount</TableHead><TableHead>Assignee</TableHead><TableHead>{stage === 'settled' ? 'Settlement date' : `${title} since`}</TableHead><TableHead className="w-10" />
           </TableRow></TableHeader>
           <TableBody>{visible.map(lead => (
-            <TableRow key={lead.id} onClick={() => onOpenLead(lead)} className="cursor-pointer">
+            <TableRow key={lead.id} onClick={() => onOpenLead(lead)} className={`cursor-pointer ${(stage === 'settled' || stage === 'preapproved') && hasOverdueTask(tasksByLead?.get(lead.id)) ? 'bg-destructive/10 hover:bg-destructive/15' : ''}`}>
               <TableCell className="font-medium"><Button variant="link" className="h-auto p-0 text-foreground text-left whitespace-normal" onClick={e => { e.stopPropagation(); onOpenLead(lead); }}>{lead.first_name} {lead.last_name}</Button></TableCell>
               <TableCell><div>{lead.email || '—'}</div><div className="text-xs text-muted-foreground">{lead.phone}</div></TableCell>
               <TableCell><div>{leadSources.find(s => s.name === lead.source)?.label || lead.source || '—'}</div><div className="text-xs text-muted-foreground">{getReferrerName(lead.referral_partner_id)}</div></TableCell>
