@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FieldPlacer, type PlacedField } from './FieldPlacer';
+import { buildApplicantSigners } from '@/lib/esignApplicants';
 
 interface Signer {
   id: string;
@@ -52,6 +53,8 @@ interface EsignEvent {
 interface Props {
   leadId?: string | null;
   contactId?: string | null;
+  /** Applicant source for contact-level documents; does not change document ownership. */
+  applicantLeadId?: string | null;
   /** Pre-fills the first signer row. */
   defaultSigner?: { name?: string | null; email?: string | null };
   isPreviewMode?: boolean;
@@ -68,7 +71,7 @@ const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const newToken = () =>
   (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g, '');
 
-export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }: Props) {
+export function EsignSection({ leadId, contactId, applicantLeadId, defaultSigner, isPreviewMode }: Props) {
   const { effectiveBrokerId, user } = useAuth();
   const [docs, setDocs] = useState<EsignDoc[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,6 +87,7 @@ export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }
     { name: defaultSigner?.name || '', email: defaultSigner?.email || '' },
   ]);
   const [saving, setSaving] = useState(false);
+  const [loadingApplicants, setLoadingApplicants] = useState(false);
   const [step, setStep] = useState<'details' | 'fields'>('details');
   const [placedFields, setPlacedFields] = useState<PlacedField[]>([]);
 
@@ -95,7 +99,8 @@ export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }
       .from('esign_documents')
       .select('id, title, message, file_path, file_name, signed_file_path, status, created_at, sent_at, completed_at, esign_signers(id, name, email, signing_order, status, signed_at)')
       .order('created_at', { ascending: false });
-    query = leadId ? query.eq('lead_id', leadId) : query.eq('contact_id', contactId!);
+    if (leadId) query = query.eq('lead_id', leadId);
+    else if (contactId) query = query.eq('contact_id', contactId);
     const { data, error } = await query;
     if (error) toast.error('Could not load signing documents');
     setDocs(((data as unknown as EsignDoc[]) || []).map(d => ({
@@ -106,6 +111,32 @@ export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }
   }, [leadId, contactId, isPreviewMode]);
 
   useEffect(() => { load(); }, [load]);
+
+  const primaryName = defaultSigner?.name;
+  const primaryEmail = defaultSigner?.email;
+  const applicantsFromLead = leadId || applicantLeadId;
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    const primary = { name: primaryName, email: primaryEmail };
+    setRows(buildApplicantSigners(primary, []));
+    if (!applicantsFromLead || isPreviewMode) {
+      setLoadingApplicants(false);
+      return;
+    }
+    setLoadingApplicants(true);
+    const fetchApplicants = async () => {
+      const { data, error } = await supabase.from('lead_applicants')
+        .select('name, email').eq('lead_id', applicantsFromLead)
+        .order('display_order', { ascending: true }).order('created_at', { ascending: true });
+      if (cancelled) return;
+      if (error) toast.error('Could not load saved applicants. Close and reopen to retry.');
+      else setRows(buildApplicantSigners(primary, data || []));
+      setLoadingApplicants(false);
+    };
+    void fetchApplicants();
+    return () => { cancelled = true; };
+  }, [open, applicantsFromLead, primaryName, primaryEmail, isPreviewMode]);
 
   const resetForm = () => {
     setTitle(''); setMessage(''); setFile(null);
@@ -296,8 +327,9 @@ export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }
                 <Textarea id="esign-message" rows={3} value={message} onChange={e => setMessage(e.target.value)} placeholder="A short note that appears in the email and on the signing page." />
               </div>
 
-              <div className="space-y-2">
+              <fieldset className="space-y-2" disabled={loadingApplicants}>
                 <Label>Signers (they sign in this order)</Label>
+                {loadingApplicants && <Loader2 aria-label="Loading applicants" className="w-4 h-4 animate-spin text-muted-foreground" />}
                 {rows.map((r, i) => (
                   <div key={i} className="flex gap-2 items-center">
                     <span className="text-xs text-muted-foreground w-4">{i + 1}</span>
@@ -317,7 +349,7 @@ export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }
                   onClick={() => setRows(p => [...p, { name: '', email: '' }])}>
                   <Plus className="w-3.5 h-3.5" /> Add signer
                 </Button>
-              </div>
+              </fieldset>
             </div>
             ) : (
               file && <FieldPlacer file={file} signers={rows} fields={placedFields} onChange={setPlacedFields} />
@@ -328,11 +360,11 @@ export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }
                 <>
                   <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
                   {isPdf && (
-                    <Button variant="outline" className="gap-1.5" onClick={goToFields}>
+                    <Button variant="outline" className="gap-1.5" onClick={goToFields} disabled={loadingApplicants}>
                       <MousePointerClick className="w-4 h-4" /> Place fields
                     </Button>
                   )}
-                  <Button onClick={createAndSend} disabled={saving} className="gap-1.5">
+                  <Button onClick={createAndSend} disabled={saving || loadingApplicants} className="gap-1.5">
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                     {saving ? 'Sending…' : 'Send for signing'}
                   </Button>
@@ -340,7 +372,7 @@ export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }
               ) : (
                 <>
                   <Button variant="outline" onClick={() => setStep('details')}>Back</Button>
-                  <Button onClick={createAndSend} disabled={saving} className="gap-1.5">
+                  <Button onClick={createAndSend} disabled={saving || loadingApplicants} className="gap-1.5">
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                     {saving ? 'Sending…' : 'Send for signing'}
                   </Button>
@@ -394,7 +426,7 @@ export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }
                     <Download className="w-3 h-3" /> Original
                   </Button>
                   {doc.signed_file_path && (
-                    <Button size="sm" className="h-7 text-xs gap-1" onClick={() => download(doc.signed_file_path!)}>
+                    <Button size="sm" className="h-7 text-xs gap-1" onClick={() => { if (doc.signed_file_path) void download(doc.signed_file_path); }}>
                       <Download className="w-3 h-3" /> Signed copy
                     </Button>
                   )}
@@ -432,7 +464,7 @@ export function EsignSection({ leadId, contactId, defaultSigner, isPreviewMode }
           <div className="space-y-2">
             {(events?.rows || []).length === 0 ? (
               <p className="text-sm text-muted-foreground">No activity recorded yet.</p>
-            ) : events!.rows.map(e => (
+            ) : events?.rows.map(e => (
               <div key={e.id} className="rounded-lg border px-3 py-2">
                 <p className="text-sm capitalize">{e.event_type}</p>
                 <p className="text-[11px] text-muted-foreground">

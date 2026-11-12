@@ -120,6 +120,7 @@ export default function ClientProfile() {
         {tab === 'esign' && (
           <EsignSection
             contactId={contact.id}
+            applicantLeadId={primaryLeadId}
             defaultSigner={{
               name: `${contact.first_name} ${contact.last_name}`.trim(),
               email: contact.email ?? null,

@@ -1,4 +1,5 @@
 # Architecture rules
+- E-sign forms fetch saved applicants on each opening through the shared section and a pure primary-first deduplication helper; contact documents use their primary deal only as the applicant source, preserving document ownership.
 - Shared deal views support an explicit overdue-only colour mode using one pure date-only task predicate, keeping task highlighting consistent without changing other dashboards' stage aging.
 - E-sign completion emails use the managed template sender with a document-specific idempotency key, trusted broker recipient and fresh all-signed check; conditional completion writes prevent duplicate activity during simultaneous signing.
 - CRM dashboard membership uses a shared pure stage classifier honoring cross-dashboard assignments; Leads projects processing columns with namespaced keys, and status management shares the parent hook so saves update membership immediately without duplicating deals or workflows.
