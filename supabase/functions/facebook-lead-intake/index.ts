@@ -149,6 +149,21 @@ Deno.serve(async (req) => {
     });
     if (noteErr) console.error("Note insert failed:", noteErr);
 
+    // Email the broker about the new lead (best-effort)
+    try {
+      const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/notify-new-lead`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
+        body: JSON.stringify({
+          lead: { first_name: first || "Unknown", last_name: last, email, phone, source: "Facebook (Paid Ads)" },
+          broker_id: brokerId,
+        }),
+      });
+      console.log("notify-new-lead:", r.status, await r.text());
+    } catch (err) {
+      console.error("Failed to notify broker:", err);
+    }
+
     return json({ status: "created", lead_id: lead.id });
   } catch (e) {
     console.error("facebook-lead-intake error:", e);
