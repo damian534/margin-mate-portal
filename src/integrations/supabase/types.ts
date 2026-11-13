@@ -1384,6 +1384,144 @@ export type Database = {
           },
         ]
       }
+      fact_find_applicants: {
+        Row: {
+          answers: Json
+          current_step: number
+          display_order: number
+          email: string
+          fact_find_id: string
+          id: string
+          name: string
+          phone: string
+          revision: number
+          source_applicant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          answers?: Json
+          current_step?: number
+          display_order?: number
+          email?: string
+          fact_find_id: string
+          id?: string
+          name?: string
+          phone?: string
+          revision?: number
+          source_applicant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          answers?: Json
+          current_step?: number
+          display_order?: number
+          email?: string
+          fact_find_id?: string
+          id?: string
+          name?: string
+          phone?: string
+          revision?: number
+          source_applicant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fact_find_applicants_fact_find_id_fkey"
+            columns: ["fact_find_id"]
+            isOneToOne: false
+            referencedRelation: "fact_finds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fact_find_consents: {
+        Row: {
+          accepted_at: string
+          applicant_id: string
+          credit_accepted: boolean
+          credit_guide_url: string
+          id: string
+          ip: string | null
+          privacy_accepted: boolean
+          privacy_text: string
+          privacy_url: string
+          privacy_version: string
+          typed_name: string
+          user_agent: string
+        }
+        Insert: {
+          accepted_at?: string
+          applicant_id: string
+          credit_accepted: boolean
+          credit_guide_url: string
+          id?: string
+          ip?: string | null
+          privacy_accepted: boolean
+          privacy_text: string
+          privacy_url: string
+          privacy_version: string
+          typed_name: string
+          user_agent?: string
+        }
+        Update: {
+          accepted_at?: string
+          applicant_id?: string
+          credit_accepted?: boolean
+          credit_guide_url?: string
+          id?: string
+          ip?: string | null
+          privacy_accepted?: boolean
+          privacy_text?: string
+          privacy_url?: string
+          privacy_version?: string
+          typed_name?: string
+          user_agent?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fact_find_consents_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: true
+            referencedRelation: "fact_find_applicants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fact_find_links: {
+        Row: {
+          applicant_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          revoked_at: string | null
+          token_hash: string
+        }
+        Insert: {
+          applicant_id: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          revoked_at?: string | null
+          token_hash: string
+        }
+        Update: {
+          applicant_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          revoked_at?: string | null
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fact_find_links_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "fact_find_applicants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fact_find_responses: {
         Row: {
           completed: boolean
@@ -1420,6 +1558,77 @@ export type Database = {
             foreignKeyName: "fact_find_responses_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fact_find_settings: {
+        Row: {
+          approved: boolean
+          broker_id: string
+          business_name: string
+          credit_guide_url: string
+          privacy_summary: string
+          privacy_url: string
+          privacy_version: string
+          updated_at: string
+        }
+        Insert: {
+          approved?: boolean
+          broker_id: string
+          business_name?: string
+          credit_guide_url?: string
+          privacy_summary?: string
+          privacy_url?: string
+          privacy_version?: string
+          updated_at?: string
+        }
+        Update: {
+          approved?: boolean
+          broker_id?: string
+          business_name?: string
+          credit_guide_url?: string
+          privacy_summary?: string
+          privacy_url?: string
+          privacy_version?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fact_finds: {
+        Row: {
+          broker_id: string
+          created_at: string
+          deal_id: string
+          id: string
+          progress_pct: number
+          status: string
+          submitted_at: string | null
+        }
+        Insert: {
+          broker_id: string
+          created_at?: string
+          deal_id: string
+          id?: string
+          progress_pct?: number
+          status?: string
+          submitted_at?: string | null
+        }
+        Update: {
+          broker_id?: string
+          created_at?: string
+          deal_id?: string
+          id?: string
+          progress_pct?: number
+          status?: string
+          submitted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fact_finds_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: true
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
@@ -3576,6 +3785,15 @@ export type Database = {
       decline_lead_referral: {
         Args: { _referral_id: string }
         Returns: undefined
+      }
+      fact_find_save_draft: {
+        Args: {
+          _answers: Json
+          _applicant_id: string
+          _revision: number
+          _step: number
+        }
+        Returns: boolean
       }
       get_director_company_id: { Args: { _user_id: string }; Returns: string }
       get_invite_preview: {

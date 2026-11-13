@@ -36,6 +36,8 @@ import OAuthConsent from "./pages/OAuthConsent";
 import FundsPosition from "./pages/FundsPosition";
 import Newsfeed from "./pages/Newsfeed";
 import Workflows from "./pages/Workflows";
+import FactFind from "./pages/FactFind";
+import FactFindClient from "./pages/FactFindClient";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'broker' | 'referral_partner' | 'super_admin' | 'broker_or_admin' | 'broker_staff' }) {
@@ -167,6 +169,8 @@ const App = () => (
             } />
             <Route path="/preview" element={<Preview />} />
             <Route path="/client-portal/:token" element={<ClientPortal />} />
+            <Route path="/fact-find" element={<ProtectedRoute requiredRole="broker_or_admin"><FactFind /></ProtectedRoute>} />
+            <Route path="/fact-find/:token" element={<FactFindClient />} />
             <Route path="/sign/:token" element={<SignDocument />} />
             <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
             <Route path="*" element={<NotFound />} />
