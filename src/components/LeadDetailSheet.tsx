@@ -227,6 +227,7 @@ interface LeadDetailSheetProps {
   sampleNotes?: Note[];
   onLeadSourcesChanged?: () => void;
   initialTaskId?: string | null;
+  onTasksChanged?: (leadId: string, tasks: Task[]) => void;
   presentation?: 'lead' | 'deal';
 }
 
@@ -254,7 +255,7 @@ function formatDatetimeLocal(d: Date) {
 
 export function LeadDetailSheet({
   open, onOpenChange, lead, statuses, leadSources = [], referrerName, referrerCompany, sourceContactName,
-  contacts: contactsList = [], referrers: referrersList = [], isPreviewMode, onUpdateStatus, onUpdateWipStatus, onUpdateCommission, onDeleteLead, onDuplicateLead, onLeadChange, onOpenContact, sampleNotes, onLeadSourcesChanged, initialTaskId, presentation
+  contacts: contactsList = [], referrers: referrersList = [], isPreviewMode, onUpdateStatus, onUpdateWipStatus, onUpdateCommission, onDeleteLead, onDuplicateLead, onLeadChange, onOpenContact, sampleNotes, onLeadSourcesChanged, initialTaskId, onTasksChanged, presentation
 }: LeadDetailSheetProps) {
   const { user, role, effectiveBrokerId } = useAuth();
   const { members: teamMembers } = useTeamMembers();
@@ -409,8 +410,11 @@ export function LeadDetailSheet({
       ]);
       return;
     }
-    const { data } = await supabase.from('tasks').select('*').eq('lead_id', leadId).order('due_date', { ascending: true, nullsFirst: false });
-    setTasks(((data as any[]) || []).map(t => ({ ...t, checklist_items: Array.isArray(t.checklist_items) ? t.checklist_items : [] })) as Task[]);
+    const { data, error } = await supabase.from('tasks').select('*').eq('lead_id', leadId).order('due_date', { ascending: true, nullsFirst: false });
+    if (error) return;
+    const savedTasks = ((data as any[]) || []).map(t => ({ ...t, checklist_items: Array.isArray(t.checklist_items) ? t.checklist_items : [] })) as Task[];
+    setTasks(savedTasks);
+    onTasksChanged?.(leadId, savedTasks);
   };
 
   // Auto-expand a task when the sheet is opened with an initialTaskId (e.g. from My Day)
@@ -598,7 +602,7 @@ export function LeadDetailSheet({
   };
 
   const updateTask = async (taskId: string) => {
-    if (!editingTask) return;
+    if (!editingTask || !lead) return;
     if (isPreviewMode) {
       setTasks(prev => prev.map(t => t.id === taskId ? { ...t, title: editingTask.title, due_date: editingTask.dueDate ? new Date(editingTask.dueDate).toISOString() : null } : t));
       toast.success('Task updated (preview)');
@@ -609,12 +613,13 @@ export function LeadDetailSheet({
       }).eq('id', taskId);
       if (error) { toast.error('Failed to update task'); return; }
       toast.success('Task updated');
-      fetchTasks(lead!.id);
+      fetchTasks(lead.id);
     }
     setEditingTask(null);
   };
 
   const deleteTask = async (taskId: string) => {
+    if (!lead) return;
     if (isPreviewMode) {
       setTasks(prev => prev.filter(t => t.id !== taskId));
       toast.success('Task deleted (preview)');
@@ -624,8 +629,8 @@ export function LeadDetailSheet({
     const { error } = await supabase.from('tasks').delete().eq('id', taskId);
     if (error) { toast.error('Failed to delete task'); return; }
     toast.success('Task deleted');
-    fetchTasks(lead!.id);
-    fetchNotes(lead!.id);
+    fetchTasks(lead.id);
+    fetchNotes(lead.id);
   };
 
   const toggleTaskComplete = async (task: Task) => {
@@ -636,8 +641,12 @@ export function LeadDetailSheet({
       await addNote(completed ? `✅ Task completed: "${task.title}"` : `↩️ Task reopened: "${task.title}"`, 'note', task.id);
       return;
     }
-    await supabase.from('tasks').update({ completed, completed_at: completed ? new Date().toISOString() : null }).eq('id', task.id);
-    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, completed, completed_at: completed ? new Date().toISOString() : null } : t));
+    const completedAt = completed ? new Date().toISOString() : null;
+    const { error } = await supabase.from('tasks').update({ completed, completed_at: completedAt }).eq('id', task.id);
+    if (error) { toast.error('Failed to update task'); return; }
+    const updatedTasks = tasks.map(t => t.id === task.id ? { ...t, completed, completed_at: completedAt } : t);
+    setTasks(updatedTasks);
+    onTasksChanged?.(task.lead_id, updatedTasks);
     toast.success(completed ? 'Task completed' : 'Task reopened');
     await addNote(completed ? `✅ Task completed: "${task.title}"` : `↩️ Task reopened: "${task.title}"`, 'note', task.id);
   };
@@ -651,8 +660,12 @@ export function LeadDetailSheet({
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, due_date: iso } : t));
     if (!isPreviewMode) {
       const { error } = await supabase.from('tasks').update({ due_date: iso }).eq('id', taskId);
-      if (error) { toast.error('Failed to reschedule'); return; }
+      if (error) {
+        setTasks(prev => prev.map(t => t.id === taskId ? { ...t, due_date: prevTask?.due_date ?? null } : t));
+        toast.error('Failed to reschedule'); return;
+      }
     }
+    if (lead) onTasksChanged?.(lead.id, tasks.map(t => t.id === taskId ? { ...t, due_date: iso } : t));
     toast.success('Task rescheduled');
     await addNote(`📅 Task rescheduled${prevTask ? ` "${prevTask.title}"` : ''}: ${prevDate} → ${newDate}`, 'note', taskId);
   };

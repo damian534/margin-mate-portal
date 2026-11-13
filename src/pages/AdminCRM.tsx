@@ -13,6 +13,7 @@ import { TasksPanel } from '@/components/TasksPanel';
 import { LeadsKanban } from '@/components/LeadsKanban';
 import { LeadsPriorityList } from '@/components/LeadsPriorityList';
 import { hasOverdueTask } from '@/lib/dealTaskUrgency';
+import { replaceLeadTasks } from '@/lib/leadTaskSync';
 import { StatusSettings } from '@/components/StatusSettings';
 import { CompanyManagement, Company } from '@/components/CompanyManagement';
 import { CompanyCRM } from '@/components/company/CompanyCRM';
@@ -1269,6 +1270,9 @@ export default function AdminCRM() {
         }}
         sampleNotes={isPreviewMode && selectedLead ? (SAMPLE_NOTES[selectedLead.id] || []) as any : undefined}
         onLeadSourcesChanged={fetchLeadSources}
+        onTasksChanged={(leadId, savedTasks) => {
+          setLeadTasks(current => replaceLeadTasks(current, leadId, savedTasks));
+        }}
       />
       <AddLeadDialog
         leadSources={leadSources}
