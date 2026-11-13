@@ -1,4 +1,9 @@
 # Tasks
+- [ ] Standalone Fact Find phase 1: separate navigation and client link, mandatory per-applicant consent, autosave and exact resume; live consent requires approved Privacy Policy and Credit Guide links.
+- [ ] Standalone Fact Find phase 2: personal details and continuous 36-month address/employment histories, with Australian address suggestions.
+- [ ] Standalone Fact Find phase 3: repeatable assets and liabilities with linked property/car loans and no duplicate entry.
+- [ ] Standalone Fact Find phase 4: monthly expenses, editable review, submission and broker notification.
+- [ ] Standalone Fact Find phase 5: deal/client status tab, broker summary, email/SMS invitations and printable PDF export.
 - [x] Simplify Leads, Settled and Pre-approved to neutral deals with red only for overdue incomplete tasks; five date-rule tests pass, signed-in Leads priority/table/board and Pre-approved/Settled boards verified, build clean.
 - [x] Notify the owning broker when every party signs a document; deployed, three rule tests pass, two-party signing produced a completed PDF and one completion event, and managed email logs confirmed a test notification sent to Damian. Temporary test document removed.
 - [x] Allow processing columns to move to Leads with shared live status management; saved Meeting Booked to Leads and verified its eight deals and reload persistence; fourteen routing tests passed.
