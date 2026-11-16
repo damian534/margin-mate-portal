@@ -32,6 +32,7 @@ interface Props {
   tasks: ReactNode;
   taskForm: ReactNode;
   fullFile: ReactNode;
+  revenue?: ReactNode;
 }
 
 export function SimpleLeadCard(props: Props) {
@@ -55,6 +56,7 @@ export function SimpleLeadCard(props: Props) {
           <div className="sm:ml-auto">{props.fullFile}</div>
         </div>
       </header>
+      {props.revenue}
       <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)]">
         <aside className="order-2 lg:order-1 border-t lg:border-t-0 lg:border-r px-5 py-6 sm:px-8 lg:px-6 space-y-7">
           <section>

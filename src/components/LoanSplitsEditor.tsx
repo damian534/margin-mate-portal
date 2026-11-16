@@ -10,6 +10,7 @@ import { SectionCard } from '@/components/lead/SectionCard';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { loanTotalOnLoad } from '@/lib/dealRevenue';
 
 export interface LoanSplit {
   id: string;
@@ -68,7 +69,8 @@ export function LoanSplitsEditor({ leadId, isPreviewMode, onTotalChange, onSettl
     // explicit user action (toggling a split settled/unsettled).
     const names = Array.from(new Set(((l as { name: string }[]) || []).map(x => x.name)));
     setLenders(names);
-    onTotalChange?.(list.reduce((sum, x) => sum + (x.amount || 0), 0));
+    const loadedTotal = loanTotalOnLoad(list.map(split => split.amount));
+    if (loadedTotal !== undefined) onTotalChange?.(loadedTotal);
     setLoading(false);
   };
 

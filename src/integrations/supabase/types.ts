@@ -2381,6 +2381,7 @@ export type Database = {
           loan_amount: number | null
           loan_purpose: string | null
           lodged_date: string | null
+          mandate_fee: number
           metadata: Json | null
           opportunity_name: string | null
           original_broker_id: string | null
@@ -2432,6 +2433,7 @@ export type Database = {
           loan_amount?: number | null
           loan_purpose?: string | null
           lodged_date?: string | null
+          mandate_fee?: number
           metadata?: Json | null
           opportunity_name?: string | null
           original_broker_id?: string | null
@@ -2483,6 +2485,7 @@ export type Database = {
           loan_amount?: number | null
           loan_purpose?: string | null
           lodged_date?: string | null
+          mandate_fee?: number
           metadata?: Json | null
           opportunity_name?: string | null
           original_broker_id?: string | null

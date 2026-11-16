@@ -1,4 +1,5 @@
 # Architecture rules
+- Deal revenue uses a shared pure estimate helper and a persisted lead mandate fee; both sheet presentations share the summary, while split-backed loan totals stay read-only and empty split loads preserve manual estimates.
 - Standalone Fact Find uses separate applicant-scoped hashed links and service-validated draft writes; immutable consent snapshots and broker-only legal approval prevent document-portal coupling or fabricated client consent.
 - Deal task edits publish a lead-scoped saved snapshot to the CRM parent so every dashboard recalculates filters, counts and urgency without a reload; failed saves never publish changes.
 - E-sign forms fetch saved applicants on each opening through the shared section and a pure primary-first deduplication helper; contact documents use their primary deal only as the applicant source, preserving document ownership.

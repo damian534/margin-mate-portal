@@ -45,6 +45,7 @@ import { EsignSection } from '@/components/esign/EsignSection';
 import { SectionCard } from '@/components/lead/SectionCard';
 import { FormAnswersCard } from '@/components/lead/FormAnswersCard';
 import { SimpleLeadCard } from '@/components/lead/SimpleLeadCard';
+import { DealRevenueSummary } from '@/components/lead/DealRevenueSummary';
 import { buildStageChoices, currentStageChoice } from '@/lib/crmDashboardGroups';
 import { ClientFileTabs, type ClientFileTab } from '@/components/lead/tabs/ClientFileTabs';
 import { FundingPositionTab } from '@/components/lead/tabs/FundingPositionTab';
@@ -105,6 +106,7 @@ interface Lead {
   email: string | null;
   phone: string | null;
   loan_amount: number | null;
+  mandate_fee?: number;
   loan_purpose: string | null;
   status: string;
   custom_fields: Record<string, string>;
@@ -1253,6 +1255,7 @@ export function LeadDetailSheet({
           <SheetHeader className="sr-only"><SheetTitle>{lead.first_name} {lead.last_name}</SheetTitle></SheetHeader>
           <SimpleLeadCard
             key={lead.id}
+            revenue={<DealRevenueSummary leadId={lead.id} loanAmount={lead.loan_amount} mandateFee={lead.mandate_fee ?? 0} isPreviewMode={isPreviewMode} onSaved={fields => onLeadChange({ ...lead, ...fields })} />}
             name={`${lead.first_name} ${lead.last_name}`.trim()}
             email={primaryApplicantContact?.email || lead.email}
             phone={primaryApplicantContact?.phone || lead.phone}
@@ -1417,6 +1420,7 @@ export function LeadDetailSheet({
           </div>
         </div>
 
+        <DealRevenueSummary key={lead.id} leadId={lead.id} loanAmount={lead.loan_amount} mandateFee={lead.mandate_fee ?? 0} isPreviewMode={isPreviewMode} onSaved={fields => onLeadChange({ ...lead, ...fields })} />
         <ClientFileTabs
           value={activeTab}
           onChange={setActiveTab}

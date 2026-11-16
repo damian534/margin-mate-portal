@@ -1,0 +1,2 @@
+ALTER TABLE public.leads ADD COLUMN mandate_fee numeric NOT NULL DEFAULT 0 CHECK (mandate_fee >= 0);
+COMMENT ON COLUMN public.leads.mandate_fee IS 'Client mandate fee added to estimated gross business revenue; no GST adjustment is inferred.';

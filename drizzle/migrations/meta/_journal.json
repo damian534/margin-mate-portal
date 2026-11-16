@@ -92,6 +92,13 @@
       "when": 1794611111396,
       "tag": "0012_standalone_fact_find_consent_shell",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794801916485,
+      "tag": "0013_add_deal_mandate_fee",
+      "breakpoints": true
     }
   ]
 }
