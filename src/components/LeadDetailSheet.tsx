@@ -1256,7 +1256,12 @@ export function LeadDetailSheet({
           <SimpleLeadCard
             key={lead.id}
             revenue={<DealRevenueSummary leadId={lead.id} loanAmount={lead.loan_amount} mandateFee={lead.mandate_fee ?? 0} isPreviewMode={isPreviewMode} onSaved={fields => onLeadChange({ ...lead, ...fields })} />}
-            name={`${lead.first_name} ${lead.last_name}`.trim()}
+            name={lead.opportunity_name || `${lead.first_name} ${lead.last_name}`.trim()}
+            onRename={v => onLeadChange?.({ ...lead, opportunity_name: v })}
+            onRenameCommit={async v => {
+              const trimmed = v.trim() || null;
+              await supabase.from('leads').update({ opportunity_name: trimmed } as any).eq('id', lead.id);
+            }}
             email={primaryApplicantContact?.email || lead.email}
             phone={primaryApplicantContact?.phone || lead.phone}
             status={currentStageChoice(lead)}

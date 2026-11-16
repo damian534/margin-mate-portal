@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { format } from 'date-fns';
 import { Mail, Phone, MessageSquare, Pencil, Plus, Send, Pin, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FormAnswersCard } from '@/components/lead/FormAnswersCard';
@@ -11,6 +12,8 @@ interface Attachment { id: string; file_name: string }
 interface Note { id: string; content: string; created_at: string; pinned?: boolean; author_id: string | null; attachments?: Attachment[] }
 interface Props {
   name: string;
+  onRename?: (name: string) => void | Promise<void>;
+  onRenameCommit?: (name: string) => void | Promise<void>;
   email: string | null;
   phone: string | null;
   status: string;
@@ -43,7 +46,18 @@ export function SimpleLeadCard(props: Props) {
   return (
     <div className="bg-background text-foreground">
       <header className="border-b px-5 pb-5 pt-8 sm:px-8">
-        <h2 className="font-heading text-2xl font-bold pr-8 break-words">{props.name}</h2>
+        {props.onRename ? (
+          <Input
+            aria-label="Lead name"
+            value={props.name}
+            placeholder="Lead name"
+            className="font-heading text-2xl font-bold pr-8 h-auto border-0 px-0 py-0 shadow-none focus-visible:ring-0 placeholder:text-muted-foreground/60 placeholder:font-normal"
+            onChange={e => props.onRename?.(e.target.value)}
+            onBlur={e => props.onRenameCommit?.(e.target.value)}
+          />
+        ) : (
+          <h2 className="font-heading text-2xl font-bold pr-8 break-words">{props.name}</h2>
+        )}
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <Select value={props.status} onValueChange={props.onStatus}>
             <SelectTrigger aria-label="Lead stage" className="h-8 w-52 text-xs"><SelectValue /></SelectTrigger>

@@ -229,7 +229,7 @@ function LeadRow({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <p className="text-[15px] font-semibold tracking-tight truncate">
-            {lead.first_name} {lead.last_name}
+            {lead.opportunity_name?.trim() || `${lead.first_name} ${lead.last_name}`}
           </p>
           {isNew && (
             <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-bold tracking-wide shrink-0">
