@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import { allPartiesSigned } from "../_shared/esignCompletion.ts";
 import { sendTemplateEmail } from "../_shared/transactional-email-templates/send-email.ts";
+import { sendSigningInvitations } from "../_shared/esignInvitations.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -319,6 +320,17 @@ Deno.serve(async (req) => {
           // Never undo a client's signature because the broker's email failed.
           console.error("E-sign completion email failed", { documentId: doc.id, error });
         }
+      }
+    }
+
+    if (!completed) {
+      try {
+        const emailKey = Deno.env.get("RESEND_API_KEY");
+        if (!emailKey) throw new Error("Signing email is not configured");
+        await sendSigningInvitations(admin, doc.id, emailKey);
+      } catch (error) {
+        // An email failure must never undo the signature already saved above.
+        console.error("Next signer invitation failed", { documentId: doc.id, error });
       }
     }
 

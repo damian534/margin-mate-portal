@@ -1,4 +1,5 @@
 # Tasks
+- [x] Repair sequential e-sign invitations: deployed shared send/handoff logic, nine signing tests passed, temporary first-signature flow automatically invited the second signer and opened their signing screen; test records/files removed. Beth's missing invitation accepted by email service and recorded; inbox receipt remains unverified.
 - [x] Add deal revenue beside loan value: 0.65% upfront, two years of 0.15% annual trail on original loan amount, plus saved mandate fee; five tests pass, signed-in save/reload and full-file/phone layout verified; original values restored and temporary notes removed. Preview ready; publishing required.
 - [x] Standalone Fact Find phase 1 shell: separate navigation, applicant-specific links, consent gates, saved drafts and exact resume; phone/desktop and real-link autosave verified, temporary test removed.
 - [ ] Standalone Fact Find phase 1 live consent evidence acceptance: waiting for approved Privacy Policy/Credit Guide links and wording; client/server deliberately block acceptance until configured. Test preview records no legal consent.
