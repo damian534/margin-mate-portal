@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,6 +72,18 @@ const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const newToken = () =>
   (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g, '');
 
+async function sendRequest(body: Record<string, unknown>) {
+  const { data, error } = await supabase.functions.invoke('esign-send', { body });
+  if (error) {
+    if (error instanceof FunctionsHttpError) {
+      const details = await error.context.json().catch(() => null);
+      throw new Error(details?.error || 'Could not send signing invitations');
+    }
+    throw error;
+  }
+  return data as { sent: number };
+}
+
 export function EsignSection({ leadId, contactId, applicantLeadId, defaultSigner, isPreviewMode }: Props) {
   const { effectiveBrokerId, user } = useAuth();
   const [docs, setDocs] = useState<EsignDoc[]>([]);
@@ -78,6 +91,8 @@ export function EsignSection({ leadId, contactId, applicantLeadId, defaultSigner
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [events, setEvents] = useState<{ title: string; rows: EsignEvent[] } | null>(null);
+  const [addTo, setAddTo] = useState<EsignDoc | null>(null);
+  const [additionalRows, setAdditionalRows] = useState([{ name: '', email: '' }]);
 
   // New document form
   const [title, setTitle] = useState('');
@@ -220,12 +235,9 @@ export function EsignSection({ leadId, contactId, applicantLeadId, defaultSigner
         if (fieldErr) throw fieldErr;
       }
 
-      const { error: sendErr } = await supabase.functions.invoke('esign-send', {
-        body: { document_id: docId, app_url: window.location.origin },
-      });
-      if (sendErr) throw sendErr;
+      const result = await sendRequest({ document_id: docId });
 
-      toast.success('Sent for signing');
+      toast.success(`Signing invitations sent to ${result.sent} ${result.sent === 1 ? 'person' : 'people'}`);
       setOpen(false);
       resetForm();
       load();
@@ -238,13 +250,26 @@ export function EsignSection({ leadId, contactId, applicantLeadId, defaultSigner
 
   const resend = async (doc: EsignDoc) => {
     setBusy(doc.id);
-    const { error } = await supabase.functions.invoke('esign-send', {
-      body: { document_id: doc.id, app_url: window.location.origin },
-    });
-    setBusy(null);
-    if (error) { toast.error('Could not resend'); return; }
-    toast.success('Reminder sent');
-    load();
+    try {
+      const result = await sendRequest({ document_id: doc.id, action: 'resend' });
+      toast.success(`Reminders sent to ${result.sent} ${result.sent === 1 ? 'person' : 'people'}`);
+    } catch (error) { toast.error((error as Error).message); }
+    finally { setBusy(null); void load(); }
+  };
+
+  const addSigners = async () => {
+    if (!addTo) return;
+    const signers = additionalRows.map(r => ({ name: r.name.trim(), email: r.email.trim() })).filter(r => r.name || r.email);
+    if (!signers.length || signers.some(r => !r.name || !isEmail(r.email))) {
+      toast.error('Enter a name and valid email for every signer'); return;
+    }
+    setBusy(addTo.id);
+    try {
+      const result = await sendRequest({ document_id: addTo.id, action: 'add_signers', signers });
+      toast.success(`Signing invitations sent to ${result.sent} ${result.sent === 1 ? 'person' : 'people'}`);
+      setAddTo(null);
+    } catch (error) { toast.error((error as Error).message); }
+    finally { setBusy(null); void load(); }
   };
 
   const void_ = async (doc: EsignDoc) => {
@@ -431,6 +456,11 @@ export function EsignSection({ leadId, contactId, applicantLeadId, defaultSigner
                     </Button>
                   )}
                   {doc.status !== 'completed' && doc.status !== 'voided' && (
+                    <Button variant="outline" size="sm" className="h-7 text-xs gap-1" disabled={busy === doc.id} onClick={() => { setAdditionalRows([{ name: '', email: '' }]); setAddTo(doc); }}>
+                      <Plus className="w-3 h-3" /> Add signer
+                    </Button>
+                  )}
+                  {doc.status !== 'completed' && doc.status !== 'voided' && (
                     <Button variant="outline" size="sm" className="h-7 text-xs gap-1" disabled={busy === doc.id} onClick={() => resend(doc)}>
                       <Send className="w-3 h-3" /> Resend
                     </Button>
@@ -454,6 +484,28 @@ export function EsignSection({ leadId, contactId, applicantLeadId, defaultSigner
           ))}
         </div>
       )}
+
+      <Dialog open={!!addTo} onOpenChange={o => { if (!o && !busy) setAddTo(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add signers</DialogTitle>
+            <DialogDescription>{addTo?.title}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            {additionalRows.map((r, i) => (
+              <div key={i} className="flex gap-2">
+                <Input aria-label={`Additional signer ${i + 1} name`} placeholder="Full name" value={r.name} onChange={e => setAdditionalRows(p => p.map((x, j) => i === j ? { ...x, name: e.target.value } : x))} />
+                <Input aria-label={`Additional signer ${i + 1} email`} placeholder="Email" type="email" value={r.email} onChange={e => setAdditionalRows(p => p.map((x, j) => i === j ? { ...x, email: e.target.value } : x))} />
+              </div>
+            ))}
+            <Button variant="outline" size="sm" onClick={() => setAdditionalRows(p => [...p, { name: '', email: '' }])} disabled={!!busy || additionalRows.length >= 20}><Plus className="w-4 h-4 mr-1" /> Add another</Button>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" disabled={!!busy} onClick={() => setAddTo(null)}>Cancel</Button>
+            <Button disabled={!!busy} onClick={addSigners}><Send className="w-4 h-4 mr-1" /> {busy ? 'Sending…' : 'Add & send invitations'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!events} onOpenChange={o => !o && setEvents(null)}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">

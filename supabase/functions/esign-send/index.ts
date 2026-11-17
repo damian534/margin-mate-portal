@@ -50,9 +50,35 @@ Deno.serve(async (req) => {
     if (!isSuper && brokerId !== doc.broker_id) return json({ error: "Not authorized" }, 403);
 
     if (["voided", "completed"].includes(doc.status)) return json({ error: "This document is no longer awaiting signatures" }, 400);
-    const result = await sendSigningInvitations(admin, documentId, RESEND_API_KEY, true);
+    if (body.action === "add_signers") {
+      const additions = Array.isArray(body.signers) ? body.signers : [];
+      if (!additions.length || additions.length > 20) return json({ error: "Add between 1 and 20 signers" }, 400);
+      const cleaned: { name: string; email: string }[] = [];
+      for (const entry of additions) {
+        if (!entry || typeof entry.name !== "string" || typeof entry.email !== "string") return json({ error: "Every signer needs a name and email" }, 400);
+        const name = entry.name.trim();
+        const email = entry.email.trim().toLowerCase();
+        if (!name || name.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: "Every signer needs a valid name and email" }, 400);
+        cleaned.push({ name, email });
+      }
+      const { data: existing, error: existingError } = await admin.from("esign_signers").select("name, email, signing_order").eq("document_id", documentId);
+      if (existingError) throw existingError;
+      const identities = new Set((existing || []).map(s => `${s.name.trim().toLowerCase()}|${s.email.trim().toLowerCase()}`));
+      const unique = cleaned.filter(s => {
+        const key = `${s.name.toLowerCase()}|${s.email}`;
+        if (identities.has(key)) return false;
+        identities.add(key);
+        return true;
+      });
+      // Repeated submissions reconcile existing parties instead of adding duplicate signing links.
+      if (unique.length) {
+        const lastOrder = Math.max(0, ...(existing || []).map(s => s.signing_order));
+        const { error: insertError } = await admin.from("esign_signers").insert(unique.map((s, i) => ({ ...s, document_id: documentId, signing_order: lastOrder + i + 1, token: (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g, "") })));
+        if (insertError) throw insertError;
+      }
+    }
+    const result = await sendSigningInvitations(admin, documentId, RESEND_API_KEY, body.action === "resend");
     if (result.failed) return json({ error: "Some signing invitations could not be sent", ...result }, 502);
-    if (!result.sent) return json({ error: "No signers are waiting for an invitation" }, 400);
     return json({ success: true, sent: result.sent });
   } catch (err) {
     console.error(err);
