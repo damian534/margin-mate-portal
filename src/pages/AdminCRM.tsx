@@ -616,7 +616,7 @@ export default function AdminCRM() {
     const lead = leads.find(l => l.id === leadId);
     // Keep lead.status in sync: if file is now actively in WIP, it shouldn't show as Parked/Lost.
     const shouldClearStaleStatus =
-      wip_status && wip_status !== 'settled' && lead && ['parked', 'lost'].includes(lead.status);
+      wip_status && wip_status !== 'settled' && lead && ['parked', 'lost'].includes(stageDashboard(lead.status, statuses) || '');
     const nextStatus = shouldClearStaleStatus ? 'in_progress' : lead?.status;
     const stageNow = new Date().toISOString();
     setLeads(prev => prev.map(l => l.id === leadId
